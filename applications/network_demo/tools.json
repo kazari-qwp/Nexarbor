@@ -1,0 +1,47 @@
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "describe_node",
+      "description": "查看指定节点的类型、是否配置 Agent、本地工具名和出站强弱读连接。描述不包含数据值，也不代表已执行读取。",
+      "parameters": {
+        "type": "object",
+        "properties": {"node_id": {"type": "string", "description": "已注册节点编号，例如 n1。"}},
+        "required": ["node_id"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "weak_read",
+      "description": "弱访问：从指定节点读取本体及沿强读连接可达的数据，不沿弱读连接。返回 BFS 顺序的数据、来源路径和状态。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "node_id": {"type": "string", "description": "起点节点编号，例如 n1。"},
+          "key": {"type": "string", "description": "本地查询主键，数字单值节点使用 value。"}
+        },
+        "required": ["node_id", "key"],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "strong_read",
+      "description": "强访问：从指定节点读取本体及沿强读、弱读连接可达的数据。返回 BFS 顺序的数据、来源路径和状态；环及重复目标只访问一次。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "node_id": {"type": "string", "description": "起点节点编号，例如 n1。"},
+          "key": {"type": "string", "description": "本地查询主键，数字单值节点使用 value。"}
+        },
+        "required": ["node_id", "key"],
+        "additionalProperties": false
+      }
+    }
+  }
+]

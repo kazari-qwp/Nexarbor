@@ -23,7 +23,6 @@ def build_agent_network(client, model: str):
         tool_definitions=tool_definitions,
         extra_body={"thinking": {"type": "disabled"}},
     )
-    root.set_agent_enabled(True)
     return network, root
 
 

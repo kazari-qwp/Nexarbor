@@ -1,29 +1,21 @@
 """实验项目的节点配置，存储实现由 datanet 提供。"""
 
 from functools import partial
+from pathlib import Path
 
-from config import DB_PATH, RECORDS_PATH
-from datanet.nodes.csv_node import CsvNode
-from datanet.network import Network
-from datanet.nodes.node import Node
-from datanet.nodes.sqlite_node import SqliteNode
-from applications.experiment.tools.network_tools import RECORD_DTYPES, analyze_project_via_network
+from config import NETWORK_PATH
+from datanet.serialization import load_network
+from applications.experiment.tools.network_tools import analyze_project_via_network
 
 
-def build_lab_network(db_path=DB_PATH, records_path=RECORDS_PATH):
-    """每次构建独立的根、存储节点及连接，便于演示和测试。"""
-    root = Node("root", "实验项目入口", None)
-    rules = SqliteNode(
-        "lab_rules", "实验规则", "experiment_rule", db_path, "rules", "project_id"
-    )
-    records = CsvNode(
-        "lab_records", "实验记录", "experiment_record",
-        records_path, "记录编号", RECORD_DTYPES,
-    )
-    root.strong_read_interfaces.extend([rules.interface, records.interface])
-    network = Network()
-    for node in (root, rules, records):
-        network.add_node(node)
+def build_lab_network(db_path=None, records_path=None, *, config_path=NETWORK_PATH):
+    """结构从配置加载；可覆盖数据路径以使用独立测试数据。"""
+    network = load_network(config_path)
+    root = network.nodes["root"]
+    if db_path is not None:
+        network.nodes["lab_rules"].db_path = Path(db_path).resolve()
+    if records_path is not None:
+        network.nodes["lab_records"].file_path = Path(records_path).resolve()
     root.tools["analyze_project"] = partial(
         analyze_project_via_network, network=network,
         entry_node_id=root.node_id, scope="integrated",

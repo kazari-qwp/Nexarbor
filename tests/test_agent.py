@@ -44,13 +44,10 @@ class AgentTests(unittest.TestCase):
         self.assertEqual(feedback["pass_rate"], expected["pass_rate"])
         self.assertEqual(feedback["sources"]["records"][0]["retrieval_path"], ["root", "lab_records"])
         self.assertEqual(history[-1]["role"], "assistant")
-        self.assertFalse(network.nodes["lab_records"].agent_enabled)
+        self.assertIsNone(network.nodes["lab_records"].agent)
 
-    def test_disabled_and_missing_agent_fail_before_request(self):
+    def test_missing_agent_fails_before_request(self):
         root = Node("root", "入口", None)
-        with self.assertRaisesRegex(RuntimeError, "未开启"):
-            root.invoke_agent("你好")
-        root.set_agent_enabled(True)
         with self.assertRaisesRegex(RuntimeError, "尚未配置"):
             root.invoke_agent("你好")
 
@@ -59,8 +56,28 @@ class AgentTests(unittest.TestCase):
         client.chat.completions.create.side_effect = responses
         node = Node("root", "入口", None)
         node.agent = Agent(client, "mock", "系统提示", [], max_rounds=max_rounds)
-        node.set_agent_enabled(True)
         return client, node
+
+    def test_detach_and_reattach_agent(self):
+        client, node = self.make_empty_agent([reply("一"), reply("二")])
+        agent = node.agent
+        self.assertTrue(node.describe()["has_agent"])
+        node.invoke_agent("第一问")
+        node.agent = None
+        self.assertFalse(node.describe()["has_agent"])
+        with self.assertRaisesRegex(RuntimeError, "尚未配置"):
+            node.invoke_agent("不能调用")
+        self.assertEqual(client.chat.completions.create.call_count, 1)
+        node.agent = agent
+        self.assertEqual(node.invoke_agent("第二问"), "二")
+        self.assertEqual(len(agent.messages), 5)
+
+    def test_agent_rejects_unbound_node(self):
+        client, node = self.make_empty_agent([])
+        other = Node("other", "其他节点", None)
+        with self.assertRaisesRegex(RuntimeError, "绑定到当前节点"):
+            node.agent.run("你好", node=other)
+        client.chat.completions.create.assert_not_called()
 
     def test_history_persists_and_reset_is_local(self):
         _, node = self.make_empty_agent([reply("一"), reply("二")])

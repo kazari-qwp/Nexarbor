@@ -32,8 +32,8 @@ class Agent:
     def run(self, user_message: str, *, node: Node) -> str:
         if not isinstance(user_message, str):
             raise TypeError("用户消息必须是字符串")
-        if not node.agent_enabled or node.agent is not self:
-            raise RuntimeError("Agent 必须绑定到已开启 Agent 的节点")
+        if node.agent is not self:
+            raise RuntimeError("Agent 必须绑定到当前节点")
         tool_names = {tool["function"]["name"] for tool in self.tool_definitions}
         missing = tool_names - node.tools.keys()
         if missing:

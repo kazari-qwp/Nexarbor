@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "type": "node",
+      "node_id": "root",
+      "name": "实验项目入口",
+      "data_kind": null,
+      "parameters": {},
+      "connections": {
+        "strong_read_interfaces": [
+          "lab_rules",
+          "lab_records"
+        ],
+        "weak_read_interfaces": [],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      }
+    },
+    {
+      "type": "sqlite",
+      "node_id": "lab_rules",
+      "name": "实验规则",
+      "data_kind": "experiment_rule",
+      "parameters": {
+        "db_path": "data/lab.db",
+        "table_name": "rules",
+        "key_column": "project_id"
+      },
+      "connections": {
+        "strong_read_interfaces": [],
+        "weak_read_interfaces": [],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      }
+    },
+    {
+      "type": "csv",
+      "node_id": "lab_records",
+      "name": "实验记录",
+      "data_kind": "experiment_record",
+      "parameters": {
+        "file_path": "data/实验记录01/01.csv",
+        "key_column": "记录编号",
+        "dtype": {
+          "记录编号": "string",
+          "项目": "string",
+          "测量值": "Int64",
+          "是否有效": "string"
+        }
+      },
+      "connections": {
+        "strong_read_interfaces": [],
+        "weak_read_interfaces": [],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      }
+    }
+  ]
+}

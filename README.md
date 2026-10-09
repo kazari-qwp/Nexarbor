@@ -12,10 +12,12 @@
 - 通用 `CsvNode`、`SqliteNode` 和内存单值 `ValueNode`。
 - 节点共享地址接口，分别保存强读、弱读、强写、弱写连接。
 - BFS 读取、环与重复节点去重、数据类型筛选和来源路径。
+- JSON 网络配置保存与加载，恢复节点参数和四种连接。
 - CSV 主键读取、多个等值条件查询；SQLite 只读主键查询。
-- Agent 默认关闭，可绑定独立实例、切换开关、保留或重置会话历史。
+- 节点默认 agent=None；绑定实例即可调用，设回 None 即移除，可保留或重置实例的会话历史。
 - 模型工具调用通过所在节点的工具箱执行，不依赖全局业务注册表。
 - 实验应用的模拟生成、规则初始化、网络统计与中文报告。
+- 数字网络 Agent 演示：查看节点连接，从指定节点执行强读、弱读。
 
 写连接列表和写入入口已预留，实际写入尚未实现。RAG、动态记忆整理、NPC 消息传播和自主创建节点都是后续目标，不属于当前成果。
 
@@ -38,6 +40,7 @@ datanet/                         # 通用框架，不依赖实验应用
   agent/agent.py                 # Agent 与模型/工具循环
   interface.py                   # 不可变地址接口
   network.py                     # get/query 与共享 BFS
+  serialization.py               # JSON v1 保存加载与配置校验
   nodes/
     node/node.py                 # 基础节点、结果与工具箱
     csv_node/csv_node.py
@@ -47,8 +50,15 @@ datanet/                         # 通用框架，不依赖实验应用
       demo.py
       demo_network.py            # 数字网络与强弱读演示
 applications/
+  network_demo/                  # 数字网络 Agent 与管理工具演示
+    setup.py                     # 组装网络、根工具及可选 Agent
+    tools.py                     # describe_node / weak_read / strong_read
+    tools.json                   # 模型可见的工具描述
+    system.md
+    run_agent.py
   experiment/                    # 完整实验应用
-    network_setup.py             # 组装节点、连接及根工具
+    network.json                 # 三节点及四种连接的配置
+    network_setup.py             # 加载网络配置并装配根工具
     agent_setup.py               # 绑定根 Agent
     configuration.py             # 实验规则节点实例
     rules.py                     # 规则查询与判定函数
@@ -107,6 +117,21 @@ result = root.invoke_tool("analyze_project", project_id="B")
 print(result)
 ```
 
+## 保存和加载网络
+
+```python
+from datanet.serialization import save_network, load_network
+
+save_network(network, "network.json")
+network = load_network("network.json")
+```
+
+JSON v1 支持基础、单值、CSV、SQLite 四种节点，保留节点顺序和四种连接列表，支持环和同一地址出现在多个列表。相对数据路径以配置文件所在目录为基准；跨盘符时保存绝对路径。加载不会打开或创建实际数据文件。
+
+CSV、SQLite 只保存访问参数和路径，数据继续保留在原文件；单值节点保存 JSON 原生值。自定义节点类型、非 JSON 单值和非字符串 CSV dtype 明确报错。未知版本、重复节点、缺失连接目标或多余字段也会报错。保存使用临时文件替换，校验失败不会覆盖已有配置。
+
+工具、Agent、密钥及会话历史不写入配置，加载后的节点 `agent=None`、工具箱为空，由应用重新装配。实验应用的三节点结构已迁移到 `applications/experiment/network.json`，Python 装配层只加载配置并绑定合格率工具，不再硬编码节点和连接。
+
 ## 启用模型
 
 在仓库根目录创建 `.env`，填写自己的配置：
@@ -122,7 +147,20 @@ DEEPSEEK_MODEL=你的账户支持的模型名称
 python -m scripts.run_agent "请查询项目 B 的合格率。"
 ```
 
-根节点绑定并开启 Agent，规则和记录节点默认关闭。每次任务最多请求 5 轮；模型返回工具请求后，根节点执行网络统计工具并回传结果。工具选择为 `auto`，模型也可能直接回答，当前尚未强制所有统计回答都有成功的工具证据。
+根节点绑定 Agent，规则和记录节点的 agent 默认为 None。每次任务最多请求 5 轮；模型返回工具请求后，根节点执行网络统计工具并回传结果。工具选择为 `auto`，模型也可能直接回答，当前尚未强制所有统计回答都有成功的工具证据。
+
+### 数字网络 Agent
+
+```powershell
+# 直接调用根工具箱，不请求模型
+python -m scripts.run_network_agent --local
+# 使用同一份 .env，通过模型调用网络工具
+python -m scripts.run_network_agent "从 n1 出发分别强读和弱读，列出数字并解释差异。"
+```
+
+根节点注册 `describe_node(node_id)`、`weak_read(node_id, key)`、`strong_read(node_id, key)`。数字节点 n1～n6 的查询键为 `value`。从 n1 弱读得到 `[1, 2, 4]`，强读得到 `[1, 2, 3, 4, 5, 6]`，结果包含来源及首次发现路径；环与重复连接不会导致重复读取。可以把起点改成 n3 或 n5。
+
+演示根节点的管理工具持有整个网络，可选择任意已注册节点作为起点；这不是按调用者身份限制访问的权限实现。只有根节点绑定 Agent，数字节点的 agent 保持 None。
 
 ## 实验统计规则
 
@@ -143,7 +181,9 @@ python -m scripts.generate_data
 python -m unittest discover -s tests -v
 ```
 
-当前 59 项本地测试覆盖存储读取、条件查询、强弱范围、写连接隔离、环去重、缺失输入、网络统计和模拟 Agent 调用。测试使用独立临时文件；模型响应由模拟客户端提供，不消耗 API 额度。这些是功能测试，不代表已有独立检索性能评估。
+当前 75 项本地测试覆盖存储读取、条件查询、强弱范围、写连接隔离、环去重、缺失输入、网络统计、配置保存加载和模拟 Agent 调用。测试使用独立临时文件；模型响应由模拟客户端提供，不消耗 API 额度。这些是功能测试，不代表已有独立检索性能评估。
+
+数字网络的真实 API 验证中，模型实际调用了节点描述、弱读和强读三个工具；工具反馈中的数字序列已与本地遍历结果核对。
 
 2026-10-09 的真实 API 验证中，模型实际调用一次根统计工具，经网络取得 B 项目有效 18、通过 9、失败 9、合格率 50%。这是模拟数据快照的结果，不是固定业务结论。
 
