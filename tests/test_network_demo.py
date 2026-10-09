@@ -17,7 +17,7 @@ class NetworkDemoTests(unittest.TestCase):
         result = self.root.invoke_tool("describe_node", node_id="n1")
         self.assertEqual(result["strong_read_targets"], ["n2"])
         self.assertEqual(result["weak_read_targets"], ["n3", "n2"])
-        self.assertEqual(set(self.root.tools), {"describe_node", "weak_read", "strong_read"})
+        self.assertEqual(set(self.root.tools), {"describe_node", "weak_read", "strong_read", "weak_write", "strong_write"})
         self.assertFalse(any(n.agent is not None for n in self.network.nodes.values()))
 
     def test_scope_cycle_and_arbitrary_origin(self):

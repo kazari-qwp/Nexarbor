@@ -3,11 +3,18 @@
     "type": "function",
     "function": {
       "name": "describe_node",
-      "description": "查看指定节点的类型、是否配置 Agent、本地工具名和出站强弱读连接。描述不包含数据值，也不代表已执行读取。",
+      "description": "查看指定节点的类型、是否配置 Agent、本地工具名和出站强弱读写连接。描述不包含数据值。",
       "parameters": {
         "type": "object",
-        "properties": {"node_id": {"type": "string", "description": "已注册节点编号，例如 n1。"}},
-        "required": ["node_id"],
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "description": "已注册节点编号，例如 n1。"
+          }
+        },
+        "required": [
+          "node_id"
+        ],
         "additionalProperties": false
       }
     }
@@ -20,10 +27,19 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "node_id": {"type": "string", "description": "起点节点编号，例如 n1。"},
-          "key": {"type": "string", "description": "本地查询主键，数字单值节点使用 value。"}
+          "node_id": {
+            "type": "string",
+            "description": "起点节点编号，例如 n1。"
+          },
+          "key": {
+            "type": "string",
+            "description": "本地查询主键，数字单值节点使用 value。"
+          }
         },
-        "required": ["node_id", "key"],
+        "required": [
+          "node_id",
+          "key"
+        ],
         "additionalProperties": false
       }
     }
@@ -36,10 +52,97 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "node_id": {"type": "string", "description": "起点节点编号，例如 n1。"},
-          "key": {"type": "string", "description": "本地查询主键，数字单值节点使用 value。"}
+          "node_id": {
+            "type": "string",
+            "description": "起点节点编号，例如 n1。"
+          },
+          "key": {
+            "type": "string",
+            "description": "本地查询主键，数字单值节点使用 value。"
+          }
         },
-        "required": ["node_id", "key"],
+        "required": [
+          "node_id",
+          "key"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "weak_write",
+      "description": "从固定根节点出发，沿强写连接写入一个指定目标。只在用户明确要求修改时使用，不广播；不能由模型另选起点绕过根范围。返回状态、写入结果及 write_path。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "target_node_id": {
+            "type": "string",
+            "description": "目标节点编号，如 n2。"
+          },
+          "key": {
+            "type": "string",
+            "description": "数字节点固定为 value。"
+          },
+          "value": {
+            "type": "number",
+            "description": "写入的数字。"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "insert",
+              "update",
+              "upsert"
+            ]
+          }
+        },
+        "required": [
+          "target_node_id",
+          "key",
+          "value",
+          "mode"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "strong_write",
+      "description": "从固定根节点出发，沿强写和弱写连接写入一个指定目标。只在用户明确要求修改时使用，不广播；不能由模型另选起点绕过根范围。返回状态、写入结果及 write_path。",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "target_node_id": {
+            "type": "string",
+            "description": "目标节点编号，如 n2。"
+          },
+          "key": {
+            "type": "string",
+            "description": "数字节点固定为 value。"
+          },
+          "value": {
+            "type": "number",
+            "description": "写入的数字。"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "insert",
+              "update",
+              "upsert"
+            ]
+          }
+        },
+        "required": [
+          "target_node_id",
+          "key",
+          "value",
+          "mode"
+        ],
         "additionalProperties": false
       }
     }

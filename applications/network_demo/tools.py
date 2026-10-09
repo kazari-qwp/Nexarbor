@@ -15,6 +15,8 @@ def describe_node(node_id: str, *, network: Network) -> dict:
         **node.describe(),
         "strong_read_targets": [i.target_node_id for i in node.strong_read_interfaces],
         "weak_read_targets": [i.target_node_id for i in node.weak_read_interfaces],
+        "strong_write_targets": [i.target_node_id for i in node.strong_write_interfaces],
+        "weak_write_targets": [i.target_node_id for i in node.weak_write_interfaces],
         "tools": sorted(node.tools),
     }
 
@@ -29,3 +31,13 @@ def strong_read(node_id: str, key: str, *, network: Network) -> dict:
     if not isinstance(node_id, str) or not isinstance(key, str):
         raise TypeError("节点编号和查询主键必须是字符串")
     return asdict(network.strong_read(node_id, key))
+
+
+def weak_write(target_node_id: str, key: str, value, *, mode: str,
+               network: Network, entry_node_id: str) -> dict:
+    return asdict(network.weak_write(entry_node_id, target_node_id, key, value, mode=mode))
+
+
+def strong_write(target_node_id: str, key: str, value, *, mode: str,
+                 network: Network, entry_node_id: str) -> dict:
+    return asdict(network.strong_write(entry_node_id, target_node_id, key, value, mode=mode))

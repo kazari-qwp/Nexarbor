@@ -1,9 +1,10 @@
-"""一个只读 SQLite 表节点，不依赖具体业务和项目配置。"""
+"""SQLite 表节点：参数化主键读写，不依赖具体业务配置。"""
 
 import sqlite3
 from pathlib import Path
 
 from datanet.nodes.node import Node, NodeResult
+from datanet.nodes.write_support import validate_write, validate_record
 
 
 def quote_identifier(name: str) -> str:
@@ -16,6 +17,53 @@ def quote_identifier(name: str) -> str:
 
 
 class SqliteNode(Node):
+    def write(self, key: str, value, *, mode: str = "upsert") -> NodeResult:
+        validate_write(key, mode)
+        try:
+            connection = sqlite3.connect(self.db_path.as_uri() + "?mode=rw", uri=True)
+            try:
+                connection.row_factory = sqlite3.Row
+                with connection:
+                    # 序列化查重与写入，避免先查询后写入的竞争窗口。
+                    connection.execute("BEGIN IMMEDIATE")
+                    columns = connection.execute(f"PRAGMA table_info({self._table_sql})").fetchall()
+                    names = {column["name"] for column in columns}
+                    if self.key_column not in names:
+                        return NodeResult(status="error", errors=["表不存在或缺少主键列"])
+                    record = validate_record(key, value, self.key_column, names)
+                    rows = connection.execute(
+                        f"SELECT * FROM {self._table_sql} WHERE {self._key_sql} = ? LIMIT 2", (key,)
+                    ).fetchall()
+                    if len(rows) > 1:
+                        return NodeResult(status="error", errors=[f"主键重复：{key}"])
+                    if rows and mode == "insert":
+                        return NodeResult(status="conflict", errors=[f"主键已存在：{key}"])
+                    if not rows and mode == "update":
+                        return NodeResult(status="not_found")
+                    if rows:
+                        fields = [column for column in record if column != self.key_column]
+                        if fields:
+                            assignments = ", ".join(f"{quote_identifier(column)} = ?" for column in fields)
+                            connection.execute(f"UPDATE {self._table_sql} SET {assignments} WHERE {self._key_sql} = ?",
+                                               [record[column] for column in fields] + [key])
+                    else:
+                        fields = list(record)
+                        identifiers = ", ".join(quote_identifier(column) for column in fields)
+                        placeholders = ", ".join("?" for _ in fields)
+                        connection.execute(f"INSERT INTO {self._table_sql} ({identifiers}) VALUES ({placeholders})",
+                                           [record[column] for column in fields])
+                    row = connection.execute(f"SELECT * FROM {self._table_sql} WHERE {self._key_sql} = ?", (key,)).fetchone()
+                    result = NodeResult(items=[dict(row)], sources=[{
+                        "node_id": self.node_id, "database": self.db_path.as_posix(),
+                        "table": self.table_name, "key_column": self.key_column,
+                        "key": key, "operation": "write", "mode": mode,
+                    }])
+                return result
+            finally:
+                connection.close()
+        except sqlite3.Error as error:
+            return NodeResult(status="error", errors=[str(error)])
+
     def __init__(self, node_id: str, name: str, data_kind: str,
                  db_path: str | Path, table_name: str, key_column: str):
         super().__init__(node_id, name, data_kind)

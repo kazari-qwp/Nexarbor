@@ -52,6 +52,9 @@ class Node:
             raise ValueError(f"工具不存在：{tool_name}")
         return self.tools[tool_name](**arguments)
 
+    def write(self, key: str, value: Any, *, mode: str = "upsert") -> NodeResult:
+        return NodeResult(status="unsupported", errors=["节点不支持本地写入"])
+
     def invoke_agent(self, user_message: str) -> str:
         if self.agent is None:
             raise RuntimeError("该节点尚未配置 Agent")

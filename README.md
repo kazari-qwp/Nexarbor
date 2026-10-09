@@ -4,22 +4,22 @@
 
 可组合的 Agent 数据网络。节点提供数据和工具，通过不同的读取、写入连接组成有向网络；需要推理的节点可以配置独立 Agent。Python 框架包名保留为 `datanet`。
 
-目前已实现只读网络和实验分析演示：根 Agent 调用根节点的合格率工具，工具经网络读取 CSV 实验记录和 SQLite 判定规则，再用 Python 计算并返回来源。实验记录全部为模拟数据。
+目前已实现读写网络和实验分析演示：根 Agent 调用根节点的合格率工具，工具经网络读取 CSV 实验记录和 SQLite 判定规则，再用 Python 计算并返回来源。实验记录全部为模拟数据。
 
 ## 已实现的能力
 
 - 基础 `Node`、统一结果 `NodeResult` 和本地工具箱。
-- 通用 `CsvNode`、`SqliteNode` 和内存单值 `ValueNode`。
+- 通用 `CsvNode`、`SqliteNode` 和内存单值 `ValueNode`，统一 write() 本地写入。
 - 节点共享地址接口，分别保存强读、弱读、强写、弱写连接。
 - BFS 读取、环与重复节点去重、数据类型筛选和来源路径。
 - JSON 网络配置保存与加载，恢复节点参数和四种连接。
-- CSV 主键读取、多个等值条件查询；SQLite 只读主键查询。
+- CSV 主键读取、多个等值条件查询；SQLite 主键查询及事务写入。
 - 节点默认 agent=None；绑定实例即可调用，设回 None 即移除，可保留或重置实例的会话历史。
 - 模型工具调用通过所在节点的工具箱执行，不依赖全局业务注册表。
 - 实验应用的模拟生成、规则初始化、网络统计与中文报告。
 - 数字网络 Agent 演示：查看节点连接，从指定节点执行强读、弱读。
 
-写连接列表和写入入口已预留，实际写入尚未实现。RAG、动态记忆整理、NPC 消息传播和自主创建节点都是后续目标，不属于当前成果。
+写入按强弱写连接路由到一个指定目标，支持 insert/update/upsert。RAG、动态记忆整理、NPC 消息传播和自主创建节点都是后续目标，不属于当前成果。
 
 ## 访问语义
 
@@ -158,7 +158,7 @@ python -m scripts.run_network_agent --local
 python -m scripts.run_network_agent "从 n1 出发分别强读和弱读，列出数字并解释差异。"
 ```
 
-根节点注册 `describe_node(node_id)`、`weak_read(node_id, key)`、`strong_read(node_id, key)`。数字节点 n1～n6 的查询键为 `value`。从 n1 弱读得到 `[1, 2, 4]`，强读得到 `[1, 2, 3, 4, 5, 6]`，结果包含来源及首次发现路径；环与重复连接不会导致重复读取。可以把起点改成 n3 或 n5。
+根节点注册 describe_node、weak_read、strong_read、weak_write、strong_write 五个工具。数字节点 n1～n6 的查询键为 `value`。从 n1 弱读得到 `[1, 2, 4]`，强读得到 `[1, 2, 3, 4, 5, 6]`，结果包含来源及首次发现路径；环与重复连接不会导致重复读取。可以把起点改成 n3 或 n5。
 
 演示根节点的管理工具持有整个网络，可选择任意已注册节点作为起点；这不是按调用者身份限制访问的权限实现。只有根节点绑定 Agent，数字节点的 agent 保持 None。
 
@@ -181,10 +181,36 @@ python -m scripts.generate_data
 python -m unittest discover -s tests -v
 ```
 
-当前 75 项本地测试覆盖存储读取、条件查询、强弱范围、写连接隔离、环去重、缺失输入、网络统计、配置保存加载和模拟 Agent 调用。测试使用独立临时文件；模型响应由模拟客户端提供，不消耗 API 额度。这些是功能测试，不代表已有独立检索性能评估。
+当前 88 项本地测试覆盖存储读取、条件查询、强弱范围、写连接隔离、环去重、缺失输入、网络统计、配置保存加载和模拟 Agent 调用。测试使用独立临时文件；模型响应由模拟客户端提供，不消耗 API 额度。这些是功能测试，不代表已有独立检索性能评估。
 
 数字网络的真实 API 验证中，模型实际调用了节点描述、弱读和强读三个工具；工具反馈中的数字序列已与本地遍历结果核对。
 
 2026-10-09 的真实 API 验证中，模型实际调用一次根统计工具，经网络取得 B 项目有效 18、通过 9、失败 9、合格率 50%。这是模拟数据快照的结果，不是固定业务结论。
 
 完整目标见 [项目目标](docs/PROJECT_GOALS.md)，实际阶段记录见 [项目进度](docs/PROJECT_PROGRESS.md)。后续包括精确事实版本、任务恢复、RAG、基于使用反馈的记忆关联与冷热分层，以及 NPC 分圈消息传播；Agent 自主创建节点安排在最后。
+
+
+## 本地写入与网络写入
+
+三种数据节点统一提供 `write(key, value, mode="upsert")`，返回 NodeResult。insert 仅新增（已存在返回 conflict），update 仅更新（不存在返回 not_found），upsert 更新或新增。ValueNode 创建时已有 value，即使值为 None，insert 也返回 conflict；只接受固定主键 value。CSV/SQLite 的 value 为字段字典，可部分更新，未提供的字段保留；主键由 key 提供，不允许在 value 中改成另一主键。
+
+```python
+value_node.write("value", 42, mode="update")
+csv_node.write("001", {"测量值": 85}, mode="update")
+sqlite_node.write("A", {"lower_bound": 85}, mode="update")
+
+result = network.weak_write("root", "target_id", "value", 42, mode="update")
+result = network.strong_write("root", "target_id", "value", 42, mode="update")
+```
+
+weak_write 沿强写连接，strong_write 沿强、弱写连接；都包含起点。网络用 BFS 查找目标，环和重复地址去重，只修改指定目标一次，不广播、不沿读连接。目标不在范围内返回 forbidden，基础 Node 写入返回 unsupported，成功结果附 write_path。该范围控制仍是程序内配置，不是调用者身份认证。
+
+CSV 校验字段和已配置 dtype 后通过同目录临时文件替换保存；现有文件/表必须存在，不自动建库建表。SQLite 使用事务处理查重与写入，字段约束失败回滚，数值类型遵循表本身的 SQLite 类型与约束。写入参数错误会抛出 TypeError/ValueError，存储错误通过 NodeResult.errors 返回。CSV 暂无多进程读改写锁，不支持并发写入；网络不提供跨节点事务，工具成功写入后，模型回答失败也不会撤销数据。
+
+数字 Agent 演示写连接为 root 强写到 n1、n1 强写到 n2、n1 弱写到 n3。模型写工具的起点固定 root，不能自己换起点；弱写可改 n1/n2，强写还可改 n3，n4～n6 不在写范围。写工具只修改本次进程的内存值；实验应用仍仅注册统计工具，其配置的写连接为空。
+
+```powershell
+python -m scripts.run_network_agent "从 root 弱写把 n2 的 value 更新为 42，随后读取核对。"
+```
+
+真实 API 测试已实际调用 describe_node、weak_write、weak_read，n2 更新为 42，写路径为 root→n1→n2，写后读取核对成功；其他数字未改变，CSV/SQLite 实验数据未修改。

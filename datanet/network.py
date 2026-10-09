@@ -1,4 +1,4 @@
-"""读取网络：get/query 共用遍历，只沿读连接访问。"""
+"""读写分离的网络：读取聚合，写入按范围定向路由。"""
 
 from collections import deque
 from collections.abc import Callable
@@ -34,15 +34,42 @@ class Network:
         """强访问：本体及沿强、弱读连接可达的数据。"""
         return self.get(node_id, key, scope="federated", data_kind=data_kind)
 
-    def weak_write(self, node_id: str, data: Any,
-                   data_kind: str | None = None) -> None:
-        """预留弱写入口，尚未实现写入路由和存储操作。"""
-        raise NotImplementedError("弱写尚未实现")
+    def weak_write(self, node_id: str, target_node_id: str, key: str, value: Any,
+                   *, mode: str = "upsert") -> NodeResult:
+        """只沿强写连接寻找指定目标，包含起点本体。"""
+        return self._write(node_id, target_node_id, key, value, mode, False)
 
-    def strong_write(self, node_id: str, data: Any,
-                     data_kind: str | None = None) -> None:
-        """预留强写入口，尚未实现写入路由和存储操作。"""
-        raise NotImplementedError("强写尚未实现")
+    def strong_write(self, node_id: str, target_node_id: str, key: str, value: Any,
+                     *, mode: str = "upsert") -> NodeResult:
+        """沿强、弱写连接寻找指定目标，只写入一次。"""
+        return self._write(node_id, target_node_id, key, value, mode, True)
+
+    def _write(self, node_id, target_node_id, key, value, mode, include_weak):
+        from datanet.nodes.write_support import validate_write
+        validate_write(key, mode)
+        if not isinstance(node_id, str) or not isinstance(target_node_id, str):
+            raise TypeError("起点和目标编号必须是字符串")
+        if node_id not in self.nodes or target_node_id not in self.nodes:
+            return NodeResult(status="error", errors=["起点或目标节点不存在"])
+        queue = deque([(node_id, [node_id])])
+        visited = set()
+        while queue:
+            current_id, path = queue.popleft()
+            if current_id in visited:
+                continue
+            visited.add(current_id)
+            node = self.nodes.get(current_id)
+            if node is None:
+                continue
+            if current_id == target_node_id:
+                result = node.write(key, value, mode=mode)
+                result.sources = [{**source, "write_path": path.copy()} for source in result.sources]
+                return result
+            interfaces = list(node.strong_write_interfaces)
+            if include_weak:
+                interfaces.extend(node.weak_write_interfaces)
+            queue.extend((i.target_node_id, [*path, i.target_node_id]) for i in interfaces)
+        return NodeResult(status="forbidden", errors=["目标不在当前写入范围内"])
 
     def _read(self, node_id: str, scope: str, data_kind: str | None,
               read_local: Callable[[Node], NodeResult | None]) -> NodeResult:

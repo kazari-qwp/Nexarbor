@@ -1,15 +1,57 @@
-"""只读 CSV 节点：主键读取与等值条件查询。"""
+"""CSV 节点：主键读写与等值条件查询。"""
 
 from pathlib import Path
+import os
+import tempfile
 from typing import Any
 
 import pandas as pd
 from pandas.api.types import is_scalar
 
 from datanet.nodes.node import Node, NodeResult
+from datanet.nodes.write_support import validate_write, validate_record
 
 
 class CsvNode(Node):
+    def write(self, key: str, value: Any, *, mode: str = "upsert") -> NodeResult:
+        validate_write(key, mode)
+        records = self._read_records()
+        if isinstance(records, NodeResult):
+            return records
+        record = validate_record(key, value, self.key_column, records.columns)
+        matched = records[self.key_column].eq(key).fillna(False)
+        count = int(matched.sum())
+        if count > 1:
+            return NodeResult(status="error", errors=[f"主键重复：{key}"])
+        if count and mode == "insert":
+            return NodeResult(status="conflict", errors=[f"主键已存在：{key}"])
+        if not count and mode == "update":
+            return NodeResult(status="not_found")
+        # 在副本上修改，重新应用 dtype；验证失败不触碰原文件。
+        updated = records.astype(object).copy()
+        if count:
+            index = updated.index[matched][0]
+            for column, item in record.items():
+                updated.at[index, column] = item
+        else:
+            updated = pd.concat([updated, pd.DataFrame([record])], ignore_index=True)
+        temporary = None
+        try:
+            updated = updated.astype(self.dtype)
+            result = self._result(updated[updated[self.key_column].eq(key)],
+                                  {"key": key, "operation": "write", "mode": mode})
+            with tempfile.NamedTemporaryFile(dir=self.file_path.parent, delete=False,
+                                             suffix=".csv") as file:
+                temporary = Path(file.name)
+            updated.to_csv(temporary, index=False, encoding="utf-8-sig")
+            os.replace(temporary, self.file_path)
+            return result
+        except (OSError, ValueError, TypeError) as error:
+            return NodeResult(status="error", errors=[str(error)])
+        finally:
+            if temporary is not None and temporary.exists():
+                temporary.unlink()
+
     def __init__(self, node_id: str, name: str, data_kind: str,
                  file_path: str | Path, key_column: str,
                  dtype: dict[str, Any] | None = None):
