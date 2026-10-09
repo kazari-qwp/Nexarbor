@@ -1,0 +1,59 @@
+{
+  "version": 2,
+  "nodes": [
+    {
+      "type": "node",
+      "node_id": "root",
+      "name": "委托协调者",
+      "data_kind": null,
+      "parameters": {},
+      "connections": {
+        "strong_read_interfaces": [
+          "worker"
+        ],
+        "weak_read_interfaces": [],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      },
+      "agent": {
+        "model": "deepseek-chat",
+        "prompt_path": "prompts/root.md",
+        "tools_path": null,
+        "max_rounds": 8,
+        "max_tokens": 1000,
+        "thinking": false
+      },
+      "description": "协调任务并委托 worker 处理本地数字。"
+    },
+    {
+      "type": "value",
+      "node_id": "worker",
+      "name": "本地数字处理者",
+      "data_kind": "number",
+      "parameters": {
+        "value": 42
+      },
+      "connections": {
+        "strong_read_interfaces": [],
+        "weak_read_interfaces": [],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      },
+      "agent": {
+        "model": "deepseek-chat",
+        "prompt_path": "prompts/worker.md",
+        "tools_path": null,
+        "max_rounds": 8,
+        "max_tokens": 1000,
+        "thinking": false
+      },
+      "description": "保存模拟数字 42，Agent 负责读取自身数据并回复委托。"
+    }
+  ],
+  "delegations": [
+    {
+      "source": "root",
+      "target": "worker"
+    }
+  ]
+}

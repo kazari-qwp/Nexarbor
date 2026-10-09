@@ -65,13 +65,30 @@ class SqliteNode(Node):
             return NodeResult(status="error", errors=[str(error)])
 
     def __init__(self, node_id: str, name: str, data_kind: str,
-                 db_path: str | Path, table_name: str, key_column: str):
-        super().__init__(node_id, name, data_kind)
+                 db_path: str | Path, table_name: str, key_column: str, *, description: str = ""):
+        super().__init__(node_id, name, data_kind, description=description)
         self.db_path = Path(db_path).resolve()
         self.table_name = table_name
         self.key_column = key_column
         self._table_sql = quote_identifier(table_name)
         self._key_sql = quote_identifier(key_column)
+
+    def get_schema(self) -> dict:
+        try:
+            connection = sqlite3.connect(self.db_path.as_uri() + "?mode=ro", uri=True)
+            try:
+                connection.row_factory = sqlite3.Row
+                columns = connection.execute(f"PRAGMA table_info({self._table_sql})").fetchall()
+            finally:
+                connection.close()
+        except sqlite3.Error as error:
+            raise ValueError(f"读取 SQLite 结构失败：{error}") from error
+        if not columns or self.key_column not in {column["name"] for column in columns}:
+            raise ValueError("表不存在或缺少主键列")
+        return {"kind": "record", "table": self.table_name, "key_column": self.key_column,
+                "fields": {column["name"]: {"type": column["type"] or None,
+                    "not_null": bool(column["notnull"]), "primary_key_order": column["pk"],
+                    "default": column["dflt_value"]} for column in columns}}
 
     def get(self, key: str) -> NodeResult:
         if not isinstance(key, str):

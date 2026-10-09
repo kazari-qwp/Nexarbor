@@ -13,15 +13,13 @@ from applications.network_demo.setup import build_agent_network, build_demo_netw
 
 def main():
     parser = argparse.ArgumentParser(description="数字网络 Agent 演示")
-    parser.add_argument("question", nargs="?", default="从 n1 出发分别强读和弱读，列出数字并解释差异。")
+    parser.add_argument("question", nargs="?", default="分别强读和弱读，列出数字并解释差异。")
     parser.add_argument("--local", action="store_true", help="直接调用工具，不请求模型")
     args = parser.parse_args()
     if args.local:
         _, root = build_demo_network()
         for name in ("describe_node", "weak_read", "strong_read"):
-            arguments = {"node_id": "n1"}
-            if name != "describe_node":
-                arguments["key"] = "value"
+            arguments = {"node_id": "root"} if name == "describe_node" else {"key": "value"}
             print(name)
             print(json.dumps(root.invoke_tool(name, **arguments), ensure_ascii=False, indent=2))
         return

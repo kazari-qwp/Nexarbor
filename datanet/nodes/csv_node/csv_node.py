@@ -54,12 +54,21 @@ class CsvNode(Node):
 
     def __init__(self, node_id: str, name: str, data_kind: str,
                  file_path: str | Path, key_column: str,
-                 dtype: dict[str, Any] | None = None):
-        super().__init__(node_id, name, data_kind)
+                 dtype: dict[str, Any] | None = None, *, description: str = ""):
+        super().__init__(node_id, name, data_kind, description=description)
         self.file_path = Path(file_path).resolve()
         self.key_column = key_column
         self.dtype = dict(dtype or {})
         self.dtype[key_column] = "string"
+
+    def get_schema(self) -> dict:
+        columns = list(pd.read_csv(self.file_path, nrows=0, encoding="utf-8-sig").columns)
+        if self.key_column not in columns:
+            raise ValueError(f"CSV 缺少主键列：{self.key_column}")
+        return {"kind": "record", "key_column": self.key_column, "fields": {
+            column: {"type": str(self.dtype[column]) if column in self.dtype else None,
+                     "type_source": "configured_dtype" if column in self.dtype else "unspecified"}
+            for column in columns}}
 
     def _read_records(self) -> pd.DataFrame | NodeResult:
         try:

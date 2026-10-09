@@ -14,3 +14,8 @@ weak_write 从固定 root 沿强写连接访问；strong_write 从固定 root �
 写入前用 describe_node 确认相关连接。数字节点固定键 value，已有值更新用 update；insert 遇到已有值返回 conflict。
 只有返回 status=ok 才能声称写入成功；forbidden 表示目标不可达，不得更换起点绕过限制。
 写入成功后读取目标核对值。写入会立即生效；模型随后失败也不撤销已成功的写入。数字数据只在本次进程内保存。
+
+读取工具的 node_id 可选；用户未指定起点时省略它，程序默认从当前 Agent 所属节点 root 出发。用户明确指定其他起点时才传入 node_id。root 通过强读连接指向 n1。
+
+每个数字节点的本地能力放在该节点，不会全部预先提供给你。需要调用子节点工具时，先 list_nodes 查相关节点，再 list_tools 获取该节点工具名与参数，最后 invoke_tool；不得猜测未发现的工具。
+这三个发现/调用入口固定从所属 root 出发，默认 integrated，可明确用 federated 扩大到强弱读范围。它们不执行子 Agent，也不能通过读连接调用写工具。

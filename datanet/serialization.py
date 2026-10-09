@@ -1,4 +1,4 @@
-"""JSON v1 网络配置；不保存工具、Agent、客户端或会话历史。"""
+"""JSON v2：节点、连接、Agent 创建配置和显式委托许可，兼容 v1。"""
 
 import json
 import math
@@ -8,6 +8,8 @@ from pathlib import Path
 
 from datanet.network import Network
 from datanet.nodes import Node, ValueNode, CsvNode, SqliteNode
+from datanet.agent import Agent
+from datanet.agent.configuration import validate_config
 
 
 LINKS = ("strong_read_interfaces", "weak_read_interfaces",
@@ -56,6 +58,8 @@ def save_network(network: Network, path: str | Path) -> None:
             raise ValueError(f"不支持保存的节点类型：{type(node).__name__}")
         _string(node_id, "node_id")
         _string(node.name, "name")
+        if not isinstance(node.description, str):
+            raise ValueError("description 必须为字符串")
         if node.data_kind is not None:
             _string(node.data_kind, "data_kind")
         parameters = {}
@@ -76,10 +80,30 @@ def save_network(network: Network, path: str | Path) -> None:
             if any(target not in network.nodes for target in targets):
                 raise ValueError(f"节点 {node_id} 的 {label} 含不存在的目标")
             connections[label] = targets
+        agent_config = node.agent_config
+        if isinstance(node.agent, Agent):
+            if node.agent.extra_body not in (None, {"thinking": {"type": "disabled"}}, {"thinking": {"type": "enabled"}}):
+                raise ValueError("Agent 配置只支持 thinking 开关，不保存其他 extra_body")
+            agent_config = {"model": node.agent.model, "prompt_path": str(node.agent.prompt_path),
+                "tools_path": (agent_config or {}).get("tools_path"),
+                "max_rounds": node.agent.max_rounds, "max_tokens": node.agent.max_tokens,
+                "thinking": None if node.agent.extra_body is None else node.agent.extra_body["thinking"]["type"] == "enabled"}
+            if agent_config["tools_path"] is None:
+                known = node.tool_definitions.keys() | {"list_nodes", "list_tools", "invoke_tool", "ask_agent"}
+                if any(d["function"]["name"] not in known for d in node.agent.tool_definitions):
+                    raise ValueError("保存 Agent 前需要配置工具定义文件或登记本地工具元数据")
+        agent_config = validate_config(agent_config, path.parent)
+        if agent_config is not None:
+            for label in ("prompt_path", "tools_path"):
+                if agent_config[label] is not None:
+                    agent_config[label] = _path_string(Path(agent_config[label]), path.parent)
         entries.append({"type": TYPES[type(node)], "node_id": node_id, "name": node.name,
+                        "description": node.description,
                         "data_kind": node.data_kind, "parameters": parameters,
-                        "connections": connections})
-    document = {"version": 1, "nodes": entries}
+                        "connections": connections, "agent": agent_config})
+    document = {"version": 2, "nodes": entries, "delegations": [
+        {"source": source, "target": target} for source, targets in network.delegation_permissions.items()
+        for target in targets]}
     # 同样通过加载校验器验证，保证保存出来的配置可以加载。
     _build(document, path.parent)
     content = json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
@@ -102,15 +126,19 @@ def _fields(value, expected, label):
 
 
 def _build(document, base):
-    _fields(document, ("version", "nodes"), "网络配置")
-    if type(document["version"]) is not int or document["version"] != 1:
+    if not isinstance(document, dict) or type(document.get("version")) is not int or document["version"] not in (1, 2):
         raise ValueError("不支持的网络配置版本")
+    version = document["version"]
+    _fields(document, ("version", "nodes") if version == 1 else ("version", "nodes", "delegations"), "网络配置")
     if not isinstance(document["nodes"], list):
         raise ValueError("nodes 必须是列表")
     network = Network()
     # 先创建全部节点，再恢复连接，支持前向引用与环。
     for entry in document["nodes"]:
-        _fields(entry, ("type", "node_id", "name", "data_kind", "parameters", "connections"), "节点")
+        fields = ("type", "node_id", "name", "data_kind", "parameters", "connections")
+        if isinstance(entry, dict) and "description" in entry:
+            fields = (*fields, "description")
+        _fields(entry, fields if version == 1 else (*fields, "agent"), "节点")
         node_id = _string(entry["node_id"], "node_id")
         name = _string(entry["name"], "name")
         kind = entry["data_kind"]
@@ -140,6 +168,11 @@ def _build(document, base):
                               _string(params["key_column"], "key_column"))
         else:
             raise ValueError(f"未知节点类型：{node_type}")
+        node.agent_config = validate_config(entry.get("agent"), base)
+        description = entry.get("description", "")
+        if not isinstance(description, str):
+            raise ValueError("description 必须为字符串")
+        node.description = description
         network.add_node(node)
     for entry in document["nodes"]:
         connections = entry["connections"]
@@ -153,6 +186,18 @@ def _build(document, base):
                 if target not in network.nodes:
                     raise ValueError(f"连接目标不存在：{target}")
                 getattr(node, label).append(network.nodes[target].interface)
+    delegations = document.get("delegations", [])
+    if not isinstance(delegations, list):
+        raise ValueError("delegations 必须是列表")
+    for grant in delegations:
+        _fields(grant, ("source", "target"), "委托许可")
+        source, target = _string(grant["source"], "source"), _string(grant["target"], "target")
+        if source not in network.nodes or target not in network.nodes:
+            raise ValueError("委托许可引用不存在的节点")
+        targets = network.delegation_permissions.setdefault(source, [])
+        if target in targets:
+            raise ValueError("委托许可重复")
+        targets.append(target)
     return network
 
 

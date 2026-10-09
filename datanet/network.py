@@ -10,6 +10,7 @@ from datanet.nodes.node import Node, NodeResult
 class Network:
     def __init__(self):
         self.nodes: dict[str, Node] = {}
+        self.delegation_permissions: dict[str, list[str]] = {}
 
     def add_node(self, node: Node):
         if node.node_id in self.nodes:

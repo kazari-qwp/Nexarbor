@@ -21,13 +21,17 @@ def describe_node(node_id: str, *, network: Network) -> dict:
     }
 
 
-def weak_read(node_id: str, key: str, *, network: Network) -> dict:
+def weak_read(key: str, node_id: str | None = None, *, network: Network,
+              entry_node_id: str) -> dict:
+    node_id = entry_node_id if node_id is None else node_id
     if not isinstance(node_id, str) or not isinstance(key, str):
         raise TypeError("节点编号和查询主键必须是字符串")
     return asdict(network.weak_read(node_id, key))
 
 
-def strong_read(node_id: str, key: str, *, network: Network) -> dict:
+def strong_read(key: str, node_id: str | None = None, *, network: Network,
+                entry_node_id: str) -> dict:
+    node_id = entry_node_id if node_id is None else node_id
     if not isinstance(node_id, str) or not isinstance(key, str):
         raise TypeError("节点编号和查询主键必须是字符串")
     return asdict(network.strong_read(node_id, key))

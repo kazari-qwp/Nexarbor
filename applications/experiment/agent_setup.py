@@ -1,28 +1,18 @@
 """实验项目的 Agent 装配与原 CLI 入口。"""
 
-import json
 import os
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from config import ENV_PATH, SYSTEM_PROMPT_PATH, TOOLS_PATH
-from datanet.agent import Agent
+from config import ENV_PATH
+from datanet.agent.configuration import assemble_agents
 from applications.experiment.network_setup import build_lab_network
 
 
 def build_agent_network(client, model: str):
-    system_prompt = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
-    with TOOLS_PATH.open(encoding="utf-8") as file:
-        tool_definitions = json.load(file)
     network, root = build_lab_network()
-    root.agent = Agent(
-        client=client,
-        model=model,
-        system_prompt=system_prompt,
-        tool_definitions=tool_definitions,
-        extra_body={"thinking": {"type": "disabled"}},
-    )
+    assemble_agents(network, client, model_override=model)
     return network, root
 
 

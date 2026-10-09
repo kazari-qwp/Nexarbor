@@ -17,7 +17,7 @@ class NetworkDemoTests(unittest.TestCase):
         result = self.root.invoke_tool("describe_node", node_id="n1")
         self.assertEqual(result["strong_read_targets"], ["n2"])
         self.assertEqual(result["weak_read_targets"], ["n3", "n2"])
-        self.assertEqual(set(self.root.tools), {"describe_node", "weak_read", "strong_read", "weak_write", "strong_write"})
+        self.assertEqual(set(self.root.tools), {"describe_node", "weak_read", "strong_read", "weak_write", "strong_write", "list_nodes", "list_tools", "invoke_tool"})
         self.assertFalse(any(n.agent is not None for n in self.network.nodes.values()))
 
     def test_scope_cycle_and_arbitrary_origin(self):
@@ -40,9 +40,26 @@ class NetworkDemoTests(unittest.TestCase):
         self.assertTrue(result["errors"])
         with self.assertRaises(ValueError):
             self.root.invoke_tool("describe_node", node_id="n99")
-        for origin, key in (("root", "value"), ("n1", "missing")):
+        for origin, key in (("root", "missing"), ("n1", "missing")):
             result = self.root.invoke_tool("weak_read", node_id=origin, key=key)
             self.assertEqual(result["status"], "not_found")
+
+    def test_omitted_origin_defaults_to_owner_and_can_be_overridden(self):
+        for tool, expected in (("weak_read", [1, 2, 4]), ("strong_read", [1, 2, 3, 4, 5, 6])):
+            result = self.root.invoke_tool(tool, key="value")
+            self.assertEqual([i["value"] for i in result["items"]], expected)
+            self.assertTrue(all(s["retrieval_path"][0] == "root" for s in result["sources"]))
+        explicit = self.root.invoke_tool("weak_read", node_id="n5", key="value")
+        self.assertEqual([i["value"] for i in explicit["items"]], [5, 6])
+        self.assertTrue(all(s["retrieval_path"][0] == "n5" for s in explicit["sources"]))
+
+    def test_model_schema_allows_omitting_origin(self):
+        _, root = build_agent_network(Mock(), "mock")
+        for definition in root.agent.tool_definitions:
+            if definition["function"]["name"] in ("weak_read", "strong_read"):
+                schema = definition["function"]["parameters"]
+                self.assertEqual(schema["required"], ["key"])
+                self.assertIn("node_id", schema["properties"])
 
     def test_arguments_must_be_strings(self):
         with self.assertRaises(TypeError):

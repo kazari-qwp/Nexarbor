@@ -80,7 +80,7 @@ class SerializationTests(unittest.TestCase):
         save_network(build_number_network(), self.path)
         original = json.loads(self.path.read_text(encoding="utf-8"))
         mutations = (
-            lambda d: d.update(version=2),
+            lambda d: d.update(version=999),
             lambda d: d["nodes"][0].update(type="custom"),
             lambda d: d["nodes"].append(d["nodes"][0]),
             lambda d: d["nodes"][0]["connections"]["strong_read_interfaces"].append("missing"),

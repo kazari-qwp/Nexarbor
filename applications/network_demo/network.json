@@ -1,0 +1,155 @@
+{
+  "version": 2,
+  "nodes": [
+    {
+      "type": "value",
+      "node_id": "n1",
+      "name": "数字 1",
+      "data_kind": "number",
+      "parameters": {
+        "value": 1
+      },
+      "connections": {
+        "strong_read_interfaces": [
+          "n2"
+        ],
+        "weak_read_interfaces": [
+          "n3",
+          "n2"
+        ],
+        "strong_write_interfaces": [
+          "n2"
+        ],
+        "weak_write_interfaces": [
+          "n3"
+        ]
+      },
+      "agent": null,
+      "description": "数字单值节点 n1，用于验证读写范围和网络访问。"
+    },
+    {
+      "type": "value",
+      "node_id": "n2",
+      "name": "数字 2",
+      "data_kind": "number",
+      "parameters": {
+        "value": 2
+      },
+      "connections": {
+        "strong_read_interfaces": [
+          "n4"
+        ],
+        "weak_read_interfaces": [
+          "n5"
+        ],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      },
+      "agent": null,
+      "description": "数字单值节点 n2，用于验证读写范围和网络访问。"
+    },
+    {
+      "type": "value",
+      "node_id": "n3",
+      "name": "数字 3",
+      "data_kind": "number",
+      "parameters": {
+        "value": 3
+      },
+      "connections": {
+        "strong_read_interfaces": [
+          "n4"
+        ],
+        "weak_read_interfaces": [],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      },
+      "agent": null,
+      "description": "数字单值节点 n3，用于验证读写范围和网络访问。"
+    },
+    {
+      "type": "value",
+      "node_id": "n4",
+      "name": "数字 4",
+      "data_kind": "number",
+      "parameters": {
+        "value": 4
+      },
+      "connections": {
+        "strong_read_interfaces": [
+          "n1"
+        ],
+        "weak_read_interfaces": [],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      },
+      "agent": null,
+      "description": "数字单值节点 n4，用于验证读写范围和网络访问。"
+    },
+    {
+      "type": "value",
+      "node_id": "n5",
+      "name": "数字 5",
+      "data_kind": "number",
+      "parameters": {
+        "value": 5
+      },
+      "connections": {
+        "strong_read_interfaces": [
+          "n6"
+        ],
+        "weak_read_interfaces": [],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      },
+      "agent": null,
+      "description": "数字单值节点 n5，用于验证读写范围和网络访问。"
+    },
+    {
+      "type": "value",
+      "node_id": "n6",
+      "name": "数字 6",
+      "data_kind": "number",
+      "parameters": {
+        "value": 6
+      },
+      "connections": {
+        "strong_read_interfaces": [],
+        "weak_read_interfaces": [
+          "n2"
+        ],
+        "strong_write_interfaces": [],
+        "weak_write_interfaces": []
+      },
+      "agent": null,
+      "description": "数字单值节点 n6，用于验证读写范围和网络访问。"
+    },
+    {
+      "type": "node",
+      "node_id": "root",
+      "name": "数字网络管理助手",
+      "data_kind": null,
+      "parameters": {},
+      "connections": {
+        "strong_read_interfaces": [
+          "n1"
+        ],
+        "weak_read_interfaces": [],
+        "strong_write_interfaces": [
+          "n1"
+        ],
+        "weak_write_interfaces": []
+      },
+      "agent": {
+        "model": "deepseek-chat",
+        "prompt_path": "system.md",
+        "tools_path": "tools.json",
+        "max_rounds": 8,
+        "max_tokens": 1000,
+        "thinking": false
+      },
+      "description": "数字网络管理入口，提供读取、定向写入及能力发现。"
+    }
+  ],
+  "delegations": []
+}

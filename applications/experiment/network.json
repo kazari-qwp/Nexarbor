@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "nodes": [
     {
       "type": "node",
@@ -15,7 +15,16 @@
         "weak_read_interfaces": [],
         "strong_write_interfaces": [],
         "weak_write_interfaces": []
-      }
+      },
+      "agent": {
+        "model": "deepseek-chat",
+        "prompt_path": "prompts/report_system.md",
+        "tools_path": "tools/tools.json",
+        "max_rounds": 8,
+        "max_tokens": 1000,
+        "thinking": false
+      },
+      "description": "组合实验规则与记录，计算项目合格率并提供数据来源。"
     },
     {
       "type": "sqlite",
@@ -32,7 +41,9 @@
         "weak_read_interfaces": [],
         "strong_write_interfaces": [],
         "weak_write_interfaces": []
-      }
+      },
+      "agent": null,
+      "description": "保存项目 A/B/C 的合格判定规则，按项目编号查询。"
     },
     {
       "type": "csv",
@@ -54,7 +65,10 @@
         "weak_read_interfaces": [],
         "strong_write_interfaces": [],
         "weak_write_interfaces": []
-      }
+      },
+      "agent": null,
+      "description": "保存模拟实验记录，支持按记录编号读取和字段等值筛选。"
     }
-  ]
+  ],
+  "delegations": []
 }

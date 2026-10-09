@@ -19,10 +19,16 @@ class ValueNode(Node):
         result.sources[0].update(operation="write", mode=mode)
         return result
 
-    def __init__(self, node_id: str, name: str, data_kind: str, value: Any):
-        super().__init__(node_id, name, data_kind)
+    def __init__(self, node_id: str, name: str, data_kind: str, value: Any, *, description: str = ""):
+        super().__init__(node_id, name, data_kind, description=description)
         # 隔离调用者传入的可变数据，避免外部修改改变节点内容。
         self._value = deepcopy(value)
+
+    def get_schema(self) -> dict:
+        names = {type(None): "null", bool: "boolean", int: "integer", float: "number",
+                 str: "string", list: "array", dict: "object"}
+        return {"kind": "single_value", "key": "value", "value_type": names.get(type(self._value)),
+                "python_type": type(self._value).__name__}
 
     def get(self, key: str) -> NodeResult:
         if not isinstance(key, str):

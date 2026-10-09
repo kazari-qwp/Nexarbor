@@ -2,6 +2,9 @@
 
 import json
 import unittest
+import tempfile
+from pathlib import Path
+from threading import Event, Thread
 from unittest.mock import Mock
 
 from openai.types.chat import ChatCompletion
@@ -30,6 +33,13 @@ def tool_call(arguments='{"project_id": "B"}', name="analyze_project"):
 
 
 class AgentTests(unittest.TestCase):
+    def make_prompt(self, content):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        path = Path(directory.name) / "prompt.md"
+        path.write_text(content, encoding="utf-8")
+        return path
+
     def test_real_network_tool_feedback_and_final_history(self):
         client = Mock()
         client.chat.completions.create.side_effect = [
@@ -55,7 +65,7 @@ class AgentTests(unittest.TestCase):
         client = Mock()
         client.chat.completions.create.side_effect = responses
         node = Node("root", "入口", None)
-        node.agent = Agent(client, "mock", "系统提示", [], max_rounds=max_rounds)
+        node.agent = Agent(client, "mock", self.make_prompt("系统提示"), [], max_rounds=max_rounds)
         return client, node
 
     def test_detach_and_reattach_agent(self):
@@ -79,12 +89,97 @@ class AgentTests(unittest.TestCase):
             node.agent.run("你好", node=other)
         client.chat.completions.create.assert_not_called()
 
+    def test_restart_reloads_file_replaces_instance_and_clears_history(self):
+        client, node = self.make_empty_agent([reply("完成")])
+        previous = node.agent
+        node.invoke_agent("第一问")
+        previous.prompt_path.write_text("新的职责", encoding="utf-8")
+        node.tools["local"] = lambda: 1
+        interfaces = node.strong_read_interfaces
+        node.restart_agent()
+        self.assertIsNot(node.agent, previous)
+        self.assertIs(node.agent.client, client)
+        self.assertEqual(node.agent.messages, [{"role": "system", "content": "新的职责"}])
+        self.assertEqual(previous.system_prompt, "系统提示")
+        self.assertIn("local", node.tools)
+        self.assertIs(node.strong_read_interfaces, interfaces)
+        self.assertEqual(node.agent.max_rounds, previous.max_rounds)
+
+    def test_restart_failure_keeps_old_instance_and_history(self):
+        _, node = self.make_empty_agent([reply("完成")])
+        node.invoke_agent("问题")
+        previous = node.agent
+        for content in ("", "  \n"):
+            previous.prompt_path.write_text(content, encoding="utf-8")
+            with self.assertRaises(ValueError):
+                node.restart_agent()
+            self.assertIs(node.agent, previous)
+            self.assertEqual(len(node.agent.messages), 3)
+        previous.prompt_path.unlink()
+        with self.assertRaises(FileNotFoundError):
+            node.restart_agent()
+        self.assertIs(node.agent, previous)
+
+    def test_restart_missing_agent_and_self_restart_fail(self):
+        with self.assertRaisesRegex(RuntimeError, "尚未配置"):
+            Node("empty", "空", None).restart_agent()
+        client, node = self.make_empty_agent([])
+        client.chat.completions.create.side_effect = lambda **kwargs: node.restart_agent()
+        with self.assertRaisesRegex(RuntimeError, "自身任务"):
+            node.invoke_agent("问题")
+        self.assertIsNone(node.agent._running_thread)
+
+    def test_restart_waits_for_running_task(self):
+        client, node = self.make_empty_agent([])
+        previous = node.agent
+        entered, release, restarting, done = Event(), Event(), Event(), Event()
+        errors = []
+        def response(**kwargs):
+            entered.set()
+            if not release.wait(3):
+                raise RuntimeError("测试任务等待超时")
+            return reply("旧任务完成")
+        def run():
+            try:
+                node.invoke_agent("正在执行")
+            except Exception as error:
+                errors.append(error)
+        def restart():
+            restarting.set()
+            try:
+                node.restart_agent()
+            except Exception as error:
+                errors.append(error)
+            finally:
+                done.set()
+        client.chat.completions.create.side_effect = response
+        task = Thread(target=run)
+        worker = Thread(target=restart)
+        task.start()
+        try:
+            self.assertTrue(entered.wait(2))
+            previous.prompt_path.write_text("重启后的职责", encoding="utf-8")
+            worker.start()
+            self.assertTrue(restarting.wait(2))
+            self.assertFalse(done.wait(0.05))
+            self.assertIs(node.agent, previous)
+        finally:
+            release.set()
+            task.join(3)
+            if worker.ident is not None:
+                worker.join(3)
+        self.assertFalse(task.is_alive())
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(errors, [])
+        self.assertEqual(previous.messages[-1]["content"], "旧任务完成")
+        self.assertEqual(node.agent.messages, [{"role": "system", "content": "重启后的职责"}])
+
     def test_history_persists_and_reset_is_local(self):
         _, node = self.make_empty_agent([reply("一"), reply("二")])
         node.invoke_agent("第一问")
         node.invoke_agent("第二问")
         self.assertEqual(len(node.agent.messages), 5)
-        other = Agent(Mock(), "mock", "另一个提示", [])
+        other = Agent(Mock(), "mock", self.make_prompt("另一个提示"), [])
         node.agent.reset()
         self.assertEqual(len(node.agent.messages), 1)
         self.assertEqual(other.messages[0]["content"], "另一个提示")

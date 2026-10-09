@@ -3,7 +3,7 @@
     "type": "function",
     "function": {
       "name": "describe_node",
-      "description": "查看指定节点的类型、是否配置 Agent、本地工具名和出站强弱读写连接。描述不包含数据值。",
+      "description": "查看指定节点的用途、数据类别、动态 schema、是否配置 Agent、本地工具名及四种读写连接。返回结构信息，不返回记录值。",
       "parameters": {
         "type": "object",
         "properties": {
@@ -29,7 +29,7 @@
         "properties": {
           "node_id": {
             "type": "string",
-            "description": "起点节点编号，例如 n1。"
+            "description": "可选起点节点编号。不提供时，从当前 Agent 所属节点出发（此演示为 root）；明确指定时使用该节点。"
           },
           "key": {
             "type": "string",
@@ -37,7 +37,6 @@
           }
         },
         "required": [
-          "node_id",
           "key"
         ],
         "additionalProperties": false
@@ -54,7 +53,7 @@
         "properties": {
           "node_id": {
             "type": "string",
-            "description": "起点节点编号，例如 n1。"
+            "description": "可选起点节点编号。不提供时，从当前 Agent 所属节点出发（此演示为 root）；明确指定时使用该节点。"
           },
           "key": {
             "type": "string",
@@ -62,7 +61,6 @@
           }
         },
         "required": [
-          "node_id",
           "key"
         ],
         "additionalProperties": false
