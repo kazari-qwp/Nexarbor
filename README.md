@@ -1,112 +1,150 @@
-# LabInsight Agent
+# Data Node with Agent
 
-基于模拟实验数据的分析助手。用户用自然语言指定项目，模型通过工具调用获取本地统计结果，再生成中文分析报告。
+[GitHub 仓库](https://github.com/kazari-qwp/data_node_with_agent)
 
-当前是学习与开发中的原型；实验记录为随机生成的模拟数据，不代表真实实验结果。
+可组合的 Agent 数据网络。节点提供数据和工具，通过不同的读取、写入连接组成有向网络；需要推理的节点可以配置独立 Agent。Python 框架包名保留为 `datanet`。
 
-## 当前功能
+目前已实现只读网络和实验分析演示：根 Agent 调用根节点的合格率工具，工具经网络读取 CSV 实验记录和 SQLite 判定规则，再用 Python 计算并返回来源。实验记录全部为模拟数据。
 
-- 使用 NumPy、pandas 生成实验记录，支持模拟缺失值。
-- 按项目筛选有效记录，计算有效数、通过数、失败数和合格率。
-- 使用 SQLite 保存项目判定规则，并生成对应的判定函数。
-- 通过 DeepSeek 的兼容接口实现工具调用和多轮结果反馈。
-- 将提示词、工具定义和路径配置独立保存。
+## 已实现的能力
 
-有效记录要求：属于指定项目、`是否有效` 为“是”、`测量值` 不缺失。合格率为通过数除以有效数；没有有效记录时返回 `null`，而不是 0。
+- 基础 `Node`、统一结果 `NodeResult` 和本地工具箱。
+- 通用 `CsvNode`、`SqliteNode` 和内存单值 `ValueNode`。
+- 节点共享地址接口，分别保存强读、弱读、强写、弱写连接。
+- BFS 读取、环与重复节点去重、数据类型筛选和来源路径。
+- CSV 主键读取、多个等值条件查询；SQLite 只读主键查询。
+- Agent 默认关闭，可绑定独立实例、切换开关、保留或重置会话历史。
+- 模型工具调用通过所在节点的工具箱执行，不依赖全局业务注册表。
+- 实验应用的模拟生成、规则初始化、网络统计与中文报告。
 
-初始化规则：A 的测量值至少为 80；B 在 40～60 之间（包含两端）；C 至多为 20。默认生成范围为 50～100，因此 C 项目默认没有合格样本。
+写连接列表和写入入口已预留，实际写入尚未实现。RAG、动态记忆整理、NPC 消息传播和自主创建节点都是后续目标，不属于当前成果。
+
+## 访问语义
+
+连接强弱与访问范围是两个概念：
+
+| 操作 | 范围 | 遍历方式 |
+|---|---|---|
+| 本体读取 | `local` | 只读取起点 |
+| 弱读 `weak_read()` | `integrated` | 起点及强读连接可达节点 |
+| 强读 `strong_read()` | `federated` | 起点及强、弱读连接可达节点 |
+
+起点可以是网络中任意已注册节点。读取不会沿写连接访问，也不会修改业务数据。接口当前只有目标地址；这些列表是程序内的访问配置，尚未实现调用者身份认证、细粒度过滤和跨进程授权。
 
 ## 目录结构
 
 ```text
-labinsight/
-  analysis.py             # 纯统计逻辑
-  rules.py                # SQLite 规则查询、判定函数
-  tools.py                # 工具包装与注册表
-  agent.py                # 模型请求与工具调用循环
-scripts/
-  generate_data.py        # 生成模拟数据
-  init_db.py              # 初始化规则数据库
-  run_agent.py            # 命令行入口
-agents/
-  prompts/report_system.md
-  tools/tools.json
-data/
-  实验记录01/01.csv
-  lab.db
-notebooks/                # 学习和探索用 notebook
-config.py                 # 统一路径配置
+datanet/                         # 通用框架，不依赖实验应用
+  agent/agent.py                 # Agent 与模型/工具循环
+  interface.py                   # 不可变地址接口
+  network.py                     # get/query 与共享 BFS
+  nodes/
+    node/node.py                 # 基础节点、结果与工具箱
+    csv_node/csv_node.py
+    sqlite_node/sqlite_node.py
+    value_node/
+      value_node.py
+      demo.py
+      demo_network.py            # 数字网络与强弱读演示
+applications/
+  experiment/                    # 完整实验应用
+    network_setup.py             # 组装节点、连接及根工具
+    agent_setup.py               # 绑定根 Agent
+    configuration.py             # 实验规则节点实例
+    rules.py                     # 规则查询与判定函数
+    generate_data.py
+    init_db.py
+    run_agent.py
+    tools/
+      analysis.py                # 纯统计逻辑
+      network_tools.py           # 经网络取得输入并计算
+      direct_tools.py            # 原直接读取工具，用于对照
+      tools.json                 # 模型工具描述
+    prompts/report_system.md
+    data/
+      实验记录01/01.csv
+      lab.db
+    debug/                       # CSV、规则、网络演示与 notebook
+scripts/                         # 兼容原 CLI 命令的薄包装
+tests/                           # 本地回归测试
+docs/                            # 目标、进度及历史方案
+config.py                        # 统一应用文件路径
 ```
 
-## 环境准备
+## 安装与运行
 
-使用 Python 3.11 或以上版本，在已激活的 Python 环境中安装依赖：
+使用 Python 3.11 或以上版本，在自己的 Python 环境中安装：
 
 ```powershell
 python -m pip install numpy pandas openai python-dotenv
 ```
 
-在项目根目录创建 `.env` 文件：
+以下命令都在仓库根目录执行。仓库已有模拟数据，可以直接运行本地演示，无需 API 密钥：
+
+```powershell
+python -m scripts.demo_network_analysis B
+python -m scripts.demo_csv_node 001
+python -m scripts.demo_nodes A
+python -m scripts.demo_number_network
+```
+
+相应实现也可直接按模块运行：
+
+```powershell
+python -m applications.experiment.debug.demo_network_analysis B
+python -m applications.experiment.debug.demo_sqlite_node A
+python -m datanet.nodes.value_node.demo_network
+```
+
+节点类有统一公共导入入口：
+
+```python
+from datanet.nodes import Node, CsvNode, SqliteNode, ValueNode
+from applications.experiment.network_setup import build_lab_network
+
+network, root = build_lab_network()
+result = root.invoke_tool("analyze_project", project_id="B")
+print(result)
+```
+
+## 启用模型
+
+在仓库根目录创建 `.env`，填写自己的配置：
 
 ```dotenv
 DEEPSEEK_API_KEY=你的密钥
 DEEPSEEK_MODEL=你的账户支持的模型名称
 ```
 
-模型需支持工具调用及当前使用的关闭思考配置。`.env` 已加入 Git 忽略规则，请勿上传密钥。
-
-## 运行
-
-以下命令均在项目根目录执行。
-
-### 初始化数据和规则
-
-仓库提供模拟 CSV。需要重新生成时执行下列命令，注意它会覆盖当前模拟记录：
-
-```powershell
-python -m scripts.generate_data
-```
-
-初始化 SQLite 规则表：
-
-```powershell
-python -m scripts.init_db
-```
-
-重复初始化会保留已有项目规则；修改初始化脚本不会自动更新数据库中的已有规则。
-
-### 调用助手
+`.env` 已被 Git 忽略。当前实验装配使用 DeepSeek 的兼容接口和关闭思考配置，模型需支持相应参数与工具调用。
 
 ```powershell
 python -m scripts.run_agent "请查询项目 B 的合格率。"
 ```
 
-不传问题时使用默认的 B 项目查询：
+根节点绑定并开启 Agent，规则和记录节点默认关闭。每次任务最多请求 5 轮；模型返回工具请求后，根节点执行网络统计工具并回传结果。工具选择为 `auto`，模型也可能直接回答，当前尚未强制所有统计回答都有成功的工具证据。
+
+## 实验统计规则
+
+有效记录须属于指定项目、标记为“是”，且测量值不缺失。合格率为通过数除以有效数；没有有效样本返回 `null`。
+
+初始化规则：A 至少 80，B 在 40～60 之间，C 至多 20，均包含边界。生成器默认整数范围 0～100，支持模拟缺失值。需要重新生成或初始化时：
 
 ```powershell
-python -m scripts.run_agent
+python -m scripts.init_db
+python -m scripts.generate_data
 ```
 
-### 仅运行本地统计
+生成命令会覆盖当前模拟 CSV。重复初始化保留已有规则，不会自动覆盖修改过的阈值。
 
-不需要 API 密钥，也不会请求模型：
+## 验证与后续目标
 
 ```powershell
-python -c "from labinsight.tools import analyze_project_tool; print(analyze_project_tool('A'))"
+python -m unittest discover -s tests -v
 ```
 
-## 工作流程
+当前 59 项本地测试覆盖存储读取、条件查询、强弱范围、写连接隔离、环去重、缺失输入、网络统计和模拟 Agent 调用。测试使用独立临时文件；模型响应由模拟客户端提供，不消耗 API 额度。这些是功能测试，不代表已有独立检索性能评估。
 
-1. 加载系统提示词和工具定义，将用户问题发送给模型。
-2. 模型提出工具名和项目编号。
-3. 本地程序通过注册表找到函数，查询规则数据库并读取 CSV。
-4. Python 计算统计指标，将结果返回给模型。
-5. 模型根据工具结果生成报告；最多请求 5 轮。
+2026-10-09 的真实 API 验证中，模型实际调用一次根统计工具，经网络取得 B 项目有效 18、通过 9、失败 9、合格率 50%。这是模拟数据快照的结果，不是固定业务结论。
 
-模型不会直接执行任意 Python 代码，也不会接收完整 CSV。判定阈值来自本地规则数据库。
-
-## 当前边界与后续计划
-
-目前支持单份 CSV、基础阈值规则和命令行交互。工具调用使用 `auto`，模型可能选择直接回复。尚未实现文档检索、RAG、可视化界面和系统化评估。
-
-后续计划：在结果中增加规则与数据来源，加入实验规范文档查询，并评估回答的准确性与可追溯性。
+完整目标见 [项目目标](docs/PROJECT_GOALS.md)，实际阶段记录见 [项目进度](docs/PROJECT_PROGRESS.md)。后续包括精确事实版本、任务恢复、RAG、基于使用反馈的记忆关联与冷热分层，以及 NPC 分圈消息传播；Agent 自主创建节点安排在最后。
