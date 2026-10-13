@@ -6,6 +6,7 @@ import json
 from datanet.services.tools.network_management.templates import expand_package
 
 ACTIVE = {'running', 'review'}
+TERMINAL = {'completed', 'failed', 'interrupted', 'stopped', 'budget_exhausted'}
 
 
 def initialize(b):
@@ -13,11 +14,20 @@ def initialize(b):
 
 
 def snapshot(b):
-    return {'cooperative_groups': b.cooperative_groups}
+    files = {name: (b.directory / name).read_text(encoding='utf-8')
+             for g in b.cooperative_groups.values() for name in g.get('archives', [])}
+    return {'cooperative_groups': b.cooperative_groups, 'cooperative_run_files': files}
 
 
 def restore(b, document):
     b.cooperative_groups = deepcopy(document.get('cooperative_groups', {}))
+    from datanet.components.nodes.text_file_node.text_file_node import TextFileNode
+    for name, content in document.get('cooperative_run_files', {}).items():
+        path = (b.directory / name).resolve()
+        if not path.is_relative_to(b.directory / 'cooperation'):
+            raise ValueError('协作归档路径超出存储目录')
+        path.parent.mkdir(parents=True, exist_ok=True)
+        TextFileNode._atomic_bytes(path, content.encode('utf-8'))
 
 
 def prepare(b, p):
@@ -80,22 +90,53 @@ def status(b, p):
     result['entries'] = [e for e in result['entries'] if query.casefold() in e['content'].casefold()] if query else result['entries'][-20:]
     result['entry_count'] = len(g['entries'])
     result['workspace'] = str(b.directory / 'cooperation' / g['group_id'].encode().hex() / 'workspace')
+    if result.get('archive_path'):
+        result['archive_path'] = str(b.directory / result['archive_path'])
+    for record in result.get('runs', {}).values():
+        record['archive_path'] = str(b.directory / record['archive_path'])
     return result
+
+
+def archive_run(b, g):
+    if not g.get('run_id'):
+        return
+    if g['run_id'] in g.get('runs', {}):
+        return
+    directory = b.directory / 'cooperation' / g['group_id'].encode().hex() / 'runs' / g['run_id']
+    directory.mkdir(parents=True, exist_ok=True)
+    record = {key: deepcopy(g.get(key)) for key in ('run_id', 'task', 'phase', 'failure', 'claims', 'entries', 'candidate', 'requests', 'jobs', 'report_reference')}
+    writer = b.network.nodes[g['entry_points']['output']]
+    for name, target in [('output.md', 'output'), ('findings.md', 'findings')]:
+        node = b.network.nodes[g['entry_points'][target]]
+        path = directory / name
+        writer._atomic_bytes(path, node.file_path.read_bytes() if node.file_path.exists() else b'')
+        record[name] = str(path.relative_to(b.directory))
+    path = directory / 'run.json'
+    writer._atomic_bytes(path, json.dumps(record, ensure_ascii=False, indent=2).encode('utf-8'))
+    g['archive_path'] = str(directory.relative_to(b.directory))
+    files = [str((directory / name).relative_to(b.directory)) for name in ('run.json', 'output.md', 'findings.md')]
+    g['archives'] = list(dict.fromkeys([*g.get('archives', []), *files]))
+    g.setdefault('runs', {})[g['run_id']] = dict(run_id=g['run_id'], task=g['task'], phase=g['phase'],
+                                               archive_path=g['archive_path'], report_reference=g.get('report_reference'))
 
 
 def start(b, p):
     g = get(b, p)
     if p['actor'] in g['members']:
         raise PermissionError('由网络调用者启动或停止小组')
-    if g['phase'] != 'ready':
+    if g['phase'] not in TERMINAL | {'ready'}:
         raise ValueError('小组已经启动，使用 status 查看或 stop 收尾')
     if not isinstance(p.get('task'), str) or not p['task'].strip():
         raise ValueError('start 必须提供非空 task')
     minutes = p.get('budget_minutes', 30)
     if isinstance(minutes, bool) or not isinstance(minutes, (float, int)) or not .1 <= minutes <= 1440:
         raise ValueError('budget_minutes 须在 0.1 至 1440 之间')
+    archive_run(b, g)
+    for target in ('output', 'findings'):
+        b.network.nodes[g['entry_points'][target]].write('content', '')
     g.update(phase='running', caller=p['actor'], task=p['task'], run_id=str(uuid4()), deadline=time() + minutes * 60,
-             claims={}, candidate=None, requests={}, jobs={}, notified=False, failure=None)
+             claims={}, entries=[], candidate=None, requests={}, jobs={}, notified=False, failure=None,
+             archive_path=None, report_reference=None)
     return deepcopy(g)
 
 
@@ -104,6 +145,8 @@ def update(b, p):
     for field in ('jobs', 'notified', 'failure', 'phase', 'report_reference'):
         if field in p:
             g[field] = deepcopy(p[field])
+    if 'phase' in p and g['phase'] in TERMINAL:
+        archive_run(b, g)
     return deepcopy(g)
 
 
@@ -172,6 +215,7 @@ def finish(b, p):
     if set(g['candidate']['approvals']) == set(g['members']):
         b.network.nodes[g['entry_points']['output']].write('content', g['candidate']['content'])
         g['phase'] = 'completed'
+        archive_run(b, g)
     return deepcopy(g)
 
 
@@ -181,6 +225,7 @@ def stop(b, p):
         raise PermissionError('由本次协作调用者停止小组')
     if g['phase'] in ACTIVE:
         g.update(phase=p.get('phase', 'stopped'), failure=p.get('failure'))
+        archive_run(b, g)
     return deepcopy(g)
 
 

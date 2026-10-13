@@ -1,6 +1,6 @@
 """Optional peer collaboration policy on native events and persistent delegations."""
 from threading import RLock, Timer
-from time import time
+from time import time, monotonic, sleep
 import json
 from datanet.core.application import Component
 from .workspace import Workspace
@@ -8,7 +8,7 @@ from .workspace import Workspace
 
 class Plugin(Component):
     def install(self):
-        self.lock, self.timers, self.closed = RLock(), {}, False
+        self.lock, self.timers, self.closed, self.starting = RLock(), {}, False, set()
         self.on('network/before-create', self.before_create)
         self.on('network/created', self.created)
         self.on('agent/bound', self.bound)
@@ -141,15 +141,17 @@ class Plugin(Component):
             old = self.timers.pop(group['group_id'], None)
             if old:
                 old.cancel()
-            timer = Timer(max(.01, group['deadline'] - time()), self.expire, args=(group['group_id'],))
+            timer = Timer(max(.01, group['deadline'] - time()), self.expire, args=(group['group_id'], group['run_id']))
             timer.daemon = True
             self.timers[group['group_id']] = timer
             timer.start()
 
-    def expire(self, id):
+    def expire(self, id, run_id=None):
         try:
-            if not self.closed:
-                self.stop_group(self.r.backend.cooperative_groups[id], 'budget_exhausted', '达到运行时间预算')
+            with self.lock:
+                group = self.r.backend.cooperative_groups[id]
+                if not self.closed and (run_id is None or group['run_id'] == run_id):
+                    self.stop_group(group, 'budget_exhausted', '达到运行时间预算')
         except Exception as error:
             self.r.errors.append(dict(component=self.id, error=str(error)))
 
@@ -168,21 +170,23 @@ class Plugin(Component):
             if group.get('notified'):
                 return
             self.r.rpc('cooperative_update', group_id=group['group_id'], notified=True)
-        self.r.emit('agent/ensure-mounted', target=group['caller'])
-        result = dict(type='cooperation_result', group_id=group['group_id'], run_id=group['run_id'], status=group['phase'],
-                      output_id=group['entry_points']['output'], workspace=str(self.workspace(group).main), failure=group.get('failure'),
-                      report_reference=group.get('report_reference'))
+            caller, reference, run_id = group['caller'], group.get('report_reference'), group['run_id']
+            result = dict(type='cooperation_result', group_id=group['group_id'], run_id=run_id, status=group['phase'],
+                          output_id=group['entry_points']['output'], workspace=str(self.workspace(group).main), failure=group.get('failure'),
+                          report_reference=reference, archive_path=str(self.r.directory / group['archive_path']) if group.get('archive_path') else None)
+            timer = self.timers.pop(group['group_id'], None)
+            if timer:
+                timer.cancel()
+        self.r.emit('agent/ensure-mounted', target=caller)
         try:
-            self.r.host('steer', actor=group['caller'], text=json.dumps(result, ensure_ascii=False))
+            self.r.host('steer', actor=caller, text=json.dumps(result, ensure_ascii=False))
         except Exception:
-            self.r.rpc('cooperative_update', group_id=group['group_id'], notified=False)
+            if group['run_id'] == run_id:
+                self.r.rpc('cooperative_update', group_id=group['group_id'], notified=False)
             raise
         reports = self.r.plugins.get('tools/reports')
-        if reports and group.get('report_reference'):
-            reports.end(group['report_reference'], 'completed' if group['phase'] == 'completed' else 'failed', group.get('failure'))
-        timer = self.timers.pop(group['group_id'], None)
-        if timer:
-            timer.cancel()
+        if reports and reference:
+            reports.end(reference, 'completed' if result['status'] == 'completed' else 'failed', result['failure'])
 
     def stop_group(self, group, phase, reason):
         with self.lock:
@@ -208,6 +212,9 @@ class Plugin(Component):
             return
         with self.lock:
             queue = self.r.plugins['tools/agent_delegation']
+            job = queue.jobs.get(e['delegation_id'])
+            if e['delegation_id'] not in group['jobs'].values() or (job and job.get('context', {}).get('cooperative_run_id', group['run_id']) != group['run_id']):
+                return
             jobs = [queue.jobs[id] for id in group['jobs'].values() if id in queue.jobs]
             failed = next((job for job in jobs if job['status'] in ('failed', 'blocked', 'interrupted')), None)
             if failed and group['phase'] in ('running', 'review'):
@@ -232,16 +239,52 @@ class Plugin(Component):
             return self.call('status', actor, group)
         if p['action'] != 'start':
             raise ValueError('未知协作操作')
+        if actor in group['members']:
+            raise PermissionError('由网络调用者启动小组')
         if any(member not in self.r.states for member in group['members']):
             raise ValueError('协作成员尚未装配')
+        with self.lock:
+            if group['phase'] in ('running', 'review') or group['group_id'] in self.starting:
+                raise ValueError('小组正在执行任务，使用 status 查看或 stop 收尾')
+            self.starting.add(group['group_id'])
+        try:
+            return self.start_group(actor, p, group)
+        finally:
+            with self.lock:
+                self.starting.discard(group['group_id'])
+
+    def settle_previous(self, group):
+        queue = self.r.plugins['tools/agent_delegation']
+        deadline = monotonic() + 30
+        for id in list(group['jobs'].values()):
+            job = queue.jobs.get(id)
+            if job and job['status'] in ('queued', 'running'):
+                queue.cancel(id)
+        for actor in group['members']:
+            if self.r.host('inspect', actor=actor)['status'] != 'idle':
+                self.r.host('cancel-agent', actor=actor)
+        while True:
+            with queue.lock:
+                pending = any(queue.jobs.get(id, {}).get('status') in ('queued', 'running') for id in group['jobs'].values())
+            idle = all(self.r.host('inspect', actor=actor)['status'] == 'idle' for actor in group['members'])
+            if not pending and idle:
+                return
+            if monotonic() >= deadline:
+                raise RuntimeError('上一轮成员循环尚未停止，请稍后重新启动')
+            sleep(.01)
+
+    def start_group(self, actor, p, group):
+        self.settle_previous(group)
+        if group.get('run_id') and not group.get('notified'):
+            self.notify(group)
         # Prepare resources before accepting a running task.
         self.workspace(group).prepare()
         self.call('start', actor, group, **{k: p[k] for k in ('task', 'budget_minutes') if k in p})
-        reports = self.r.plugins.get('tools/reports')
-        parent = reports.delegate(actor, group['group_id'], p['task'], kind='cooperation') if reports else None
-        self.r.rpc('cooperative_update', group_id=group['group_id'], report_reference=parent)
-        self.arm(group)
         try:
+            reports = self.r.plugins.get('tools/reports')
+            parent = reports.delegate(actor, group['group_id'], p['task'], kind='cooperation') if reports else None
+            self.r.rpc('cooperative_update', group_id=group['group_id'], report_reference=parent)
+            self.arm(group)
             for member in group['members']:
                 if group['phase'] not in ('running', 'review'):
                     break
@@ -249,7 +292,7 @@ class Plugin(Component):
                 project = self.r.rpc('query_text', actor=member, target=group['entry_points']['project'], strength=self.r.state(member)['strength'])
                 self.r.load(member, 'cooperation:project:' + group['group_id'], project['text'])
                 task = f"共同目标：{p['task']}\n协作小组：{group['group_id']}；本次运行：{group['run_id']}。\n你的工作目录：{self.workspace(group).personal(member)}\n成员平等，自主认领并推进；完成局部工作后继续寻找有价值的工作，共同成果通过 datanet_team_finish 验收收尾。"
-                receipt = self.r.plugins['tools/agent_delegation'].submit(actor, member, task, context={'cooperative_group_id': group['group_id']}, parent=parent, timeout_ms=max(1000, int((group['deadline'] - time()) * 1000)))
+                receipt = self.r.plugins['tools/agent_delegation'].submit(actor, member, task, context={'cooperative_group_id': group['group_id'], 'cooperative_run_id': group['run_id']}, parent=parent, timeout_ms=max(1000, int((group['deadline'] - time()) * 1000)))
                 jobs = {**group['jobs'], member: receipt['delegation_id']}
                 self.r.rpc('cooperative_update', group_id=group['group_id'], jobs=jobs)
             return dict(status='accepted', group_id=group['group_id'], run_id=group['run_id'], members=group['members'], report_reference=parent)

@@ -43,7 +43,7 @@
   },
   "datanet_discuss": {
     "name": "datanet_discuss",
-    "description": "运行已创建的五人讨论组；每轮10次请求。所有人只看到同一上轮快照，最终由Recorder写成果。",
+    "description": "运行或续跑讨论小组，由 Recorder 汇总成果；完成后传入 task 开始新任务。",
     "parameters": {
       "type": "object",
       "properties": {
@@ -51,7 +51,8 @@
           "type": "string"
         },
         "task": {
-          "type": "string"
+          "type": "string",
+          "description": "完成后填写即开始新任务；省略时续跑未完成任务或读取已有成果。"
         }
       },
       "required": [

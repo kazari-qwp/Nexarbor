@@ -2,6 +2,7 @@ from datanet.services.nodes.text.services import bindings
 from datanet.core.node import NodeResult
 from datanet.core.interface import Interface
 from uuid import uuid4
+import json
 from datanet.components.networks.discussion_group.setup import storage_toolkits
 from datanet.components.nodes.text_file_node.text_file_node import TextFileNode
 from datanet.components.nodes.discussion_board_node.discussion_board_node import DiscussionBoardNode
@@ -12,21 +13,68 @@ def recovery_info(self, p):
         members = g['board'].members
         completed = g.get('completed', False)
         phase = 'completed' if completed else 'round_in_progress' if g['busy'] else 'finalizing' if g['round'] >= g['total'] else 'ready'
-        summaries[key] = {'group_id': key, 'members': members, 'leader_id': g['board'].leader_id, 'recorder_id': g['board'].recorder_id, 'completed': completed, 'busy': g['busy'], 'phase': phase, 'round': g['round'], 'total_rounds': g['total'], 'completed_rounds': g['round'] - int(g['busy']), 'submitted_members': list(g['submitted']), 'remaining_members': [m for m in members if m not in g['submitted']] if g['busy'] else [], 'task': g.get('task'), 'output_id': g['board'].output_id, 'last_error': g.get('last_error'), 'next_action': '读取最终成果，无需重跑' if completed else '继续未提交成员，再归档本轮' if g['busy'] else '所有讨论轮次已归档，仅继续Recorder收尾，无需重新讨论' if phase == 'finalizing' else '继续下一轮讨论' if g.get('task') else '提供任务并开始讨论', 'resume': {'tool': 'datanet_discuss', 'arguments': {'group_id': key}} if g.get('task') and (not completed) else None}
+        summaries[key] = {'group_id': key, 'members': members, 'leader_id': g['board'].leader_id, 'recorder_id': g['board'].recorder_id, 'completed': completed, 'busy': g['busy'], 'phase': phase, 'round': g['round'], 'total_rounds': g['total'], 'completed_rounds': g['round'] - int(g['busy']), 'submitted_members': list(g['submitted']), 'remaining_members': [m for m in members if m not in g['submitted']] if g['busy'] else [], 'task': g.get('task'), 'output_id': g['board'].output_id, 'last_error': g.get('last_error'), 'next_action': '读取本次成果，或提供 task 开始新任务' if completed else '继续未提交成员，再归档本轮' if g['busy'] else '所有讨论轮次已归档，仅继续Recorder收尾，无需重新讨论' if phase == 'finalizing' else '继续下一轮讨论' if g.get('task') else '提供任务并开始讨论', 'resume': {'tool': 'datanet_discuss', 'arguments': {'group_id': key}} if g.get('task') and (not completed) else None}
     return {'node_count': len(self.network.nodes), 'agents': self.agents, 'groups': summaries, 'management': {key: node.management_parent_id for key, node in self.network.nodes.items()}, 'unassigned_management_nodes': [key for key, node in self.network.nodes.items() if key != self.root.node_id and node.management_parent_id is None], 'feedback': getattr(self,'feedback',[]), 'pending_operations': self.store.pending(), 'checkpoint_count': self.store.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0]}
 
 def group_task(self, p):
     group(self, p['group_id'])['task'] = p['task']
     return {'ok': True}
 
+def archive_run(self, g):
+    if not g.get('task'):
+        return
+    if g['run'] in g.get('runs', {}):
+        return
+    board = g['board']
+    directory = board.file_path.parent / 'archive' / g['run']
+    directory.mkdir(parents=True, exist_ok=True)
+    record = {key: g.get(key) for key in ('run', 'task', 'completed', 'round', 'total', 'last_error', 'report_reference')}
+    for name, target in [('result.md', board.output_id), ('notebook.md', board.notebook_id)]:
+        node = self.network.nodes[target]
+        path = directory / name
+        board._atomic_bytes(path, node.file_path.read_bytes() if node.file_path.exists() else b'')
+        relative = str(path.relative_to(self.directory))
+        if relative not in g['archives']:
+            g['archives'].append(relative)
+        record[name] = relative
+    path = directory / 'run.json'
+    board._atomic_bytes(path, json.dumps(record, ensure_ascii=False, indent=2).encode('utf-8'))
+    relative = str(path.relative_to(self.directory))
+    if relative not in g['archives']:
+        g['archives'].append(relative)
+    g['archive_path'] = str(directory.relative_to(self.directory))
+    runs = g.setdefault('runs', {})
+    runs[g['run']] = record
+
+def begin(self, p):
+    g = group(self, p['group_id'])
+    task = p['task']
+    if not isinstance(task, str) or not task.strip():
+        raise ValueError('New discussion requires a nonempty task')
+    if not g.get('completed') and g.get('task') and g['task'] != task:
+        raise ValueError('Recovered discussion must continue its saved task')
+    if g.get('completed'):
+        archive_run(self, g)
+        board = g['board']
+        board._atomic_bytes(board.file_path, b'')
+        board._atomic_bytes(board.previous_path, b'')
+        for target in (board.notebook_id, board.output_id):
+            self.network.nodes[target].write('content', '')
+        g.update(run=uuid4().hex, round=0, submitted={}, busy=False, completed=False,
+                 last_error=None, archive_path=None, report_reference=None)
+        board.current_round = 0
+    g['task'] = task
+    return group_info(self, p)
+
 def group_error(self, p):
     group(self, p['group_id'])['last_error'] = p['error']
     return {'ok': True}
 
 def group_complete(self, p):
-    group(self, p['group_id'])['last_error'] = None
-    group(self, p['group_id'])['completed'] = True
-    return {'ok': True}
+    g = group(self, p['group_id'])
+    g.update(last_error=None, completed=True, report_reference=p.get('report_reference'))
+    archive_run(self, g)
+    return {'ok': True, 'run_id': g['run'], 'archive_path': str(self.directory / g['archive_path'])}
 
 def start_round(self, p):
     g = group(self, p['group_id'])
@@ -84,9 +132,10 @@ def finish_round(self, p):
 def group_info(self, p):
     g = group(self, p['group_id'])
     b = g['board']
-    return {'members': b.members, 'recorder_id': b.recorder_id, 'project_id': b.project_id, 'project_ids': b.project_ids, 'board_id': b.node_id, 'notebook_id': b.notebook_id, 'output_id': b.output_id, 'round': g['round'], 'total': g['total'], 'busy': g['busy'], 'submitted': g['submitted'], 'completed': g.get('completed', False), 'task': g.get('task')}
+    return {'members': b.members, 'recorder_id': b.recorder_id, 'project_id': b.project_id, 'project_ids': b.project_ids, 'board_id': b.node_id, 'notebook_id': b.notebook_id, 'output_id': b.output_id, 'round': g['round'], 'total': g['total'], 'busy': g['busy'], 'submitted': g['submitted'], 'completed': g.get('completed', False), 'task': g.get('task'), 'run_id': g['run'], 'archive_path': str(self.directory / g['archive_path']) if g.get('archive_path') else None, 'runs': g.get('runs', {})}
 
 def register(services):
+    services.rpc('group_begin', begin, mutation=True)
     services.rpc('group_task', group_task, mutation=True)
     services.rpc('group_error', group_error, mutation=True)
     services.rpc('group_complete', group_complete, mutation=True)

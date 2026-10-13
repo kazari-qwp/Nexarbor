@@ -131,29 +131,27 @@ class Plugin(Component):
         reference = None
         try:
             info = self.r.rpc('group_info', group_id=group_id)
-            if info['completed']:
-                return dict(status='ok', result=self.r.rpc('read', actor=actor, target=info['output_id'], request=dict(method='key', key='content'), strength=self.r.state(actor)['strength']))
+            if info['completed'] and 'task' not in p:
+                return dict(status='ok', run_id=info['run_id'], archive_path=info['archive_path'], result=self.r.rpc('read', actor=actor, target=info['output_id'], request=dict(method='key', key='content'), strength=self.r.state(actor)['strength']))
             task = p.get('task', info.get('task'))
             if not task:
                 raise ValueError('New discussion requires a task')
-            if info.get('task') and info['task'] != task:
-                raise ValueError('Recovered discussion must continue its saved task')
             if any(member not in self.r.states for member in info['members']):
                 raise ValueError('Group members are not mounted in this process')
+            info = self.r.rpc('group_begin', group_id=group_id, task=task)
             diagnostics = self.r.plugins.get('tools/execution_records')
             if diagnostics:
                 diagnostics.start(actor)
             if reports:
                 reference = reports.delegate(actor, group_id, task, kind='discussion')
                 reports.archive(info['recorder_id'], reference)
-            self.r.rpc('group_task', group_id=group_id, task=task)
             start = info['round'] - int(info['busy'])
             for _ in range(start, info['total']):
                 round = self.r.rpc('start_round', group_id=group_id)
                 for member in info['members']:
                     if member in round.get('submitted', {}):
                         continue
-                    message = f"项目任务：{task}\n当前轮数：{round['round']}/{round['total']}\n项目资料ID：{'、'.join(info['project_ids'])}；成果ID：{info['output_id']}。项目资料已首次加载，后续按需使用绑定查询工具。公共笔记由框架放在请求尾部；Recorder用write_resident_text维护。个人记忆用datanet_memory_read、datanet_memory_write维护。\n上轮所有成员发言（共同快照）：\n{round['snapshot']}\n通常讨论按需访问资料、维护个人记忆。"
+                    message = f"项目任务：{task}\n本次运行：{info['run_id']}\n当前轮数：{round['round']}/{round['total']}\n项目资料ID：{'、'.join(info['project_ids'])}；成果ID：{info['output_id']}。项目资料已首次加载，后续按需使用绑定查询工具。公共笔记由框架放在请求尾部；Recorder用write_resident_text维护。个人记忆用datanet_memory_read、datanet_memory_write维护。\n上轮所有成员发言（共同快照）：\n{round['snapshot']}\n通常讨论按需访问资料、维护个人记忆。"
                     self.schedule(actor, member, message, reference, info, round['round'])
                 self.r.rpc('finish_round', group_id=group_id)
             final = self.r.rpc('group_info', group_id=group_id)
@@ -162,11 +160,12 @@ class Plugin(Component):
             if not self.turns[info['recorder_id']]['output_written']:
                 raise RuntimeError('FINAL_OUTPUT_NOT_CONFIRMED: Recorder 本次未成功写入非空最终成果；讨论已完成，请继续收尾，不要重新建组。')
             result = self.r.rpc('read', actor=actor, target=info['output_id'], request=dict(method='key', key='content'), strength=self.r.state(actor)['strength'])
-            self.r.rpc('group_complete', group_id=group_id)
+            completed = self.r.rpc('group_complete', group_id=group_id, report_reference=reference)
             self.r.rpc('save')
             if reports:
                 reports.end(reference, 'completed')
-            return dict(status='ok', output=result['items'], result=result, report_reference=reference)
+            return dict(status='ok', output=result['items'], result=result, report_reference=reference,
+                        run_id=completed['run_id'], archive_path=completed['archive_path'])
         except Exception as error:
             self.r.rpc('group_error', group_id=group_id, error=str(error))
             if reports and reference:
