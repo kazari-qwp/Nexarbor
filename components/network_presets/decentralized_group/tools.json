@@ -50,7 +50,7 @@
   },
   "datanet_team_claim": {
     "name": "datanet_team_claim",
-    "description": "认领、完成或释放自己的子任务。",
+    "description": "认领子任务及文件路径、补充路径，或完成、释放自己的认领。",
     "parameters": {
       "type": "object",
       "properties": {
@@ -58,6 +58,7 @@
           "type": "string",
           "enum": [
             "claim",
+            "extend",
             "complete",
             "release"
           ]
@@ -65,6 +66,14 @@
         "scope": {
           "type": "string",
           "minLength": 1
+        },
+        "paths": {
+          "type": "array",
+          "description": "预计添加、修改或删除的工作区相对文件或目录路径；调查任务可省略。extend 时补充原认领的路径。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         },
         "claim_id": {
           "type": "string",

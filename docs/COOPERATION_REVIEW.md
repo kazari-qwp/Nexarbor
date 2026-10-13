@@ -36,7 +36,7 @@ Python core 未加入这些预设的业务分支。工作区使用每组独立 G
 
 ### datanet_team_claim
 
-认领、完成或释放自己的子任务。
+认领子任务及文件路径、补充路径，或完成、释放自己的认领。
 
 ### datanet_team_note
 

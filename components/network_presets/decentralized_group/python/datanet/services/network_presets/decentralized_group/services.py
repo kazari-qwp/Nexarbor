@@ -3,6 +3,9 @@ from copy import deepcopy
 from uuid import uuid4
 from time import time
 import json
+import os
+import posixpath
+from pathlib import PureWindowsPath
 from datanet.services.tools.network_management.templates import expand_package
 
 ACTIVE = {'running', 'review'}
@@ -150,6 +153,51 @@ def update(b, p):
     return deepcopy(g)
 
 
+def claim_paths(value):
+    if not isinstance(value, list):
+        raise ValueError('paths 须为工作区相对路径列表')
+    paths, seen = [], set()
+    for raw in value:
+        if not isinstance(raw, str) or not raw.strip():
+            raise ValueError('paths 须为非空路径字符串列表')
+        raw = raw.strip().replace('\\', '/')
+        if raw.startswith('/') or PureWindowsPath(raw).drive:
+            raise ValueError('paths 使用工作区相对路径')
+        path = posixpath.normpath(raw)
+        if os.name == 'nt':
+            path = '/'.join(part.rstrip(' .') if part not in ('.', '..') else part for part in path.split('/'))
+        if not path or path in ('.', '..') or path.startswith('../') or any(not part or part.casefold() == '.git' for part in path.split('/')) or any(char in path for char in '\0*?[]:'):
+            raise ValueError('paths 须指向工作区内的文件或目录，不使用通配符或 .git')
+        key = os.path.normcase(path)
+        if key not in seen:
+            paths.append(path)
+            seen.add(key)
+    return paths
+
+
+def claim_conflict(g, scope, paths, exclude=None):
+    for entry in g['claims'].values():
+        if entry['state'] != 'active' or entry['id'] == exclude:
+            continue
+        if entry['scope'].casefold() == scope.casefold():
+            return dict(conflict=True, reason='scope', claim=deepcopy(entry))
+        overlaps = []
+        for requested in paths:
+            left = os.path.normcase(requested)
+            for claimed in entry.get('paths', []):
+                right = os.path.normcase(claimed)
+                # A directory claim also covers its descendants, but not name prefixes.
+                if left == right or left.startswith(right + os.sep) or right.startswith(left + os.sep):
+                    overlaps.append(dict(requested=requested, claimed=claimed))
+        if overlaps:
+            return dict(conflict=True, reason='paths', claim=deepcopy(entry), overlaps=overlaps)
+    return None
+
+
+def claim_text(item):
+    return item['scope'] + ('\npaths=' + json.dumps(item['paths'], ensure_ascii=False) if item.get('paths') else '')
+
+
 def claim(b, p):
     g = get(b, p, True)
     live(g)
@@ -159,23 +207,35 @@ def claim(b, p):
         scope = p.get('scope', '').strip()
         if not scope:
             raise ValueError('认领须提供 scope')
-        for entry in g['claims'].values():
-            if entry['state'] == 'active' and entry['scope'].casefold() == scope.casefold():
-                return dict(conflict=True, claim=deepcopy(entry))
+        paths = claim_paths(p.get('paths', []))
+        conflict = claim_conflict(g, scope, paths)
+        if conflict:
+            return conflict
         id = str(uuid4())
-        item = dict(id=id, actor=p['actor'], scope=scope, state='active', evidence='')
+        item = dict(id=id, actor=p['actor'], scope=scope, paths=paths, state='active', evidence='')
         g['claims'][id] = item
-        append(b, g, p['actor'], 'CLAIM', scope)
+        append(b, g, p['actor'], 'CLAIM', claim_text(item))
         return deepcopy(item)
     item = g['claims'].get(p.get('claim_id'))
     if not item or item['actor'] != p['actor'] or item['state'] != 'active':
-        raise PermissionError('只能结束自己仍有效的认领')
+        raise PermissionError('只能操作自己仍有效的认领')
+    if p['action'] == 'extend':
+        if g['phase'] != 'running':
+            raise ValueError('成果正在验收，否决候选后再补充认领')
+        paths = claim_paths([*item.get('paths', []), *claim_paths(p.get('paths'))])
+        conflict = claim_conflict(g, item['scope'], paths, item['id'])
+        if conflict:
+            return conflict
+        if paths != item.get('paths', []):
+            item['paths'] = paths
+            append(b, g, p['actor'], 'CLAIM', claim_text(item))
+        return deepcopy(item)
     if p['action'] not in ('complete', 'release'):
         raise ValueError('未知认领操作')
     if p['action'] == 'complete' and not p.get('evidence', '').strip():
         raise ValueError('完成认领须给出验证证据')
     item.update(state='completed' if p['action'] == 'complete' else 'released', evidence=p.get('evidence', ''))
-    append(b, g, p['actor'], 'PATCH_SUMMARY' if p['action'] == 'complete' else 'RELEASE', item['scope'] + '\n' + item['evidence'])
+    append(b, g, p['actor'], 'PATCH_SUMMARY' if p['action'] == 'complete' else 'RELEASE', claim_text(item) + '\n' + item['evidence'])
     return deepcopy(item)
 
 
