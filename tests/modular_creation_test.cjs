@@ -1,3 +1,4 @@
+const keepAlive=setInterval(()=>{},1000);setTimeout(()=>{console.error('Test deadline');process.exit(1)},60000).unref();
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),vm=require('node:vm');
 const {pathToFileURL,fileURLToPath}=require('node:url');
 const nativeRoot=process.env.DATANET_NATIVE_MODULES??path.join(process.env.LOCALAPPDATA,'Programs','DeepSeek Harness','resources','app.asar','dsh','node_modules');
@@ -18,10 +19,10 @@ const base=productRoot;
  const link=(spec,ref)=>get(spec,ref.identifier),entry=await get(pathToFileURL(base+'/index.js').href);await entry.link(link);await entry.evaluate();
  const loop=await get(pathToFileURL(base+'/adapters/harness/runtime/agent-loop/lib/index.js').href);await loop.link(link);await loop.evaluate();
  const host=new Context(),temp=await fs.mkdtemp(path.join(testRoot,'creation-'));
- for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']])await host.plugin(native(name)[service]??native(name).default);
+ for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']]){await host.plugin(native(name)[service]??native(name).default);}
  host.provide('sessionTitle',{rename(){}});host.sessions.flush=async()=>{};
  await host.plugin(loop.namespace.default,{agents:[]});
- const r=await entry.namespace.apply(host,{workspace:temp,storage:path.join(temp,'.datanet'),rootNetwork:'project_root',rootToolboxes:['network_access','node_creation','agent_management','interface_management','discussion'],maxSignalStrength:100});
+ const r=await entry.namespace.apply(host,{workspace:temp,storage:path.join(temp,'.datanet'),...(process.env.DATANET_TEST_PYTHON?{backend:process.env.DATANET_TEST_PYTHON,backendArgs:[base+'/adapters/harness/backend/server.py']}:{}),rootNetwork:'project_root',rootToolboxes:['network_access','node_creation','agent_management','interface_management','discussion'],maxSignalStrength:100});
  const root=await host.agentLoop.create(native('dsh-session').SessionId('creation-root'),{provider:'mock',model:'mock'},{cwd:temp});
  await host.parallel('agent/created',{agent:root});
  const exec=async(name,args={})=>{const result=await host.tools.execute({agent:root,name,arguments:args,callId:'creation-'+name,signal:new AbortController().signal});assert.equal(result.isError,false,JSON.stringify(result));return result.value};
@@ -32,5 +33,5 @@ const base=productRoot;
  assert.equal(group.status,'ok');assert.equal(r.sessions.size,6);
  const agents=host.agents.list();assert.equal(agents.length,7);assert.equal(new Set(agents.map(a=>a.session.id)).size,7);assert.equal(new Set(agents.map(a=>a.ctx)).size,7);
  for(const actor of group.members){const agent=r.sessions.get(actor).handle.agent;assert.ok(host.tools.schemas(agent).some(t=>t.name==='submit_round'));assert.ok(!host.tools.schemas(agent).some(t=>t.name==='datanet_send_message'));}
- await r.components.dispose();await r.bridge.close();await host.fiber.dispose();console.log('PASS native AgentRegistry: one worker and five discussion members have independent contexts and Sessions; no model calls');
+ await r.components.dispose();await r.bridge.close();await host.fiber.dispose();clearInterval(keepAlive);console.log('PASS native AgentRegistry: one worker and five discussion members have independent contexts and Sessions; no model calls');
 })().catch(error=>{console.error(error);process.exit(1)});

@@ -1,0 +1,288 @@
+{
+  "datanet_create_agent": {
+    "name": "datanet_create_agent",
+    "description": "在获准节点挂载 Agent，选择职责预设与私有工具箱。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string"
+        },
+        "preset": {
+          "type": "string",
+          "enum": [
+            "worker"
+          ]
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "toolboxes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": []
+          },
+          "uniqueItems": true
+        },
+        "max_signal_strength": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "target"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_call_agent": {
+    "name": "datanet_call_agent",
+    "description": "向已有下属 Agent 委托任务；没有子 Agent 时不要使用本工具，也不要用它代替自己的工作。目标须读可达且符合管理范围；会话上下文保留。讨论成员自身由黑板调度。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string"
+        },
+        "task": {
+          "type": "string"
+        },
+        "strength": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "target",
+        "task"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_manage_agent": {
+    "name": "datanet_manage_agent",
+    "description": "查看或调整获准 Agent 的提示词与会话。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string"
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "inspect",
+            "update_prompt",
+            "restart",
+            "clear_context"
+          ]
+        },
+        "prompt": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "target",
+        "action"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_agent_capabilities": {
+    "name": "datanet_agent_capabilities",
+    "description": "查看宿主允许为子 Agent 装配的工具箱。工具箱私有，不可跨 Agent 调用工具或 Skill。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "datanet_presets": {
+    "name": "datanet_presets",
+    "description": "查看预设预览；指定preset查看网络的详细使用说明。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "type": "string",
+          "enum": [
+            "discussion_group",
+            "number_network"
+          ]
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "datanet_interfaces": {
+    "name": "datanet_interfaces",
+    "description": "查看、新增、修改或删除获准节点的读写接口。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "list",
+            "add",
+            "update",
+            "remove"
+          ]
+        },
+        "arguments": {
+          "type": "object",
+          "properties": {
+            "node_id": {
+              "type": "string"
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write"
+              ]
+            },
+            "target_node_id": {
+              "type": "string",
+              "description": "add/update/remove必填；即便提供interface_index也须填写，用来核验目标。"
+            },
+            "interface": {
+              "type": "object",
+              "properties": {
+                "visibility": {
+                  "type": "string",
+                  "enum": [
+                    "private",
+                    "public"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "changes": {
+              "type": "object",
+              "properties": {
+                "visibility": {
+                  "type": "string",
+                  "enum": [
+                    "private",
+                    "public"
+                  ]
+                }
+              },
+              "additionalProperties": false
+            },
+            "interface_index": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "action",
+        "arguments"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_create_node": {
+    "name": "datanet_create_node",
+    "description": "创建数据或组织子节点，可选择预设或自定义受支持类型。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "child_id": {
+          "type": "string"
+        },
+        "node_spec": {
+          "type": "object"
+        },
+        "parent_node_id": {
+          "type": "string"
+        },
+        "read_interface": {
+          "type": "object",
+          "properties": {
+            "visibility": {
+              "type": "string",
+              "enum": [
+                "private",
+                "public"
+              ]
+            }
+          },
+          "additionalProperties": false
+        },
+        "write_interface": {
+          "type": "object",
+          "properties": {
+            "visibility": {
+              "type": "string",
+              "enum": [
+                "private",
+                "public"
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "child_id",
+        "node_spec"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_create_network": {
+    "name": "datanet_create_network",
+    "description": "按预设创建网络，返回实际节点ID与连接摘要。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "preset": {
+          "type": "string",
+          "enum": [
+            "discussion_group",
+            "number_network"
+          ]
+        },
+        "instance_id": {
+          "type": "string"
+        },
+        "parent_node_id": {
+          "type": "string"
+        },
+        "project": {
+          "type": "string"
+        },
+        "project_nodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "with_agents": {
+          "type": "boolean"
+        },
+        "rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8
+        }
+      },
+      "required": [
+        "preset",
+        "instance_id"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

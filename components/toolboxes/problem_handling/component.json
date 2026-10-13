@@ -1,7 +1,6 @@
 {
   "id": "toolboxes/problem_handling",
   "kind": "toolboxes",
-  "entry": "implementation.js",
   "enabled": true,
   "requires": [
     "toolboxes/experience",
@@ -46,13 +45,15 @@
       "properties": {}
     }
   },
-  "harness": {
-    "services": [
-      "harness_components.toolboxes.problem_handling.services"
-    ],
-    "python_path": "harness/python"
-  },
   "agentPolicy": {
     "baseline": true
-  }
+  },
+  "python": {
+    "path": "python",
+    "services": [
+      "datanet.services.toolboxes.problem_handling.services"
+    ],
+    "runtime": "datanet.features.toolboxes.problem_handling.runtime"
+  },
+  "toolDefinitions": "tools.json"
 }

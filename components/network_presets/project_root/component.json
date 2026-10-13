@@ -5,16 +5,13 @@
   "requires": [
     "nodes/text"
   ],
-  "harness": {
-    "services": [
-      "harness_components.network_presets.project_root.services"
-    ],
-    "python_path": "harness/python"
-  },
   "python": {
-    "path": "python"
+    "path": "python",
+    "services": [
+      "datanet.services.network_presets.project_root.services"
+    ],
+    "runtime": "datanet.features.network_presets.project_root.runtime"
   },
-  "entry": "implementation.js",
   "agentDefaults": {
     "allowedToolboxes": [
       "network_access",

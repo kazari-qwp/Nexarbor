@@ -1,7 +1,6 @@
 {
   "id": "network_presets/discussion_group",
   "kind": "network_presets",
-  "entry": "implementation.js",
   "enabled": true,
   "requires": [
     "agent_presets/discussion_leader",
@@ -40,16 +39,15 @@
     "node_codecs": [
       "datanet.components.nodes.discussion_board_node.codec"
     ],
-    "path": "python"
-  },
-  "harness": {
+    "path": "python",
     "services": [
-      "harness_components.network_presets.discussion_group.services"
+      "datanet.services.network_presets.discussion_group.services"
     ],
-    "python_path": "harness/python"
+    "runtime": "datanet.features.network_presets.discussion_group.runtime"
   },
   "configurationFields": [
     "discussionToolboxes",
     "discussionMaxSignalStrength"
-  ]
+  ],
+  "toolDefinitions": "tools.json"
 }

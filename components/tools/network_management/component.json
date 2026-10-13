@@ -1,7 +1,6 @@
 {
   "id": "tools/network_management",
   "kind": "tools",
-  "entry": "implementation.js",
   "enabled": true,
   "requires": [],
   "tools": [
@@ -125,10 +124,12 @@
       }
     }
   },
-  "harness": {
+  "python": {
+    "path": "python",
     "services": [
-      "harness_components.tools.network_management.services"
+      "datanet.services.tools.network_management.services"
     ],
-    "python_path": "harness/python"
-  }
+    "runtime": "datanet.features.tools.network_management.runtime"
+  },
+  "toolDefinitions": "tools.json"
 }

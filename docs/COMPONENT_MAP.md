@@ -4,9 +4,9 @@
 
 | 原功能/组件 | 拆分后类别 | 成品位置 | 依赖或接入方式 | 启停 ID |
 |---|---|---|---|---|
-| 图、接口、管理树、访问预算、委托及序列化 | 基础框架 | python/datanet/core | 标准库；具体节点通过 NodeCodec 接入 | 保留基础协议 |
-| Harness 会话、官方工具挂载、工具权限和文档历史 | Harness 适配层 | adapters/harness/framework | 原生 SDK；组件统一使用 ComponentRuntime | 宿主入口装配 |
-| Harness RPC、检查点及运行循环兼容 | Harness 适配层 | adapters/harness/backend；adapters/harness/runtime | 原生 AgentLoop；stdio 后端 | 插件补丁装配 |
+| 图、接口、管理树、访问预算、委托及序列化 | 基础框架 | python/datanet/core | 标准库；通用应用事件、组件服务和检查点也归 Python 本体 | 保留基础协议 |
+| Harness 会话、官方工具挂载、工具权限和文档历史 | Harness 适配层 | adapters/harness/framework | 原生 SDK；通过双向 RPC 执行 Python 返回的装配操作 | 宿主入口装配 |
+| Harness 双向 RPC 及运行循环兼容 | Harness 适配层 | adapters/harness/backend；adapters/harness/runtime | 原生 AgentLoop；stdio 传输，检查点归 Python core | 插件补丁装配 |
 | 建节点、建 Agent、建网络、管理接口和委托 | 工具 | components/tools/network_management | 节点及预设从清单发现 | tools/network_management |
 | 报告保存、UUIDv7 请求/委托索引及报告查询 | 工具 | components/tools/reports | 普通报告存储；委托事件开放查询入口 | tools/reports |
 | 执行记录、异常记录和中断记录 | 工具 | components/tools/execution_records | 独立 JSON 状态；报告与经验使用可选端口 | tools/execution_records |
@@ -29,3 +29,7 @@
 ## 本次源码迁移边界
 
 原目录 `E:/harness-discussion-plugin` 和 `E:/数据库项目` 保留。新项目包含源码、六类组件、独立适配层和 Windows 后端，无运行时依赖原来的项目目录。构建时可以使用具有 PyInstaller 与节点依赖的 Python 环境。原生 Harness 模块由宿主提供。
+
+## 实现归属
+
+上表业务组件的应用运行入口统一在其 `python/datanet/features/.../runtime.py`，图服务在 `python/datanet/services/.../services.py`，节点实现和配置包在原 `python/datanet/components` 命名空间。工具静态定义位于组件根 `tools.json`。组件目录中不再保留 JavaScript 业务实现。
