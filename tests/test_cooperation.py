@@ -108,6 +108,11 @@ class CooperationTests(unittest.TestCase):
         self.assertEqual(final['phase'], 'completed')
         messages = [m for m in self.native.messages['root'] if 'cooperation_result' in json.dumps(m)]
         self.assertEqual(len(messages), 1)
+        workspace = self.app.plugins['network_presets/decentralized_group'].workspace(self.backend.cooperative_groups['team'])
+        head = workspace.git(workspace.main, 'rev-parse', 'HEAD')['stdout'].strip()
+        status = self.invoke('datanet_cooperate', dict(group_id='team', action='status'))
+        self.assertEqual(status['repository']['head_commit'], head)
+        self.assertIn(head, json.dumps(messages[0]))
         output = self.backend.network.nodes[final['output_id']].file_path.read_text(encoding='utf-8')
         self.assertEqual(output, '三个文件全部完成')
         root_output = self.invoke('node_read', dict(target=final['output_id'], request=dict(method='key', key='content'), strength=100))

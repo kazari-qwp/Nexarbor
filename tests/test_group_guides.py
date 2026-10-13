@@ -12,6 +12,21 @@ class GroupGuideTests(unittest.TestCase):
     team = cooperation.CooperationTests.team
     discussion = cooperation.CooperationTests.discussion
 
+    def test_network_creation_grant_creates_preset_members_without_generic_agent_creation(self):
+        root = self.app.state('root')
+        root['grant']['framework'].pop('datanet_create_agent', None)
+        root['dynamic'].pop('datanet_create_agent_channel', None)
+        self.app.refresh('root')
+        discussion = self.discussion(3)
+        team = self.team(count=4)
+        self.assertEqual(len(discussion['members']), 5)
+        self.assertEqual(len(team['members']), 4)
+        status = self.app.rpc('cooperative_status', actor='root', group_id=team['group_id'], strength=100)
+        workspace = self.app.plugins['network_presets/decentralized_group'].workspace(self.backend.cooperative_groups[team['group_id']])
+        self.assertEqual(status['workspace'], str(workspace.main))
+        self.assertNotIn('datanet_create_agent_channel', self.native.tools['root'])
+        self.assertTrue(all(actor in self.native.agents for actor in discussion['members'] + team['members']))
+
     def text(self, preset, member=False):
         path = fixtures.ROOT / 'components/network_presets' / preset
         return (path / ('members/AGENTS.md' if member else 'AGENTS.md')).read_text(encoding='utf-8')

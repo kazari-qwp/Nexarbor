@@ -17,8 +17,8 @@ class Plugin(Component):
 
     def before_create(self, e):
         if e['arguments']['preset'] == 'discussion_group' and e['arguments'].get('with_agents') is not False:
-            if self.r.state(e['actor'])['grant']['framework'].get('datanet_create_agent', {}).get('scope') != 'descendants':
-                raise PermissionError('This preset needs Agent creation permission with descendants scope')
+            if self.r.state(e['actor'])['grant']['framework'].get('datanet_create_network', {}).get('scope') != 'descendants':
+                raise PermissionError('This preset needs network creation permission with descendants scope')
 
     def created(self, e):
         if e['arguments']['preset'] == 'discussion_group' and e['arguments'].get('with_agents') is not False:
@@ -31,8 +31,8 @@ class Plugin(Component):
         for actor in group['members']:
             if actor in self.r.states:
                 continue
-            if not self.r.rpc('check_management', actor=parent, target=actor, scope=self.r.state(parent)['grant']['framework'].get('datanet_create_agent', {}).get('scope', 'self'))['allowed']:
-                raise PermissionError('Discussion member is outside Agent creation grant')
+            if not self.r.rpc('check_management', actor=parent, target=actor, scope=self.r.state(parent)['grant']['framework'].get('datanet_create_network', {}).get('scope', 'self'))['allowed']:
+                raise PermissionError('Discussion member is outside network creation grant')
             role = 'leader' if actor == group['leader_id'] else 'recorder' if actor == group['recorder_id'] else 'member'
             preset = self.r.presets[role]
             prompt = self.r.resource(preset['owner'], preset['prompt'])

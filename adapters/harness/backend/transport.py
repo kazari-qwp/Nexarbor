@@ -32,7 +32,8 @@ class Transport:
             self.pending[token] = record
         self.write(dict(host_id=token, method=method, params=params))
         try:
-            if not event.wait(600):
+            timeout = max(600, params.get('timeout_ms', 180000) / 1000 + 30) if method == 'run' else 600
+            if not event.wait(timeout):
                 raise TimeoutError('Harness port timeout: ' + method)
             response = record['response']
             if response.get('error'):

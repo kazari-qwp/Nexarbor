@@ -2,11 +2,11 @@
 
 Python 本体在 `python/datanet/core/`，业务实现和提示词资源由 Python 组件管理。Harness 通信与原生适配层在 `adapters/harness/`。业务内容按工具、Skill、网络预设、工具箱、Agent 预设、节点放在 `components/`，由 `component.json` 声明入口、依赖、资源和工具归属。
 
-插件版本 `0.3.6`，适配 DeepSeek Harness `0.2.0-rc.2`，附带 Windows x64 Python 后端。源码和成品都在本目录。
+插件版本 `0.3.9`，适配 DeepSeek Harness `0.2.0-rc.2`，附带 Windows x64 Python 后端。源码和成品都在本目录。
 
 ## 使用
 
-在 Harness 导入 `datanet-harness-0.3.6.tgz`，启用插件，并选择 `E:/DataNet-模块化成品/client-workspace` 工作目录。普通 Agent、讨论成员和 Recorder 通过 Harness 的 AgentRegistry 创建独立会话。模型和登录使用客户端已有配置。
+在 Harness 导入 `datanet-harness-0.3.9.tgz`，启用插件，并选择 `E:/DataNet-模块化成品/client-workspace` 工作目录。普通 Agent、讨论成员和 Recorder 通过 Harness 的 AgentRegistry 创建独立会话。模型和登录使用客户端已有配置。
 
 `cordis.patch.yml` 装配 DataNet 和请求尾部适配层。替换 AgentLoop 时继承原来的配置式 Agent 和并行工具上限。
 
@@ -39,3 +39,9 @@ Python 本体可通过 `PYTHONPATH=本目录/python` 独立使用；基础图和
 去中心化预设自动装配个人记忆、组内通信、共享认领与发现、Git 工作目录、整合和共同验收。用 `datanet_cooperate` 启动、查看或停止；具体使用说明见 `components/network_presets/decentralized_group/AGENTS.md`，组件与工具描述见 `docs/COOPERATION_REVIEW.md`。
 
 0.3.6 包含小组连续任务修复、文件路径认领与补充认领、两个预设的新描述，以及分别面向调用者和成员的指南。成员指南在对应组件的 `members/AGENTS.md`。
+
+0.3.7 修复 Agent 私有层及后加入官方工具的权限过滤，保留已加载工具定义的动态停用机制；图存储统一支持 Windows 扩展路径，新建协作工作区采用较短路径。
+
+0.3.8 将预设内部成员创建归于网络创建授权，创建完整小组无需另行授予通用 Agent 创建权限。
+
+0.3.9 在协作状态和结束通知提供共同仓库实际 Git HEAD，供调用者报告可核验的提交。

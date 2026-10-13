@@ -5,7 +5,7 @@ from time import time
 import json
 import os
 import posixpath
-from pathlib import PureWindowsPath
+from pathlib import Path, PureWindowsPath
 from datanet.services.tools.network_management.templates import expand_package
 
 ACTIVE = {'running', 'review'}
@@ -92,7 +92,7 @@ def status(b, p):
     query = p.get('query')
     result['entries'] = [e for e in result['entries'] if query.casefold() in e['content'].casefold()] if query else result['entries'][-20:]
     result['entry_count'] = len(g['entries'])
-    result['workspace'] = str(b.directory / 'cooperation' / g['group_id'].encode().hex() / 'workspace')
+    result['workspace'] = str(Path(g['workspace_directory']) / 'main') if g.get('workspace_directory') else str(b.directory / 'cooperation' / g['group_id'].encode().hex() / 'workspace')
     if result.get('archive_path'):
         result['archive_path'] = str(b.directory / result['archive_path'])
     for record in result.get('runs', {}).values():
@@ -145,7 +145,7 @@ def start(b, p):
 
 def update(b, p):
     g = b.cooperative_groups[p['group_id']]
-    for field in ('jobs', 'notified', 'failure', 'phase', 'report_reference'):
+    for field in ('jobs', 'notified', 'failure', 'phase', 'report_reference', 'workspace_directory'):
         if field in p:
             g[field] = deepcopy(p[field])
     if 'phase' in p and g['phase'] in TERMINAL:

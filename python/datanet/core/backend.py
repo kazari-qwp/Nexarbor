@@ -17,13 +17,14 @@ from .checkpoints import Checkpoints
 from datanet.core.serialization import _build
 from functools import partial
 from threading import RLock
+from .storage_paths import storage_path
 from datanet.core.packages.network import load_network_package
 
 class Backend:
 
     def __init__(self, directory):
         self._transaction_lock = RLock()
-        self.directory = Path(directory).resolve()
+        self.directory = storage_path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
         self.store = Checkpoints(self.directory)
         self.agents = {}

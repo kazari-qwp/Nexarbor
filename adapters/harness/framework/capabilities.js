@@ -24,7 +24,7 @@ export function updateCapabilityTools(ac, agent, profile, host, permissions) {
     const retained = [...new Set([...(permissions?(previous?.retained??previous?.tools??[]):[]),...tools])];
     const allow = retained.filter(name => restrictable.has(name));
     const dispose = ac.tools.restrict({ allow });
-    permissions?.official(ac, tools);
+    permissions?.official(ac, profile.tools);
     toolRestrictions.set(ac, { tools, retained, allow, dispose });
     return { tools, unavailableTools: profile.tools.filter(x => !known.has(x)) };
   } catch (error) {
@@ -44,6 +44,7 @@ export async function applyCapabilities(ac, agent, profile, host, preferredPrese
   const permitted = name => explicitSkills.has(name)||providerGrants.has(name);
   let currentProviders=new Map(initialSkills.map(x=>[x.name,x.provider]));
   ac.tools.guard(exec => {
+    if(exec.agent?.ctx&&exec.agent.ctx!==ac)return;
     if(exec.name!=='skill')return;
     const name=exec.arguments?.name;
     if(!permitted(name))return `Skill is not granted to this Agent: ${name}`;

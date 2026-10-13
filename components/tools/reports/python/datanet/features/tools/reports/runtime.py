@@ -5,6 +5,7 @@ from uuid import uuid4
 import json, os
 from datanet.core.application import Component
 from datanet.core.record_values import now, uuid7, redact
+from datanet.core.storage_paths import storage_path
 
 def schema(props=None, required=None):
     return dict(type='object', properties=props or {}, required=required or [], additionalProperties=False)
@@ -12,9 +13,7 @@ def schema(props=None, required=None):
 
 class Plugin(Component):
     def install(self):
-        self.directory = self.r.directory / 'reports'
-        if os.name == 'nt':
-            self.directory = Path('\\\\?\\' + str(self.directory.resolve()))
+        self.directory = storage_path(self.r.directory / 'reports')
         self.directory.mkdir(parents=True, exist_ok=True)
         self.requests, self.contexts, self.lock = {}, {}, RLock()
         for file in self.directory.glob('*/manifest.json'):

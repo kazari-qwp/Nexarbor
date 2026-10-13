@@ -2,6 +2,8 @@
 from threading import RLock, Timer
 from time import time, monotonic, sleep
 import json
+import hashlib
+from pathlib import Path
 from datanet.core.application import Component
 from .workspace import Workspace
 
@@ -37,14 +39,17 @@ class Plugin(Component):
             return next((g for g in self.r.backend.cooperative_groups.values() if actor in g['members'] and g['entry_points']['board'] in self.r.backend.network.nodes), None)
 
     def call(self, method, actor, group, **params):
-        return self.r.rpc('cooperative_' + method, actor=actor, group_id=group['group_id'], strength=self.r.state(actor)['strength'], **params)
+        result = self.r.rpc('cooperative_' + method, actor=actor, group_id=group['group_id'], strength=self.r.state(actor)['strength'], **params)
+        if method == 'status':
+            result['repository'] = self.workspace(group).repository()
+        return result
 
     def before_create(self, e):
         if e['arguments']['preset'] != 'decentralized_group' or e['arguments'].get('with_agents') is False:
             return
         state = self.r.state(e['actor'])
-        if state['grant']['framework'].get('datanet_create_agent', {}).get('scope') != 'descendants':
-            raise PermissionError('此预设需要 descendants 范围的 Agent 创建权限')
+        if state['grant']['framework'].get('datanet_create_network', {}).get('scope') != 'descendants':
+            raise PermissionError('此预设需要 descendants 范围的网络创建权限')
         self.r.resolve(self.r.presets['cooperative_worker']['toolboxes'], self.r.allowed, 'cooperative_worker')
         if state['strength'] < 2:
             raise PermissionError('创建者信号上限须至少为2')
@@ -72,6 +77,7 @@ class Plugin(Component):
             self.r.rpc('agent_progress', target=new, cooperative_group_id=group['group_id'])
             self.r.refresh(new)
         e['result']['members'] = list(group['members'])
+        self.r.rpc('cooperative_update', group_id=group['group_id'], workspace_directory=str(self.workspace(group).directory))
 
     def bound(self, e):
         if e['actor'] == 'root':
@@ -84,7 +90,16 @@ class Plugin(Component):
             e['allowed'] = False
 
     def workspace(self, group):
-        return Workspace(self.r.directory / 'cooperation' / group['group_id'].encode().hex() / 'workspace', group['members'])
+        if group.get('workspace_directory'):
+            return Workspace(Path(group['workspace_directory']), group['members'])
+        legacy = self.r.directory / 'cooperation' / group['group_id'].encode().hex() / 'workspace'
+        if (legacy / 'main').exists():
+            return Workspace(legacy, group['members'])
+        # Keep process working directories short; Windows CreateProcess has a separate cwd limit.
+        root_key = hashlib.sha256(str(self.r.directory).encode()).hexdigest()[:16]
+        group_key = hashlib.sha256(group['group_id'].encode()).hexdigest()[:16]
+        base = Path(self.r.config.get('workspace') or self.r.directory)
+        return Workspace(base / '.datanet' / 'workspaces' / root_key / group_key, group['members'])
 
     def group(self, actor):
         group = self.group_for(actor)
@@ -173,9 +188,10 @@ class Plugin(Component):
                 return
             self.r.rpc('cooperative_update', group_id=group['group_id'], notified=True)
             caller, reference, run_id = group['caller'], group.get('report_reference'), group['run_id']
+            workspace = self.workspace(group)
             result = dict(type='cooperation_result', group_id=group['group_id'], run_id=run_id, status=group['phase'],
                           output_id=group['entry_points']['output'], workspace=str(self.workspace(group).main), failure=group.get('failure'),
-                          report_reference=reference, archive_path=str(self.r.directory / group['archive_path']) if group.get('archive_path') else None)
+                          report_reference=reference, repository=workspace.repository(), archive_path=str(self.r.directory / group['archive_path']) if group.get('archive_path') else None)
             timer = self.timers.pop(group['group_id'], None)
             if timer:
                 timer.cancel()
@@ -280,7 +296,9 @@ class Plugin(Component):
         if group.get('run_id') and not group.get('notified'):
             self.notify(group)
         # Prepare resources before accepting a running task.
-        self.workspace(group).prepare()
+        workspace = self.workspace(group)
+        workspace.prepare()
+        self.r.rpc('cooperative_update', group_id=group['group_id'], workspace_directory=str(workspace.directory))
         self.call('start', actor, group, **{k: p[k] for k in ('task', 'budget_minutes') if k in p})
         try:
             reports = self.r.plugins.get('tools/reports')

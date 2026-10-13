@@ -12,9 +12,15 @@ export class ToolPermissions {
   constructor(message){this.message=message;this.states=new WeakMap();}
   state(ac){
     let s=this.states.get(ac);if(s)return s;
-    s={tools:new Map(),notices:[],official:new Set(),officialSeen:new Set()};this.states.set(ac,s);
+    s={tools:new Map(),notices:[],official:new Set(),officialSeen:new Set(),managed:false};this.states.set(ac,s);
     ac.tools.guard(exec=>{
-      if(s.tools.get(exec.name)?.enabled===false||s.officialSeen.has(exec.name)&&!s.official.has(exec.name))return permissionReason(exec.name);
+      if(exec.agent?.ctx&&exec.agent.ctx!==ac)return;
+      const local=s.tools.get(exec.name);
+      if(local?.enabled===false||!local&&s.managed&&exec.name!=='run_code'&&!s.official.has(exec.name))return permissionReason(exec.name);
+    });
+    ac.on('agent/tool-schemas',async(_payload,next)=>{
+      const tools=await next();
+      return s.managed?tools.filter(tool=>s.tools.has(tool.name)||s.officialSeen.has(tool.name)||tool.name==='run_code'):tools;
     });
     ac.on('agent/pre-step',async(_payload,next)=>{
       const decision=await next();if(decision.kind!=='enter'||!s.notices.length)return decision;
@@ -47,6 +53,6 @@ export class ToolPermissions {
     const s=this.state(ac),next=new Set(names),retained=new Set([...s.officialSeen,...next]);
     for(const name of s.official)if(!next.has(name))this.notify(ac,name,false);
     for(const name of next)if(s.officialSeen.has(name)&&!s.official.has(name))this.notify(ac,name,true);
-    s.official=next;s.officialSeen=retained;return [...retained];
+    s.official=next;s.officialSeen=retained;s.managed=true;return [...retained];
   }
 }

@@ -906,7 +906,8 @@ var ReactLoopAgent = class {
 		const claimed = this.inbox.claim(target, position.turn);
 		await this.dispatch.serial("agent/prepare-context", {...position, signal});
 		signal.throwIfAborted();
-		const assembly = await this.loopCtx.systemPrompt.assemble(assembleContextFor(this, signal));
+		const assembled = await this.loopCtx.systemPrompt.assemble(assembleContextFor(this, signal));
+		const assembly = {...assembled, tools: await this.dispatch.waterfall("agent/tool-schemas", {...position, signal}, () => Promise.resolve(assembled.tools))};
 		signal.throwIfAborted();
 		const sections = renderContextSections(assembly);
 		const context = this.runtimeContext.project(joinContextSections(sections), sections);
