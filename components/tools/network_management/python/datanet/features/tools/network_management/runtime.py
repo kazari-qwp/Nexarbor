@@ -14,13 +14,22 @@ class Plugin(Component):
         self.lock = Lock()
         self.guides = {m['preset']: self.r.resource(key, m['guide']) for key, m in self.r.catalog.items() if key in self.r.enabled and m.get('preset') and m.get('guide')}
         self.on('agent/bound', self.bound)
+        self.on('capabilities/changed', self.bound)
         self.on('tool/available', self.available)
         self.on('tool/definition', self.definition)
 
     def bound(self, e):
         actor = e['actor']
+        self.memory_tools(actor)
         for name in CHANNELS & self.r.state(actor)['grant']['framework'].keys():
             self.r.state(actor)['dynamic'][name + '_channel'] = dict(owner=self.id, name=name + '_channel', description=self.r.tools[name]['description'], parameters={'type': 'object', 'properties': {'preset': {'type': 'string', 'enum': list(self.guides)}} if name == 'datanet_create_network' else {}, 'required': ['preset'] if name == 'datanet_create_network' else [], 'additionalProperties': False})
+
+    def memory_tools(self, actor):
+        for name, description, parameters in (
+            ('datanet_memory_read', '读取自己的个人记忆文件。', {'type': 'object', 'properties': {}, 'additionalProperties': False}),
+            ('datanet_memory_write', '更新自己的个人记忆文件；保留值得复用的经验和关键信息。', {'type': 'object', 'properties': {'content': {'type': 'string'}, 'mode': {'type': 'string', 'enum': ['replace', 'append'], 'default': 'replace'}}, 'required': ['content'], 'additionalProperties': False}),
+        ):
+            self.r.state(actor)['dynamic'][name] = dict(owner=self.id, name=name, description=description, parameters=parameters)
 
     def available(self, e):
         if e['name'] in CHANNELS and e['name'] not in self.r.state(e['actor'])['channels']:
@@ -44,13 +53,16 @@ class Plugin(Component):
             return self.enter(actor, name[:-8], args.get('preset'))
         if name not in ('datanet_create_agent', 'datanet_call_agent', 'datanet_manage_agent'):
             return super().invoke(actor, name, args)
-        target = args['target']
+        if name == 'datanet_call_agent':
+            self.authorize(actor, args['target'], name, args)
+            return super().invoke(actor, name, args)
+        target = args.get('target', args.get('parent_node_id', actor) + '/' + args.get('child_id', ''))
         with self.lock:
             if target in self.locks:
                 raise RuntimeError('Target Agent is busy')
             self.locks.add(target)
         try:
-            self.authorize(actor, target, name, args)
+            self.authorize(actor, args.get('parent_node_id', actor) if name == 'datanet_create_agent' else target, name, args)
             return super().invoke(actor, name, args)
         finally:
             with self.lock:
@@ -108,14 +120,18 @@ class Plugin(Component):
             if key not in r.catalog or key in r.enabled:
                 r.rpc('load_root_network', package=r.config['rootNetwork'], entry_point=r.config.get('rootEntryPoint', 'root'))
         binding = dict(r.backend.agents.get('root', {}))
+        binding.pop('target', None)
         grant = r.resolve(r.config.get('rootToolboxes', r.defaults.get('rootToolboxes', [])))
         r.rpc('bind_agent', target='root', **{**binding, 'session_id': session_id, 'kind': 'root', 'creator_node_id': None, 'manager_id': None, 'activity': 'idle'})
         root = r.rpc('root_network_info')
         prompt = Path(root['agent_config']['prompt_path']).read_text(encoding='utf-8') if root.get('agent_config') else ''
         r.bind('root', session_id, 'project_root', grant, prompt)
         r.state('root')['strength'] = r.config.get('maxSignalStrength', 4)
+        lifecycle = r.plugins.get('tools/agent_lifecycle')
+        if lifecycle:
+            lifecycle.initial()
         for actor, saved in list(r.backend.agents.items()):
-            if actor == 'root' or actor in r.states:
+            if actor == 'root' or actor in r.states or actor not in r.backend.network.nodes:
                 continue
             if saved.get('kind') == 'discussion' and 'network_presets/discussion_group' not in r.enabled:
                 continue
@@ -129,27 +145,42 @@ class Plugin(Component):
         r = self.r
         if binding is None and target in r.states:
             raise ValueError('Node already has an Agent')
+        r.rpc('ensure_agent_node', target=target)
         grant = r.resolve(boxes or r.config.get('defaultAgentToolboxes', r.defaults.get('toolboxes', [])), None if binding else r.allowed, 'discussion' if role in ('leader', 'recorder', 'member') else role)
         path = r.directory / 'agents' / (target.encode().hex() + '.md')
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(prompt, encoding='utf-8')
         options = r.host('inspect', actor=parent).get('options', {})
-        options = {k: options[k] for k in ('provider', 'model', 'maxTokens') if k in options}
+        options = {k: options[k] for k in ('provider', 'model', 'maxTokens', 'reasoningEffort') if k in options}
         if r.config.get('provider'):
             options.update(provider=r.config['provider'], model=r.config.get('model'))
         options['maxTokens'] = r.config.get('agentMaxTokens', 4096)
+        lifecycle = r.plugins.get('tools/agent_lifecycle')
+        reused = False
+        key = None
+        if binding is None and lifecycle:
+            key, claim = lifecycle.claim(target, dict(prompt=prompt, toolboxes=sorted(grant['names']), strength=float(strength), role=role, agentOptions=options, node_options=r.backend.network.nodes[target].creation_options))
+            if claim['reused']:
+                target, binding, reused = claim['node_id'], claim['binding'], True
+                path = r.directory / 'agents' / (target.encode().hex() + '.md')
+                path.write_text(prompt, encoding='utf-8')
         saved = {**(binding or {}), 'session_id': (binding or {}).get('session_id', 'datanet-' + str(uuid4())), 'kind': (binding or {}).get('kind', r.backend.agents.get(target, {}).get('kind', 'generic')), 'creator_node_id': (binding or {}).get('creator_node_id', parent), 'prompt': prompt, 'promptPath': str(path), 'toolboxes': grant['names'], 'maxStrength': strength, 'role': role, 'agentOptions': (binding or {}).get('agentOptions', options), 'status': (binding or {}).get('status', 'prepared')}
         saved.pop('target', None)
+        saved['native_parent_id'] = parent
+        if role in ('leader', 'recorder', 'member'):
+            saved['kind'] = 'discussion'
+        if binding is None or reused:
+            saved.update(manager_id=parent, creator_node_id=parent, reuse_key=key, reuse_eligible=True)
         r.rpc('bind_agent', target=target, **saved)
         mounted = r.host('create', actor=target, parent=parent, grant=grant, binding=r.backend.agents[target], resume=binding is not None)
         r.rpc('agent_progress', target=target, status='ready', activity='interrupted' if saved.get('activity') == 'running' else 'idle')
         r.bind(target, mounted['session_id'], role, grant, prompt)
         r.host('view-update', actor=target, view=r.view(target))
-        return dict(node_id=target, manager_id=r.backend.agents[target].get('manager_id'), creator_node_id=saved['creator_node_id'], session_id=mounted['session_id'], prompt_path=str(path), toolboxes=grant['names'])
+        if reused:
+            r.state(target)['pending_task_boundary'] = '你已被重新装配。管理者：' + parent + '。个人记忆和会话已保留，当前任务以新的委托为准。'
+        return dict(node_id=target, reused=reused, memory_path=str(r.backend.network.nodes[target].file_path), manager_id=r.backend.agents[target].get('manager_id'), creator_node_id=saved['creator_node_id'], session_id=mounted['session_id'], prompt_path=str(path), toolboxes=grant['names'])
 
     def tool_datanet_create_agent(self, actor, p):
-        if p['target'] == 'root':
-            raise ValueError('Root already has a native Agent; create a child node and mount there')
         preset = self.r.presets.get(p.get('preset', 'worker'))
         if not preset:
             raise ValueError('Unknown Agent preset')
@@ -157,14 +188,26 @@ class Plugin(Component):
         strength = p.get('max_signal_strength', preset.get('max_signal_strength', 2))
         if strength > self.r.state(actor)['strength']:
             raise PermissionError('Child signal limit exceeds creator grant')
-        return self.create(p['target'], prompt, actor, strength, p.get('toolboxes', preset.get('toolboxes')), preset.get('experience_role', preset['id']))
+        parent = p.get('parent_node_id', actor)
+        created = self.r.rpc('create_node', actor=actor, options={**self.r.state(actor)['grant']['framework'].get('datanet_create_agent', {}), 'allow_custom': True}, child_id=p['child_id'], parent_node_id=parent, node_spec=dict(type='agent', name=p.get('name', p['child_id']), description=p.get('description', ''), parameters=dict(file_path=str(self.r.directory / 'memories' / (uuid4().hex + '.md')), creation_options={key: p[key] for key in ('name', 'description') if key in p})))
+        result = self.create(created['items'][0]['node_id'], prompt, actor, strength, p.get('toolboxes', preset.get('toolboxes')), preset.get('experience_role', preset['id']))
+        self.r.emit('graph/changed', actor=actor)
+        return result
+
+    def tool_datanet_memory_read(self, actor, p):
+        return self.r.backend.network.nodes[actor].read_memory()
+
+    def tool_datanet_memory_write(self, actor, p):
+        result = self.r.backend.network.nodes[actor].write_memory(p['content'], p.get('mode', 'replace'))
+        self.r.rpc('save')
+        return result
 
     def reserve(self, actor, target, action):
         problem = self.r.plugins.get('toolboxes/problem_handling')
         if problem:
             problem.reserve(actor, target, action)
 
-    def execute(self, actor, target, task, kind='agent', parent=None, round=None):
+    def execute(self, actor, target, task, kind='agent', parent=None, round=None, reference=None, asynchronous=False):
         r = self.r
         if target not in r.states:
             raise ValueError('Node has no mounted Agent')
@@ -173,16 +216,20 @@ class Plugin(Component):
         self.reserve(actor, target, 'execute')
         reports = r.plugins.get('tools/reports')
         diagnostics = r.plugins.get('tools/execution_records')
-        if diagnostics:
+        if diagnostics and not asynchronous:
             diagnostics.start(actor)
-        reference = reports.delegate(actor, target, task, kind, parent, round) if reports else None
+        if reference and reports:
+            reports.contexts[target] = reference
+        else:
+            reference = reports.delegate(actor, target, task, kind, parent, round) if reports else None
         problem = r.plugins.get('toolboxes/problem_handling')
         previous = problem.latest(target) if problem else None
         r.state(target)['scheduled'] = True
         try:
             if diagnostics:
                 diagnostics.start(target)
-            response = r.host('run', actor=target, text=task, timeout_ms=r.config.get('turnTimeoutMs', 180000))
+            boundary = r.state(target).pop('pending_task_boundary', '')
+            response = r.host('run', actor=target, text=(boundary + '\n' if boundary else '') + task, timeout_ms=r.config.get('turnTimeoutMs', 180000))
             feedback = problem.latest(target) if problem else None
             blocked = feedback and feedback.get('id') != (previous or {}).get('id')
             if not blocked:
@@ -207,6 +254,9 @@ class Plugin(Component):
             raise ValueError('Use discussion scheduling for discussion members')
         if not self.r.rpc('check_access', actor=actor, target=p['target'], direction='read', strength=p.get('strength', self.r.state(actor)['strength']))['allowed']:
             raise PermissionError('Target is outside permitted network path')
+        queue = self.r.plugins.get('tools/agent_delegation')
+        if queue:
+            return queue.submit(actor, p['target'], p['task'])
         return self.execute(actor, p['target'], p['task'])
 
     def update_prompt(self, actor, target, prompt):
@@ -218,7 +268,7 @@ class Plugin(Component):
         path.with_suffix(path.suffix + '.bak').write_text(state['prompt'], encoding='utf-8')
         path.write_text(prompt, encoding='utf-8')
         state['prompt'] = prompt
-        self.r.rpc('agent_progress', target=target, prompt=prompt)
+        self.r.rpc('agent_progress', target=target, prompt=prompt, reuse_eligible=False)
         self.r.host('view-update', actor=target, view=self.r.view(target))
         return dict(node_id=target, updated=True, context_preserved=True)
 
@@ -244,23 +294,40 @@ class Plugin(Component):
         # A new native session is requested, while the management identity persists.
         saved['session_id'] = 'datanet-' + str(uuid4())
         saved['status'] = 'prepared'
+        if p.get('prompt') and p['prompt'] != binding['prompt']:
+            saved['reuse_eligible'] = False
         return self.create(target, prompt, actor, binding['maxStrength'], state['grant']['names'], state['role'], saved)
 
     def tool_datanet_agent_capabilities(self, actor, p):
         return dict(agent_presets=[{**preset, 'promptPath': str(self.r.catalog[preset['owner']]['directory'] / preset['prompt'])} for preset in self.r.presets.values()], default=self.r.config.get('defaultAgentToolboxes', self.r.defaults.get('toolboxes', [])), toolboxes=[dict(id=name, description=self.r.boxes[name].get('description', name)) for name in self.r.allowed])
 
     def tool_datanet_presets(self, actor, p):
+        lifecycle = self.r.plugins.get('tools/agent_lifecycle')
+        if p.get('archived_network_id'):
+            if not lifecycle:
+                raise ValueError('Saved networks component is not enabled')
+            return self.r.rpc('lifecycle_inventory', actor=actor, network_id=p['archived_network_id'])
         if p.get('preset'):
             return dict(preset=p['preset'], instructions_added=self.r.load(actor, 'preset:' + p['preset'], self.guides[p['preset']]))
-        return self.r.rpc('agent_capability', actor=actor, tool='list_node_presets', options=self.r.state(actor)['grant']['framework'].get('datanet_create_node', {}))
+        result = self.r.rpc('agent_capability', actor=actor, tool='list_node_presets', options=self.r.state(actor)['grant']['framework'].get('datanet_create_node', {}))
+        if lifecycle:
+            result.update(self.r.rpc('lifecycle_inventory', actor=actor))
+        return result
 
     def tool_datanet_interfaces(self, actor, p):
         args = dict(p['arguments'], action=p['action'])
-        if p['action'] != 'list' and not args.get('target_node_id'):
+        if p['action'] != 'list' and not args.get('target_node_id') and not args.get('confirmation_id'):
             raise ValueError('target_node_id is required for add/update/remove')
         if args.get('interface'):
             args['interface'] = dict(threshold=0, multiplier=1, **args['interface'])
-        result = self.r.rpc('agent_capability', actor=actor, tool='manage_interfaces', options=self.r.state(actor)['grant']['framework'].get('datanet_interfaces', {}), arguments=args)
+        options = self.r.state(actor)['grant']['framework'].get('datanet_interfaces', {})
+        lifecycle = self.r.plugins.get('tools/agent_lifecycle')
+        if lifecycle and p['action'] == 'remove':
+            result = self.r.rpc('lifecycle_interfaces', actor=actor, options=options, arguments=args)
+        else:
+            if lifecycle and p['action'] == 'add' and args['target_node_id'] not in self.r.backend.network.nodes:
+                self.r.rpc('lifecycle_wake', target=args['target_node_id'])
+            result = self.r.rpc('agent_capability', actor=actor, tool='manage_interfaces', options=options, arguments=args)
         self.r.emit('graph/changed', actor=actor)
         return result
 

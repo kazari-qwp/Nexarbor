@@ -2,7 +2,7 @@
   "kind": "network",
   "version": 1,
   "id": "discussion_group",
-  "description": "固定五人讨论小组：Leader、Recorder和三名普通成员，共享项目说明、讨论黑板、公共笔记及成果，各有私人笔记。通过datanet_discuss下达目标并调度讨论，成员保留各自上下文。不要用datanet_call_agent单独启动讨论成员；成员通过submit_round或skip_round完成本轮，最终由Recorder整理成果返回调用者。 管理工具按管理归属调整内部成员，不需将私有接口改为公共；数据读取和委托仍遵守接口权限。",
+  "description": "固定五人讨论小组：Leader、Recorder和三名普通成员，共享项目说明、讨论黑板、公共笔记及成果，各自拥有个人记忆。通过datanet_discuss下达目标并调度讨论，成员保留各自上下文。不要用datanet_call_agent单独启动讨论成员；成员通过submit_round或skip_round完成本轮，最终由Recorder整理成果返回调用者。 管理工具按管理归属调整内部成员，不需将私有接口改为公共；数据读取和委托仍遵守接口权限。",
   "network": {
     "version": 3,
     "nodes": [
@@ -168,23 +168,19 @@
         "management_parent_id": "board"
       },
       {
-        "type": "node",
+        "type": "agent",
         "node_id": "leader",
         "name": "leader",
-        "data_kind": null,
+        "data_kind": "agent",
         "description": "讨论成员 leader；读取共享资料，维护私人笔记。",
         "divergence": -1,
-        "parameters": {},
+        "parameters": {
+          "file_path": "data/leader_memory.md"
+        },
         "connections": {
           "read_interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "leader_notes",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -205,12 +201,6 @@
           "write_interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "leader_notes",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -225,48 +215,19 @@
         "management_parent_id": "board"
       },
       {
-        "type": "text_file",
-        "node_id": "leader_notes",
-        "name": "leader_notes",
-        "data_kind": "text",
-        "description": "leader的私人笔记。",
-        "divergence": -1,
-        "parameters": {
-          "file_path": "data/leader_notes.md"
-        },
-        "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
-        },
-        "agent": null,
-        "toolboxes": [
-          "local_data"
-        ],
-        "expose": [
-          "read",
-          "get_schema",
-          "write"
-        ],
-        "management_parent_id": "leader"
-      },
-      {
-        "type": "node",
+        "type": "agent",
         "node_id": "recorder",
         "name": "recorder",
-        "data_kind": null,
+        "data_kind": "agent",
         "description": "讨论成员 recorder；读取共享资料，维护私人笔记。",
         "divergence": -1,
-        "parameters": {},
+        "parameters": {
+          "file_path": "data/recorder_memory.md"
+        },
         "connections": {
           "read_interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "recorder_notes",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -287,12 +248,6 @@
           "write_interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "recorder_notes",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -319,48 +274,19 @@
         "management_parent_id": "board"
       },
       {
-        "type": "text_file",
-        "node_id": "recorder_notes",
-        "name": "recorder_notes",
-        "data_kind": "text",
-        "description": "recorder的私人笔记。",
-        "divergence": -1,
-        "parameters": {
-          "file_path": "data/recorder_notes.md"
-        },
-        "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
-        },
-        "agent": null,
-        "toolboxes": [
-          "local_data"
-        ],
-        "expose": [
-          "read",
-          "get_schema",
-          "write"
-        ],
-        "management_parent_id": "recorder"
-      },
-      {
-        "type": "node",
+        "type": "agent",
         "node_id": "member_1",
         "name": "member_1",
-        "data_kind": null,
+        "data_kind": "agent",
         "description": "讨论成员 member_1；读取共享资料，维护私人笔记。",
         "divergence": -1,
-        "parameters": {},
+        "parameters": {
+          "file_path": "data/member_1_memory.md"
+        },
         "connections": {
           "read_interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "member_1_notes",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -384,12 +310,6 @@
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
-            },
-            {
-              "target_node_id": "member_1_notes",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
             }
           ]
         },
@@ -401,48 +321,19 @@
         "management_parent_id": "board"
       },
       {
-        "type": "text_file",
-        "node_id": "member_1_notes",
-        "name": "member_1_notes",
-        "data_kind": "text",
-        "description": "member_1的私人笔记。",
-        "divergence": -1,
-        "parameters": {
-          "file_path": "data/member_1_notes.md"
-        },
-        "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
-        },
-        "agent": null,
-        "toolboxes": [
-          "local_data"
-        ],
-        "expose": [
-          "read",
-          "get_schema",
-          "write"
-        ],
-        "management_parent_id": "member_1"
-      },
-      {
-        "type": "node",
+        "type": "agent",
         "node_id": "member_2",
         "name": "member_2",
-        "data_kind": null,
+        "data_kind": "agent",
         "description": "讨论成员 member_2；读取共享资料，维护私人笔记。",
         "divergence": -1,
-        "parameters": {},
+        "parameters": {
+          "file_path": "data/member_2_memory.md"
+        },
         "connections": {
           "read_interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "member_2_notes",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -466,12 +357,6 @@
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
-            },
-            {
-              "target_node_id": "member_2_notes",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
             }
           ]
         },
@@ -483,48 +368,19 @@
         "management_parent_id": "board"
       },
       {
-        "type": "text_file",
-        "node_id": "member_2_notes",
-        "name": "member_2_notes",
-        "data_kind": "text",
-        "description": "member_2的私人笔记。",
-        "divergence": -1,
-        "parameters": {
-          "file_path": "data/member_2_notes.md"
-        },
-        "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
-        },
-        "agent": null,
-        "toolboxes": [
-          "local_data"
-        ],
-        "expose": [
-          "read",
-          "get_schema",
-          "write"
-        ],
-        "management_parent_id": "member_2"
-      },
-      {
-        "type": "node",
+        "type": "agent",
         "node_id": "member_3",
         "name": "member_3",
-        "data_kind": null,
+        "data_kind": "agent",
         "description": "讨论成员 member_3；读取共享资料，维护私人笔记。",
         "divergence": -1,
-        "parameters": {},
+        "parameters": {
+          "file_path": "data/member_3_memory.md"
+        },
         "connections": {
           "read_interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "member_3_notes",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -548,12 +404,6 @@
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
-            },
-            {
-              "target_node_id": "member_3_notes",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
             }
           ]
         },
@@ -563,31 +413,6 @@
         "toolboxes": [],
         "expose": [],
         "management_parent_id": "board"
-      },
-      {
-        "type": "text_file",
-        "node_id": "member_3_notes",
-        "name": "member_3_notes",
-        "data_kind": "text",
-        "description": "member_3的私人笔记。",
-        "divergence": -1,
-        "parameters": {
-          "file_path": "data/member_3_notes.md"
-        },
-        "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
-        },
-        "agent": null,
-        "toolboxes": [
-          "local_data"
-        ],
-        "expose": [
-          "read",
-          "get_schema",
-          "write"
-        ],
-        "management_parent_id": "member_3"
       }
     ],
     "delegations": [

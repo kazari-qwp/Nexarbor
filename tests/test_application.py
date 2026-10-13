@@ -91,6 +91,21 @@ class ApplicationTests(unittest.TestCase):
     def invoke(self, name, p=None, actor='root'):
         return self.app.invoke(actor, name, p or {})
 
+    def test_management_skill_registers_new_channel_entries(self):
+        state = self.app.state('root')
+        state['grant'] = self.app.resolve(['node_operations', 'network_management_skill'])
+        state['dynamic'].clear()
+        state['channels'].clear()
+        self.app.refresh('root')
+        self.assertNotIn('datanet_create_node_channel', self.native.tools['root'])
+        self.invoke('datanet_skill', dict(action='load', name='network_management'))
+        self.assertIn('datanet_create_node_channel', self.native.tools['root'])
+        self.assertNotIn('datanet_create_node', self.native.tools['root'])
+        self.invoke('datanet_create_node_channel')
+        self.assertIn('datanet_create_node', self.native.tools['root'])
+        self.invoke('datanet_skill', dict(action='load', name='network_management'))
+        self.assertIn('datanet_create_node', self.native.tools['root'])
+
     def group(self):
         self.invoke('datanet_create_network_channel', dict(preset='discussion_group'))
         return self.invoke('datanet_create_network', dict(preset='discussion_group', instance_id='test', project_nodes=['root/project', 'root/progress'], rounds=1))

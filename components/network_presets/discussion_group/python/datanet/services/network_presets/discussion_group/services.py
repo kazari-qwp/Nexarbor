@@ -189,8 +189,24 @@ def connect_project(backend, board, refs):
     board.project_id = refs[0]
 
 def migrate(backend):
+    from datanet.services.tools.network_management.services import ensure_agent_node
     for group in backend.groups.values():
         board = group['board']
+        removed = set()
+        for actor in board.members:
+            ensure_agent_node(backend, {'target': actor})
+            old_notes = backend.network.nodes.get(actor + '_notes')
+            if old_notes is not None:
+                result = old_notes.read({'method': 'key', 'key': 'content'})
+                if result.status == 'ok' and result.items:
+                    backend.network.nodes[actor].write_memory(result.items[0]['content'], 'append')
+                removed.add(old_notes.node_id)
+        for target in removed:
+            backend.network.nodes.pop(target)
+        for node in backend.network.nodes.values():
+            for direction in ('read', 'write'):
+                links = getattr(node, direction + '_interfaces')
+                links[:] = [edge for edge in links if edge.target_node_id not in removed]
         for target in board.project_ids:
             backend.network.nodes[target].delivery = 'query'
         notebook = backend.network.nodes[board.notebook_id]

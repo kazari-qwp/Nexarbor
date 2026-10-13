@@ -22,6 +22,8 @@ class Plugin(Component):
     def created(self, e):
         if e['arguments']['preset'] == 'discussion_group' and e['arguments'].get('with_agents') is not False:
             self.make_members(e['actor'], e['result'])
+            info = self.r.rpc('group_info', group_id=e['result']['group_id'])
+            e['result'].update(members=info['members'], leader_id=info['members'][0], recorder_id=info['recorder_id'])
 
     def make_members(self, parent, group):
         management = self.r.plugins['tools/network_management']
@@ -33,10 +35,18 @@ class Plugin(Component):
             role = 'leader' if actor == group['leader_id'] else 'recorder' if actor == group['recorder_id'] else 'member'
             preset = self.r.presets[role]
             prompt = self.r.resource(preset['owner'], preset['prompt'])
-            # Save the group role before mounting, so native restore and event binding agree.
-            self.r.rpc('bind_agent', target=actor, kind='discussion', creator_node_id=parent, group_id=group['group_id'], role=role)
             result = management.create(actor, prompt, parent, self.r.config.get('discussionMaxSignalStrength', 2), self.r.config.get('discussionToolboxes', ['network_access', 'discussion_member']), role)
-            self.r.rpc('agent_progress', target=actor, kind='discussion', group_id=group['group_id'], count=0)
+            self.r.rpc('agent_progress', target=result['node_id'], kind='discussion', group_id=group['group_id'], count=0)
+            if result['node_id'] != actor:
+                group['members'] = [result['node_id'] if id == actor else id for id in group['members']]
+                structure = group['structure']
+                for row in structure['nodes']:
+                    if row['node_id'] == actor:
+                        row['node_id'] = result['node_id']
+                for edge in structure['interfaces'] + structure['attachment_interfaces']:
+                    for field in ('source_node_id', 'target_node_id'):
+                        if edge[field] == actor:
+                            edge[field] = result['node_id']
 
     def bound(self, e):
         actor = e['actor']
@@ -143,7 +153,7 @@ class Plugin(Component):
                 for member in info['members']:
                     if member in round.get('submitted', {}):
                         continue
-                    message = f"项目任务：{task}\n当前轮数：{round['round']}/{round['total']}\n项目资料ID：{'、'.join(info['project_ids'])}；成果ID：{info['output_id']}。项目资料已首次加载，后续按需使用绑定查询工具。公共笔记由框架放在请求尾部；Recorder用write_resident_text维护。私人笔记为你的节点ID加_notes。\n上轮所有成员发言（共同快照）：\n{round['snapshot']}\n通常讨论按需访问资料、编辑笔记。"
+                    message = f"项目任务：{task}\n当前轮数：{round['round']}/{round['total']}\n项目资料ID：{'、'.join(info['project_ids'])}；成果ID：{info['output_id']}。项目资料已首次加载，后续按需使用绑定查询工具。公共笔记由框架放在请求尾部；Recorder用write_resident_text维护。个人记忆用datanet_memory_read、datanet_memory_write维护。\n上轮所有成员发言（共同快照）：\n{round['snapshot']}\n通常讨论按需访问资料、维护个人记忆。"
                     self.schedule(actor, member, message, reference, info, round['round'])
                 self.r.rpc('finish_round', group_id=group_id)
             final = self.r.rpc('group_info', group_id=group_id)

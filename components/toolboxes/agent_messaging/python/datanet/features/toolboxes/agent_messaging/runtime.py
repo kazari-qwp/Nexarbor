@@ -106,6 +106,7 @@ class Plugin(Component):
             raise RuntimeError('Message router is closed')
         if not isinstance(content, str) or not content.strip():
             raise ValueError('Message content is required')
+        self.r.emit('agent/ensure-mounted', target=receiver)
         if sender not in self.r.states or receiver not in self.r.states:
             raise ValueError('Target Agent is not mounted; message was not accepted')
         self.r.host('inspect', actor=receiver)

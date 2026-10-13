@@ -1,12 +1,12 @@
 # Agent 文档与工具描述
 
-本文供人工检查；实际提示词和指南从下面的组件资源读取。
+本次生命周期与异步改动见 [检查原文](AGENT_LIFECYCLE_REVIEW.md)。本文供人工检查；实际提示词和指南从下面的组件资源读取。
 
 ## 小组提示词
 
-- [leader](../components/agent_presets/leader/prompt.md)：来自 `D:/桌面/leader.docx`，仅整理空白和段落格式。
-- [recorder](../components/agent_presets/recorder/prompt.md)：来自 `D:/桌面/recorder.docx`，仅整理空白和段落格式。
-- [member](../components/agent_presets/member/prompt.md)：来自 `D:/桌面/member.docx`，仅整理空白和段落格式。
+- [leader](../components/agent_presets/leader/prompt.md)：来自 `D:/桌面/leader.docx`，已将个人笔记访问改为 Agent 自有记忆工具。
+- [recorder](../components/agent_presets/recorder/prompt.md)：来自 `D:/桌面/recorder.docx`，已将个人笔记访问改为 Agent 自有记忆工具。
+- [member](../components/agent_presets/member/prompt.md)：来自 `D:/桌面/member.docx`，已将个人笔记访问改为 Agent 自有记忆工具。
 
 Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
@@ -217,7 +217,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 来源：[components/tools/network_management/tools.json](../components/tools/network_management/tools.json)
 
 ```text
-在获准节点挂载 Agent，选择职责预设与私有工具箱。
+创建 Agent 节点，自动配备独立会话、个人记忆和读写工具；配置匹配时复用当前网络池中的 Agent。
 ```
 
 ### datanet_call_agent
@@ -225,7 +225,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 来源：[components/tools/network_management/tools.json](../components/tools/network_management/tools.json)
 
 ```text
-向已有下属 Agent 委托任务；没有子 Agent 时不要使用本工具，也不要用它代替自己的工作。目标须读可达且符合管理范围；会话上下文保留。讨论成员自身由黑板调度。
+向获准的下属 Agent 异步委托任务，立即返回委托 ID；同一 Agent 按提交顺序执行，结果由框架回送。
 ```
 
 ### datanet_manage_agent
@@ -249,7 +249,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 来源：[components/tools/network_management/tools.json](../components/tools/network_management/tools.json)
 
 ```text
-查看预设预览；指定preset查看网络的详细使用说明。
+查看预设与已保存的离线网络；指定 ID 查看对应说明或保存清单。
 ```
 
 ### datanet_interfaces
@@ -257,7 +257,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 来源：[components/tools/network_management/tools.json](../components/tools/network_management/tools.json)
 
 ```text
-查看、新增、修改或删除获准节点的读写接口。
+管理获准节点的链接；拆除导致节点与根断联时，确认取消、保存结构或分解进入复用池。
 ```
 
 ### datanet_create_node

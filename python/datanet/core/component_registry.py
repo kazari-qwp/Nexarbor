@@ -50,7 +50,9 @@ def ensure_nodes():
         return
     _loaded = True
     from datanet.core.node import Node
-    register_node(NodeCodec('node', Node, lambda node, base: {}, lambda common, params, base: Node(*common), description='无本地数据的组织节点，用于连接节点、挂载工具或Agent。', local_read=False, local_schema=False))
+    register_node(NodeCodec('node', Node, lambda node, base: {}, lambda common, params, base: Node(*common), description='无本地数据的组织节点，用于连接节点和挂载工具。', local_read=False, local_schema=False))
+    from datanet.core.agent_node import AgentNode
+    register_node(NodeCodec('agent', AgentNode, lambda node, base: {'file_path': os.path.relpath(node.file_path, base), 'creation_options': node.creation_options}, lambda common, params, base: AgentNode(*common, file_path=base / params['file_path'], creation_options=params.get('creation_options')), parameter_fields=['file_path', 'creation_options'], description='Agent 节点，绑定独立会话与个人 Markdown 记忆。', resources=('file_path',), local_read=False, local_write=False, local_schema=False))
     for manifest in manifests():
         for module in manifest.get('python', {}).get('node_codecs', []):
             before=set(_codecs)

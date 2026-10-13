@@ -1,13 +1,10 @@
 {
   "datanet_create_agent": {
     "name": "datanet_create_agent",
-    "description": "在获准节点挂载 Agent，选择职责预设与私有工具箱。",
+    "description": "创建 Agent 节点，自动配备独立会话、个人记忆和读写工具；配置匹配时复用当前网络池中的 Agent。",
     "parameters": {
       "type": "object",
       "properties": {
-        "target": {
-          "type": "string"
-        },
         "preset": {
           "type": "string",
           "enum": [
@@ -28,17 +25,29 @@
         "max_signal_strength": {
           "type": "number",
           "minimum": 0
+        },
+        "child_id": {
+          "type": "string"
+        },
+        "parent_node_id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
         }
       },
       "required": [
-        "target"
+        "child_id"
       ],
       "additionalProperties": false
     }
   },
   "datanet_call_agent": {
     "name": "datanet_call_agent",
-    "description": "向已有下属 Agent 委托任务；没有子 Agent 时不要使用本工具，也不要用它代替自己的工作。目标须读可达且符合管理范围；会话上下文保留。讨论成员自身由黑板调度。",
+    "description": "向获准的下属 Agent 异步委托任务，立即返回委托 ID；同一 Agent 按提交顺序执行，结果由框架回送。",
     "parameters": {
       "type": "object",
       "properties": {
@@ -101,10 +110,11 @@
   },
   "datanet_presets": {
     "name": "datanet_presets",
-    "description": "查看预设预览；指定preset查看网络的详细使用说明。",
+    "description": "查看预设与已保存的离线网络；指定 ID 查看对应说明或保存清单。",
     "parameters": {
       "type": "object",
       "properties": {
+        "archived_network_id": {"type": "string"},
         "preset": {
           "type": "string",
           "enum": [
@@ -119,7 +129,7 @@
   },
   "datanet_interfaces": {
     "name": "datanet_interfaces",
-    "description": "查看、新增、修改或删除获准节点的读写接口。",
+    "description": "管理获准节点的链接；拆除导致节点与根断联时，确认取消、保存结构或分解进入复用池。",
     "parameters": {
       "type": "object",
       "properties": {
@@ -142,8 +152,10 @@
               "type": "string",
               "enum": [
                 "read",
-                "write"
-              ]
+                "write",
+                "both"
+              ],
+              "description": "both 用于同时拆除目标的读写链接。"
             },
             "target_node_id": {
               "type": "string",
@@ -178,6 +190,17 @@
             "interface_index": {
               "type": "integer",
               "minimum": 0
+            },
+            "confirmation_id": {
+              "type": "string"
+            },
+            "choice": {
+              "type": "integer",
+              "enum": [
+                1,
+                2,
+                3
+              ]
             }
           },
           "additionalProperties": false

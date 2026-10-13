@@ -44,7 +44,8 @@ def _path_string(path, base):
 def save_network(network: Network, path: str | Path) -> None:
     """保存结构；CSV/SQLite 只记录路径，ValueNode 保存其 JSON 值。"""
     path = Path(path).resolve()
-    validate_management(network)
+    if not getattr(network, 'archived_entries', None):
+        validate_management(network)
     entries = []
     for node_id, node in network.nodes.items():
         if node_id != node.node_id:
@@ -62,7 +63,7 @@ def save_network(network: Network, path: str | Path) -> None:
         connections = {}
         for label in LINKS:
             targets = [interface.target_node_id for interface in getattr(node, label)]
-            if any((target not in network.nodes for target in targets)):
+            if any((target not in network.nodes and target not in getattr(network, 'archived_ids', set()) for target in targets)):
                 raise ValueError(f'节点 {node_id} 的 {label} 含不存在的目标')
             connections[label] = [asdict(interface) for interface in getattr(node, label)]
         agent_config = node.agent_config
@@ -80,6 +81,8 @@ def save_network(network: Network, path: str | Path) -> None:
                 if agent_config[label] is not None:
                     agent_config[label] = _path_string(Path(agent_config[label]), path.parent)
         entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'toolboxes': node.toolboxes, 'expose': node.expose})
+    if getattr(network, 'archived_entries', None):
+        entries.extend(network.archived_entries())
     document = {'version': 3, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
     _build(document, path.parent)
     content = json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + '\n'

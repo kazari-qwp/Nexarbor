@@ -10,14 +10,47 @@ import {InstructionHistory} from './instructions.js';
 import {ToolPermissions} from './tool-permissions.js';
 import {applyCapabilities,updateCapabilityTools} from './capabilities.js';
 import {assertCompleteOutput} from './response-status.js';
+import {networkDirectory} from './storage.js';
 
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof Error?String(item.message):typeof item==='function'?undefined:item));
 
 export async function createAdapter(ctx,config={}){
+  const runtimes=new Map(),starting=new Map(),closing=new Map(),owned=new WeakSet();
+  ctx.on('agent/created',async({agent})=>{
+    const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
+    const workspace=path.resolve(config.workspace??path.join(root,'workspace'));
+    if(owned.has(agent.ctx)||agent.session.header.origin==='subagent'||!agent.session.header.cwd||path.resolve(agent.session.header.cwd)!==workspace)return;
+    if(closing.has(agent.id))await closing.get(agent.id);
+    if(runtimes.has(agent.id))return;
+    if(starting.has(agent.id))return starting.get(agent.id);
+    const pending=createRuntime(ctx,config,agent,owned);
+    starting.set(agent.id,pending);
+    try{runtimes.set(agent.id,await pending);}finally{starting.delete(agent.id);}
+  });
+  async function closeRuntime(id){
+    if(closing.has(id))return closing.get(id);
+    const runtime=runtimes.get(id);if(!runtime)return;
+    runtimes.delete(id);
+    const pending=(async()=>{try{await runtime.components.dispose();}finally{await runtime.bridge.close();}})();
+    closing.set(id,pending);
+    try{await pending;}finally{closing.delete(id);}
+  }
+  ctx.on('agent/disposed',({agent})=>closeRuntime(agent.id));
+  const components={
+    disable:async id=>Promise.all([...runtimes.values()].map(runtime=>runtime.components.disable(id))),
+    dispose:async()=>{for(const id of [...runtimes.keys()])await closeRuntime(id);await Promise.all([...closing.values()]);}
+  };
+  ctx.provide('datanetComponents',components);
+  ctx.effect(()=>()=>components.dispose(),'datanet.adapter');
+  return {runtimes,components};
+}
+
+async function createRuntime(ctx,config,rootAgent,owned){
   const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
   const workspace=path.resolve(config.workspace??path.join(root,'workspace'));
-  const directory=path.resolve(config.storage??path.join(workspace,'.datanet'));
+  const base=path.resolve(config.storage??path.join(workspace,'.datanet'));
+  const directory=networkDirectory(base,rootAgent.id);
   await mkdir(directory,{recursive:true});
   const native=new Map(),scopes=new WeakMap(),executions=new Map(),sessions=new Map();
   const history=new InstructionHistory(createUserMessage),permissions=new ToolPermissions(createUserMessage);
@@ -38,6 +71,7 @@ export async function createAdapter(ctx,config={}){
     return result;
   }
   function attach(actor,agent){
+    owned.add(agent.ctx);
     const entry={actor,agent,view:{},sections:new Set(),tools:new Map()};native.set(actor,entry);scopes.set(agent.ctx,actor);
     history.bind(agent.ctx,agent);permissions.state(agent.ctx);
     agent.ctx.systemPrompt.section({name:'datanet:role',order:90,interpolate:false,text:()=>entry.view.prompt??''});
@@ -101,7 +135,7 @@ export async function createAdapter(ctx,config={}){
     if(operation==='capabilities'){const entry=agentFor(p.actor);return updateCapabilityTools(entry.agent.ctx,entry.agent,p.grant.official,ctx,permissions);}
     if(operation==='inspect'){const entry=agentFor(p.actor);return {session_id:entry.agent.id,status:entry.agent.status,options:entry.agent.options};}
     if(operation==='messages')return agentFor(p.actor).agent.session.deriveMessages();
-    if(operation==='dispose-agent'){const entry=agentFor(p.actor);await entry.handle.dispose();native.delete(p.actor);sessions.delete(p.actor);return {ok:true};}
+    if(operation==='dispose-agent'){const entry=agentFor(p.actor);await ctx.sessions.flush(entry.agent.session);await entry.handle.dispose();native.delete(p.actor);sessions.delete(p.actor);return {ok:true};}
     if(operation==='run'){
       const agent=agentFor(p.actor).agent,execution=executions.get(p.execution_id),signal=execution?.exec?.signal;
       const start=agent.session.deriveMessages().length;
@@ -125,16 +159,12 @@ export async function createAdapter(ctx,config={}){
     DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:path.join(root,'components'),DATANET_COMPONENT_PROFILE:JSON.stringify(config.components??{}),PYTHONDONTWRITEBYTECODE:'1'
   },host);
   try{await call('ping');await call('application/start',{config},0);}catch(error){await bridge.close();throw error;}
-  let rootAgent;
-  ctx.on('agent/created',async({agent})=>{
-    if(scopes.has(agent.ctx)||agent.session.header.origin==='subagent'||!agent.session.header.cwd||path.resolve(agent.session.header.cwd)!==workspace)return;
-    rootAgent=agent;const entry=attach('root',agent);
-    const view=await call('application/root',{session_id:agent.id},0);render(view,entry);
-    const official=await applyCapabilities(agent.ctx,agent,view.grant.official,ctx,undefined,permissions);
+  {
+    const entry=attach('root',rootAgent);
+    const view=await call('application/root',{session_id:rootAgent.id},0);render(view,entry);
+    const official=await applyCapabilities(rootAgent.ctx,rootAgent,view.grant.official,ctx,undefined,permissions);
     await call('agent_progress',{target:'root',officialPreset:official.officialPreset});
-  });
+  }
   const components={disable:async id=>{const result=await call('application/disable',{component:id},0);for(const entry of native.values())render(await call('application/view',{actor:entry.actor}),entry);return result;},dispose:async()=>{for(const {handle} of sessions.values())await handle.dispose();}};
-  ctx.provide('datanetComponents',components);
-  ctx.effect(()=>async()=>{try{await components.dispose();}finally{await bridge.close();}},'datanet.adapter');
   return {bridge,components,sessions,scopes,instructionHistory:history,get rootAgent(){return rootAgent;},workspace,directory};
 }

@@ -8,6 +8,9 @@
 | Harness 会话、官方工具挂载、工具权限和文档历史 | Harness 适配层 | adapters/harness/framework | 原生 SDK；通过双向 RPC 执行 Python 返回的装配操作 | 宿主入口装配 |
 | Harness 双向 RPC 及运行循环兼容 | Harness 适配层 | adapters/harness/backend；adapters/harness/runtime | 原生 AgentLoop；stdio 传输，检查点归 Python core | 插件补丁装配 |
 | 建节点、建 Agent、建网络、管理接口和委托 | 工具 | components/tools/network_management | 节点及预设从清单发现 | tools/network_management |
+| Agent 私有 Markdown 身份载体 | 基础框架 | python/datanet/core/agent_node.py | 固定原生 Agent 挂载类型；工具由网络管理组件提供 | 保留基础协议 |
+| 拆链确认、离线文件夹、驻留释放和同根复用池 | 工具 | components/tools/agent_lifecycle | 图变更、原生 Agent 状态与委托事件 | tools/agent_lifecycle |
+| 异步委托、持久 FIFO、等待和结果回送 | 工具 | components/tools/agent_delegation | 网络管理调用原生循环；队列独立保存 | tools/agent_delegation |
 | 报告保存、UUIDv7 请求/委托索引及报告查询 | 工具 | components/tools/reports | 普通报告存储；委托事件开放查询入口 | tools/reports |
 | 执行记录、异常记录和中断记录 | 工具 | components/tools/execution_records | 独立 JSON 状态；报告与经验使用可选端口 | tools/execution_records |
 | 网络管理能力说明和指南 | Skill | components/skills/network_management | 依赖网络管理工具和声明的工具箱 | skills/network_management |

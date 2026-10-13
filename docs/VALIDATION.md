@@ -1,20 +1,23 @@
 # 本次验证
 
-本次验证覆盖 Python 业务迁移、双向通信和最终 Windows 后端。原生 Harness SDK 使用本机 0.2.0-rc.2，模型由本地模拟响应提供，无付费 API 调用。
+当前版本 0.3.4 的验证覆盖 Agent 节点、离线归档、复用、内存驻留、持久队列、双向通信和最终 Windows 后端。原生 Harness SDK 使用本机 0.2.0-rc.2，模型由本地模拟响应提供，无付费 API 调用。以下未标注本次的适配补丁验证沿用重构阶段记录。
 
 | 入口 | 本次结果与覆盖 |
 |---|---|
 | `tests/test_components.py` | 5 项源码测试通过：Python 本体独立、组件关闭/恢复、数据保留、本地工具箱撤权；二进制用例另行运行 |
 | `tests/test_shared_texts.py` | 3 项通过：常驻/查询文本、多个项目来源、根查询文本、Recorder 写入权限 |
-| `tests/test_application.py` | 4 项通过：Python 讨论与报告权限、消息一次性回复、失败普通退出与累计尝试上限、报告模块拔除后讨论及执行记录独立工作 |
+| `tests/test_application.py` | 5 项通过：讨论与报告权限、消息一次性回复、失败普通退出与尝试上限、报告模块拔除独立工作、权限变化后的通道注册 |
+| `tests/test_agent_lifecycle.py` | 17 项通过：固定 Agent 节点、自有记忆、取消/保存/分解确认、定向可达、跨重启离线恢复、30 分钟驻留策略、配置匹配复用、定制角色排除、五人小组复用、独立文件夹和清单、FIFO/故障结果、持久队列、组件拔插及离线旧链接清理 |
 | `tests/modular_shared_runtime_test.cjs` | 源码后端和最终二进制均通过：原生模型循环、请求尾部、快照重建、文档压缩后重载、委托期间双向事件、组件撤权 |
-| `tests/modular_creation_test.cjs` | 最终二进制通过：普通节点和五名小组成员使用七个独立上下文/Session，小组成员无主动发送工具 |
+| `tests/modular_creation_test.cjs` | 本次源码与最终二进制通过：七个独立上下文/Session、自有记忆工具、卸载及真实 SessionPersistence 恢复、第二个根的存储/会话隔离；小组成员无主动发送工具 |
 | `tests/modular_shared_loader_test.cjs` | 插件补丁仅装配一个有效尾部驱动和对应 invariant |
 | `tests/modular_adapter_test.cjs` | 替换原生循环后保留配置式 Agent 和并行工具上限 |
 | `tests/test_components.py ComponentsTests.test_binary_rpc` | 最终二进制的项目根、多查询文本讨论装配及检查点通过 |
-| Word 提示词导入 | 三份文档的非空白字符与目标提示词完全一致 |
+| Word 提示词导入 | 原导入保持文档正文；本次个人笔记引用调整为 Agent 自有记忆工具 |
 
 旧 JS 业务内部对象测试已由 Python 应用测试和真实原生循环通信测试替代。没有进行真实模型的完整端到端任务或客户端窗口验收。官方工具挂载在原生创建测试中使用替身，真实权限弹窗未重新验收。
+
+本次 Python discover 共 31 项：30 项通过，二进制用例随后单独通过。原生共享上下文测试使用本次二进制完成异步 call 接受、等待原生循环完成、报告返回、请求尾部及组件撤权验证。空闲计时用可控时间状态测试，未实际等待半小时。
 
 ## 运行
 

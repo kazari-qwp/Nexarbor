@@ -1,6 +1,32 @@
 from pathlib import Path
 from datanet.core.interface_management import attach_interface_management_tools
 from datanet.core.packages.network import load_network_package
+from datanet.core.agent_node import AgentNode
+
+
+def ensure_agent_node(self, p):
+    target = p['target']
+    node = self.network.nodes.get(target)
+    if node is None:
+        raise ValueError('Agent node does not exist')
+    if isinstance(node, AgentNode):
+        return {'node_id': target}
+    if type(node).__name__ != 'Node':
+        raise ValueError('Only Agent nodes may host an Agent')
+    memory = self.directory / 'memories' / (target.encode().hex() + '.md')
+    replacement = AgentNode(target, node.name, file_path=memory, description=node.description)
+    for key in ('management_parent_id', 'read_interfaces', 'write_interfaces', 'agent_config', 'divergence', 'tools', 'tool_definitions', 'agent_tool_definitions', 'toolboxes', 'expose'):
+        setattr(replacement, key, getattr(node, key))
+    self.network.nodes[target] = replacement
+    if target == 'root':
+        self.root = replacement
+    return {'node_id': target}
+
+
+def migrate_agents(self):
+    for target in ['root', *self.agents]:
+        if target in self.network.nodes:
+            ensure_agent_node(self, {'target': target})
 
 def load_root_network(self, p):
     if len(self.network.nodes) != 1 or self.agents or self.root.agent_config is not None:
@@ -62,6 +88,8 @@ def create_node(self, p):
     return owner.invoke_tool('create_child_node', **arguments)
 
 def register(services):
+    services.rpc('ensure_agent_node', ensure_agent_node, mutation=True)
+    services.migrations.append(migrate_agents)
     services.rpc('load_root_network', load_root_network, mutation=True)
     services.rpc('agent_capability', agent_capability, mutation=True)
     services.rpc('create_network', create_network, mutation=True)

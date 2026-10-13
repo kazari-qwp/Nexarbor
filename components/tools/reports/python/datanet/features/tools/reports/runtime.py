@@ -122,7 +122,7 @@ class Plugin(Component):
             self.persist(q)
             return self.reference(actor)
 
-    def delegate(self, actor, target, task, kind='agent', parent=None, round=None):
+    def delegate(self, actor, target, task, kind='agent', parent=None, round=None, activate=True):
         with self.lock:
             c, q, caller, run = self.current(actor)
             if c is None:
@@ -140,7 +140,7 @@ class Plugin(Component):
                 d['round'] = round
             q['delegations'][id] = d
             result = dict(root_request_id=q['root_request_id'], delegation_id=id)
-            if target in self.r.states:
+            if activate and target in self.r.states:
                 self.contexts[target] = result
             self.atomic(q, d['path'] + '/delegation.json', d)
             self.persist(q)

@@ -9,9 +9,9 @@ description: 当需要创建、组织或调整节点、Agent、子网络，以�
 
 1. 查询datanet_presets和datanet_agent_capabilities，根据任务选择节点和Agent；简单任务不必扩展组织。
 2. 通过datanet_create_node/create_network创建结构，以返回的实际ID和连接摘要操作，不猜路径。
-3. 需要智能角色时创建Agent，提供职责、输入、交付与工具箱；给现有成员增加下属时inspect/update_prompt，保留旧职责并补充委托与结果回收要求。
+3. 需要智能角色时用datanet_create_agent创建Agent节点，自带个人记忆。给现有成员增加下属时inspect/update_prompt，保留旧职责并补充委托与结果回收要求。
 4. 用datanet_interfaces管理连接。需要看结构时使用network_structure(depth=2)，最大depth代表全部获准连通拓扑；查看权限不扩大数据或操作权限。
-5. 普通Agent用datanet_call_agent委托；讨论组按预设描述用datanet_discuss。黑板只用专用讨论工具，不试写测试文字。
+5. 普通Agent用datanet_call_agent异步委托，结果自动回送；依赖结果时用datanet_wait_agent等待。讨论组用datanet_discuss。
 6. 依据真实结果更新项目资料，遇到错误先查看状态。恢复讨论仅传group_id可沿用保存任务。框架装配正确性由程序保证，不要求模型试写验证网络。
 
 

@@ -114,6 +114,9 @@ class Backend:
         target = p['target']
         if target not in self.network.nodes:
             raise ValueError('Agent target does not exist')
+        from datanet.core.agent_node import AgentNode
+        if not isinstance(self.network.nodes[target], AgentNode):
+            raise ValueError('Agents must be bound to an Agent memory node')
         old = self.agents.get(target, {})
         manager_id = p.get('manager_id', old.get('manager_id', p.get('creator_node_id')))
         if target == 'root' and (p.get('kind') != 'root' or manager_id is not None or p.get('creator_node_id') is not None):

@@ -11,7 +11,7 @@ def storage_toolkits(storage_dir=None):
     def install(network, board):
         board.attach_member_tools()
         directory = base / sha256(board.node_id.encode('utf-8')).hexdigest()[:24]
-        ids = [board.node_id, board.project_id, board.notebook_id, board.output_id]
+        ids = [board.node_id, board.project_id, board.notebook_id, board.output_id, *board.members]
         ids += [interface.target_node_id for member in board.members for interface in network.nodes[member].read_interfaces if interface.target_node_id != board.node_id]
         for node_id in ids:
             network.nodes[node_id].file_path = directory / (node_id.rsplit('/', 1)[-1] + '.md')

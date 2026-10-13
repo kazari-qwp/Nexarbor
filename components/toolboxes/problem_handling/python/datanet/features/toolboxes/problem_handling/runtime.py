@@ -359,7 +359,7 @@ class Plugin(Component):
             self.reserve(actor, target, 'add_toolboxes')
             result = self.r.host('capabilities', actor=target, grant=grant)
             state['grant'] = grant
-            self.r.rpc('agent_progress', target=target, toolboxes=grant['names'])
+            self.r.rpc('agent_progress', target=target, toolboxes=grant['names'], reuse_eligible=False)
             self.r.refresh(target)
             return dict(node_id=target, status='updated', context_preserved=True, toolboxes=grant['names'], unavailable_tools=result.get('unavailableTools', []))
         finally:

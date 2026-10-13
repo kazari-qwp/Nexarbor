@@ -1,5 +1,7 @@
 # 管理节点接口
 list 查看接口，add 新增连接，update 修改现有连接，remove 删除连接。操作节点由 arguments.node_id 指定；省略按所属节点处理。读写方向分别设置。
-add/update/remove 必须指定 target_node_id；即使给 interface_index，也要填目标 ID，框架核对它们一致。新增属性用 interface，修改属性用 changes；可设置 visibility 为 public 或 private。访问传播的底层参数由框架处理。
+add/update/remove 指定 target_node_id；即使给 interface_index，也要填目标 ID。新增属性用 interface，修改属性用 changes；可设置 visibility 为 public 或 private。remove 可用 direction=both 同时拆除目标的读写链接。
+拆除造成节点与根断联时，链接暂时保留，返回 confirmation_id。继续调用 remove，arguments 填 confirmation_id 和 choice：1取消；2保存结构并卸载；3分解，保留 Agent 会话和个人记忆进入复用池。已有任务结束后执行卸载。保存结构后可用原入口 ID 重新 add 接回。
+拆下来的网络各自保存到独立文件夹。datanet_presets 返回 saved_networks，提供保存 ID、入口 ID 和目录；填 archived_network_id 查看清单。状态 saved 的网络可按 entry_node_id 接回；状态 decomposed 的 Agent 在创建时按配置匹配复用。
 接口属于来源节点。private 用于内部访问边界，public 允许符合路径条件的外部访问；两者不改变目标 Agent 的私有工具权限。管理操作按管理范围授权，数据和任务访问仍检查普通路径。
 暴露业务工具要在节点装配时选择 expose，并建立适当接口；仅添加接口不把工具变成公开业务工具。禁止尝试将agent的工具和skill进行暴露，如有需要，直接把工具加载到你想加载的地方。
