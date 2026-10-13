@@ -125,7 +125,16 @@ def restore_node(backend, node, document):
         node.tool_definitions.pop('run_discussion', None)
 
 def prepare(backend, p):
+    if type(p.get('rounds', 8)) is not int or not 1 <= p.get('rounds', 8) <= 8:
+        raise ValueError('rounds 须为 1 至 8 的整数')
     return project_sources(backend, p)
+
+def package(backend, p, refs):
+    from datanet.services.tools.network_management.templates import expand_package
+    owner = backend.components.catalog['network_presets/discussion_group']['directory']
+    spec = __import__('json').loads((owner / 'members.json').read_text(encoding='utf-8'))
+    path, _ = expand_package(backend.components.network_presets['discussion_group'], p, backend.directory, spec)
+    return path
 
 def finalize(backend, p, result, refs):
     if result.status != 'ok':
@@ -144,7 +153,7 @@ def finalize(backend, p, result, refs):
             return written
     board.tools.pop('run_discussion', None)
     board.tool_definitions.pop('run_discussion', None)
-    return {'status': 'ok', 'group_id': group_id, 'members': board.members, 'leader_id': board.leader_id, 'recorder_id': board.recorder_id, 'entry_points': result.items[0]['entry_points'], 'structure': backend.created_structure(result.items[0])}
+    return {'status': 'ok', 'group_id': group_id, 'member_count': len(board.members) - 2, 'members': board.members, 'leader_id': board.leader_id, 'recorder_id': board.recorder_id, 'entry_points': result.items[0]['entry_points'], 'structure': backend.created_structure(result.items[0])}
 
 def load_project(backend, p):
     board = group(backend, p['group_id'])['board']
@@ -233,5 +242,5 @@ def register(services):
     services.migrations.append(migrate)
     services.statusters.append(extra_status)
     services.network_presets['discussion_group'] = services.catalog['network_presets/discussion_group']['directory'] / 'python/datanet/components/networks/discussion_group/package.json'
-    services.network_handlers['discussion_group'] = {'entry_point': 'board', 'prepare': prepare, 'finalize': finalize}
+    services.network_handlers['discussion_group'] = {'entry_point': 'board', 'prepare': prepare, 'package': package, 'finalize': finalize}
     services.toolkit_factories.append(lambda backend: storage_toolkits(backend.directory / 'groups'))

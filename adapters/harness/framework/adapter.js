@@ -66,6 +66,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
     entry.view=view;
   }
   async function event(actor,name,payload={}){
+    if(bridge?.closed)return native.get(actor)?.view??{};
     const result=await call('application/event',{actor,name,payload:plain(payload)},0);
     const entry=native.get(actor);if(entry)render(result,entry);
     return result;
@@ -77,7 +78,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
     agent.ctx.systemPrompt.section({name:'datanet:role',order:90,interpolate:false,text:()=>entry.view.prompt??''});
     const own=payload=>!payload?.agent||payload.agent===agent;
     agent.ctx.on('agent/prepare-context',async()=>{await event(actor,'context/prepare');});
-    agent.ctx.on('agent/request-tail',async(_payload,next)=>[...await next(),...(await call('application/tail',{actor})).map(text=>({role:'user',content:[{type:'text',text}]}))]);
+    agent.ctx.on('agent/request-tail',async(_payload,next)=>[...await next(),...(bridge?.closed?[]:await call('application/tail',{actor})).map(text=>({role:'user',content:[{type:'text',text}]}))]);
     agent.ctx.on('agent/pre-step',async(payload,next)=>{if(own(payload))await event(actor,'agent/pre-step',{messages:agent.session.deriveMessages()});return next();});
     agent.ctx.on('agent/request',async(payload,next)=>{if(own(payload)){await ctx.sessions.flush(agent.session);await event(actor,'agent/request');}return next();});
     agent.ctx.on('tools/pre-execute',async(exec,next)=>{
@@ -151,6 +152,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
     }
     if(operation==='make-message')return user(p.text,{kind:'agent-message',form:'relay',senderSessionId:agentFor(p.from).agent.id});
     if(operation==='steer'){agentFor(p.actor).agent.steer(p.message??user(p.text));return {ok:true};}
+    if(operation==='cancel-agent'){agentFor(p.actor).agent.cancel('user');return {ok:true};}
     if(operation==='conclude'){const entry=executions.get(p.execution_id);if(!entry)throw new Error('No native tool execution');entry.exec.concludeTurn();return {ok:true};}
     throw new Error('Unsupported Harness operation: '+operation);
   }

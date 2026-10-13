@@ -43,21 +43,21 @@ class Plugin(Component):
         for target in dict.fromkeys(job['target'] for job in self.jobs.values() if job['status'] == 'queued'):
             self.start_worker(target)
         for job in list(self.jobs.values()):
-            if job['status'] in ('completed', 'failed', 'blocked', 'interrupted') and not job.get('delivered'):
+            if job['status'] in ('completed', 'failed', 'blocked', 'interrupted', 'cancelled') and not job.get('delivered'):
                 self.deliver(job)
 
     def unlock(self, actor):
         self.r.state(actor)['dynamic']['datanet_wait_agent'] = dict(owner=self.id, name='datanet_wait_agent', description=WAIT_DESCRIPTION, parameters=dict(type='object', properties={'delegation_id': {'type': 'string'}, 'wait': {'type': 'boolean', 'default': True}, 'timeout_ms': {'type': 'integer', 'minimum': 0, 'maximum': 540000}}, required=['delegation_id'], additionalProperties=False))
         self.r.refresh(actor)
 
-    def submit(self, caller, target, task):
+    def submit(self, caller, target, task, context=None, parent=None, timeout_ms=None):
         if not isinstance(task, str) or not task.strip():
             raise ValueError('Task required')
         reports = self.r.plugins.get('tools/reports')
-        reference = reports.delegate(caller, target, task, activate=False) if reports else None
+        reference = reports.delegate(caller, target, task, parent=parent, activate=False) if reports else None
         id = reference['delegation_id'] if reference else str(uuid4())
         with self.lock:
-            job = dict(id=id, caller=caller, target=target, task=task, status='queued', created_at=time.time(), report_reference=reference, delivered=False)
+            job = dict(id=id, caller=caller, target=target, task=task, status='queued', created_at=time.time(), report_reference=reference, delivered=False, context=context or {}, timeout_ms=timeout_ms)
             self.jobs[id] = job
             self.events[id] = Event()
             self.store.save()
@@ -88,11 +88,15 @@ class Plugin(Component):
                     while self.r.host('inspect', actor=target)['status'] != 'idle':
                         if self.closed:
                             return
+                        if job.get('cancel_requested'):
+                            break
                         time.sleep(.05)
                     with self.lock:
+                        if job.get('cancel_requested') or job['status'] != 'queued':
+                            continue
                         job.update(status='running', started_at=time.time())
                         self.store.save()
-                    result = self.r.plugins['tools/network_management'].execute(job['caller'], target, job['task'], reference=job['report_reference'], asynchronous=True)
+                    result = self.r.plugins['tools/network_management'].execute(job['caller'], target, job['task'], reference=job['report_reference'], asynchronous=True, timeout_ms=job.get('timeout_ms'))
                     status = 'blocked' if result['status'] == 'blocked' else 'completed'
                 except Exception as error:
                     status, result = 'failed', dict(status='failed', error=str(error))
@@ -100,6 +104,8 @@ class Plugin(Component):
                     if reports and job['report_reference']:
                         reports.end(job['report_reference'], 'failed', str(error))
                 with self.lock:
+                    if job.get('cancel_requested'):
+                        status = 'cancelled'
                     job.update(status=status, result=result, finished_at=time.time())
                     self.store.save()
                     self.events.setdefault(job['id'], Event()).set()
@@ -118,7 +124,9 @@ class Plugin(Component):
                 return
             waiting = self.waiters.get(job['id'], 0)
         try:
-            if not waiting:
+            delivery = {'handled': False}
+            self.r.emit('delegation/delivery', job=job, delivery=delivery)
+            if not waiting and not delivery['handled']:
                 self.r.emit('agent/ensure-mounted', target=job['caller'])
                 if job['caller'] not in self.r.states:
                     return
@@ -151,6 +159,22 @@ class Plugin(Component):
                         self.store.save()
         with self.lock:
             return dict(delegation_id=id, target=job['target'], status=job['status'], result=job.get('result'), report_reference=job['report_reference'])
+
+    def cancel(self, id):
+        with self.lock:
+            job = self.jobs[id]
+            if job['status'] not in ('queued', 'running'):
+                return
+            job['cancel_requested'] = True
+            running = job['status'] == 'running'
+            if not running:
+                job.update(status='cancelled', result={'status': 'cancelled'}, finished_at=time.time())
+                self.events.setdefault(id, Event()).set()
+            self.store.save()
+        if running:
+            self.r.host('cancel-agent', actor=job['target'])
+        else:
+            self.deliver(job)
 
     def pending_nodes(self):
         with self.lock:

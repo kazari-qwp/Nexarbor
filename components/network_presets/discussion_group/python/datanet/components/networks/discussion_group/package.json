@@ -2,7 +2,7 @@
   "kind": "network",
   "version": 1,
   "id": "discussion_group",
-  "description": "固定五人讨论小组：Leader、Recorder和三名普通成员，共享项目说明、讨论黑板、公共笔记及成果，各自拥有个人记忆。通过datanet_discuss下达目标并调度讨论，成员保留各自上下文。不要用datanet_call_agent单独启动讨论成员；成员通过submit_round或skip_round完成本轮，最终由Recorder整理成果返回调用者。 管理工具按管理归属调整内部成员，不需将私有接口改为公共；数据读取和委托仍遵守接口权限。",
+  "description": "讨论小组：固定 Leader、Recorder，普通成员数量由 member_count 决定，默认三名。通过 datanet_discuss 讨论并归档成果。",
   "network": {
     "version": 3,
     "nodes": [
@@ -18,9 +18,7 @@
           "members": [
             "leader",
             "recorder",
-            "member_1",
-            "member_2",
-            "member_3"
+            "member_1"
           ],
           "leader_id": "leader",
           "recorder_id": "recorder",
@@ -62,18 +60,6 @@
             },
             {
               "target_node_id": "member_1",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "member_2",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "member_3",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -319,100 +305,6 @@
         "toolboxes": [],
         "expose": [],
         "management_parent_id": "board"
-      },
-      {
-        "type": "agent",
-        "node_id": "member_2",
-        "name": "member_2",
-        "data_kind": "agent",
-        "description": "讨论成员 member_2；读取共享资料，维护私人笔记。",
-        "divergence": -1,
-        "parameters": {
-          "file_path": "data/member_2_memory.md"
-        },
-        "connections": {
-          "read_interfaces": [
-            {
-              "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "project",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "notebook",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            }
-          ],
-          "write_interfaces": [
-            {
-              "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            }
-          ]
-        },
-        "agent": {
-          "package": "../../../../../../../agent_presets/discussion_member/python/datanet/components/agents/discussion_member"
-        },
-        "toolboxes": [],
-        "expose": [],
-        "management_parent_id": "board"
-      },
-      {
-        "type": "agent",
-        "node_id": "member_3",
-        "name": "member_3",
-        "data_kind": "agent",
-        "description": "讨论成员 member_3；读取共享资料，维护私人笔记。",
-        "divergence": -1,
-        "parameters": {
-          "file_path": "data/member_3_memory.md"
-        },
-        "connections": {
-          "read_interfaces": [
-            {
-              "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "project",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "notebook",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            }
-          ],
-          "write_interfaces": [
-            {
-              "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            }
-          ]
-        },
-        "agent": {
-          "package": "../../../../../../../agent_presets/discussion_member/python/datanet/components/agents/discussion_member"
-        },
-        "toolboxes": [],
-        "expose": [],
-        "management_parent_id": "board"
       }
     ],
     "delegations": [
@@ -427,14 +319,6 @@
       {
         "source": "board",
         "target": "member_1"
-      },
-      {
-        "source": "board",
-        "target": "member_2"
-      },
-      {
-        "source": "board",
-        "target": "member_3"
       }
     ]
   },

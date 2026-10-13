@@ -207,7 +207,7 @@ class Plugin(Component):
         if problem:
             problem.reserve(actor, target, action)
 
-    def execute(self, actor, target, task, kind='agent', parent=None, round=None, reference=None, asynchronous=False):
+    def execute(self, actor, target, task, kind='agent', parent=None, round=None, reference=None, asynchronous=False, timeout_ms=None):
         r = self.r
         if target not in r.states:
             raise ValueError('Node has no mounted Agent')
@@ -229,7 +229,7 @@ class Plugin(Component):
             if diagnostics:
                 diagnostics.start(target)
             boundary = r.state(target).pop('pending_task_boundary', '')
-            response = r.host('run', actor=target, text=(boundary + '\n' if boundary else '') + task, timeout_ms=r.config.get('turnTimeoutMs', 180000))
+            response = r.host('run', actor=target, text=(boundary + '\n' if boundary else '') + task, timeout_ms=timeout_ms or r.config.get('turnTimeoutMs', 180000))
             feedback = problem.latest(target) if problem else None
             blocked = feedback and feedback.get('id') != (previous or {}).get('id')
             if not blocked:

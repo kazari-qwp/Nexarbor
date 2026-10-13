@@ -65,7 +65,14 @@ def create_network(self, p):
     handler = self.components.network_handlers.get(preset, {})
     state = handler['prepare'](self, p) if 'prepare' in handler else None
     owner = self.network.nodes[p.get('actor', 'root')]
-    self.attach_creation(owner, p.get('options', {'allow_custom': True}))
+    from datanet.core.node_creation import attach_node_creation_tools
+    options = p.get('options', {'allow_custom': True})
+    packages = dict(self.components.network_presets)
+    if 'package' in handler:
+        packages[preset] = handler['package'](self, p, state)
+    attach_node_creation_tools(self.network, owner, storage_dir=self.directory / 'created', presets=self.components.node_presets,
+                               scope=options.get('scope', 'descendants'), allow_custom=options.get('allow_custom', False),
+                               network_presets=packages, toolkits=self.components.toolkits(self))
     result = owner.invoke_tool('create_network', preset=preset, instance_id=p['instance_id'], entry_point=p.get('entry_point', handler.get('entry_point', 'root')), with_agents=False, parent_node_id=p.get('parent_node_id'), strength=p.get('strength', 0), read_interface=p.get('read_interface'), write_interface=p.get('write_interface'))
     if result.status != 'ok':
         return result

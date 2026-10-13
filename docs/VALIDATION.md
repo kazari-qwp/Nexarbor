@@ -24,3 +24,12 @@
 Python 测试需安装相应节点依赖（例如 pandas）。分别执行上表 Python 脚本；二进制用例设置 `DATANET_TEST_BINARY=1`。构建使用 `python scripts/build_backend.py`，然后将 `build/dist/datanet-backend` 同步到 `adapters/harness/runtime/backend`。
 
 原生测试设置 `ELECTRON_RUN_AS_NODE=1`，以本机 Harness 可执行文件运行 `--experimental-vm-modules tests/<文件>.cjs`。PowerShell 将输出接到 `Out-String` 以等待 GUI 子系统程序完成。默认使用成品二进制；如设置 `DATANET_TEST_PYTHON` 则使用指定解释器和源码入口。原生 SDK 可由 `DATANET_NATIVE_MODULES` 指定；测试数据保存在 `build/test-data`。
+
+## 0.3.5：人数与去中心化协作
+
+- `tests/test_cooperation.py`：9项通过，覆盖1/7名普通成员、完整轮次归档、Python直接装配、同组通信权限、认领冲突、真实临时 Git 合并及冲突保留、全体同一候选验收、否决旧候选、预算收尾、重启不重做、旧成员加入新组和模块拔除。
+- 相关委托回归：FIFO、失败结果回送、持久队列恢复3项通过；文本连接兼容验证3项通过。
+- `tests/modular_cooperation_test.cjs`：源码及最终 Windows 后端均通过。使用实际 Harness AgentRegistry/AgentLoop 和模拟模型，验证动态人数、独立成员会话、动态协作工具、临时尾部状态、共同验收、组级结果唤醒根节点、工具撤权及关闭流程。
+- 原生 Git 子进程使用独立空输入，避免继承后端 RPC 管道；后台子进程隐藏窗口。
+
+没有使用付费 API，也没有进行真实模型的完整业务测试。官方文件、终端工具装配代码沿用现有实现，原生最小验证中的能力挂载使用替身。

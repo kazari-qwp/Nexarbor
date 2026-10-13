@@ -31,3 +31,9 @@ python scripts/components.py enable toolboxes/experience
 - [最小测试记录](docs/VALIDATION.md)
 
 Python 本体可通过 `PYTHONPATH=本目录/python` 独立使用；基础图和权限机制使用标准库，CSV 节点需要 pandas，RAG 节点使用相应可选依赖。Harness 后端包含日常节点所需运行库。
+
+## 可配置人数与去中心化协作（0.3.5）
+
+`datanet_create_network` 支持 `member_count`。讨论组默认3名普通成员，另有固定 Leader、Recorder；`decentralized_group` 默认4名平等工作成员。
+
+去中心化预设自动装配个人记忆、组内通信、共享认领与发现、Git 工作目录、整合和共同验收。用 `datanet_cooperate` 启动、查看或停止；具体使用说明见 `components/network_presets/decentralized_group/AGENTS.md`，组件与工具描述见 `docs/COOPERATION_REVIEW.md`。

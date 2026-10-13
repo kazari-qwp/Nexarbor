@@ -1,0 +1,190 @@
+{
+  "datanet_cooperate": {
+    "name": "datanet_cooperate",
+    "description": "启动、查看或停止去中心化协作小组。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "group_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "start",
+            "status",
+            "stop"
+          ]
+        },
+        "task": {
+          "type": "string",
+          "minLength": 1
+        },
+        "budget_minutes": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1440
+        }
+      },
+      "required": [
+        "group_id",
+        "action"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_team_status": {
+    "name": "datanet_team_status",
+    "description": "查看本组任务、成员、认领与共享发现；可搜索完整记录。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "datanet_team_claim": {
+    "name": "datanet_team_claim",
+    "description": "认领、完成或释放自己的子任务。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "claim",
+            "complete",
+            "release"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_team_note": {
+    "name": "datanet_team_note",
+    "description": "向本组共享记录发布发现、事实、失败尝试或成果摘要。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "OBSERVED",
+            "FACT",
+            "FAIL",
+            "PATCH_SUMMARY"
+          ]
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "content"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_team_send": {
+    "name": "datanet_team_send",
+    "description": "向本组其他成员发信；运行中插话，空闲时唤醒。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "target",
+        "content"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_team_workspace": {
+    "name": "datanet_team_workspace",
+    "description": "查看个人工作目录、同步共同成果或提交并整合修改。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "inspect",
+            "sync",
+            "publish"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_team_finish": {
+    "name": "datanet_team_finish",
+    "description": "提出最终成果，或验收、否决当前成果候选。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "propose",
+            "approve",
+            "reject"
+          ]
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "action",
+        "evidence"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
