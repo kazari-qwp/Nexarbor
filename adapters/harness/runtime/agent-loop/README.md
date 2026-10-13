@@ -1,0 +1,1 @@
+官方 DeepSeek Harness 0.2.0-rc.2 AgentLoop，增加 agent/prepare-context（组装请求前同步文本工具）和 agent/request-tail waterfall（请求临时尾部）。每次请求保存 datanet/request-tail 快照用于还原，无 surfaceOp，正文不进入 deriveMessages、历史压缩或下一次请求历史。对应 invariant 按历史 + 当次尾部快照核验。工具及其他调度生命周期沿用官方实现。

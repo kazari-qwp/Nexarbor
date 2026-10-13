@@ -1,0 +1,52 @@
+{
+  "id": "toolboxes/network_access",
+  "kind": "toolboxes",
+  "entry": "implementation.js",
+  "enabled": true,
+  "requires": [],
+  "tools": [
+    "node_read",
+    "node_write",
+    "node_list",
+    "node_tools",
+    "node_invoke",
+    "network_structure"
+  ],
+  "toolPatterns": [],
+  "box": "box.json",
+  "toolPolicies": {
+    "node_read": {
+      "properties": {}
+    },
+    "node_write": {
+      "properties": {}
+    },
+    "node_list": {
+      "properties": {}
+    },
+    "node_tools": {
+      "properties": {}
+    },
+    "node_invoke": {
+      "properties": {}
+    },
+    "network_structure": {
+      "properties": {
+        "inspect_private": {
+          "type": "boolean"
+        },
+        "max_depth": {
+          "type": "number"
+        }
+      },
+      "defaults": {
+        "max_depth": 100,
+        "inspect_private": false
+      },
+      "merge": {
+        "max_depth": "max",
+        "inspect_private": "or"
+      }
+    }
+  }
+}

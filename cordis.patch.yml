@@ -1,0 +1,18 @@
+- id: agent-loop
+  disabled: true
+- id: agent-loop-invariant
+  disabled: true
+- insert:
+    - id: datanet-agent-loop
+      name: datanet-harness/agent-loop
+    - id: datanet-agent-loop-invariant
+      name: datanet-harness/agent-loop/invariant
+    - id: datanet-harness
+      name: datanet-harness
+      config:
+        workspace: E:/DataNet-模块化成品/client-workspace
+        storage: E:/DataNet-模块化成品/client-workspace/.datanet
+        rootNetwork: project_root
+        maxSignalStrength: 100
+        rootToolboxes: [node_operations, network_management_skill, official_tools, official_skills, topology_inspection, self_repair]
+        allowedAgentToolboxes: [network_access, node_operations, network_management_skill, engineering, official_tools, official_readonly, official_skills, discussion_member, topology_inspection, self_repair]

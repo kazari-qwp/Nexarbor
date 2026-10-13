@@ -1,0 +1,134 @@
+{
+  "id": "tools/network_management",
+  "kind": "tools",
+  "entry": "implementation.js",
+  "enabled": true,
+  "requires": [],
+  "tools": [
+    "datanet_create_agent",
+    "datanet_call_agent",
+    "datanet_manage_agent",
+    "datanet_agent_capabilities",
+    "datanet_presets",
+    "datanet_interfaces",
+    "datanet_create_node",
+    "datanet_create_network"
+  ],
+  "toolPatterns": [],
+  "toolPolicies": {
+    "datanet_create_agent": {
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "self",
+            "children",
+            "descendants"
+          ]
+        },
+        "allow_custom": {
+          "type": "boolean"
+        }
+      }
+    },
+    "datanet_call_agent": {
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "self",
+            "children",
+            "reachable"
+          ]
+        }
+      }
+    },
+    "datanet_manage_agent": {
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "self",
+            "children",
+            "descendants"
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "enum": [
+            "inspect",
+            "update_prompt",
+            "restart",
+            "clear_context"
+          ]
+        },
+        "allow_custom": {
+          "type": "boolean"
+        }
+      }
+    },
+    "datanet_agent_capabilities": {
+      "properties": {}
+    },
+    "datanet_presets": {
+      "properties": {}
+    },
+    "datanet_interfaces": {
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "self",
+            "children",
+            "descendants"
+          ]
+        },
+        "actions": {
+          "type": "array",
+          "enum": [
+            "list",
+            "add",
+            "update",
+            "remove"
+          ]
+        },
+        "allow_external_targets": {
+          "type": "boolean"
+        }
+      }
+    },
+    "datanet_create_node": {
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "self",
+            "children",
+            "descendants"
+          ]
+        },
+        "allow_custom": {
+          "type": "boolean"
+        }
+      }
+    },
+    "datanet_create_network": {
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "self",
+            "children",
+            "descendants"
+          ]
+        }
+      }
+    }
+  },
+  "harness": {
+    "services": [
+      "harness_components.tools.network_management.services"
+    ],
+    "python_path": "harness/python"
+  }
+}

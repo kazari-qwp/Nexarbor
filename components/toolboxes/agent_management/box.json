@@ -1,0 +1,39 @@
+{
+  "id": "agent_management",
+  "description": "管理获准范围内的 Agent，委托任务；不借用其工具或 Skill。",
+  "tools": [
+    {
+      "source": "datanet",
+      "name": "datanet_agent_capabilities",
+      "options": {}
+    },
+    {
+      "source": "datanet",
+      "name": "datanet_create_agent",
+      "options": {
+        "scope": "descendants",
+        "allow_custom": true
+      }
+    },
+    {
+      "source": "datanet",
+      "name": "datanet_call_agent",
+      "options": {
+        "scope": "reachable"
+      }
+    },
+    {
+      "source": "datanet",
+      "name": "datanet_manage_agent",
+      "options": {
+        "scope": "descendants",
+        "actions": [
+          "inspect",
+          "update_prompt",
+          "restart",
+          "clear_context"
+        ]
+      }
+    }
+  ]
+}

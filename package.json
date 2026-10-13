@@ -1,0 +1,43 @@
+{
+  "name": "datanet-harness",
+  "version": "0.3.0",
+  "type": "module",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "adapters",
+    "python",
+    "components",
+    "scripts",
+    "tests",
+    "cordis.patch.yml",
+    "in-history.patch.yml",
+    "README.md",
+    "docs"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-agent": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-tools": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-llm": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-session": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-session-persistence": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-session-projection": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-scope": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-system-prompt": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-brand": ">=0.2.0-rc.2 <0.3.0-0",
+    "@deepseek-ai/dsh-util-values": ">=0.2.0-rc.2 <0.3.0-0"
+  },
+  "exports": {
+    ".": "./index.js",
+    "./agent-loop": "./adapters/harness/runtime/agent-loop/entry.js",
+    "./agent-loop/invariant": "./adapters/harness/runtime/agent-loop/lib/invariant.js"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
+  }
+}

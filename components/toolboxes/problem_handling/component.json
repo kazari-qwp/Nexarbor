@@ -1,0 +1,58 @@
+{
+  "id": "toolboxes/problem_handling",
+  "kind": "toolboxes",
+  "entry": "implementation.js",
+  "enabled": true,
+  "requires": [
+    "toolboxes/experience",
+    "tools/execution_records",
+    "tools/network_management"
+  ],
+  "tools": [
+    "handle_problem",
+    "problem_attempt",
+    "problem_resolved",
+    "problem_defer",
+    "datanet_feedback",
+    "datanet_resolve_feedback",
+    "datanet_recovery_status"
+  ],
+  "toolPatterns": [],
+  "box": "box.json",
+  "toolPolicies": {
+    "handle_problem": {
+      "properties": {
+        "allow_self_repair": {
+          "type": "boolean"
+        }
+      }
+    },
+    "problem_attempt": {
+      "properties": {}
+    },
+    "problem_resolved": {
+      "properties": {}
+    },
+    "problem_defer": {
+      "properties": {}
+    },
+    "datanet_feedback": {
+      "properties": {}
+    },
+    "datanet_resolve_feedback": {
+      "properties": {}
+    },
+    "datanet_recovery_status": {
+      "properties": {}
+    }
+  },
+  "harness": {
+    "services": [
+      "harness_components.toolboxes.problem_handling.services"
+    ],
+    "python_path": "harness/python"
+  },
+  "agentPolicy": {
+    "baseline": true
+  }
+}
