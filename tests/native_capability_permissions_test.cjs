@@ -30,6 +30,20 @@ async function load(file){
  const model=new Model();host.llm.registerAdapter(['mock'],model);
  const agent=await host.agentLoop.create(native('dsh-session').SessionId('own-layer-test'),{provider:'mock',model:'mock'},{cwd:root});
  const ac=agent.ctx,permissions=new p.namespace.ToolPermissions(llm.createUserMessage);let calls=0;
+ const a=await load(root+'/adapters/harness/framework/approval-state.js');await a.evaluate();
+ const pending=a.namespace.trackApprovals(agent);
+ let resolveApproval,asked;
+ const approvalGate=new Promise(resolve=>resolveApproval=resolve);
+ const removeAnswerer=ac.on('approval/request',async()=>{asked=true;return approvalGate;});
+ const decision=ac.waterfall('approval/request',{agent,toolName:'pwsh',callId:'cleanup',reason:'remove own empty directories'},()=>Promise.resolve('unavailable'));
+ while(!asked)await new Promise(resolve=>setTimeout(resolve,0));
+ assert.equal(pending().length,1);assert.equal(pending()[0].call_id,'cleanup');
+ resolveApproval('allowed-once');assert.equal(await decision,'allowed-once');assert.equal(pending().length,0);
+ removeAnswerer();
+ const removeFailure=ac.on('approval/request',async()=>{throw new Error('answerer disconnected');});
+ await assert.rejects(ac.waterfall('approval/request',{agent,toolName:'pwsh'},()=>Promise.resolve('unavailable')),/answerer disconnected/);
+ assert.equal(pending().length,0);removeFailure();
+ assert.equal(await ac.waterfall('approval/request',{agent:{},toolName:'pwsh'},()=>Promise.resolve('unavailable')),'unavailable');assert.equal(pending().length,0);
  const definition=name=>({name,description:name,parameters:{type:'object',properties:{}},output:{schema:{type:'string'},render:(_args,value)=>[{type:'text',text:value}]},execute:()=>{calls++;return 'ok';}});
  ac.tools.register(definition('subagent'));ac.tools.register(definition('read'));
  // Real own-layer definitions are exempt from Harness restrict().

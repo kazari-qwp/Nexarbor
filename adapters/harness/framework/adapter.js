@@ -11,6 +11,7 @@ import {ToolPermissions} from './tool-permissions.js';
 import {applyCapabilities,updateCapabilityTools} from './capabilities.js';
 import {assertCompleteOutput} from './response-status.js';
 import {networkDirectory} from './storage.js';
+import {trackApprovals} from './approval-state.js';
 
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof Error?String(item.message):typeof item==='function'?undefined:item));
@@ -73,7 +74,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
   }
   function attach(actor,agent){
     owned.add(agent.ctx);
-    const entry={actor,agent,view:{},sections:new Set(),tools:new Map()};native.set(actor,entry);scopes.set(agent.ctx,actor);
+    const entry={actor,agent,view:{},sections:new Set(),tools:new Map(),pendingApprovals:trackApprovals(agent)};native.set(actor,entry);scopes.set(agent.ctx,actor);
     history.bind(agent.ctx,agent);permissions.state(agent.ctx);
     agent.ctx.systemPrompt.section({name:'datanet:role',order:90,interpolate:false,text:()=>entry.view.prompt??''});
     const own=payload=>!payload?.agent||payload.agent===agent;
@@ -134,7 +135,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
       return {session_id:handle.agent.id};
     }
     if(operation==='capabilities'){const entry=agentFor(p.actor);return updateCapabilityTools(entry.agent.ctx,entry.agent,p.grant.official,ctx,permissions);}
-    if(operation==='inspect'){const entry=agentFor(p.actor);return {session_id:entry.agent.id,status:entry.agent.status,options:entry.agent.options};}
+    if(operation==='inspect'){const entry=agentFor(p.actor);return {session_id:entry.agent.id,status:entry.agent.status,options:entry.agent.options,pending_approvals:entry.pendingApprovals()};}
     if(operation==='messages')return agentFor(p.actor).agent.session.deriveMessages();
     if(operation==='dispose-agent'){const entry=agentFor(p.actor);await ctx.sessions.flush(entry.agent.session);await entry.handle.dispose();native.delete(p.actor);sessions.delete(p.actor);return {ok:true};}
     if(operation==='run'){

@@ -20,6 +20,16 @@ class CooperationTests(unittest.TestCase):
         self.invoke('datanet_create_network_channel', dict(preset='decentralized_group'))
         return self.invoke('datanet_create_network', dict(preset='decentralized_group', instance_id=name, project='交付三个文件，每个文件内容须为测试。', member_count=count))
 
+    def test_status_distinguishes_pending_native_approval(self):
+        group = self.team(count=2)
+        member = group['members'][0]
+        self.native.agents[member].update(status='running', pending_approvals=[dict(tool='pwsh', call_id='cleanup', reason='remove own empty directories', since=1)])
+        status = self.invoke('datanet_cooperate', dict(group_id=group['group_id'], action='status'))
+        self.assertEqual(status['member_runtime'][member]['pending_approvals'][0]['call_id'], 'cleanup')
+        self.assertEqual(status['member_runtime'][member]['status'], 'running')
+        self.native.agents[member]['pending_approvals'] = []
+        self.assertEqual(self.invoke('datanet_cooperate', dict(group_id=group['group_id'], action='status'))['member_runtime'][member]['pending_approvals'], [])
+
     def start(self, group):
         self.release = Event()
         original = self.native.__class__.__call__

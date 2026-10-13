@@ -42,6 +42,13 @@ class Plugin(Component):
         result = self.r.rpc('cooperative_' + method, actor=actor, group_id=group['group_id'], strength=self.r.state(actor)['strength'], **params)
         if method == 'status':
             result['repository'] = self.workspace(group).repository()
+            result['member_runtime'] = {}
+            for member in group['members']:
+                try:
+                    native = self.r.host('inspect', actor=member)
+                    result['member_runtime'][member] = dict(status=native['status'], pending_approvals=native.get('pending_approvals', []))
+                except Exception:
+                    result['member_runtime'][member] = dict(status='unmounted', pending_approvals=[])
         return result
 
     def before_create(self, e):
