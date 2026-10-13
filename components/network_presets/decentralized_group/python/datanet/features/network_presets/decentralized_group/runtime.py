@@ -92,8 +92,10 @@ class Plugin(Component):
             raise PermissionError('节点不是协作小组成员')
         return group
 
-    def guide(self, actor):
-        self.r.load(actor, 'preset:decentralized_group', self.r.resource(self.id, 'AGENTS.md'))
+    def guide(self, actor, member=False):
+        document = 'preset:decentralized_group' + (':member' if member else '')
+        path = 'members/AGENTS.md' if member else 'AGENTS.md'
+        self.r.load(actor, document, self.r.resource(self.id, path))
 
     def pre_step(self, e):
         if e['actor'] == 'root':
@@ -103,7 +105,7 @@ class Plugin(Component):
         group = self.group_for(e['actor'])
         if not group:
             return
-        self.guide(e['actor'])
+        self.guide(e['actor'], member=True)
         if group['phase'] in ('running', 'review'):
             if time() >= group['deadline']:
                 self.stop_group(group, 'budget_exhausted', '达到运行时间预算')
@@ -288,7 +290,7 @@ class Plugin(Component):
             for member in group['members']:
                 if group['phase'] not in ('running', 'review'):
                     break
-                self.guide(member)
+                self.guide(member, member=True)
                 project = self.r.rpc('query_text', actor=member, target=group['entry_points']['project'], strength=self.r.state(member)['strength'])
                 self.r.load(member, 'cooperation:project:' + group['group_id'], project['text'])
                 task = f"共同目标：{p['task']}\n协作小组：{group['group_id']}；本次运行：{group['run_id']}。\n你的工作目录：{self.workspace(group).personal(member)}\n成员平等，自主认领并推进；完成局部工作后继续寻找有价值的工作，共同成果通过 datanet_team_finish 验收收尾。"

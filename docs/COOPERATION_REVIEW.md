@@ -20,9 +20,13 @@ Python core 未加入这些预设的业务分支。工作区使用每组独立 G
 ## Agent 文档
 
 - `components/network_presets/discussion_group/AGENTS.md`
+- `components/network_presets/discussion_group/members/AGENTS.md`
 - `components/network_presets/decentralized_group/AGENTS.md`
+- `components/network_presets/decentralized_group/members/AGENTS.md`
 - `components/agent_presets/cooperative_worker/prompt.md`
 - `components/network_presets/discussion_group/python/datanet/components/networks/discussion_group/README.md`
+
+预设根目录的 AGENTS 面向创建者和调用者，介绍创建、任务入口、成果位置及再次运行。members/AGENTS 面向组员，随成员开始事件加载，介绍资料获取、讨论或协作工具及收尾；文档标识独立，压缩后的重载沿用现有加载机制。
 
 ## 新增工具描述原文
 

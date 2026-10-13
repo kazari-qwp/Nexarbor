@@ -13,6 +13,7 @@ class Plugin(Component):
         self.on('agent/pre-step', self.budget)
         self.on('agent/turn-stopping', self.stopping)
         self.on('tool/after', self.written)
+        self.on('discussion/member-start', self.member_start)
 
     def before_create(self, e):
         if e['arguments']['preset'] == 'discussion_group' and e['arguments'].get('with_agents') is not False:
@@ -60,8 +61,13 @@ class Plugin(Component):
             turn['count'] += 1
             self.r.rpc('agent_progress', target=e['actor'], count=turn['count'], activity='running')
 
+    def member_start(self, e):
+        self.r.load(e['actor'], 'preset:discussion_group:member', self.r.resource(self.id, 'members/AGENTS.md'))
+
     def budget(self, e):
         turn = self.turns.get(e['actor'])
+        if turn and turn['active']:
+            self.member_start(e)
         if turn and turn['active'] and turn['count'] >= 10:
             raise RuntimeError('discussion request budget exhausted')
 
@@ -123,6 +129,7 @@ class Plugin(Component):
         group_id = p['group_id']
         if not self.r.rpc('check_access', actor=actor, target=group_id + '/board', direction='write', strength=self.r.state(actor)['strength'])['allowed']:
             raise PermissionError('Target is outside permitted network path')
+        self.r.load(actor, 'preset:discussion_group', self.r.resource(self.id, 'AGENTS.md'))
         with self.lock:
             if group_id in self.busy:
                 raise RuntimeError('Discussion is already running')
