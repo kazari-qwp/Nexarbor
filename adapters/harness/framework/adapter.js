@@ -14,6 +14,7 @@ import {assertCompleteOutput} from './response-status.js';
 import {networkDirectory} from './storage.js';
 import {trackApprovals} from './approval-state.js';
 import {installWindowsPythonCompat} from './windows-python.js';
+import {prepareWindowsWorkspace} from './windows-workspace.js';
 
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof Error?String(item.message):typeof item==='function'?undefined:item));
@@ -56,6 +57,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
   const base=path.resolve(config.storage??path.join(workspace,'.datanet'));
   const directory=networkDirectory(base,rootAgent.id);
   await mkdir(directory,{recursive:true});
+  await prepareWindowsWorkspace(workspace);
   const native=new Map(),scopes=new WeakMap(),executions=new Map(),sessions=new Map();
   const history=new InstructionHistory(createUserMessage),permissions=new ToolPermissions(createUserMessage);
   let bridge;
