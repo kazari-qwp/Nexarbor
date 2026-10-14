@@ -1,6 +1,7 @@
 """Repeated tasks on the same members, with isolated run state and durable history."""
 import json
 import unittest
+from threading import Event
 from pathlib import Path
 from uuid import uuid4
 import test_application as fixtures
@@ -93,14 +94,20 @@ class GroupRunTests(unittest.TestCase):
         fail_actor = group['members'][1]
         first_actor = group['members'][0]
         called = []
+        submitted = Event()
 
         class Port(fixtures.NativePort):
             def __call__(native, name, p):
                 if name == 'run':
                     called.append(p['actor'])
                     if p['actor'] == fail_actor and called.count(fail_actor) == 1:
+                        if not submitted.wait(5):
+                            raise RuntimeError('首个成员未完成提交')
                         raise RuntimeError('模拟中断')
-                return original(native, name, p)
+                result = original(native, name, p)
+                if name == 'run' and p['actor'] == first_actor:
+                    submitted.set()
+                return result
 
         self.native.__class__ = Port
         with self.assertRaises(RuntimeError):

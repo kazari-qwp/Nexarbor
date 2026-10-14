@@ -1,4 +1,5 @@
 from threading import Lock
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from datanet.core.application import Component
 
@@ -14,6 +15,14 @@ class Plugin(Component):
         self.on('agent/turn-stopping', self.stopping)
         self.on('tool/after', self.written)
         self.on('discussion/member-start', self.member_start)
+        self.tail_bound = False
+
+    def tail(self, e):
+        turn = self.turns.get(e['actor'], {})
+        if turn.get('active') and not turn.get('final'):
+            for text in turn.get('resident_snapshot', []):
+                label = text.split('\n', 1)[0]
+                e['texts'][:] = [text if item.split('\n', 1)[0] == label else item for item in e['texts']]
 
     def before_create(self, e):
         if e['arguments']['preset'] == 'discussion_group' and e['arguments'].get('with_agents') is not False:
@@ -50,6 +59,9 @@ class Plugin(Component):
                             edge[field] = result['node_id']
 
     def bound(self, e):
+        if not self.tail_bound:
+            self.on('context/tail', self.tail)
+            self.tail_bound = True
         actor = e['actor']
         if self.r.backend.agents[actor].get('kind') == 'discussion':
             self.turns[actor] = dict(count=self.r.backend.agents[actor].get('count', 0), active=False, submitted=False, final=False, output_written=False)
@@ -155,11 +167,23 @@ class Plugin(Component):
             start = info['round'] - int(info['busy'])
             for _ in range(start, info['total']):
                 round = self.r.rpc('start_round', group_id=group_id)
-                for member in info['members']:
-                    if member in round.get('submitted', {}):
-                        continue
-                    message = f"项目任务：{task}\n本次运行：{info['run_id']}\n当前轮数：{round['round']}/{round['total']}\n项目资料ID：{'、'.join(info['project_ids'])}；成果ID：{info['output_id']}。项目资料已首次加载，后续按需使用绑定查询工具。公共笔记由框架放在请求尾部；Recorder用write_resident_text维护。个人记忆用datanet_memory_read、datanet_memory_write维护。\n上轮所有成员发言（共同快照）：\n{round['snapshot']}\n通常讨论按需访问资料、维护个人记忆。"
-                    self.schedule(actor, member, message, reference, info, round['round'])
+                members = [m for m in info['members'] if m not in round.get('submitted', {})]
+                for member in members:
+                    self.turns[member]['resident_snapshot'] = [round['notebook_snapshot']]
+                message = f"项目任务：{task}\n本次运行：{info['run_id']}\n当前轮数：{round['round']}/{round['total']}\n项目资料ID：{'、'.join(info['project_ids'])}；成果ID：{info['output_id']}。项目资料已首次加载，后续按需使用绑定查询工具。公共笔记使用轮初共同快照；Recorder用write_resident_text维护，更新在下一轮可见。个人记忆用datanet_memory_read、datanet_memory_write维护。\n上轮所有成员发言（共同快照）：\n{round['snapshot']}\n通常讨论按需访问资料、维护个人记忆。"
+                execution_id = getattr(self.r.local, 'execution_id', None)
+                def run(member):
+                    self.r.local.execution_id = execution_id
+                    return self.schedule(actor, member, message, reference, info, round['round'])
+                with ThreadPoolExecutor(max_workers=max(1, len(members))) as pool:
+                    futures = [pool.submit(run, member) for member in members]
+                    try:
+                        for future in as_completed(futures):
+                            future.result()
+                    except Exception:
+                        for member in members:
+                            self.r.host('cancel-agent', actor=member)
+                        raise
                 self.r.rpc('finish_round', group_id=group_id)
             final = self.r.rpc('group_info', group_id=group_id)
             message = f"讨论已结束。请根据任务“{task}”和历史上下文，以及以下最后一轮全部成员发言（这是归档后的完整提交，须据此汇总，不能只依据轮初快照）：\n{json.dumps(final['submitted'], ensure_ascii=False, indent=2)}\n按当前任务要求归档；需要操作证据时进入 datanet_reports_channel，查询本次讨论委托的报告索引并读取真实报告或工具结果。不要猜测脚本路径、命令或退出码；证据缺失时注明缺失，不补造。把最终成果写入 {info['output_id']}，用node_write、key=content、mode=upsert；然后回复最终结论。"

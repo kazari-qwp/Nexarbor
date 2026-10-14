@@ -24,6 +24,9 @@ const base=productRoot;
  await host.plugin(loop.namespace.default,{agents:[]});
  const controller=await entry.namespace.createAdapter(host,{workspace:temp,storage:path.join(temp,'.datanet'),...(process.env.DATANET_TEST_PYTHON?{backend:process.env.DATANET_TEST_PYTHON,backendArgs:[process.env.DATANET_TEST_BACKEND_ENTRY??base+'/adapters/harness/backend/server.py']}:{}),rootNetwork:'project_root',rootToolboxes:['network_access','node_creation','agent_management','agent_delegation','interface_management','discussion'],maxSignalStrength:100});
  const llm=native('dsh-llm');
+ const spill=path.join(temp,'terminal-output.txt'),full='START\n'+'line\n'.repeat(5000)+'END\n';
+ await fs.writeFile(spill,full);
+ host.tools.register({name:'pwsh',description:'Mock terminal result fixture',parameters:{type:'object',properties:{}},output:{schema:{type:'object'},render:()=>[{type:'text',text:'tail'}]},execute:()=>({stdout:{text:'tail',truncated:true,spillPath:spill},stderr:{text:'',truncated:false},exitCode:0})});
 
  class Model extends llm.LlmAdapter {
   requests=[]; steps=new Map();
@@ -46,7 +49,7 @@ const base=productRoot;
    }
    if(actor&&state?.phase!=='completed'){
     const key=actor+':'+state?.run_id,step=this.steps.get(key)??0;this.steps.set(key,step+1);
-    if(actor.endsWith('worker_1')&&step===0)call={name:'datanet_team_note',arguments:{kind:'FACT',content:'原生工具通路已工作'}};
+    if(actor.endsWith('worker_1')&&step===0)call={name:'pwsh',arguments:{}};
     else if(actor.endsWith('worker_1')&&!state?.candidate)call={name:'datanet_team_finish',arguments:{action:'propose',content:'native cooperation passed '+state.run_id,evidence:'最小模拟验收'}};
     else if(actor.endsWith('worker_2')&&state?.candidate)call={name:'datanet_team_finish',arguments:{action:'approve',candidate_id:state.candidate.id,evidence:'共同状态与候选已读取'}};
     else call={name:'datanet_team_status',arguments:{}};
@@ -82,6 +85,10 @@ const base=productRoot;
  let state;const deadline=Date.now()+20000;
  do{await new Promise(resolve=>setTimeout(resolve,50));state=await exec('datanet_cooperate',{group_id:'native',action:'status'});}while(['running','review'].includes(state.phase)&&Date.now()<deadline);
  assert.equal(state.phase,'completed',JSON.stringify(state));
+ assert.equal(state.candidate.review.execution_log_count,1);
+ const manifest=JSON.parse(await fs.readFile(state.candidate.review.manifest_path,'utf8'));
+ const saved=JSON.parse(await fs.readFile(manifest.execution_logs[0].path,'utf8'));
+ assert.equal(saved.streams.stdout.text,full);
  const firstRun=state.run_id,firstArchive=state.archive_path,peerSessions=group.members.map(m=>r.sessions.get(m).handle.agent.id);
  // Restart immediately, while the final native tools/delegations may still be draining.
  const second=await exec('datanet_cooperate',{group_id:'native',action:'start',task:'第二个模拟任务',budget_minutes:1});

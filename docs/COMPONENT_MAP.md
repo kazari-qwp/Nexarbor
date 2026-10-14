@@ -13,6 +13,8 @@
 | 异步委托、持久 FIFO、等待和结果回送 | 工具 | components/tools/agent_delegation | 网络管理调用原生循环；队列独立保存 | tools/agent_delegation |
 | 报告保存、UUIDv7 请求/委托索引及报告查询 | 工具 | components/tools/reports | 普通报告存储；委托事件开放查询入口 | tools/reports |
 | 执行记录、异常记录和中断记录 | 工具 | components/tools/execution_records | 独立 JSON 状态；报告与经验使用可选端口 | tools/execution_records |
+| 终端日志保存与读取 | 工具、工具箱 | components/tools/command_logs；components/toolboxes/command_logs | 原生 tool/result；工程工具箱装配，日志在源码工作树之外 | tools/command_logs；toolboxes/command_logs |
+| Python 私有临时目录与受限令牌兼容 | Harness 适配层 | adapters/harness/compat/windows_python；adapters/harness/framework/windows-python.js | 创建时保留父目录既有能力 ACE，插件生命周期管理启动环境 | 宿主入口装配 |
 | 网络管理能力说明和指南 | Skill | components/skills/network_management | 依赖网络管理工具和声明的工具箱 | skills/network_management |
 | 经验库、查询、候选经验及审核 | 工具箱 | components/toolboxes/experience | 独立持久库；Agent 能力事件装配 | toolboxes/experience |
 | 排障、尝试上限、反馈、修复和普通退出 | 工具箱 | components/toolboxes/problem_handling | 经验、执行记录；真实反馈事件开放修复入口 | toolboxes/problem_handling |

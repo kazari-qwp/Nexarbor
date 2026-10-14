@@ -137,7 +137,7 @@ def start(b, p):
     archive_run(b, g)
     for target in ('output', 'findings'):
         b.network.nodes[g['entry_points'][target]].write('content', '')
-    g.update(phase='running', caller=p['actor'], task=p['task'], run_id=str(uuid4()), deadline=time() + minutes * 60,
+    g.update(phase='running', caller=p['actor'], task=p['task'], run_id=str(uuid4()), started_at=time(), deadline=time() + minutes * 60,
              claims={}, entries=[], candidate=None, requests={}, jobs={}, notified=False, failure=None,
              archive_path=None, report_reference=None)
     return deepcopy(g)
@@ -257,7 +257,8 @@ def finish(b, p):
             raise ValueError('已有成果候选或仍有未结束的认领')
         if not p.get('content', '').strip():
             raise ValueError('提出候选须提供最终成果正文')
-        g['candidate'] = dict(id=str(uuid4()), content=p['content'], approvals={p['actor']: p['evidence']})
+        review = p.get('review')
+        g['candidate'] = dict(id=review['id'] if review else str(uuid4()), content=p['content'], approvals={p['actor']: p['evidence']}, review=deepcopy(review))
         g['phase'] = 'review'
     else:
         c = g['candidate']

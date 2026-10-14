@@ -146,7 +146,10 @@ class Plugin(Component):
     def stopping(self, e):
         group = self.group_for(e['actor'])
         if group and group['phase'] in ('running', 'review'):
-            self.r.host('steer', actor=e['actor'], text='共同目标尚未收尾。依据当前协作状态继续推进；没有可执行工作时联系同组成员，已有成果候选时完成验收。')
+            candidate = group.get('candidate')
+            if candidate and e['actor'] in candidate['approvals']:
+                return
+            self.r.host('steer', actor=e['actor'], text='共同目标尚未收尾。依据当前协作状态继续推进；已有候选时阅读验收材料，有异议指出具体问题，无异议提交批准。')
 
     def tail(self, e):
         from copy import deepcopy
@@ -347,14 +350,26 @@ class Plugin(Component):
         if p['action'] != 'inspect' and group['phase'] != 'running':
             raise ValueError('仅运行阶段允许修改共同成果')
         with self.lock:
-            return self.workspace(group).invoke(actor, p['action'], p.get('message', 'Publish contribution'))
+            result = self.workspace(group).invoke(actor, p['action'], p.get('message', 'Publish contribution'))
+            logs = self.r.plugins.get('tools/command_logs')
+            if logs:
+                result['artifacts_path'] = str(logs.directory(actor))
+            return result
 
     def tool_datanet_team_finish(self, actor, p):
         group = self.group(actor)
         with self.lock:
-            result = self.call('finish', actor, group, **p)
+            arguments = dict(p)
+            if p['action'] == 'propose' and group['phase'] == 'running' and not group['candidate'] and not any(c['state'] == 'active' for c in group['claims'].values()):
+                logs = self.r.plugins.get('tools/command_logs')
+                records = logs.logs(actor, p.get('log_ids'), since=group.get('started_at', 0)) if logs else []
+                artifacts = logs.directory(actor) if logs else self.workspace(group).directory / 'artifacts'
+                arguments['review'] = self.workspace(group).proposal(actor, p.get('test_scripts', []), p.get('test_results', []), records, artifacts)
+            for field in ('test_scripts', 'test_results', 'log_ids'):
+                arguments.pop(field, None)
+            result = self.call('finish', actor, group, **arguments)
             if result['phase'] == 'review' and p['action'] == 'propose':
-                self.broadcast(group, actor, '本组已提出最终成果候选：' + result['candidate']['id'] + '。读取 datanet_team_status，对照目标和共同工作区验收，使用 datanet_team_finish approve 或 reject，并提供证据。')
+                self.broadcast(group, actor, '本组已提出成果候选：' + result['candidate']['id'] + '。读取 datanet_team_status 中的验收材料，审阅测试脚本、命令、结果和已知问题；无异议批准，有疑问指出具体问题再补测。')
             elif p['action'] == 'reject':
                 self.broadcast(group, actor, '成果候选被否决：' + p['evidence'] + '。小组恢复工作，请协商认领并修正。')
             if result['phase'] == 'completed':
@@ -363,6 +378,8 @@ class Plugin(Component):
                     reports.artifact(actor, result['candidate']['content'])
                 self.broadcast(group, actor, '共同成果已获全体成员验收，协作结束。请停止当前工作并简短回复。')
                 self.notify(group)
+                self.r.host('conclude')
+            elif result['phase'] == 'review' and actor in result['candidate']['approvals']:
                 self.r.host('conclude')
             return dict(phase=result['phase'], candidate=result['candidate'], output_id=result['entry_points']['output'])
 

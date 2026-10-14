@@ -164,7 +164,7 @@
   },
   "datanet_team_finish": {
     "name": "datanet_team_finish",
-    "description": "提出最终成果，或验收、否决当前成果候选。",
+    "description": "提交成果与验收材料，或批准、否决当前候选。",
     "parameters": {
       "type": "object",
       "properties": {
@@ -187,6 +187,30 @@
         "evidence": {
           "type": "string",
           "minLength": 1
+        },
+        "test_scripts": {
+          "type": "array",
+          "description": "已提交的测试脚本在共同工作区中的相对路径。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "test_results": {
+          "type": "array",
+          "description": "自己的测试结果文件路径。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "log_ids": {
+          "type": "array",
+          "description": "附上的终端日志ID；省略时附上自己本次运行的日志。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "required": [

@@ -1,4 +1,4 @@
-from datanet.services.nodes.text.services import bindings
+from datanet.services.nodes.text.services import bindings, label
 from datanet.core.node import NodeResult
 from datanet.core.interface import Interface
 from uuid import uuid4
@@ -79,8 +79,12 @@ def group_complete(self, p):
 def start_round(self, p):
     g = group(self, p['group_id'])
     board = g['board']
+    if not g['busy'] or 'notebook_snapshot' not in g:
+        notebook = self.network.nodes[board.notebook_id]
+        content = notebook._read_key('content')
+        g['notebook_snapshot'] = label(notebook) + '\n' + (content.items[0]['content'] if content.status == 'ok' else '')
     if g['busy']:
-        return {'round': g['round'], 'total': g['total'], 'snapshot': board._read_key('content').items[0]['content'], 'submitted': g['submitted']}
+        return {'round': g['round'], 'total': g['total'], 'snapshot': board._read_key('content').items[0]['content'], 'submitted': g['submitted'], 'notebook_snapshot': g['notebook_snapshot']}
     if g['round'] >= g['total']:
         raise ValueError('all rounds completed')
     board = g['board']
@@ -90,7 +94,7 @@ def start_round(self, p):
     g['busy'] = True
     g['submitted'] = {}
     board.current_round, board.total_rounds = (g['round'], g['total'])
-    return {'round': g['round'], 'total': g['total'], 'snapshot': board._read_key('content').items[0]['content']}
+    return {'round': g['round'], 'total': g['total'], 'snapshot': board._read_key('content').items[0]['content'], 'notebook_snapshot': g['notebook_snapshot']}
 
 def read_round(self, p):
     g = group(self, p['group_id'])

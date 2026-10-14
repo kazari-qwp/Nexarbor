@@ -35,6 +35,6 @@
 
 ## Harness兼容：Windows沙箱私有临时目录
 
-状态：真实终端已复现，尚未修复；当前网络可完整完成任务。
+状态：已修复 Python 私有目录兼容，原生 Windows ACL 最小测试通过，详见 [修复与验证](evaluation/POST_E2E_MINIMAL_FIXES.md)。
 
-部分以mode=0o700创建的临时目录在Harness终端沙箱内不可写、不可删除；Python3.11.16和3.14均出现，切换Python版本不能视作根因修复。hone成员自行使用工作区内普通目录完成测试。后续单独定位原生沙箱令牌与目录ACL的交互，保持兼容代码在Harness适配层，避免以全权限或到处添加检查作为解决方案。审批等待状态已可见，不再把此类等待隐藏为无响应。
+根因是 CPython 为 mode=0o700 提供显式私有 DACL，未保留 Harness 受限令牌所需的写能力 SID。兼容代码位于 adapters/harness/compat/windows_python，仅在相应受限令牌中继承父目录已授权的能力 ACE。Python3.11.16 和3.14的私有目录写入与删除通过；工作区外、其他工作区和只读模式仍拒绝写入。未开放全权限。

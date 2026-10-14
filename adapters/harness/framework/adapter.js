@@ -12,11 +12,13 @@ import {applyCapabilities,updateCapabilityTools} from './capabilities.js';
 import {assertCompleteOutput} from './response-status.js';
 import {networkDirectory} from './storage.js';
 import {trackApprovals} from './approval-state.js';
+import {installWindowsPythonCompat} from './windows-python.js';
 
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof Error?String(item.message):typeof item==='function'?undefined:item));
 
 export async function createAdapter(ctx,config={}){
+  installWindowsPythonCompat(ctx);
   const runtimes=new Map(),starting=new Map(),closing=new Map(),owned=new WeakSet();
   ctx.on('agent/created',async({agent})=>{
     const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');

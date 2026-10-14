@@ -44,7 +44,7 @@ class NativePort:
             return {'ok': True}
         if name in ('messages', 'inbox-snapshot'):
             return self.messages.get(actor, [])
-        if name in ('view-update', 'conclude', 'capabilities'):
+        if name in ('view-update', 'conclude', 'capabilities', 'cancel-agent'):
             return {'ok': True}
         if name == 'dispose-agent':
             self.agents.pop(actor)
