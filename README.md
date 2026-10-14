@@ -24,6 +24,7 @@ python scripts/components.py enable toolboxes/experience
 
 ## 阅读与验证
 
+- [架构优势、两批对比与历史交付结果](docs/evaluation/DATANET_BENCHMARK_SHOWCASE.md)
 - [组件拆解表](docs/COMPONENT_MAP.md)
 - [框架及事件接口](docs/ARCHITECTURE.md)
 - [Agent 文档地址与工具描述原文](docs/AGENT_REVIEW.md)
