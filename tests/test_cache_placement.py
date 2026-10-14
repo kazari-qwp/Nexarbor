@@ -9,28 +9,50 @@ class CachePlacementTests(unittest.TestCase):
     invoke = fixtures.ApplicationTests.invoke
     team = cooperation.CooperationTests.team
 
-    def test_message_pending_changes_do_not_replace_system(self):
+    def test_message_queries_and_short_notice_leave_no_automatic_contacts(self):
         group = self.team(count=2)
         member = group['members'][0]
         plugin = self.app.plugins['toolboxes/agent_messaging']
         before = self.app.view(member)
         self.app.event(member, 'context/prepare', {})
-        contacts = self.native.documents[(member, 'state:contacts')]
-        self.assertIn('root', contacts)
+        self.assertNotIn((member, 'state:contacts'), self.native.documents)
+        self.assertNotIn((member, 'tool:datanet_messages'), self.native.documents)
+        self.assertEqual(self.invoke('datanet_pending_messages', actor=member)['messages'], [])
+        contacts = self.invoke('datanet_contacts_channel', actor=member)
+        self.assertEqual(contacts['contacts'], ['root'])
+        self.assertIn((member, 'tool:datanet_messages'), self.native.documents)
+        self.assertFalse(self.invoke('datanet_contacts_channel', actor=member)['instructions_added'])
+        self.native.documents.pop((member, 'tool:datanet_messages'))
+        self.assertTrue(self.invoke('datanet_contacts_channel', actor=member)['instructions_added'])
         sent = plugin.deliver('root', member, '回复一次')
-        after = self.app.view(member)
-        self.assertEqual(before, after)
-        tail = dict(actor=member, texts=[])
-        self.app.emit('context/tail', **tail)
-        self.assertIn(sent['message_id'], '\n'.join(tail['texts']))
-        self.assertNotIn(sent['message_id'], '\n'.join(v for (actor, _), v in self.native.documents.items() if actor==member))
-        entry = plugin.pending(member)[0]
-        plugin.invoke(member, entry['reply_tool'], {'content':'收到'})
-        tail['texts'].clear(); self.app.emit('context/tail', **tail)
-        self.assertNotIn(sent['message_id'], '\n'.join(tail['texts']))
         self.assertEqual(before, self.app.view(member))
-        self.app.event(member, 'context/prepare', {})
-        self.assertEqual(contacts, self.native.documents[(member, 'state:contacts')])
+        tail = dict(actor=member, texts=[]); self.app.emit('context/tail', **tail)
+        self.assertIn('存在待回复消息。', tail['texts'])
+        self.assertNotIn(sent['message_id'], '\n'.join(tail['texts']))
+        result = self.invoke('datanet_pending_messages', actor=member)['messages']
+        self.assertEqual(result[0]['message_id'], sent['message_id'])
+        self.assertEqual(result[0]['content'], '回复一次')
+        self.invoke(result[0]['reply_tool'], {'content':'收到'}, member)
+        tail['texts'].clear(); self.app.emit('context/tail', **tail)
+        self.assertNotIn('存在待回复消息。', tail['texts'])
+        self.assertEqual(self.invoke('datanet_pending_messages', actor=member)['messages'], [])
+        self.assertEqual(before, self.app.view(member))
+
+    def test_discussion_members_can_query_replies_without_active_contact_permission(self):
+        self.invoke('datanet_create_network_channel', {'preset':'discussion_group'})
+        group=self.invoke('datanet_create_network', {'preset':'discussion_group','instance_id':'reply','project':'资料','member_count':1,'rounds':1})
+        member=group['members'][2]
+        self.assertNotIn('datanet_contacts_channel', self.native.tools[member])
+        self.assertNotIn('datanet_send_message', self.native.tools[member])
+        with self.assertRaises(PermissionError):self.invoke('datanet_contacts_channel',actor=member)
+        plugin=self.app.plugins['toolboxes/agent_messaging']
+        entry=plugin.deliver('root',member,'定向提问')
+        pending=self.invoke('datanet_pending_messages',actor=member)['messages']
+        self.assertEqual([row['message_id'] for row in pending],[entry['message_id']])
+        plugin.expire(entry['message_id'])
+        self.assertEqual(self.invoke('datanet_pending_messages',actor=member)['messages'],[])
+        tail=dict(actor=member,texts=[]);self.app.emit('context/tail',**tail)
+        self.assertNotIn('存在待回复消息。',tail['texts'])
 
     def test_discussion_count_and_problem_stage_are_ephemeral(self):
         group = self.team(count=1)
@@ -39,17 +61,20 @@ class CachePlacementTests(unittest.TestCase):
         dg=self.invoke('datanet_create_network', {'preset':'discussion_group','instance_id':'discuss','project':'资料','member_count':1,'rounds':1})
         actor=dg['members'][0]
         discussion=self.app.plugins['network_presets/discussion_group']
-        discussion.turns[actor].update(active=True,count=0)
+        discussion.turns[actor].update(active=True,count=0,round=1,total=1)
         before=self.app.view(actor)
         self.app.event(actor,'agent/request',{})
         tail=dict(actor=actor,texts=[]);self.app.emit('context/tail',**tail)
         self.assertIn('当前请求次数：1/10', '\n'.join(tail['texts']))
+        self.assertIn('当前轮数：1/1', '\n'.join(tail['texts']))
         self.assertEqual(before,self.app.view(actor))
         discussion.turns[actor]['active']=False
         self.invoke('handle_problem', {'problem':'依赖不可用','origin':'dependency'}, member)
         self.invoke('experience_query', actor=member)
         before=self.app.view(member)
         p=self.app.plugins['toolboxes/problem_handling'].active(member)
+        self.assertEqual(self.invoke('datanet_contacts_channel',actor=member)['contacts'],['root'])
+        self.assertEqual(self.invoke('datanet_pending_messages',actor=member)['messages'],[])
         p['stage']='attempt_failed'
         tail=dict(actor=member,texts=[]);self.app.emit('context/tail',**tail)
         self.assertIn('阶段：attempt_failed','\n'.join(tail['texts']))

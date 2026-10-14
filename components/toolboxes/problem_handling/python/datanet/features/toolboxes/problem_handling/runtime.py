@@ -4,7 +4,7 @@ from datanet.core.application import Component
 from datanet.core.record_values import now, redact
 
 TEMPORARY = {'experience_query', 'experience_submit', 'incident_query', 'incident_resolve', 'datanet_feedback', 'problem_attempt', 'problem_resolved', 'problem_defer'}
-INSPECTION = {'read', 'glob', 'grep', 'node_read', 'node_list', 'node_tools', 'network_structure', 'datanet_recovery_status', 'experience_review', 'datanet_agent_capabilities', 'datanet_presets'}
+INSPECTION = {'datanet_contacts_channel', 'datanet_pending_messages', 'read', 'glob', 'grep', 'node_read', 'node_list', 'node_tools', 'network_structure', 'datanet_recovery_status', 'experience_review', 'datanet_agent_capabilities', 'datanet_presets'}
 
 def text(value, name, maximum=1000):
     if not isinstance(value, str) or not value.strip() or len(value) > maximum:

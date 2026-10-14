@@ -16,10 +16,10 @@ class Plugin(Component):
         if self.ttl <= 0:
             raise ValueError('Reply lifetime must be positive')
         self.on('agent/bound', self.bound)
-        self.on('context/prepare', self.prepare)
         self.on('context/tail', self.tail)
         self.on('capabilities/changed', lambda e: self.refresh(e['actor']))
         self.on('message/discarded', self.discarded)
+        self.on('tool/available', self.available)
         for entry in self.store.data['messages'].values():
             if entry['status'] == 'pending' and entry['expires_at'] <= time.time() * 1000:
                 entry['status'] = 'expired'
@@ -27,6 +27,10 @@ class Plugin(Component):
 
     def can_send(self, actor):
         return 'datanet_send_message' in self.r.state(actor)['grant']['framework']
+
+    def available(self, e):
+        if e['name'] == 'datanet_contacts_channel' and not self.can_send(e['actor']):
+            e['allowed'] = False
 
     def contacts(self, actor):
         binding = self.r.backend.agents.get(actor, {})
@@ -44,20 +48,16 @@ class Plugin(Component):
             if entry.get('message') and entry['inbox_id'] not in seen:
                 self.r.host('steer', actor=actor, message=entry['message'])
 
-    def prepare(self, e):
-        actor = e['actor']
-        self.r.load(actor, 'state:contacts', '可主动联系：' + json.dumps(self.contacts(actor) if self.can_send(actor) else [], ensure_ascii=False))
-
     def tail(self, e):
-        pending = self.pending(e['actor'])
-        if pending:
-            e['texts'].append('待回复消息：' + json.dumps([dict(message_id=p['id'], **{'from': p['from']}, reply_tool=p['reply_tool'], expires_at=p['expires_at']) for p in pending], ensure_ascii=False))
+        if self.pending(e['actor']):
+            e['texts'].append('存在待回复消息。')
 
     def refresh(self, actor):
         dynamic = self.r.state(actor)['dynamic']
         available = {entry['reply_tool']: entry for entry in self.pending(actor)}
+        dynamic['datanet_pending_messages'] = dict(owner=self.id, **self.r.tools['datanet_pending_messages'])
         for name in list(dynamic):
-            if dynamic[name]['owner'] == self.id and name not in available and name != 'datanet_send_message':
+            if dynamic[name]['owner'] == self.id and name not in available and name not in ('datanet_send_message', 'datanet_pending_messages'):
                 del dynamic[name]
         parameters = dict(type='object', properties={'content': {'type': 'string', 'minLength': 1}}, required=['content'], additionalProperties=False)
         if self.can_send(actor):
@@ -93,8 +93,12 @@ class Plugin(Component):
         self.refresh(e['actor'])
 
     def invoke(self, actor, name, args):
-        self.r.load(actor, 'tool:datanet_messages', self.r.resource(self.id, 'guides/datanet_messages/AGENTS.md'))
+        added = self.r.load(actor, 'tool:datanet_messages', self.r.resource(self.id, 'guides/datanet_messages/AGENTS.md'))
         with self.lock:
+            if name == 'datanet_contacts_channel':
+                return dict(contacts=self.contacts(actor), instructions_added=added)
+            if name == 'datanet_pending_messages':
+                return dict(messages=[dict(message_id=p['id'], **{'from': p['from']}, content=p['content'], reply_tool=p['reply_tool'], expires_at=p['expires_at']) for p in self.pending(actor)])
             if name == 'datanet_send_message':
                 if not self.can_send(actor):
                     raise PermissionError('[DATANET_TOOL_PERMISSION_DENIED] datanet_send_message 当前已停用。')

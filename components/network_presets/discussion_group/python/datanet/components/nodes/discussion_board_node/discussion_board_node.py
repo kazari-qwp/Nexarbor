@@ -89,7 +89,6 @@ class DiscussionBoardNode(TextFileNode):
         with self._lock:
             try:
                 content = self.previous_path.read_text(encoding='utf-8') if self.previous_path.exists() else ''
-                content = f'当前轮数：{self.current_round}/{self.total_rounds}\n\n' + content
                 return NodeResult(items=[{'content': content}], sources=[{'node_id': self.node_id, 'key': 'content', 'snapshot': 'previous_round'}])
             except (OSError, UnicodeError) as error:
                 return NodeResult(status='error', errors=[str(error)])

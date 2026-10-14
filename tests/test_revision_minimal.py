@@ -39,7 +39,8 @@ class RevisionTests(unittest.TestCase):
                 if name == 'run' and p['actor'] in group['members']:
                     turn = native.app.plugins['network_presets/discussion_group'].turns[p['actor']]
                     if not turn['final']:
-                        n = int(re.search(r'当前轮数：(\d+)', p['text'])[1])
+                        n = turn['round']
+                        testcase.assertNotIn('当前轮数：', p['text'])
                         testcase.assertEqual(p['execution_id'], 'round-parent')
                         if n == 2:
                             testcase.assertEqual(len([o for o in observed if o[0] == 1]), 3)

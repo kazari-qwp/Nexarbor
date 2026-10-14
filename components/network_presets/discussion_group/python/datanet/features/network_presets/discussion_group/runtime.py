@@ -20,7 +20,8 @@ class Plugin(Component):
     def tail(self, e):
         turn = self.turns.get(e['actor'], {})
         if turn.get('active'):
-            e['texts'].append('[讨论状态：' + e['actor'] + f"]\n当前请求次数：{turn['count']}/10。")
+            stage = '讨论已结束；当前阶段：成果汇总。' if turn.get('final') else f"当前轮数：{turn['round']}/{turn['total']}。"
+            e['texts'].append('[讨论状态：' + e['actor'] + ']\n' + stage + f"\n当前请求次数：{turn['count']}/10。")
         if turn.get('active') and not turn.get('final'):
             for text in turn.get('resident_snapshot', []):
                 label = text.split('\n', 1)[0]
@@ -66,7 +67,7 @@ class Plugin(Component):
             self.tail_bound = True
         actor = e['actor']
         if self.r.backend.agents[actor].get('kind') == 'discussion':
-            self.turns[actor] = dict(count=self.r.backend.agents[actor].get('count', 0), active=False, submitted=False, final=False, output_written=False)
+            self.turns[actor] = dict(count=self.r.backend.agents[actor].get('count', 0), active=False, submitted=False, final=False, output_written=False, round=0, total=0)
             self.section(actor, 'datanet:discussion-budget', lambda: '所属节点：' + actor, 90.1)
 
     def request(self, e):
@@ -128,7 +129,7 @@ class Plugin(Component):
         # A restarted in-progress round retains the saved request budget.
         saved = self.r.backend.agents[actor]
         resume = saved.get('activity') == 'interrupted' and info['busy']
-        turn.update(count=saved.get('count', 0) if resume else 0, active=True, submitted=False, final=final, output_written=False, expected_output=info['output_id'])
+        turn.update(count=saved.get('count', 0) if resume else 0, active=True, submitted=False, final=final, round=round, total=info['total'], output_written=False, expected_output=info['output_id'])
         self.r.emit('discussion/member-start', actor=actor, group_id=saved['group_id'], project_ids=info['project_ids'])
         try:
             result = self.r.plugins['tools/network_management'].execute(caller, actor, text, kind='archive' if final else 'discussion_member', parent=reference, round=round)
@@ -172,7 +173,7 @@ class Plugin(Component):
                 members = [m for m in info['members'] if m not in round.get('submitted', {})]
                 for member in members:
                     self.turns[member]['resident_snapshot'] = [round['notebook_snapshot']]
-                message = f"项目任务：{task}\n本次运行：{info['run_id']}\n当前轮数：{round['round']}/{round['total']}\n项目资料ID：{'、'.join(info['project_ids'])}；成果ID：{info['output_id']}。项目资料已首次加载，后续按需使用绑定查询工具。公共笔记使用轮初共同快照；Recorder用write_resident_text维护，更新在下一轮可见。个人记忆用datanet_memory_read、datanet_memory_write维护。\n上轮所有成员发言（共同快照）：\n{round['snapshot']}\n通常讨论按需访问资料、维护个人记忆。"
+                message = f"项目任务：{task}\n本次运行：{info['run_id']}\n项目资料ID：{'、'.join(info['project_ids'])}；成果ID：{info['output_id']}。项目资料已首次加载，后续按需使用绑定查询工具。公共笔记使用轮初共同快照；Recorder用write_resident_text维护，更新在下一轮可见。个人记忆用datanet_memory_read、datanet_memory_write维护。\n上轮所有成员发言（共同快照）：\n{round['snapshot']}\n通常讨论按需访问资料、维护个人记忆。"
                 execution_id = getattr(self.r.local, 'execution_id', None)
                 def run(member):
                     self.r.local.execution_id = execution_id

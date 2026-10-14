@@ -77,9 +77,14 @@ const base=productRoot;
  const d2=await exec('datanet_discuss',{group_id:'discussion',task:'讨论任务二'});
  assert.notEqual(d1.run_id,d2.run_id);assert.equal(d1.output[0].content,'讨论任务一成果');assert.equal(d2.output[0].content,'讨论任务二成果');
  assert.deepEqual(discussion.members.map(m=>r.sessions.get(m).handle.agent.id),discussionSessions);
+ assert.ok(model.requests.some(request=>request.messages.some(m=>m.content.some(b=>b.type==='text'&&b.text.includes('当前轮数：1/1。')))));
+ for(const member of discussion.members){assert.ok(!r.sessions.get(member).handle.agent.session.deriveMessages().some(m=>m.content.some(b=>b.type==='text'&&b.text.includes('当前轮数：'))));}
  await exec('datanet_create_network_channel',{preset:'decentralized_group'});
  const group=await exec('datanet_create_network',{preset:'decentralized_group',instance_id:'native',project:'最小原生协作通路测试',member_count:2});
  assert.equal(group.members.length,2);
+ const contacts=await exec('datanet_contacts_channel');assert.ok(contacts.contacts.includes(group.members[0]));
+ assert.deepEqual((await exec('datanet_pending_messages')).messages,[]);
+ assert.ok(!root.session.deriveMessages().some(m=>m.source?.document==='state:contacts'));
  for(const member of group.members){const agent=r.sessions.get(member).handle.agent;assert.ok(host.tools.schemas(agent).some(t=>t.name==='datanet_team_finish'));assert.ok(host.tools.schemas(agent).some(t=>t.name==='datanet_team_send'));}
  const receipt=await exec('datanet_cooperate',{group_id:'native',action:'start',task:'提交并共同验收模拟成果',budget_minutes:1});assert.equal(receipt.status,'accepted');
  let state;const deadline=Date.now()+20000;
