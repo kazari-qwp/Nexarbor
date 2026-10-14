@@ -1,3 +1,4 @@
+import {ComponentExtensions} from './extensions.js';
 // Native Harness handles and transport conversion; application policy lives in Python.
 import path from 'node:path';
 import {mkdir} from 'node:fs/promises';
@@ -65,6 +66,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
   let bridge;
   const call=(method,params={},timeout)=>bridge.call(method,params,timeout);
   const agentFor=actor=>{const value=native.get(actor);if(!value)throw new Error('Agent is not mounted: '+actor);return value;};
+  const extensions=new ComponentExtensions(root,agentFor);
   function render(view,entry){
     for(const section of view.sections??[]){
       if(entry.sections.has(section.owner+':'+section.name))continue;
@@ -111,6 +113,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
     return entry;
   }
   async function host(operation,p){
+    if(operation==='component-extension')return extensions.invoke(p);
     if(operation==='tools'){
       const entry=agentFor(p.actor),ac=entry.agent.ctx,active=new Set(p.definitions.map(d=>d.name));
       for(const [name,dispose] of entry.tools)if(!active.has(name)){dispose();entry.tools.delete(name);}

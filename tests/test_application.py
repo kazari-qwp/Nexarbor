@@ -22,6 +22,8 @@ class NativePort:
     def __call__(self, name, p):
         self.calls.append((name, p))
         actor = p.get('actor')
+        if name == 'component-extension':
+            return {'ok': True}
         if name == 'tools':
             self.tools[actor] = {d['name']: d for d in p['definitions']}
             return {'ok': True}
