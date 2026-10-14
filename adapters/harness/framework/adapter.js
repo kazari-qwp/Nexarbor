@@ -6,6 +6,7 @@ import {existsSync} from 'node:fs';
 import {randomUUID} from 'node:crypto';
 import {createUserMessage} from '@deepseek-ai/dsh-llm';
 import {Bridge} from './bridge.js';
+import {requestRoute} from './request-route.js';
 import {InstructionHistory} from './instructions.js';
 import {ToolPermissions} from './tool-permissions.js';
 import {applyCapabilities,updateCapabilityTools} from './capabilities.js';
@@ -83,7 +84,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
     agent.ctx.on('agent/prepare-context',async()=>{await event(actor,'context/prepare');});
     agent.ctx.on('agent/request-tail',async(_payload,next)=>[...await next(),...(bridge?.closed?[]:await call('application/tail',{actor})).map(text=>({role:'user',content:[{type:'text',text}]}))]);
     agent.ctx.on('agent/pre-step',async(payload,next)=>{if(own(payload))await event(actor,'agent/pre-step',{messages:agent.session.deriveMessages()});return next();});
-    agent.ctx.on('agent/request',async(payload,next)=>{if(own(payload)){await ctx.sessions.flush(agent.session);await event(actor,'agent/request');}return next();});
+    agent.ctx.on('agent/request',async(payload,next)=>{if(own(payload)){await ctx.sessions.flush(agent.session);await event(actor,'agent/request');}return requestRoute(await next(),config.modelRoute);});
     agent.ctx.on('tools/pre-execute',async(exec,next)=>{
       if(own(exec)){
         const reason=await call('application/guard',{actor,name:exec.name,arguments:exec.arguments??{}});

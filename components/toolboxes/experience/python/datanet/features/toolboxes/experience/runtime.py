@@ -29,6 +29,7 @@ class Plugin(Component):
         self.store.mutate(initial)
         self.views = {}
         self.on('agent/bound', self.bound)
+        self.on('context/prepare', self.prepare)
         self.on('tool/native-before', self.use)
         self.on('tool/before', self.use)
 
@@ -73,12 +74,11 @@ class Plugin(Component):
         if refs:
             for entry in self.query(dict(ids=refs, status='verified', limit=10)):
                 self.add(actor, entry, True)
-        self.section(actor, 'datanet:experience', lambda: self.render(actor), 86)
 
-    def render(self, actor):
-        problem = self.r.plugins.get('toolboxes/problem_handling')
-        active = problem and problem.active(actor)
-        return ('排障时查经验只作参考；待审核不代表可靠，权限不变。\n' if active else '常加载经验：\n') + '\n'.join('[' + e['id'] + '; ' + e['version'] + '] ' + e['trigger'] + '：' + e['advice'] for e in self.views[actor]['loaded'].values())
+    def prepare(self, e):
+        actor = e['actor']
+        for entry in self.views[actor]['loaded'].values():
+            self.r.load(actor, 'experience:' + entry['id'], '经验只作参考；待审核不代表可靠，权限不变。\n[' + entry['id'] + '; ' + entry['version'] + '] ' + entry['trigger'] + '：' + entry['advice'])
 
     def use(self, e):
         actor, tool = e['actor'], e['name']

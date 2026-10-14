@@ -1,3 +1,21 @@
+- id: llm-deepseek
+  config:
+    apiKeyEnv: DEEPSEEK_API_KEY
+    baseURL: https://api.deepseek.com/anthropic
+    maxTokens: 50000
+    models:
+      - id: deepseek-flash
+        name: DeepSeek Flash
+        contextWindow: 500000
+        maxTokens: 50000
+        inputModalities: [text, image]
+        systemPromptUpdate: in-history
+        toolUpdate: addition-only
+- id: agent-default-model
+  config:
+    provider: deepseek-official
+    model: deepseek-flash
+    reasoningEffort: high
 - id: agent-loop
   disabled: true
 - id: agent-loop-invariant
@@ -13,6 +31,8 @@
         workspace: E:/DataNet-模块化成品/client-workspace
         storage: E:/DataNet-模块化成品/client-workspace/.datanet
         rootNetwork: project_root
+        modelRoute: {provider: deepseek-official, model: deepseek-flash, reasoningEffort: high, maxTokens: 50000}
+        agentMaxTokens: 50000
         maxSignalStrength: 100
         rootToolboxes: [node_operations, network_management_skill, official_tools, official_skills, topology_inspection, self_repair, cooperation]
         allowedAgentToolboxes: [network_access, node_operations, network_management_skill, engineering, official_tools, official_readonly, official_skills, discussion_member, topology_inspection, self_repair, cooperation]

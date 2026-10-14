@@ -16,6 +16,8 @@ class Plugin(Component):
         if self.ttl <= 0:
             raise ValueError('Reply lifetime must be positive')
         self.on('agent/bound', self.bound)
+        self.on('context/prepare', self.prepare)
+        self.on('context/tail', self.tail)
         self.on('capabilities/changed', lambda e: self.refresh(e['actor']))
         self.on('message/discarded', self.discarded)
         for entry in self.store.data['messages'].values():
@@ -35,7 +37,6 @@ class Plugin(Component):
 
     def bound(self, e):
         actor = e['actor']
-        self.section(actor, 'datanet:messages', lambda: self.render(actor), 89.1)
         self.refresh(actor)
         history = self.r.host('inbox-snapshot', actor=actor)
         seen = {m['id'] for m in history}
@@ -43,8 +44,14 @@ class Plugin(Component):
             if entry.get('message') and entry['inbox_id'] not in seen:
                 self.r.host('steer', actor=actor, message=entry['message'])
 
-    def render(self, actor):
-        return ('可主动联系：' + json.dumps(self.contacts(actor), ensure_ascii=False) if self.can_send(actor) else '') + ('\n待回复消息：' + json.dumps([dict(message_id=e['id'], **{'from': e['from']}, reply_tool=e['reply_tool'], expires_at=e['expires_at']) for e in self.pending(actor)], ensure_ascii=False) if self.pending(actor) else '')
+    def prepare(self, e):
+        actor = e['actor']
+        self.r.load(actor, 'state:contacts', '可主动联系：' + json.dumps(self.contacts(actor) if self.can_send(actor) else [], ensure_ascii=False))
+
+    def tail(self, e):
+        pending = self.pending(e['actor'])
+        if pending:
+            e['texts'].append('待回复消息：' + json.dumps([dict(message_id=p['id'], **{'from': p['from']}, reply_tool=p['reply_tool'], expires_at=p['expires_at']) for p in pending], ensure_ascii=False))
 
     def refresh(self, actor):
         dynamic = self.r.state(actor)['dynamic']

@@ -156,9 +156,11 @@ class Plugin(Component):
         group = self.group_for(e['actor'])
         if group:
             with self.r.backend._transaction_lock:
-                payload = deepcopy(dict(group_id=group['group_id'], phase=group['phase'], run_id=group['run_id'], task=group['task'],
-                               members=group['members'], active_claims=[c for c in group['claims'].values() if c['state'] == 'active'],
-                               candidate=group['candidate'], recent_entries=group['entries'][-20:]))
+                candidate = group['candidate']
+                payload = deepcopy(dict(group_id=group['group_id'], phase=group['phase'], run_id=group['run_id'],
+                               members=group['members'], active_claims=[dict(id=c['id'], actor=c['actor'], scope=c['scope'], paths=c.get('paths', [])) for c in group['claims'].values() if c['state'] == 'active'],
+                               candidate=dict(id=candidate['id'], approvals=list(candidate['approvals']), review=candidate.get('review')) if candidate else None,
+                               entry_count=len(group['entries']), recent_entries=[dict(id=row['id'], actor=row['actor'], kind=row['kind'], preview=row['content'][:160]) for row in group['entries'][-5:]]))
             e['texts'].append('[协作状态：' + group['group_id'] + ']\n' + json.dumps(payload, ensure_ascii=False))
 
     def arm(self, group):

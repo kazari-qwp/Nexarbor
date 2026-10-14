@@ -19,6 +19,8 @@ class Plugin(Component):
 
     def tail(self, e):
         turn = self.turns.get(e['actor'], {})
+        if turn.get('active'):
+            e['texts'].append('[讨论状态：' + e['actor'] + f"]\n当前请求次数：{turn['count']}/10。")
         if turn.get('active') and not turn.get('final'):
             for text in turn.get('resident_snapshot', []):
                 label = text.split('\n', 1)[0]
@@ -65,7 +67,7 @@ class Plugin(Component):
         actor = e['actor']
         if self.r.backend.agents[actor].get('kind') == 'discussion':
             self.turns[actor] = dict(count=self.r.backend.agents[actor].get('count', 0), active=False, submitted=False, final=False, output_written=False)
-            self.section(actor, 'datanet:discussion-budget', lambda: '所属节点：' + actor + f"\n当前请求次数：{self.turns[actor]['count'] + 1}/10。", 90.1)
+            self.section(actor, 'datanet:discussion-budget', lambda: '所属节点：' + actor, 90.1)
 
     def request(self, e):
         turn = self.turns.get(e['actor'])

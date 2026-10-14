@@ -90,7 +90,7 @@ def status(b, p):
     g = get(b, p)
     result = deepcopy(g)
     query = p.get('query')
-    result['entries'] = [e for e in result['entries'] if query.casefold() in e['content'].casefold()] if query else result['entries'][-20:]
+    result['entries'] = [e for e in result['entries'] if query.casefold() in e['content'].casefold() or query == e['id']] if query else result['entries'][-20:]
     result['entry_count'] = len(g['entries'])
     result['workspace'] = str(Path(g['workspace_directory']) / 'main') if g.get('workspace_directory') else str(b.directory / 'cooperation' / g['group_id'].encode().hex() / 'workspace')
     if result.get('archive_path'):

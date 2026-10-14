@@ -17,6 +17,8 @@ class Plugin(Component):
         self.store = self.r.plugins['toolboxes/experience'].store
         self.problems, self.unlocked = {}, set()
         self.on('agent/bound', self.bound)
+        self.on('context/prepare', self.prepare)
+        self.on('context/tail', self.tail)
         self.on('tool/available', self.available)
         self.on('tool/guard', self.guard)
         self.on('tool/before', self.before)
@@ -54,8 +56,6 @@ class Plugin(Component):
 
     def bound(self, e):
         actor = e['actor']
-        self.section(actor, 'datanet:problem-flow', lambda: self.render(actor), 87)
-        self.section(actor, 'datanet:feedback-inbox', lambda: self.feedback_text(actor), 89)
         if actor in self.unlocked:
             self.unlock(actor)
 
@@ -104,20 +104,24 @@ class Plugin(Component):
         self.r.plugins['toolboxes/experience'].transient_clear(actor)
         self.r.refresh(actor)
 
-    def render(self, actor):
+    def tail(self, e):
+        actor = e['actor']
         problem = self.active(actor)
-        pending = [p for p in self.store.data.get('problems', []) if p['source'] == str(self.r.directory) and p['node_id'] == actor and p['status'] == 'deferred']
-        content = f"当前问题：{problem['summary']}\n归属：{problem['origin']}；来源节点：{problem.get('origin_node_id')}；problem_id：{problem['id']}；累计尝试：{len(problem['attempts'])}/{problem['max_attempts']}。达到上限后不得再次修复或执行，选择未解决退出或自身任务阻塞上报。\n阶段：{problem['stage']}；自主排障授权：{'允许（仅原有工具权限内）' if self.self_repair(actor) else '不允许'}。" if problem else ''
-        if pending:
-            import json
-            content += '\n未解决但已结束排障的问题（不是成功；正常汇报须保留与当前任务有关的失败及影响，重新排障须复用 problem_id）：\n' + json.dumps([dict(problem_id=p['id'], problem=p['summary'], origin=p['origin'], origin_node_id=p.get('origin_node_id'), attempt_count=len(p['attempts']), **p['dispositions'][-1]) for p in pending], ensure_ascii=False)
-        return content
+        if problem:
+            e['texts'].append(f"当前问题：{problem['summary']}\n归属：{problem['origin']}；来源节点：{problem.get('origin_node_id')}；problem_id：{problem['id']}；累计尝试：{len(problem['attempts'])}/{problem['max_attempts']}。达到上限后不得再次修复或执行，选择未解决退出或自身任务阻塞上报。\n阶段：{problem['stage']}；自主排障授权：{'允许（仅原有工具权限内）' if self.self_repair(actor) else '不允许'}。")
 
-    def feedback_text(self, actor):
+    def prepare(self, e):
         import json
+        actor = e['actor']
         manager = self.r.backend.agents[actor].get('manager_id')
-        reports = [dict(node_id=p['actor'], error=p['message']) for p in getattr(self.r.backend, 'feedback', []) if self.r.backend.agents.get(p['actor'], {}).get('manager_id') == actor]
-        return '管理者节点：' + (manager or '无（根 Agent，反馈给用户）') + ('。\n下属阻塞反馈（历史记录，不代表已解决）：\n' + json.dumps(reports, ensure_ascii=False) if reports else '。')
+        self.r.load(actor, 'state:manager', '管理者节点：' + (manager or '无（根 Agent，反馈给用户）') + '。')
+        for p in self.store.data.get('problems', []):
+            if p['source'] == str(self.r.directory) and p['node_id'] == actor and p['status'] == 'deferred':
+                record = dict(problem_id=p['id'], problem=p['summary'], origin=p['origin'], origin_node_id=p.get('origin_node_id'), attempt_count=len(p['attempts']), **p['dispositions'][-1])
+                self.r.load(actor, 'state:deferred:' + p['id'], '未解决但已结束排障的问题（不是成功；正常汇报须保留与当前任务有关的失败及影响，重新排障须复用 problem_id）：\n' + json.dumps(record, ensure_ascii=False))
+        for report in getattr(self.r.backend, 'feedback', []):
+            if self.r.backend.agents.get(report['actor'], {}).get('manager_id') == actor:
+                self.r.load(actor, 'state:feedback:' + report['id'], '下属阻塞反馈（历史记录，不代表已解决）：\n' + json.dumps(dict(node_id=report['actor'], error=report['message']), ensure_ascii=False))
 
     def info(self, actor):
         p = self.active(actor)
