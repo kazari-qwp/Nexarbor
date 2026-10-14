@@ -16,6 +16,7 @@ import {trackApprovals} from './approval-state.js';
 import {installWindowsPythonCompat} from './windows-python.js';
 import {prepareWindowsWorkspace} from './windows-workspace.js';
 import {installWindowsTerminal} from './windows-terminal.js';
+import {installRequestRecovery} from './request-recovery.js';
 
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof Error?String(item.message):typeof item==='function'?undefined:item));
@@ -85,6 +86,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
     agent.ctx.systemPrompt.section({name:'datanet:role',order:90,interpolate:false,text:()=>entry.view.prompt??''});
     const own=payload=>!payload?.agent||payload.agent===agent;
     installWindowsTerminal(agent.ctx,agent,workspace);
+    installRequestRecovery(agent.ctx,agent);
     agent.ctx.on('agent/prepare-context',async()=>{await event(actor,'context/prepare');});
     agent.ctx.on('agent/request-tail',async(_payload,next)=>{
       const tail=await next();if(bridge?.closed)return tail;
@@ -102,7 +104,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
       return next();
     });
     agent.ctx.on('tools/result',async(exec,result)=>{if(own(exec))await event(actor,'tool/result',{name:exec.name,call_id:exec.callId??null,arguments:exec.arguments??{},result});});
-    agent.ctx.on('agent/error',async payload=>{if(own(payload))await event(actor,'agent/error',{error:String(payload.error??'agent error')});});
+    agent.ctx.on('agent/error',async payload=>{if(own(payload))await event(actor,'agent/error',{error:String(payload.error??'agent error'),failure:payload.error?.failure??{code:payload.error?.code,message:String(payload.error?.message??payload.error??'agent error')}});});
     agent.ctx.on('agent/turn-stopping',async payload=>{if(own(payload))await event(actor,'agent/turn-stopping');});
     agent.ctx.on('agent/status',async payload=>{if(own(payload))await event(actor,'agent/status',{status:payload.status,messages:agent.session.deriveMessages()});});
     agent.ctx.on('agent/inbox/discarded',async({message})=>{await event(actor,'message/discarded',{message_id:message.id});});

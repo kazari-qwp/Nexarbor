@@ -13,7 +13,7 @@ def recovery_info(self, p):
         members = g['board'].members
         completed = g.get('completed', False)
         phase = 'completed' if completed else 'round_in_progress' if g['busy'] else 'finalizing' if g['round'] >= g['total'] else 'ready'
-        summaries[key] = {'group_id': key, 'members': members, 'leader_id': g['board'].leader_id, 'recorder_id': g['board'].recorder_id, 'completed': completed, 'busy': g['busy'], 'phase': phase, 'round': g['round'], 'total_rounds': g['total'], 'completed_rounds': g['round'] - int(g['busy']), 'submitted_members': list(g['submitted']), 'remaining_members': [m for m in members if m not in g['submitted']] if g['busy'] else [], 'task': g.get('task'), 'output_id': g['board'].output_id, 'last_error': g.get('last_error'), 'next_action': '读取本次成果，或提供 task 开始新任务' if completed else '继续未提交成员，再归档本轮' if g['busy'] else '所有讨论轮次已归档，仅继续Recorder收尾，无需重新讨论' if phase == 'finalizing' else '继续下一轮讨论' if g.get('task') else '提供任务并开始讨论', 'resume': {'tool': 'datanet_discuss', 'arguments': {'group_id': key}} if g.get('task') and (not completed) else None}
+        summaries[key] = {'group_id': key, 'members': members, 'leader_id': g['board'].leader_id, 'recorder_id': g['board'].recorder_id, 'completed': completed, 'busy': g['busy'], 'phase': phase, 'round': g['round'], 'total_rounds': g['total'], 'completed_rounds': g['round'] - int(g['busy']), 'submitted_members': list(g['submitted']), 'unavailable': g.get('unavailable', {}), 'remaining_members': [m for m in members if m not in g['submitted'] and m not in g.get('unavailable', {})] if g['busy'] else [], 'task': g.get('task'), 'output_id': g['board'].output_id, 'last_error': g.get('last_error'), 'next_action': '读取本次成果，或提供 task 开始新任务' if completed else '继续未提交成员，再归档本轮' if g['busy'] else '所有讨论轮次已归档，仅继续Recorder收尾，无需重新讨论' if phase == 'finalizing' else '继续下一轮讨论' if g.get('task') else '提供任务并开始讨论', 'resume': {'tool': 'datanet_discuss', 'arguments': {'group_id': key}} if g.get('task') and (not completed) else None}
     return {'node_count': len(self.network.nodes), 'agents': self.agents, 'groups': summaries, 'management': {key: node.management_parent_id for key, node in self.network.nodes.items()}, 'unassigned_management_nodes': [key for key, node in self.network.nodes.items() if key != self.root.node_id and node.management_parent_id is None], 'feedback': getattr(self,'feedback',[]), 'pending_operations': self.store.pending(), 'checkpoint_count': self.store.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0]}
 
 def group_task(self, p):
@@ -28,7 +28,7 @@ def archive_run(self, g):
     board = g['board']
     directory = board.file_path.parent / 'archive' / g['run']
     directory.mkdir(parents=True, exist_ok=True)
-    record = {key: g.get(key) for key in ('run', 'task', 'completed', 'round', 'total', 'last_error', 'report_reference')}
+    record = {key: g.get(key) for key in ('run', 'task', 'completed', 'round', 'total', 'last_error', 'report_reference', 'unavailable', 'loss_notice_sent', 'caller')}
     for name, target in [('result.md', board.output_id), ('notebook.md', board.notebook_id)]:
         node = self.network.nodes[target]
         path = directory / name
@@ -61,9 +61,10 @@ def begin(self, p):
         for target in (board.notebook_id, board.output_id):
             self.network.nodes[target].write('content', '')
         g.update(run=uuid4().hex, round=0, submitted={}, busy=False, completed=False,
-                 last_error=None, archive_path=None, report_reference=None)
+                 last_error=None, archive_path=None, report_reference=None, unavailable={}, loss_notice_sent=False)
         board.current_round = 0
     g['task'] = task
+    g['caller'] = p.get('caller', g.get('caller'))
     return group_info(self, p)
 
 def group_error(self, p):
@@ -107,7 +108,7 @@ def read_round(self, p):
 def submit(self, p):
     g = group(self, p['group_id'])
     member = p['actor']
-    if not g['busy'] or member not in g['board'].members or member in g['submitted']:
+    if not g['busy'] or member not in g['board'].members or member in g.get('unavailable', {}) or member in g['submitted']:
         raise ValueError('not an active member or already submitted')
     content = p.get('content', '')
     if not isinstance(content, str) or (not p.get('skip') and (not content.strip())):
@@ -124,7 +125,8 @@ def submit(self, p):
 
 def finish_round(self, p):
     g = group(self, p['group_id'])
-    if not g['busy'] or set(g['submitted']) != set(g['board'].members):
+    required = set(g['board'].members) - set(g.get('unavailable', {}))
+    if not g['busy'] or not required <= set(g['submitted']):
         raise ValueError('round incomplete')
     path = g['board'].file_path.parent / 'archive' / g['run'] / f"round_{g['round']:03d}.md"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -136,18 +138,38 @@ def finish_round(self, p):
 def group_info(self, p):
     g = group(self, p['group_id'])
     b = g['board']
-    return {'members': b.members, 'recorder_id': b.recorder_id, 'project_id': b.project_id, 'project_ids': b.project_ids, 'board_id': b.node_id, 'notebook_id': b.notebook_id, 'output_id': b.output_id, 'round': g['round'], 'total': g['total'], 'busy': g['busy'], 'submitted': g['submitted'], 'completed': g.get('completed', False), 'task': g.get('task'), 'run_id': g['run'], 'archive_path': str(self.directory / g['archive_path']) if g.get('archive_path') else None, 'runs': g.get('runs', {})}
+    return {'members': b.members, 'active_members': [m for m in b.members if m not in g.get('unavailable', {})], 'unavailable': g.get('unavailable', {}), 'loss_notice_sent': g.get('loss_notice_sent', False), 'owner': g.get('owner'), 'caller': g.get('caller'), 'leader_id': b.leader_id, 'recorder_id': b.recorder_id, 'project_id': b.project_id, 'project_ids': b.project_ids, 'board_id': b.node_id, 'notebook_id': b.notebook_id, 'output_id': b.output_id, 'round': g['round'], 'total': g['total'], 'busy': g['busy'], 'submitted': g['submitted'], 'completed': g.get('completed', False), 'task': g.get('task'), 'run_id': g['run'], 'archive_path': str(self.directory / g['archive_path']) if g.get('archive_path') else None, 'runs': g.get('runs', {})}
 
 def register(services):
     services.rpc('group_begin', begin, mutation=True)
     services.rpc('group_task', group_task, mutation=True)
     services.rpc('group_error', group_error, mutation=True)
     services.rpc('group_complete', group_complete, mutation=True)
+    services.rpc('discussion_member_exit', member_exit, mutation=True)
+    services.rpc('discussion_loss_notice', loss_notice, mutation=True)
     services.rpc('start_round', start_round, mutation=True)
     services.rpc('read_round', read_round, mutation=False)
     services.rpc('submit', submit, mutation=True)
     services.rpc('finish_round', finish_round, mutation=True)
     services.rpc('group_info', group_info, mutation=False)
+
+def member_exit(self, p):
+    g = group(self, p['group_id'])
+    board, member = g['board'], p['target']
+    if member not in board.members or member in (board.leader_id, board.recorder_id):
+        raise ValueError('仅普通讨论成员可退出本轮讨论')
+    if member not in g.setdefault('unavailable', {}):
+        g['unavailable'][member] = dict(reason=str(p['reason']), at=__import__('time').time())
+        if g['busy']:
+            board._append_submission('content', f"\n## 第{g['round']}轮 · 成员退出：{member}\n{p['reason']}\n", mode='append')
+    return group_info(self, p)
+
+
+def loss_notice(self, p):
+    g = group(self, p['group_id'])
+    g['loss_notice_sent'] = p['sent']
+    return {'ok': True}
+
 
 def group(backend, group_id):
     if group_id not in backend.groups:
@@ -194,7 +216,7 @@ def finalize(backend, p, result, refs):
         return result
     board = backend.network.nodes[result.items[0]['entry_points']['board']]
     group_id = p['instance_id']
-    backend.groups[group_id] = {'board': board, 'round': 0, 'total': p.get('rounds', 8), 'submitted': {}, 'busy': False, 'run': uuid4().hex, 'archives': [], 'completed': False}
+    backend.groups[group_id] = {'board': board, 'round': 0, 'total': p.get('rounds', 8), 'submitted': {}, 'busy': False, 'run': uuid4().hex, 'archives': [], 'completed': False, 'owner': p['actor'], 'unavailable': {}, 'loss_notice_sent': False}
     if refs is not None:
         connect_project(backend, board, refs)
         result.items[0]['node_ids'] = {k: v for k, v in result.items[0]['node_ids'].items() if v in backend.network.nodes}

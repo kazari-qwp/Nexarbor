@@ -73,6 +73,8 @@ class Plugin(Component):
     def request(self, e):
         turn = self.turns.get(e['actor'])
         if turn and turn['active']:
+            if turn['count'] >= 10:
+                raise RuntimeError('discussion request budget exhausted')
             turn['count'] += 1
             self.r.rpc('agent_progress', target=e['actor'], count=turn['count'], activity='running')
 
@@ -140,6 +142,25 @@ class Plugin(Component):
         finally:
             turn['active'] = False
 
+    def notify_loss(self, group_id, caller):
+        info = self.r.rpc('group_info', group_id=group_id)
+        ordinary = [m for m in info['members'] if m not in (info['leader_id'], info['recorder_id'])]
+        lost = info['unavailable']
+        if not ordinary or len(lost) * 2 < len(ordinary) or info['loss_notice_sent']:
+            return
+        self.r.rpc('discussion_loss_notice', group_id=group_id, sent=True)
+        manager = self.r.backend.agents[info['leader_id']].get('manager_id') or info.get('owner') or caller
+        notice = dict(type='discussion_degraded', group_id=group_id, run_id=info['run_id'],
+                      exited_count=len(lost), total_ordinary_members=len(ordinary), unavailable=lost,
+                      active_members=info['active_members'], continuing=True,
+                      message='本轮至少一半普通成员已退出；Leader、Recorder和剩余成员继续讨论。')
+        try:
+            self.r.emit('agent/ensure-mounted', target=manager)
+            self.r.host('steer', actor=manager, text=json.dumps(notice, ensure_ascii=False))
+        except Exception as error:
+            self.r.rpc('discussion_loss_notice', group_id=group_id, sent=False)
+            self.r.errors.append(dict(component=self.id, error=str(error)))
+
     def tool_datanet_discuss(self, actor, p):
         group_id = p['group_id']
         if not self.r.rpc('check_access', actor=actor, target=group_id + '/board', direction='write', strength=self.r.state(actor)['strength'])['allowed']:
@@ -160,7 +181,7 @@ class Plugin(Component):
                 raise ValueError('New discussion requires a task')
             if any(member not in self.r.states for member in info['members']):
                 raise ValueError('Group members are not mounted in this process')
-            info = self.r.rpc('group_begin', group_id=group_id, task=task)
+            info = self.r.rpc('group_begin', group_id=group_id, task=task, caller=actor)
             diagnostics = self.r.plugins.get('tools/execution_records')
             if diagnostics:
                 diagnostics.start(actor)
@@ -170,7 +191,8 @@ class Plugin(Component):
             start = info['round'] - int(info['busy'])
             for _ in range(start, info['total']):
                 round = self.r.rpc('start_round', group_id=group_id)
-                members = [m for m in info['members'] if m not in round.get('submitted', {})]
+                info = self.r.rpc('group_info', group_id=group_id)
+                members = [m for m in info['active_members'] if m not in round.get('submitted', {})]
                 for member in members:
                     self.turns[member]['resident_snapshot'] = [round['notebook_snapshot']]
                 message = f"项目任务：{task}\n本次运行：{info['run_id']}\n项目资料ID：{'、'.join(info['project_ids'])}；成果ID：{info['output_id']}。项目资料已首次加载，后续按需使用绑定查询工具。公共笔记使用轮初共同快照；Recorder用write_resident_text维护，更新在下一轮可见。个人记忆用datanet_memory_read、datanet_memory_write维护。\n上轮所有成员发言（共同快照）：\n{round['snapshot']}\n通常讨论按需访问资料、维护个人记忆。"
@@ -179,17 +201,21 @@ class Plugin(Component):
                     self.r.local.execution_id = execution_id
                     return self.schedule(actor, member, message, reference, info, round['round'])
                 with ThreadPoolExecutor(max_workers=max(1, len(members))) as pool:
-                    futures = [pool.submit(run, member) for member in members]
-                    try:
-                        for future in as_completed(futures):
+                    futures = {pool.submit(run, member): member for member in members}
+                    for future in as_completed(futures):
+                        try:
                             future.result()
-                    except Exception:
-                        for member in members:
-                            self.r.host('cancel-agent', actor=member)
-                        raise
+                        except Exception as error:
+                            member = futures[future]
+                            if member in (info['leader_id'], info['recorder_id']):
+                                for peer in members:
+                                    self.r.host('cancel-agent', actor=peer)
+                                raise
+                            self.r.rpc('discussion_member_exit', group_id=group_id, target=member, reason=str(error))
+                            self.notify_loss(group_id, actor)
                 self.r.rpc('finish_round', group_id=group_id)
             final = self.r.rpc('group_info', group_id=group_id)
-            message = f"讨论已结束。请根据任务“{task}”和历史上下文，以及以下最后一轮全部成员发言（这是归档后的完整提交，须据此汇总，不能只依据轮初快照）：\n{json.dumps(final['submitted'], ensure_ascii=False, indent=2)}\n按当前任务要求归档；需要操作证据时进入 datanet_reports_channel，查询本次讨论委托的报告索引并读取真实报告或工具结果。不要猜测脚本路径、命令或退出码；证据缺失时注明缺失，不补造。把最终成果写入 {info['output_id']}，用node_write、key=content、mode=upsert；然后回复最终结论。"
+            message = f"讨论已结束。请根据任务“{task}”和历史上下文，以及以下最后一轮全部成员发言（这是归档后的完整提交，须据此汇总，不能只依据轮初快照）：\n{json.dumps(final['submitted'], ensure_ascii=False, indent=2)}\n本轮已退出的普通成员：{'、'.join(final['unavailable']) or '无'}。\n按当前任务要求归档；需要操作证据时进入 datanet_reports_channel，查询本次讨论委托的报告索引并读取真实报告或工具结果。不要猜测脚本路径、命令或退出码；证据缺失时注明缺失，不补造。把最终成果写入 {info['output_id']}，用node_write、key=content、mode=upsert；然后回复最终结论。"
             self.schedule(actor, info['recorder_id'], message, reference, final, final=True)
             if not self.turns[info['recorder_id']]['output_written']:
                 raise RuntimeError('FINAL_OUTPUT_NOT_CONFIRMED: Recorder 本次未成功写入非空最终成果；讨论已完成，请继续收尾，不要重新建组。')
@@ -199,7 +225,7 @@ class Plugin(Component):
             if reports:
                 reports.end(reference, 'completed')
             return dict(status='ok', output=result['items'], result=result, report_reference=reference,
-                        run_id=completed['run_id'], archive_path=completed['archive_path'])
+                        run_id=completed['run_id'], archive_path=completed['archive_path'], unavailable=final['unavailable'])
         except Exception as error:
             self.r.rpc('group_error', group_id=group_id, error=str(error))
             if reports and reference:

@@ -16,6 +16,7 @@ class Plugin(Component):
         self.on('agent/bound', self.bound)
         self.on('agent/pre-step', self.pre_step)
         self.on('agent/request', self.request)
+        self.on('agent/error', self.native_error)
         self.on('agent/turn-stopping', self.stopping)
         self.on('context/tail', self.tail)
         self.on('delegation/delivery', self.delivery)
@@ -128,24 +129,39 @@ class Plugin(Component):
         if not group:
             return
         self.guide(e['actor'], member=True)
+        if e['actor'] in group.get('unavailable', {}):
+            raise RuntimeError('成员已退出本轮协作')
         if group['phase'] in ('running', 'review'):
             if time() >= group['deadline']:
                 self.stop_group(group, 'budget_exhausted', '达到运行时间预算')
                 raise RuntimeError('协作时间预算已结束')
             if group['requests'].get(e['actor'], 0) >= self.r.config.get('cooperativeRequestLimit', 100):
-                self.stop_group(group, 'budget_exhausted', '成员达到模型请求预算')
-                raise RuntimeError('协作请求预算已结束')
+                self.retire(group, e['actor'], '成员达到模型请求预算', 'budget_exhausted', cancel=True)
+                raise RuntimeError('成员请求预算已结束')
+
+    def native_error(self, e):
+        group = self.group_for(e['actor'])
+        if group and group['phase'] in ('running', 'review'):
+            with self.lock:
+                failure = e.get('failure') or {}
+                reason = (str(failure['code']) + ': ' if failure.get('code') else '') + str(failure.get('message') or e['error'])
+                self.retire(group, e['actor'], reason)
 
     def request(self, e):
         group = self.group_for(e['actor'])
         if group and group['phase'] in ('running', 'review'):
+            if e['actor'] in group.get('unavailable', {}):
+                raise RuntimeError('成员已退出本轮协作')
+            if group['requests'].get(e['actor'], 0) >= self.r.config.get('cooperativeRequestLimit', 100):
+                self.retire(group, e['actor'], '成员达到模型请求预算', 'budget_exhausted', cancel=True)
+                raise RuntimeError('成员请求预算已结束')
             with self.r.backend._transaction_lock:
                 group['requests'][e['actor']] = group['requests'].get(e['actor'], 0) + 1
                 self.r.rpc('save')
 
     def stopping(self, e):
         group = self.group_for(e['actor'])
-        if group and group['phase'] in ('running', 'review'):
+        if group and group['phase'] in ('running', 'review') and e['actor'] not in group.get('unavailable', {}):
             candidate = group.get('candidate')
             if candidate and e['actor'] in candidate['approvals']:
                 return
@@ -185,7 +201,7 @@ class Plugin(Component):
 
     def broadcast(self, group, sender, text):
         for actor in group['members']:
-            if actor == sender:
+            if actor == sender or actor in group.get('unavailable', {}):
                 continue
             self.r.emit('agent/ensure-mounted', target=actor)
             self.r.host('steer', actor=actor, text=text)
@@ -202,6 +218,7 @@ class Plugin(Component):
             workspace = self.workspace(group)
             result = dict(type='cooperation_result', group_id=group['group_id'], run_id=run_id, status=group['phase'],
                           output_id=group['entry_points']['output'], workspace=str(self.workspace(group).main), failure=group.get('failure'),
+                          active_members=self.active_members(group), unavailable=group.get('unavailable', {}),
                           report_reference=reference, repository=workspace.repository(), archive_path=str(self.r.directory / group['archive_path']) if group.get('archive_path') else None)
             timer = self.timers.pop(group['group_id'], None)
             if timer:
@@ -244,11 +261,49 @@ class Plugin(Component):
             job = queue.jobs.get(e['delegation_id'])
             if e['delegation_id'] not in group['jobs'].values() or (job and job.get('context', {}).get('cooperative_run_id', group['run_id']) != group['run_id']):
                 return
-            jobs = [queue.jobs[id] for id in group['jobs'].values() if id in queue.jobs]
-            failed = next((job for job in jobs if job['status'] in ('failed', 'blocked', 'interrupted')), None)
-            if failed and group['phase'] in ('running', 'review'):
-                self.stop_group(group, 'failed', json.dumps(failed.get('result'), ensure_ascii=False))
+            if job and job['status'] in ('failed', 'blocked', 'interrupted', 'cancelled') and group['phase'] in ('running', 'review'):
+                self.retire(group, e['actor'], json.dumps(job.get('result'), ensure_ascii=False), job['status'])
             self.notify(group)
+
+    def active_members(self, group):
+        return [member for member in group['members'] if member not in group.get('unavailable', {})]
+
+    def notify_loss(self, group):
+        lost = group.get('unavailable', {})
+        if len(lost) * 2 < len(group['members']) or group.get('loss_notice_sent'):
+            return
+        self.r.rpc('cooperative_update', group_id=group['group_id'], loss_notice_sent=True)
+        # Follow the group's current management binding; terminal delivery reaches the caller.
+        manager = self.r.backend.agents[group['members'][0]].get('manager_id') or group['owner']
+        active = self.active_members(group)
+        if not active and manager == group['caller']:
+            return
+        notice = dict(type='cooperation_degraded', group_id=group['group_id'], run_id=group['run_id'],
+                      exited_count=len(lost), total_members=len(group['members']), active_members=active,
+                      unavailable=lost, continuing=bool(active), message='本轮至少一半成员已退出；剩余成员继续工作。' if active else '本轮全部成员已退出，小组无法继续。')
+        try:
+            self.r.emit('agent/ensure-mounted', target=manager)
+            self.r.host('steer', actor=manager, text=json.dumps(notice, ensure_ascii=False))
+        except Exception as error:
+            self.r.rpc('cooperative_update', group_id=group['group_id'], loss_notice_sent=False)
+            self.r.errors.append(dict(component=self.id, error=str(error)))
+
+    def retire(self, group, actor, reason, status='failed', cancel=False):
+        if group['phase'] not in ('running', 'review') or actor in group.get('unavailable', {}):
+            return
+        self.r.rpc('cooperative_member_exit', actor=group['caller'], group_id=group['group_id'], target=actor, reason=reason, status=status)
+        if cancel:
+            id = group['jobs'].get(actor)
+            if id:
+                self.r.plugins['tools/agent_delegation'].cancel(id)
+            self.r.host('cancel-agent', actor=actor)
+        self.notify_loss(group)
+        if not self.active_members(group):
+            self.stop_group(group, 'failed', json.dumps(dict(message='本轮全部成员无法继续', members=group['unavailable']), ensure_ascii=False))
+            return
+        message = '共同成果已获本轮剩余成员验收，协作结束。请停止当前工作并简短回复。' if group['phase'] == 'completed' else '成员 ' + actor + ' 已退出本轮，其未完成认领已释放。用 datanet_team_status 查看退出原因、认领和工作区，继续推进共同目标。'
+        self.broadcast(group, actor, message)
+        self.notify(group)
 
     def tool_datanet_cooperate(self, actor, p):
         self.guide(actor)
@@ -326,6 +381,8 @@ class Plugin(Component):
                 receipt = self.r.plugins['tools/agent_delegation'].submit(actor, member, task, context={'cooperative_group_id': group['group_id'], 'cooperative_run_id': group['run_id']}, parent=parent, timeout_ms=max(1000, int((group['deadline'] - time()) * 1000)))
                 jobs = {**group['jobs'], member: receipt['delegation_id']}
                 self.r.rpc('cooperative_update', group_id=group['group_id'], jobs=jobs)
+                # A fast native failure may settle before its receipt is registered.
+                self.settled(dict(actor=member, delegation_id=receipt['delegation_id']))
             return dict(status='accepted', group_id=group['group_id'], run_id=group['run_id'], members=group['members'], report_reference=parent)
         except Exception as error:
             self.stop_group(group, 'failed', str(error))
@@ -337,7 +394,7 @@ class Plugin(Component):
         if section == 'all':
             return self.call('status', actor, group, **p)
         state = self.r.rpc('cooperative_status', actor=actor, group_id=group['group_id'], strength=self.r.state(actor)['strength'], **p)
-        fields = {'summary': ('task', 'members', 'requests', 'failure'), 'claims': ('claims',), 'records': ('entries', 'entry_count'), 'candidate': ('candidate',)}
+        fields = {'summary': ('task', 'members', 'active_members', 'unavailable', 'requests', 'failure'), 'claims': ('claims',), 'records': ('entries', 'entry_count'), 'candidate': ('candidate',)}
         return dict(group_id=state['group_id'], phase=state['phase'], **{key: state[key] for key in fields[section]})
 
     def tool_datanet_team_claim(self, actor, p):
@@ -348,13 +405,13 @@ class Plugin(Component):
 
     def tool_datanet_team_send(self, actor, p):
         group = self.group(actor)
-        if group['phase'] not in ('running', 'review') or p['target'] not in group['members'] or p['target'] == actor:
+        if group['phase'] not in ('running', 'review') or p['target'] not in self.active_members(group) or actor not in self.active_members(group) or p['target'] == actor:
             raise PermissionError('只能向运行中的本组其他成员发信')
         return self.r.plugins['toolboxes/agent_messaging'].deliver(actor, p['target'], p['content'], message_type=p.get('message_type', 'work_order'))
 
     def tool_datanet_team_workspace(self, actor, p):
         group = self.group(actor)
-        if p['action'] != 'inspect' and group['phase'] != 'running':
+        if p['action'] != 'inspect' and (group['phase'] != 'running' or actor in group.get('unavailable', {})):
             raise ValueError('仅运行阶段允许修改共同成果')
         with self.lock:
             result = self.workspace(group).invoke(actor, p['action'], p.get('message', 'Publish contribution'))
@@ -383,7 +440,7 @@ class Plugin(Component):
                 reports = self.r.plugins.get('tools/reports')
                 if reports:
                     reports.artifact(actor, result['candidate']['content'])
-                self.broadcast(group, actor, '共同成果已获全体成员验收，协作结束。请停止当前工作并简短回复。')
+                self.broadcast(group, actor, '共同成果已获本轮剩余成员验收，协作结束。请停止当前工作并简短回复。')
                 self.notify(group)
                 self.r.host('conclude')
             elif result['phase'] == 'review' and actor in result['candidate']['approvals']:

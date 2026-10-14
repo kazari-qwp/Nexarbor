@@ -51,7 +51,7 @@ def finalize(b, p, result, state):
     ids = result.items[0]['node_ids']
     group = dict(group_id=p['instance_id'], owner=p['actor'], members=[id for name, id in ids.items() if name.startswith('worker_')],
                  entry_points=result.items[0]['entry_points'], phase='ready', run_id=None, task=None,
-                 claims={}, entries=[], candidate=None, requests={}, jobs={}, notified=False, failure=None)
+                 claims={}, entries=[], candidate=None, requests={}, jobs={}, notified=False, failure=None, unavailable={}, loss_notice_sent=False)
     b.cooperative_groups[group['group_id']] = group
     b.network.nodes[ids['project']].write('content', p['project'])
     return dict(status='ok', group_id=group['group_id'], member_count=len(group['members']), members=group['members'],
@@ -66,11 +66,17 @@ def get(b, p, member=False):
     if member:
         if actor not in g['members']:
             raise PermissionError('仅本组成员可调用协作工具')
+        if actor in g.get('unavailable', {}):
+            raise PermissionError('成员已退出本轮协作')
     elif actor not in g['members']:
         reachable = {n.node_id for n, _ in b.network.walk(actor, direction='read', strength=p.get('strength', 2))}
         if g['entry_points']['board'] not in reachable:
             raise PermissionError('小组不在调用者的读取范围内')
     return g
+
+
+def active_members(g):
+    return [member for member in g['members'] if member not in g.get('unavailable', {})]
 
 
 def live(g):
@@ -89,6 +95,8 @@ def append(b, g, actor, kind, content):
 def status(b, p):
     g = get(b, p)
     result = deepcopy(g)
+    result['active_members'] = active_members(g)
+    result['unavailable'] = deepcopy(g.get('unavailable', {}))
     query = p.get('query')
     result['entries'] = [e for e in result['entries'] if query.casefold() in e['content'].casefold() or query == e['id']] if query else result['entries'][-20:]
     result['entry_count'] = len(g['entries'])
@@ -107,7 +115,7 @@ def archive_run(b, g):
         return
     directory = b.directory / 'cooperation' / g['group_id'].encode().hex() / 'runs' / g['run_id']
     directory.mkdir(parents=True, exist_ok=True)
-    record = {key: deepcopy(g.get(key)) for key in ('run_id', 'task', 'phase', 'failure', 'claims', 'entries', 'candidate', 'requests', 'jobs', 'report_reference')}
+    record = {key: deepcopy(g.get(key)) for key in ('run_id', 'task', 'phase', 'failure', 'claims', 'entries', 'candidate', 'requests', 'jobs', 'report_reference', 'unavailable', 'loss_notice_sent')}
     writer = b.network.nodes[g['entry_points']['output']]
     for name, target in [('output.md', 'output'), ('findings.md', 'findings')]:
         node = b.network.nodes[g['entry_points'][target]]
@@ -139,13 +147,13 @@ def start(b, p):
         b.network.nodes[g['entry_points'][target]].write('content', '')
     g.update(phase='running', caller=p['actor'], task=p['task'], run_id=str(uuid4()), started_at=time(), deadline=time() + minutes * 60,
              claims={}, entries=[], candidate=None, requests={}, jobs={}, notified=False, failure=None,
-             archive_path=None, report_reference=None)
+             archive_path=None, report_reference=None, unavailable={}, loss_notice_sent=False)
     return deepcopy(g)
 
 
 def update(b, p):
     g = b.cooperative_groups[p['group_id']]
-    for field in ('jobs', 'notified', 'failure', 'phase', 'report_reference', 'workspace_directory'):
+    for field in ('jobs', 'notified', 'failure', 'phase', 'report_reference', 'workspace_directory', 'loss_notice_sent'):
         if field in p:
             g[field] = deepcopy(p[field])
     if 'phase' in p and g['phase'] in TERMINAL:
@@ -273,10 +281,36 @@ def finish(b, p):
         else:
             raise ValueError('未知验收操作')
     append(b, g, p['actor'], 'REVIEW', p['evidence'])
-    if set(g['candidate']['approvals']) == set(g['members']):
-        b.network.nodes[g['entry_points']['output']].write('content', g['candidate']['content'])
+    complete_candidate(b, g)
+    return deepcopy(g)
+
+
+def complete_candidate(b, g):
+    members = active_members(g)
+    candidate = g.get('candidate')
+    if g['phase'] == 'review' and candidate and members and set(members) <= set(candidate['approvals']):
+        b.network.nodes[g['entry_points']['output']].write('content', candidate['content'])
         g['phase'] = 'completed'
         archive_run(b, g)
+
+
+def member_exit(b, p):
+    g = b.cooperative_groups[p['group_id']]
+    actor = p['target']
+    if actor not in g['members']:
+        raise ValueError('退出节点不是本组成员')
+    if g['phase'] not in ACTIVE or actor in g.get('unavailable', {}):
+        return deepcopy(g)
+    reason = str(p['reason'])
+    g.setdefault('unavailable', {})[actor] = dict(status=p.get('status', 'failed'), reason=reason, at=time())
+    for item in g['claims'].values():
+        if item['actor'] == actor and item['state'] == 'active':
+            item.update(state='released', evidence='成员退出本轮：' + reason)
+            append(b, g, actor, 'RELEASE', claim_text(item) + '\n' + item['evidence'])
+    append(b, g, actor, 'MEMBER_EXIT', reason)
+    if g.get('candidate'):
+        g['candidate']['approvals'].pop(actor, None)
+    complete_candidate(b, g)
     return deepcopy(g)
 
 
@@ -292,7 +326,7 @@ def stop(b, p):
 
 def register(s):
     for name, function in [('cooperative_status', status), ('cooperative_start', start), ('cooperative_update', update),
-                           ('cooperative_claim', claim), ('cooperative_note', note), ('cooperative_finish', finish), ('cooperative_stop', stop)]:
+                           ('cooperative_member_exit', member_exit), ('cooperative_claim', claim), ('cooperative_note', note), ('cooperative_finish', finish), ('cooperative_stop', stop)]:
         s.rpc(name, function, mutation=name != 'cooperative_status')
     s.initializers.append(initialize)
     s.snapshotters.append(snapshot)

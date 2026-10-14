@@ -12,8 +12,9 @@ class Plugin(Component):
     def install(self):
         self.store = JsonStore(self.r.directory / 'execution-records/state.json', dict(incidents=[], runs=[]))
         self.running, self.starts, self.failed, self.last_failure, self.last_completed = {}, {}, set(), {}, {}
+        self.failure_details = {}
         self.on('agent/pre-step', lambda e: self.start(e['actor'], e.get('messages')))
-        self.on('agent/error', lambda e: self.exception(e['actor'], e['error'], 'agent_error'))
+        self.on('agent/error', lambda e: self.exception(e['actor'], e['error'], 'agent_error', e.get('failure')))
         self.on('agent/status', self.idle)
         self.on('tool/result', self.result)
         self.on('tool/error', lambda e: self.last_failure.update({e['actor']: dict(tool=e['name'], error=redact(e['error']), time=now())}))
@@ -33,6 +34,7 @@ class Plugin(Component):
         self.running[actor] = run
         self.starts[actor] = len(messages)
         self.failed.discard(actor)
+        self.failure_details.pop(actor, None)
         self.last_failure.pop(actor, None)
         self.last_completed.pop(actor, None)
         self.store.mutate(lambda db: db['runs'].append(run))
@@ -54,7 +56,8 @@ class Plugin(Component):
 
     def complete(self, actor, messages):
         if actor in self.failed:
-            raise RuntimeError('Agent execution failed')
+            details = self.failure_details.get(actor, {})
+            raise RuntimeError((str(details['code']) + ': ' if details.get('code') else '') + details.get('message', 'Agent execution failed'))
         summary = report_text(messages)
         run = self.finish(actor, 'completed', summary or '委托正常结束，无新增阻塞')
         reports = self.r.plugins.get('tools/reports')
@@ -81,11 +84,12 @@ class Plugin(Component):
         if reports:
             reports.finish(actor, 'blocked', error=report['message'], messages=self.r.host('messages', actor=actor)[self.starts.get(actor, 0):])
 
-    def exception(self, actor, error, category='execution_error'):
+    def exception(self, actor, error, category='execution_error', failure=None):
         self.failed.add(actor)
+        self.failure_details[actor] = self.failure_details.get(actor) or {**(failure or {}), 'message': str((failure or {}).get('message') or error)}
         run = self.running.get(actor)
         if run:
-            self.incident(actor, 'execution_exception', error, category=category, run_id=run['id'])
+            self.incident(actor, 'execution_exception', error, category=category, run_id=run['id'], failure=self.failure_details[actor])
             self.finish(actor, 'failed', error)
             reports = self.r.plugins.get('tools/reports')
             if reports:
