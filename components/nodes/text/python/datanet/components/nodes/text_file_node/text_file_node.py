@@ -8,10 +8,13 @@ from datanet.core.write_support import validate_write
 
 class TextFileNode(Node):
 
-    def __init__(self, node_id, name, data_kind, file_path, *, description='', delivery='plain'):
+    def __init__(self, node_id, name, data_kind, file_path, *, description='', delivery='plain', max_chars=None):
         super().__init__(node_id, name, data_kind, description=description)
         if delivery not in ('plain', 'query', 'resident'):
             raise ValueError('delivery 必须为 plain、query 或 resident')
+        if max_chars is not None and (type(max_chars) is not int or max_chars < 1):
+            raise ValueError('max_chars 必须为正整数')
+        self.max_chars = max_chars
         self.delivery = delivery
         self.file_path = Path(file_path).resolve()
         self._lock = RLock()
@@ -58,6 +61,8 @@ class TextFileNode(Node):
             Path(temporary).unlink(missing_ok=True)
 
     def _commit(self, text, operation):
+        if self.max_chars is not None and len(text) > self.max_chars:
+            return NodeResult(status='error', errors=[f'正文共{len(text)}字符，最多{self.max_chars}字符；请精简后重试。'])
         try:
             data = text.encode('utf-8')
             self.file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -66,8 +71,7 @@ class TextFileNode(Node):
             self._atomic_bytes(self.file_path, data)
             result = self._read_key('content')
             result.sources[0].update(operation=operation, backup_path=str(self.backup_path) if self.backup_path.exists() else None)
-            if self.delivery == 'resident':
-                result.items = [{'node_id': self.node_id, 'written': True}]
+            result.items = [{'node_id': self.node_id, 'written': True}]
             return result
         except (OSError, UnicodeError) as error:
             return NodeResult(status='error', errors=[str(error)])

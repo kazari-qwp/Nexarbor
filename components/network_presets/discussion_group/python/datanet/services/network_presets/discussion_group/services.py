@@ -85,17 +85,18 @@ def start_round(self, p):
         content = notebook._read_key('content')
         g['notebook_snapshot'] = label(notebook) + '\n' + (content.items[0]['content'] if content.status == 'ok' else '')
     if g['busy']:
-        return {'round': g['round'], 'total': g['total'], 'snapshot': board._read_key('content').items[0]['content'], 'submitted': g['submitted'], 'notebook_snapshot': g['notebook_snapshot']}
+        return {'round': g['round'], 'total': g['total'], 'snapshot': board._read_key('content').items[0]['content'], 'submitted': g['submitted'], 'notebook_snapshot': g['notebook_snapshot'], 'previous_submitted': g.get('previous_submitted', {})}
     if g['round'] >= g['total']:
         raise ValueError('all rounds completed')
     board = g['board']
     if board.file_path.exists() and board.file_path.read_bytes():
         raise ValueError('unarchived submissions exist')
+    g['previous_submitted'] = dict(g['submitted'])
     g['round'] += 1
     g['busy'] = True
     g['submitted'] = {}
     board.current_round, board.total_rounds = (g['round'], g['total'])
-    return {'round': g['round'], 'total': g['total'], 'snapshot': board._read_key('content').items[0]['content'], 'notebook_snapshot': g['notebook_snapshot']}
+    return {'round': g['round'], 'total': g['total'], 'snapshot': board._read_key('content').items[0]['content'], 'notebook_snapshot': g['notebook_snapshot'], 'previous_submitted': g.get('previous_submitted', {})}
 
 def read_round(self, p):
     g = group(self, p['group_id'])
@@ -121,7 +122,7 @@ def submit(self, p):
     if result.status != 'ok':
         return result
     g['submitted'][member] = content
-    return {'status': 'ok', 'submitted': True, 'content': content}
+    return {'status': 'ok', 'submitted': True, 'group_id': p['group_id'], 'round': g['round'], 'member': member, 'skipped': bool(p.get('skip'))}
 
 def finish_round(self, p):
     g = group(self, p['group_id'])

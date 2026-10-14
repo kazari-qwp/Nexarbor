@@ -112,7 +112,8 @@
         "divergence": -1,
         "parameters": {
           "file_path": "data/notebook.md",
-          "delivery": "resident"
+          "delivery": "resident",
+          "max_chars": 200
         },
         "connections": {
           "read_interfaces": [],
@@ -133,10 +134,11 @@
         "node_id": "output",
         "name": "output",
         "data_kind": "text",
-        "description": "最终成果；仅Recorder写入。",
+        "description": "由Recorder维护讨论草稿与最终成果，成员按需查询。",
         "divergence": -1,
         "parameters": {
-          "file_path": "data/output.md"
+          "file_path": "data/output.md",
+          "delivery": "query"
         },
         "connections": {
           "read_interfaces": [],
@@ -179,6 +181,12 @@
             },
             {
               "target_node_id": "notebook",
+              "threshold": 0,
+              "visibility": "private",
+              "multiplier": 1
+            },
+            {
+              "target_node_id": "output",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -226,6 +234,12 @@
             },
             {
               "target_node_id": "notebook",
+              "threshold": 0,
+              "visibility": "private",
+              "multiplier": 1
+            },
+            {
+              "target_node_id": "output",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
@@ -285,6 +299,12 @@
             },
             {
               "target_node_id": "notebook",
+              "threshold": 0,
+              "visibility": "private",
+              "multiplier": 1
+            },
+            {
+              "target_node_id": "output",
               "threshold": 0,
               "visibility": "private",
               "multiplier": 1
