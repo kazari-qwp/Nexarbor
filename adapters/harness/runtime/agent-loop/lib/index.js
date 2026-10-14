@@ -1,3 +1,4 @@
+import {installSessionEventPersistence} from '../../session-events.js';
 import { Service } from "@deepseek-ai/cordis";
 import { randomUUID } from "node:crypto";
 import z from "@deepseek-ai/schemastery";
@@ -1558,6 +1559,7 @@ var AgentLoop = class extends Service {
 	runtime;
 	constructor(ctx, config) {
 		super(ctx, "agentLoop");
+		installSessionEventPersistence(ctx);
 		this.config = {
 			agents: applyLauncherIdentities(config.agents, ctx.get(CONFIGURED_AGENT_IDENTITIES_KEY)),
 			maxParallelToolCalls: config.maxParallelToolCalls
