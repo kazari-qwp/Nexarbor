@@ -64,4 +64,18 @@ Root报告另有事实错误：声称共同工作区没有.git或提交，实际
 
 0.3.10修复：Harness适配层观察原生 `approval/request` waterfall，仅记录等待状态并原样转交决定，完成或异常后清除；inspect增加pending_approvals。去中心化组件的status增加member_runtime，调用者能区分“等待审批”和“无响应”。权限范围和审批决定仍由Harness负责。原生等待/清理/异常最小测试通过，协作回归10项通过；基础Python框架没有加入这一业务策略。
 
-第六轮使用0.3.10；客户端环境PATH选择Python3.11，避开Python3.14在Windows沙箱创建mode=0o700临时目录的权限问题。公开期望JSON完整提供到task/data_file；评分材料放在独立观察目录，不随任务提供；任务明确限定工作区范围。thinking high、500k配置上下文、50k输出、5人讨论两轮和4人执行不变。目录：`build/hone-fixed-20261014-r6`，结果待运行结束记录。
+第六轮使用0.3.10；客户端环境PATH选择Python3.11.16，真实终端确认生效。公开期望JSON完整提供到task/data_file；评分材料放在独立观察目录，不随任务提供；任务明确限定工作区范围。thinking high、500k配置上下文、50k输出、5人讨论两轮和4人执行不变。目录：`build/hone-fixed-20261014-r6`。
+
+## 第六轮：完整端到端通过
+
+原生记录确认两轮讨论完成，4名执行成员自主认领、使用工作树实现、提交整合、关闭全部认领、提出成果候选并全员批准；小组phase=completed、notified=true。框架唤醒根，根收到真实共同仓库路径与HEAD，并完成客户端最终回复。没有官方subagent调用、通用Agent创建调用或额外执行小组。实际请求统一为thinking high、500000上下文与50000输出上限。
+
+从任务开始到根turn/end为1617.418秒，约26分57秒，在30分钟总时限内完成。截止程序在30分钟执行时stopped=[]，当时已经没有运行中的会话；之后复查也全部idle。不能把观察者数小时后恢复读取日志的时间当作运行耗时。
+
+冻结提交：`ec6e1625da8666be0c5fa8c077e8d6280bf08939`。共同仓库Git状态干净，四票批准，四名成员请求数87、66、63、52。共同目录：`build/hone-fixed-20261014-r6/workspace/.datanet/workspaces/ea2a200c3e4d1077/1c09de15d44c8e0d/main`。冻结快照：`build/hone-fixed-20261014-r6/evaluation/candidate-ec6e1625da86`。
+
+停止全部付费循环后运行独立评分：上游单元7/7、验收5/5、CLI6/6；提供原公开输入夹具后，冻结代码自测107/107、exit0。未改候选代码或上游断言；样本25个文件哈希一致。轨迹中未发现读取评分目录或参考实现的调用。评分是固定公开样本任务的兼容性验收，不包含单Agent对照或多次统计实验。
+
+329条原生模型消息记录用量：未缓存输入8,044,304、缓存输入23,292,416、输出546,287、总量31,883,007tokens。完整结果result.json、原文root-final.txt、客户端轨迹client-records.json、截止记录deadline-stop.json、独立评分candidate-score.json与cli-score.json、自测candidate-selftest.json保存在本轮目录。
+
+仍有非阻塞环境限制：Python3.11同样复现Windows终端沙箱无法读写/删除部分mode=0o700目录，说明该问题不只与Python3.14有关。成员自行改用工作区内普通目录，完成验收；main中留下5个空实验目录，未进入Git或发布根。本轮没有批准沙箱外执行，也没有开放全权限。此兼容问题另列待办，不将环境切换写成根因修复。
