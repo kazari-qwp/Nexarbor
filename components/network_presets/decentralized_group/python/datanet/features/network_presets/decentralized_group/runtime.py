@@ -152,16 +152,15 @@ class Plugin(Component):
             self.r.host('steer', actor=e['actor'], text='共同目标尚未收尾。依据当前协作状态继续推进；已有候选时阅读验收材料，有异议指出具体问题，无异议提交批准。')
 
     def tail(self, e):
-        from copy import deepcopy
         group = self.group_for(e['actor'])
         if group:
             with self.r.backend._transaction_lock:
-                candidate = group['candidate']
-                payload = deepcopy(dict(group_id=group['group_id'], phase=group['phase'], run_id=group['run_id'],
-                               members=group['members'], active_claims=[dict(id=c['id'], actor=c['actor'], scope=c['scope'], paths=c.get('paths', [])) for c in group['claims'].values() if c['state'] == 'active'],
-                               candidate=dict(id=candidate['id'], approvals=list(candidate['approvals']), review=candidate.get('review')) if candidate else None,
-                               entry_count=len(group['entries']), recent_entries=[dict(id=row['id'], actor=row['actor'], kind=row['kind'], preview=row['content'][:160]) for row in group['entries'][-5:]]))
-            e['texts'].append('[协作状态：' + group['group_id'] + ']\n' + json.dumps(payload, ensure_ascii=False))
+                phase = {'ready': '待开始', 'running': '执行', 'review': '审核', 'completed': '完成', 'stopped': '停止', 'failed': '失败', 'interrupted': '中断', 'budget_exhausted': '预算结束'}.get(group['phase'], group['phase'])
+                text = '[协作组：' + group['group_id'] + ']\n阶段：' + phase + '。'
+                candidate = group.get('candidate')
+                if group['phase'] == 'review' and candidate and e['actor'] not in candidate['approvals']:
+                    text += '\n目前有成果等待审核。'
+            e['texts'].append(text)
 
     def arm(self, group):
         with self.lock:
@@ -333,7 +332,13 @@ class Plugin(Component):
             raise
 
     def tool_datanet_team_status(self, actor, p):
-        return self.call('status', actor, self.group(actor), **p)
+        group = self.group(actor)
+        section = p.get('section', 'all')
+        if section == 'all':
+            return self.call('status', actor, group, **p)
+        state = self.r.rpc('cooperative_status', actor=actor, group_id=group['group_id'], strength=self.r.state(actor)['strength'], **p)
+        fields = {'summary': ('task', 'members', 'requests', 'failure'), 'claims': ('claims',), 'records': ('entries', 'entry_count'), 'candidate': ('candidate',)}
+        return dict(group_id=state['group_id'], phase=state['phase'], **{key: state[key] for key in fields[section]})
 
     def tool_datanet_team_claim(self, actor, p):
         return self.call('claim', actor, self.group(actor), **p)
@@ -345,7 +350,7 @@ class Plugin(Component):
         group = self.group(actor)
         if group['phase'] not in ('running', 'review') or p['target'] not in group['members'] or p['target'] == actor:
             raise PermissionError('只能向运行中的本组其他成员发信')
-        return self.r.plugins['toolboxes/agent_messaging'].deliver(actor, p['target'], p['content'])
+        return self.r.plugins['toolboxes/agent_messaging'].deliver(actor, p['target'], p['content'], message_type=p.get('message_type', 'work_order'))
 
     def tool_datanet_team_workspace(self, actor, p):
         group = self.group(actor)

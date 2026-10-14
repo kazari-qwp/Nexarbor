@@ -59,6 +59,8 @@ def install():
     finally:
         kernel.CloseHandle(token)
 
+    if getattr(os.mkdir, '_datanet_private_dirs', False):
+        return
     original = os.mkdir
     def mkdir(path, mode=0o777, *, dir_fd=None):
         if mode != 0o700 or dir_fd is not None:
@@ -99,4 +101,5 @@ def install():
                 raise failure
         finally:
             kernel.LocalFree(security)
+    mkdir._datanet_private_dirs = True
     os.mkdir = mkdir

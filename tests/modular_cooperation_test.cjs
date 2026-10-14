@@ -36,8 +36,11 @@ const base=productRoot;
    const all=options.messages.flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).join('\n');
    const actor=all.match(/所属节点为 (native\/worker_\d+)/)?.[1];
    const discussionActor=all.match(/所属节点：(discussion\/(?:leader|recorder|member_\d+))/)?.[1];
-   const tail=options.messages.flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).findLast(t=>t.startsWith('[协作状态：native]'));
-   const state=tail?JSON.parse(tail.slice(tail.indexOf('\n')+1)):null;
+   const tail=options.messages.flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).findLast(t=>t.startsWith('[协作组：native]'));
+   let state=null;
+   const runStart=options.messages.findLastIndex(m=>m.role==='user'&&m.content.some(b=>b.type==='text'&&b.text.includes('本次运行：')));
+   for(const m of options.messages.slice(Math.max(0,runStart))){if(m.role!=='tool')continue;for(const b of m.content){if(b.type==='text'){try{const value=JSON.parse(b.text);if(value.group_id==='native'||value.phase&&'candidate' in value)state=value;}catch{}}}}
+   const runId=[...all.matchAll(/本次运行：([^。]+)。/g)].at(-1)?.[1];
    let call;
    if(discussionActor){
     const latest=options.messages.filter(m=>m.role==='user').flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).findLast(t=>t.includes('项目任务：')||t.startsWith('讨论已结束。'));
@@ -47,10 +50,10 @@ const base=productRoot;
     if(latest?.startsWith('讨论已结束。')){if(!alreadyWritten)call={name:'node_write',arguments:{target:'discussion/output',key:'content',value:latest.match(/任务“([^”]+)”/)?.[1]+'成果'}};}
     else call={name:'submit_round',arguments:{content:'本次任务测试'}};
    }
-   if(actor&&state?.phase!=='completed'){
-    const key=actor+':'+state?.run_id,step=this.steps.get(key)??0;this.steps.set(key,step+1);
-    if(actor.endsWith('worker_1')&&step===0)call={name:'pwsh',arguments:{}};
-    else if(actor.endsWith('worker_1')&&!state?.candidate)call={name:'datanet_team_finish',arguments:{action:'propose',content:'native cooperation passed '+state.run_id,evidence:'最小模拟验收'}};
+   if(actor&&tail&&!tail.includes('阶段：完成。')){
+    const key=actor+':'+runId,step=this.steps.get(key)??0;this.steps.set(key,step+1);
+    if(actor.endsWith('worker_1')&&step===0)call={name:'pwsh',arguments:{command:'fixture'}};
+    else if(actor.endsWith('worker_1')&&state?.phase==='running'&&!state?.candidate)call={name:'datanet_team_finish',arguments:{action:'propose',content:'native cooperation passed '+runId,evidence:'最小模拟验收'}};
     else if(actor.endsWith('worker_2')&&state?.candidate)call={name:'datanet_team_finish',arguments:{action:'approve',candidate_id:state.candidate.id,evidence:'共同状态与候选已读取'}};
     else call={name:'datanet_team_status',arguments:{}};
    }
@@ -109,8 +112,8 @@ const base=productRoot;
  for(const id of Object.values(state.jobs)){const settled=await exec('datanet_wait_agent',{delegation_id:id,timeout_ms:10000});assert.equal(settled.status,'completed',JSON.stringify(settled));}
  const notifications=root.session.deriveMessages().filter(m=>JSON.stringify(m).includes('cooperation_result'));assert.equal(notifications.length,2);
  assert.ok(root.session.deriveMessages().some(m=>JSON.stringify(m).includes('cooperation_result')));
- assert.ok(model.requests.some(request=>request.messages.at(-1)?.content.some(b=>b.type==='text'&&b.text.startsWith('[协作状态：native]'))));
- for(const member of group.members){const agent=r.sessions.get(member).handle.agent;assert.ok(!agent.session.deriveMessages().some(m=>m.content.some(b=>b.type==='text'&&b.text.startsWith('[协作状态：native]'))));}
+ assert.ok(model.requests.some(request=>request.messages.at(-1)?.content.some(b=>b.type==='text'&&b.text.startsWith('[协作组：native]'))));
+ for(const member of group.members){const agent=r.sessions.get(member).handle.agent;assert.ok(!agent.session.deriveMessages().some(m=>m.content.some(b=>b.type==='text'&&b.text.startsWith('[协作组：native]'))));}
  const out=await r.bridge.call('read',{actor:'root',target:state.entry_points.output,request:{method:'key',key:'content'},strength:100});assert.match(out.items[0].content,/native cooperation passed/);
  // Exercise the actual request middleware, native system updates and native additions.
  assert.ok(model.requests.length>0);
@@ -129,6 +132,15 @@ const base=productRoot;
  assert.ok(updated.messages.filter(m=>m.role==='system').at(-1).content.some(b=>b.type==='text'&&b.text.includes('CACHE_SYSTEM_B')));
  assert.ok(updated.messages.some(m=>m.role==='developer'&&m.content.some(b=>b.type==='tool-addition')));
  assert.ok(updated.tools.some(t=>t.name==='cache_probe_added'));
+ // An optional reply is consumed by a native request, without an acknowledgement call.
+ const optional=await exec('datanet_send_message',{target:group.members[0],content:'无需答复的状态通知',message_type:'reply'});
+ const optionalDeadline=Date.now()+3000;
+ while(!r.sessions.get(group.members[0]).handle.agent.session.deriveMessages().some(m=>m.content.some(b=>b.type==='text'&&b.text.startsWith('此为回复，可以不回。')))&&Date.now()<optionalDeadline)await new Promise(resolve=>setTimeout(resolve,20));
+ await r.sessions.get(group.members[0]).handle.agent.whenIdle();
+ const messageTail=await r.bridge.call('application/tail',{actor:group.members[0]});
+ assert.ok(!messageTail.includes('存在未读回复。'),JSON.stringify(messageTail));
+ const optionalAgent=r.sessions.get(group.members[0]).handle.agent;
+ assert.ok(optionalAgent.session.deriveMessages().some(m=>m.content.some(b=>b.type==='text'&&b.text.startsWith('此为回复，可以不回。'))));
  await controller.components.disable('network_presets/decentralized_group');
  const revoked=await host.tools.execute({agent:root,name:'datanet_cooperate',arguments:{group_id:'native',action:'status'},callId:'revoked',signal:new AbortController().signal});assert.equal(revoked.isError,true);assert.ok(host.tools.schemas(root).some(t=>t.name==='datanet_cooperate'));
  await followup('after revocation');

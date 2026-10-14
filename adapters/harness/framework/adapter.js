@@ -15,6 +15,7 @@ import {networkDirectory} from './storage.js';
 import {trackApprovals} from './approval-state.js';
 import {installWindowsPythonCompat} from './windows-python.js';
 import {prepareWindowsWorkspace} from './windows-workspace.js';
+import {installWindowsTerminal} from './windows-terminal.js';
 
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof Error?String(item.message):typeof item==='function'?undefined:item));
@@ -83,8 +84,13 @@ async function createRuntime(ctx,config,rootAgent,owned){
     history.bind(agent.ctx,agent);permissions.state(agent.ctx);
     agent.ctx.systemPrompt.section({name:'datanet:role',order:90,interpolate:false,text:()=>entry.view.prompt??''});
     const own=payload=>!payload?.agent||payload.agent===agent;
+    installWindowsTerminal(agent.ctx,agent,workspace);
     agent.ctx.on('agent/prepare-context',async()=>{await event(actor,'context/prepare');});
-    agent.ctx.on('agent/request-tail',async(_payload,next)=>[...await next(),...(bridge?.closed?[]:await call('application/tail',{actor})).map(text=>({role:'user',content:[{type:'text',text}]}))]);
+    agent.ctx.on('agent/request-tail',async(_payload,next)=>{
+      const tail=await next();if(bridge?.closed)return tail;
+      await event(actor,'context/admitted',{message_ids:agent.session.deriveMessages().map(m=>m.id)});
+      return [...tail,...(await call('application/tail',{actor})).map(text=>({role:'user',content:[{type:'text',text}]}))];
+    });
     agent.ctx.on('agent/pre-step',async(payload,next)=>{if(own(payload))await event(actor,'agent/pre-step',{messages:agent.session.deriveMessages()});return next();});
     agent.ctx.on('agent/request',async(payload,next)=>{if(own(payload)){await ctx.sessions.flush(agent.session);await event(actor,'agent/request');}return requestRoute(await next(),config.modelRoute);});
     agent.ctx.on('tools/pre-execute',async(exec,next)=>{

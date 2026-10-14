@@ -10,10 +10,23 @@
   },
   "datanet_pending_messages": {
     "name": "datanet_pending_messages",
-    "description": "查看当前待回复消息。",
+    "description": "查看工单和回复，或结束无需继续处理的消息。",
     "parameters": {
       "type": "object",
-      "properties": {},
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "read",
+            "close"
+          ],
+          "default": "read"
+        },
+        "message_id": {
+          "type": "string",
+          "description": "close 时填写要结束的消息 ID。"
+        }
+      },
       "additionalProperties": false
     }
   }

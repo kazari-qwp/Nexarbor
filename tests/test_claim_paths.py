@@ -45,8 +45,9 @@ class ClaimPathTests(unittest.TestCase):
         payload = dict(actor=self.b, texts=[])
         self.app.emit('context/tail', **payload)
         tail = '\n'.join(payload['texts'])
-        self.assertIn('src/parser.py', tail)
-        self.assertIn('active_claims', tail)
+        self.assertNotIn('src/parser.py', tail)
+        self.assertNotIn('active_claims', tail)
+        self.assertIn(first['id'], self.invoke('datanet_team_status', {'section':'claims'}, self.b)['claims'])
 
     def test_directory_overlap_in_both_directions(self):
         directory = self.claim('解析模块', ['src/parsers/'])

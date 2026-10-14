@@ -19,8 +19,12 @@ class Plugin(Component):
         self.on('context/tail', self.tail)
         self.on('capabilities/changed', lambda e: self.refresh(e['actor']))
         self.on('message/discarded', self.discarded)
+        self.on('agent/pre-step', self.read_delivered)
+        self.on('context/admitted', self.read_delivered)
         self.on('tool/available', self.available)
         for entry in self.store.data['messages'].values():
+            entry.setdefault('message_type', 'reply' if entry.get('reply_to') else 'work_order')
+            entry.setdefault('read_at', None)
             if entry['status'] == 'pending' and entry['expires_at'] <= time.time() * 1000:
                 entry['status'] = 'expired'
         self.store.save()
@@ -49,8 +53,25 @@ class Plugin(Component):
                 self.r.host('steer', actor=actor, message=entry['message'])
 
     def tail(self, e):
-        if self.pending(e['actor']):
-            e['texts'].append('存在待回复消息。')
+        pending = self.pending(e['actor'])
+        if any(p['message_type'] == 'work_order' for p in pending):
+            e['texts'].append('存在待处理工单。')
+        if any(p['message_type'] == 'reply' and p['read_at'] is None for p in pending):
+            e['texts'].append('存在未读回复。')
+
+    def read_delivered(self, e):
+        seen = set(e.get('message_ids', [])) | {m['id'] for m in e.get('messages', []) if 'id' in m}
+        if not seen:
+            return
+        with self.lock:
+            changed = False
+            for entry in self.pending(e['actor']):
+                if entry['read_at'] is None and entry.get('inbox_id') in seen:
+                    entry['read_at'] = int(time.time() * 1000)
+                    changed = True
+            if changed:
+                self.store.save()
+
 
     def refresh(self, actor):
         dynamic = self.r.state(actor)['dynamic']
@@ -61,7 +82,7 @@ class Plugin(Component):
                 del dynamic[name]
         parameters = dict(type='object', properties={'content': {'type': 'string', 'minLength': 1}}, required=['content'], additionalProperties=False)
         if self.can_send(actor):
-            dynamic['datanet_send_message'] = dict(owner=self.id, name='datanet_send_message', description=SEND_DESCRIPTION, parameters={**parameters, 'properties': {**parameters['properties'], 'target': {'type': 'string', 'minLength': 1}}, 'required': ['target', 'content']})
+            dynamic['datanet_send_message'] = dict(owner=self.id, name='datanet_send_message', description=SEND_DESCRIPTION, parameters={**parameters, 'properties': {**parameters['properties'], 'target': {'type': 'string', 'minLength': 1}, 'message_type': {'type': 'string', 'enum': ['work_order', 'reply'], 'default': 'work_order', 'description': 'work_order 需要答复；reply 可不回复。'}}, 'required': ['target', 'content']})
         else:
             dynamic.pop('datanet_send_message', None)
         for name, entry in available.items():
@@ -98,13 +119,27 @@ class Plugin(Component):
             if name == 'datanet_contacts_channel':
                 return dict(contacts=self.contacts(actor), instructions_added=added)
             if name == 'datanet_pending_messages':
-                return dict(messages=[dict(message_id=p['id'], **{'from': p['from']}, content=p['content'], reply_tool=p['reply_tool'], expires_at=p['expires_at']) for p in self.pending(actor)])
+                if args.get('action', 'read') == 'close':
+                    entry = next((p for p in self.pending(actor) if p['id'] == args.get('message_id')), None)
+                    if entry is None:
+                        raise ValueError('message_id 须为自己的有效消息 ID')
+                    entry['status'] = 'closed'
+                    self.store.save()
+                    self.refresh(actor)
+                    return dict(status='closed', message_id=entry['id'])
+                result = []
+                for p in self.pending(actor):
+                    if p['read_at'] is None:
+                        p['read_at'] = int(time.time() * 1000)
+                    result.append(dict(message_id=p['id'], **{'from': p['from']}, message_type=p['message_type'], content=p['content'], reply_tool=p['reply_tool'], expires_at=p['expires_at'], read=p['read_at'] is not None, **({'notice': '此为回复，可以不回。'} if p['message_type'] == 'reply' else {})))
+                self.store.save()
+                return dict(messages=result)
             if name == 'datanet_send_message':
                 if not self.can_send(actor):
                     raise PermissionError('[DATANET_TOOL_PERMISSION_DENIED] datanet_send_message 当前已停用。')
                 if args['target'] not in self.contacts(actor):
                     raise PermissionError('Target is outside Agent management contacts')
-                return self.deliver(actor, args['target'], args['content'])
+                return self.deliver(actor, args['target'], args['content'], message_type=args.get('message_type', 'work_order'))
             original = next((e for e in self.store.data['messages'].values() if e['reply_tool'] == name), None)
             if not original or original['to'] != actor:
                 raise PermissionError('Reply belongs to another Agent')
@@ -112,7 +147,11 @@ class Plugin(Component):
                 raise PermissionError('[DATANET_TOOL_PERMISSION_DENIED] ' + name + ' 当前已停用。')
             return self.deliver(actor, original['from'], args['content'], original)
 
-    def deliver(self, sender, receiver, content, original=None):
+    def deliver(self, sender, receiver, content, original=None, message_type='work_order'):
+        if original:
+            message_type = 'reply'
+        if message_type not in ('work_order', 'reply'):
+            raise ValueError('message_type 须为 work_order 或 reply')
         if self.closed:
             raise RuntimeError('Message router is closed')
         if not isinstance(content, str) or not content.strip():
@@ -122,14 +161,14 @@ class Plugin(Component):
             raise ValueError('Target Agent is not mounted; message was not accepted')
         self.r.host('inspect', actor=receiver)
         id = str(uuid4())
-        entry = dict(id=id, to=receiver, content=content, status='pending', created_at=int(time.time() * 1000), expires_at=int(time.time() * 1000) + self.ttl, reply_tool='datanet_reply_' + id.replace('-', ''), communication_id=original['communication_id'] if original else id)
+        entry = dict(id=id, to=receiver, content=content, message_type=message_type, read_at=None, status='pending', created_at=int(time.time() * 1000), expires_at=int(time.time() * 1000) + self.ttl, reply_tool='datanet_reply_' + id.replace('-', ''), communication_id=original['communication_id'] if original else id)
         entry['from'] = sender
         if original:
             entry['reply_to'] = original['id']
-        payload = dict(type='reply' if original else 'message', **{'from': sender}, communication_id=entry['communication_id'], message_id=id, reply_tool=entry['reply_tool'], content=content)
+        payload = dict(type=message_type, **{'from': sender}, communication_id=entry['communication_id'], message_id=id, reply_tool=entry['reply_tool'], content=content)
         if original:
             payload['reply_to'] = original['id']
-        message = self.r.host('make-message', **{'from': sender}, text=json.dumps(payload, ensure_ascii=False))
+        message = self.r.host('make-message', **{'from': sender}, text=('此为回复，可以不回。\n' if message_type == 'reply' else '') + json.dumps(payload, ensure_ascii=False))
         entry.update(message=message, inbox_id=message['id'])
         self.store.data['messages'][id] = entry
         if original:
