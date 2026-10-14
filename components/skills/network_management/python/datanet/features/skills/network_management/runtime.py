@@ -6,6 +6,12 @@ class Plugin(Component):
         self.package = self.r.resource(self.id, 'resources/package.json', json_data=True)
         self.on('agent/bound', self.bound)
         self.on('tool/definition', self.definition)
+        self.on('tool/before', self.management_entry)
+
+    def management_entry(self, e):
+        name = e['name'].removesuffix('_channel')
+        if name in {'datanet_create_node', 'datanet_create_agent', 'datanet_manage_agent', 'datanet_interfaces', 'datanet_create_network', 'datanet_presets', 'datanet_agent_capabilities', 'datanet_call_agent', 'datanet_discuss', 'datanet_cooperate'}:
+            self.management_guide(e['actor'])
 
     def definition(self, e):
         if e['name'] == 'datanet_skill':

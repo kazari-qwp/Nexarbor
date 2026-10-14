@@ -66,6 +66,8 @@ const base=productRoot;
  }
  const notifications=root.session.deriveMessages().filter(m=>m.role==='user').map(m=>m.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')).flatMap(t=>{try{return [JSON.parse(t)]}catch{return []}});
  assert.equal(notifications.filter(n=>n.type==='cooperation_degraded').length,1);assert.equal(notifications.filter(n=>n.type==='cooperation_result').length,1);
+ assert.equal(root.session.deriveMessages().filter(m=>m.source?.document==='network_management').length,1);
+ assert.ok(model.requests.some(req=>req.messages.some(m=>m.source?.document==='network_management')));
  await controller.components.dispose();await host.fiber.dispose();clearInterval(keepAlive);
  console.log('PASS native Harness + compiled Python: bounded JSON correction, original error returned, two peer losses, claims released, half-loss notification once, single survivor completed');
 })().catch(error=>{console.error(error);process.exit(1)});

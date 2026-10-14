@@ -106,9 +106,6 @@ class Plugin(Component):
             added = self.r.load(actor, 'preset:' + preset, self.guides[preset])
         else:
             added = self.r.load(actor, 'tool:' + name, self.r.resource(self.id, 'guides/' + name + '/AGENTS.md'))
-        skill = self.r.plugins.get('skills/network_management')
-        if skill and 'network_management' in state['grant']['expanded']:
-            skill.management_guide(actor)
         state['channels'].add(name)
         self.r.refresh(actor)
         return dict(tool=name, available=True, instructions_added=added)
