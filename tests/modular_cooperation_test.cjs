@@ -20,9 +20,10 @@ const base=productRoot;
  const loop=await get(pathToFileURL(base+'/adapters/harness/runtime/agent-loop/lib/index.js').href);await loop.link(link);await loop.evaluate();
  const host=new Context(),temp=await fs.mkdtemp(path.join(testRoot,'creation-'));
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']]){await host.plugin(native(name)[service]??native(name).default);}
+ await host.plugin(native('dsh-jobs-local').default??native('dsh-jobs-local'));
  host.provide('sessionTitle',{rename(){}});host.sessions.flush=async()=>{};
  await host.plugin(loop.namespace.default,{agents:[]});
- const controller=await entry.namespace.createAdapter(host,{workspace:temp,storage:path.join(temp,'.datanet'),...(process.env.DATANET_TEST_PYTHON?{backend:process.env.DATANET_TEST_PYTHON,backendArgs:[process.env.DATANET_TEST_BACKEND_ENTRY??base+'/adapters/harness/backend/server.py']}:{}),modelRoute:{provider:'mock-native',model:'native-flash'},rootNetwork:'project_root',rootToolboxes:['network_access','node_creation','agent_management','agent_delegation','interface_management','discussion'],maxSignalStrength:100});
+ const controller=await entry.namespace.createAdapter(host,{extensionRoot:path.join(productRoot,'extensions','multi_agent'),workspace:temp,storage:path.join(temp,'.datanet'),...(process.env.DATANET_TEST_PYTHON?{backend:process.env.DATANET_TEST_PYTHON,backendArgs:[process.env.DATANET_TEST_BACKEND_ENTRY??base+'/adapters/harness/backend/server.py']}:{}),modelRoute:{provider:'mock-native',model:'native-flash'},rootNetwork:'project_root',rootToolboxes:['network_access','node_creation','agent_management','agent_delegation','interface_management','discussion'],maxSignalStrength:100});
  const llm=native('dsh-llm');
  const spill=path.join(temp,'terminal-output.txt'),full='START\n'+'line\n'.repeat(5000)+'END\n';
  await fs.writeFile(spill,full);
@@ -43,11 +44,11 @@ const base=productRoot;
    const runId=[...all.matchAll(/本次运行：([^。]+)。/g)].at(-1)?.[1];
    let call;
    if(discussionActor){
-    const latest=options.messages.filter(m=>m.role==='user').flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).findLast(t=>t.includes('项目任务：')||t.startsWith('讨论已结束。'));
+    const latest=options.messages.filter(m=>m.role==='user').flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).findLast(t=>t.includes('项目任务：')||t.includes('讨论已结束，请'));
     const lastCall=options.messages.findLast(m=>m.role==='assistant')?.content.find(b=>b.type==='tool-call');
-    const finalIndex=options.messages.findLastIndex(m=>m.role==='user'&&m.content.some(b=>b.type==='text'&&b.text.startsWith('讨论已结束。')));
+    const finalIndex=options.messages.findLastIndex(m=>m.role==='user'&&m.content.some(b=>b.type==='text'&&b.text.includes('讨论已结束，请')));
     const alreadyWritten=lastCall?.name==='node_write'&&options.messages.findLastIndex(m=>m.role==='assistant')>finalIndex;
-    if(latest?.startsWith('讨论已结束。')){if(!alreadyWritten)call={name:'node_write',arguments:{target:'discussion/output',key:'content',value:latest.match(/任务“([^”]+)”/)?.[1]+'成果'}};}
+    if(latest?.includes('讨论已结束，请')){if(!alreadyWritten)call={name:'node_write',arguments:{target:'discussion/output',key:'content',value:[...all.matchAll(/项目任务：([^\n]+)/g)].at(-1)?.[1]+'成果'}};}
     else call={name:'submit_round',arguments:{content:'本次任务测试'}};
    }
    if(actor&&tail&&!tail.includes('阶段：完成。')){
@@ -141,7 +142,7 @@ const base=productRoot;
  assert.ok(!messageTail.includes('存在未读回复。'),JSON.stringify(messageTail));
  const optionalAgent=r.sessions.get(group.members[0]).handle.agent;
  assert.ok(optionalAgent.session.deriveMessages().some(m=>m.content.some(b=>b.type==='text'&&b.text.startsWith('此为回复，可以不回。'))));
- await controller.components.disable('network_presets/decentralized_group');
+ await controller.components.disable('capabilities/decentralized_group');
  const revoked=await host.tools.execute({agent:root,name:'datanet_cooperate',arguments:{group_id:'native',action:'status'},callId:'revoked',signal:new AbortController().signal});assert.equal(revoked.isError,true);assert.ok(host.tools.schemas(root).some(t=>t.name==='datanet_cooperate'));
  await followup('after revocation');
  assert.ok(!model.requests.at(-1).messages.some(m=>m.role==='developer'&&m.content.some(b=>b.type==='tool-removal')));

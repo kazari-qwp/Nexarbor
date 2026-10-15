@@ -2,9 +2,9 @@
 
 ## 修改的指南
 
-- components/network_presets/decentralized_group/AGENTS.md：创建者查看退出状态、半数通知和剩余成员验收。
-- components/network_presets/decentralized_group/members/AGENTS.md：成员接续退出者的认领及剩余成员验收。
-- components/network_presets/discussion_group/AGENTS.md：普通成员退出后继续讨论，Leader/Recorder 失败报告未完成。
+- extensions/multi_agent/network_presets/decentralized_group/AGENTS.md：创建者查看退出状态、半数通知和剩余成员验收。
+- extensions/multi_agent/network_presets/decentralized_group/members/AGENTS.md：成员接续退出者的认领及剩余成员验收。
+- extensions/multi_agent/network_presets/discussion_group/AGENTS.md：普通成员退出后继续讨论，Leader/Recorder 失败报告未完成。
 
 三个角色的原始提示词未修改。工具名称、参数和简短描述未修改。
 

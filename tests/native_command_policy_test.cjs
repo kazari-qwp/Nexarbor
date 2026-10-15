@@ -5,7 +5,7 @@ const native=name=>require(path.join(nativeRoot,name));let seq=0;
  const {Context}=native('cordis');const ctx=new Context();
  for(const name of ['dsh-system-prompt','dsh-tools','dsh-agent','dsh-jobs-local','dsh-tool-jobs','dsh-shell-env','dsh-subprocess-local','dsh-pwsh-local','dsh-tool-pwsh'])await ctx.plugin(native(name).default??native(name),name==='dsh-pwsh-local'?{pwshPath:'C:/Users/Dried Fish/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe'}:{});
  let notices=0;const fiber=ctx.plugin(()=>{}),owner={id:'command-policy-owner',ctx:fiber.ctx,status:'running',inject:()=>notices++,followup:()=>notices++,session:{id:'command-policy-owner',header:{version:4,id:'command-policy-owner',createdAt:0,cwd:root}}};await ctx.agents.register(owner);
- const {create}=await import(pathToFileURL(root+'/components/toolboxes/command_execution/harness.js'));
+ const {create}=await import(pathToFileURL(root+'/extensions/multi_agent/capabilities/command_execution/harness.js'));
  const policy=create({ctx:owner.ctx,agent:owner});policy.configure({foregroundWaitMs:80,hardLimitMs:5000,cleanupWaitMs:3000});
  const call=(name,args)=>ctx.tools.execute({signal:new AbortController().signal,callId:'call-'+(++seq),name,arguments:args,agent:owner});
  const childCommand=`$child=Start-Process -FilePath 'C:/Users/Dried Fish/.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe' -ArgumentList '-NoLogo -NoProfile -NonInteractive -Command "Start-Sleep -Seconds 60"' -WindowStyle Hidden -PassThru;Write-Output "CHILD=$($child.Id)";while($true){Start-Sleep -Milliseconds 20}`;

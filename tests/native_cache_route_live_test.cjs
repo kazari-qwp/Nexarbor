@@ -42,7 +42,7 @@ const base=productRoot;
   row.usage=responseText.split('\n').filter(line=>line.startsWith('data:')).flatMap(line=>{try{const event=JSON.parse(line.slice(5));return event.usage?[event.usage]:event.message?.usage?[event.message.usage]:[];}catch{return []}});
   await fs.writeFile(path.join(temp,'evidence.json'),JSON.stringify(evidence,null,2));return response;
  };
- const controller=await entry.namespace.createAdapter(host,{workspace:temp,storage:path.join(temp,'.datanet'),rootNetwork:'project_root',rootToolboxes:['network_access'],modelRoute:{provider:'deepseek-official',model:'deepseek-flash',reasoningEffort:'off',maxTokens:512},...(process.env.DATANET_TEST_PYTHON?{backend:process.env.DATANET_TEST_PYTHON,backendArgs:[base+'/adapters/harness/backend/server.py']}:{}),maxSignalStrength:100});
+ const controller=await entry.namespace.createAdapter(host,{extensionRoot:path.join(productRoot,'extensions','multi_agent'),workspace:temp,storage:path.join(temp,'.datanet'),rootNetwork:'project_root',rootToolboxes:['network_access'],modelRoute:{provider:'deepseek-official',model:'deepseek-flash',reasoningEffort:'off',maxTokens:512},...(process.env.DATANET_TEST_PYTHON?{backend:process.env.DATANET_TEST_PYTHON,backendArgs:[base+'/adapters/harness/backend/server.py']}:{}),maxSignalStrength:100});
  const root=await host.agentLoop.create(native('dsh-session').SessionId('native-cache-'+Date.now()),{provider:'legacy-compat',model:'legacy-model'},{cwd:temp});
  await host.parallel('agent/created',{agent:root});
  const nonce=crypto.randomBytes(6).toString('hex'),stamp='STAMP_'+nonce;

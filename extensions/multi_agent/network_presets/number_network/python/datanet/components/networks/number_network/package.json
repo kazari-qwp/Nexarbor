@@ -1,0 +1,282 @@
+{
+  "kind": "network",
+  "version": 1,
+  "id": "number_network",
+  "description": "数字网络拼图，演示强弱读写和循环连接。",
+  "network": {
+    "version": 3,
+    "nodes": [
+      {
+        "type": "value",
+        "node_id": "n1",
+        "name": "数字 1",
+        "data_kind": "number",
+        "parameters": {
+          "value": 1
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "n2",
+              "threshold": 0,
+              "visibility": "public",
+              "multiplier": 1
+            },
+            {
+              "target_node_id": "n3",
+              "threshold": 100,
+              "visibility": "public",
+              "multiplier": 1
+            },
+            {
+              "target_node_id": "n2",
+              "threshold": 100,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ],
+          "write_interfaces": [
+            {
+              "target_node_id": "n2",
+              "threshold": 0,
+              "visibility": "public",
+              "multiplier": 1
+            },
+            {
+              "target_node_id": "n3",
+              "threshold": 100,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ]
+        },
+        "agent": null,
+        "description": "数字单值节点 n1，用于验证读写范围和网络访问。",
+        "divergence": -1,
+        "toolboxes": [
+          "local_data"
+        ],
+        "expose": [
+          "read",
+          "get_schema",
+          "write"
+        ],
+        "management_parent_id": "root"
+      },
+      {
+        "type": "value",
+        "node_id": "n2",
+        "name": "数字 2",
+        "data_kind": "number",
+        "parameters": {
+          "value": 2
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "n4",
+              "threshold": 0,
+              "visibility": "public",
+              "multiplier": 1
+            },
+            {
+              "target_node_id": "n5",
+              "threshold": 100,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ],
+          "write_interfaces": []
+        },
+        "agent": null,
+        "description": "数字单值节点 n2，用于验证读写范围和网络访问。",
+        "divergence": -1,
+        "toolboxes": [
+          "local_data"
+        ],
+        "expose": [
+          "read",
+          "get_schema",
+          "write"
+        ],
+        "management_parent_id": "root"
+      },
+      {
+        "type": "value",
+        "node_id": "n3",
+        "name": "数字 3",
+        "data_kind": "number",
+        "parameters": {
+          "value": 3
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "n4",
+              "threshold": 0,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ],
+          "write_interfaces": []
+        },
+        "agent": null,
+        "description": "数字单值节点 n3，用于验证读写范围和网络访问。",
+        "divergence": -1,
+        "toolboxes": [
+          "local_data"
+        ],
+        "expose": [
+          "read",
+          "get_schema",
+          "write"
+        ],
+        "management_parent_id": "root"
+      },
+      {
+        "type": "value",
+        "node_id": "n4",
+        "name": "数字 4",
+        "data_kind": "number",
+        "parameters": {
+          "value": 4
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "n1",
+              "threshold": 0,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ],
+          "write_interfaces": []
+        },
+        "agent": null,
+        "description": "数字单值节点 n4，用于验证读写范围和网络访问。",
+        "divergence": -1,
+        "toolboxes": [
+          "local_data"
+        ],
+        "expose": [
+          "read",
+          "get_schema",
+          "write"
+        ],
+        "management_parent_id": "root"
+      },
+      {
+        "type": "value",
+        "node_id": "n5",
+        "name": "数字 5",
+        "data_kind": "number",
+        "parameters": {
+          "value": 5
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "n6",
+              "threshold": 0,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ],
+          "write_interfaces": []
+        },
+        "agent": null,
+        "description": "数字单值节点 n5，用于验证读写范围和网络访问。",
+        "divergence": -1,
+        "toolboxes": [
+          "local_data"
+        ],
+        "expose": [
+          "read",
+          "get_schema",
+          "write"
+        ],
+        "management_parent_id": "root"
+      },
+      {
+        "type": "value",
+        "node_id": "n6",
+        "name": "数字 6",
+        "data_kind": "number",
+        "parameters": {
+          "value": 6
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "n2",
+              "threshold": 100,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ],
+          "write_interfaces": []
+        },
+        "agent": null,
+        "description": "数字单值节点 n6，用于验证读写范围和网络访问。",
+        "divergence": -1,
+        "toolboxes": [
+          "local_data"
+        ],
+        "expose": [
+          "read",
+          "get_schema",
+          "write"
+        ],
+        "management_parent_id": "root"
+      },
+      {
+        "type": "agent",
+        "node_id": "root",
+        "name": "数字网络管理助手",
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "root_memory.md"
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "n1",
+              "threshold": 0,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ],
+          "write_interfaces": [
+            {
+              "target_node_id": "n1",
+              "threshold": 0,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ]
+        },
+        "agent": {
+          "package": "../../../../../../../nodes/agent_number_manager/python/datanet/components/agents/number_manager"
+        },
+        "description": "数字网络管理入口，提供读取、定向写入及能力发现。",
+        "divergence": -1,
+        "toolboxes": [],
+        "expose": [
+          "describe_node",
+          "read",
+          "write"
+        ],
+        "management_parent_id": null
+      }
+    ],
+    "delegations": []
+  },
+  "entry_points": {
+    "root": "root"
+  },
+  "toolkits": {
+    "root": [
+      "number_management"
+    ]
+  }
+}

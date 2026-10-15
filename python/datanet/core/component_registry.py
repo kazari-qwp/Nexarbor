@@ -24,9 +24,10 @@ _toolboxes = {}
 _toolbox_owners = {}
 _enabled = None
 _loaded = False
+_replacement_types=set()
 
 def register_node(codec):
-    if codec.type_id in _codecs:
+    if codec.type_id in _codecs and codec.type_id not in _replacement_types:
         raise ValueError('Duplicate node codec: ' + codec.type_id)
     _codecs[codec.type_id] = codec
 
@@ -34,15 +35,18 @@ def component_root():
     configured = os.environ.get('DATANET_COMPONENT_ROOT')
     if configured:
         return Path(configured)
-    return Path(__file__).resolve().parents[3] / 'components'
+    return Path(__file__).resolve().parents[3] / 'extensions' / '.none'
 
 def manifests():
     root = component_root()
-    for kind in ('tools', 'skills', 'network_presets', 'toolboxes', 'agent_presets', 'nodes'):
-        for file in sorted((root / kind).glob('*/component.json')):
-            value = json.loads(file.read_text(encoding='utf-8'))
-            value['directory'] = file.parent
-            yield value
+    for file in sorted(root.glob('*/*/component.json')):
+        value=json.loads(file.read_text(encoding='utf-8'))
+        if value['kind'] not in ('capabilities','nodes','toolboxes','network_presets'):raise ValueError('Unknown extension kind')
+        value['implementation_directory']=file.parent
+        value['directory']=(file.parent/value.get('resources','.')).resolve()
+        if not value['directory'].is_relative_to(root.resolve()):raise ValueError('Resource outside extension package')
+        yield value
+
 
 def ensure_nodes():
     global _loaded
@@ -51,13 +55,23 @@ def ensure_nodes():
     _loaded = True
     from datanet.core.node import Node
     register_node(NodeCodec('node', Node, lambda node, base: {}, lambda common, params, base: Node(*common), description='无本地数据的组织节点，用于连接节点和挂载工具。', local_read=False, local_schema=False))
+    from datanet.core.text_node import TextFileNode
+    def encode_text(node,base):
+        return {'file_path':os.path.relpath(node.file_path,base),'max_chars':node.max_chars}
+    def decode_text(common,params,base):
+        if set(params)-{'file_path','max_chars'}:raise ValueError('Unsupported ordinary text parameter')
+        return TextFileNode(*common,base/params['file_path'],max_chars=params.get('max_chars'))
+    register_node(NodeCodec('text_file',TextFileNode,encode_text,decode_text,parameter_fields=['file_path','max_chars'],description='UTF-8 text file',resources=('file_path',)))
     from datanet.core.agent_node import AgentNode
-    register_node(NodeCodec('agent', AgentNode, lambda node, base: {'file_path': os.path.relpath(node.file_path, base), 'creation_options': node.creation_options}, lambda common, params, base: AgentNode(*common, file_path=base / params['file_path'], creation_options=params.get('creation_options')), parameter_fields=['file_path', 'creation_options'], description='Agent 节点，绑定独立会话与个人 Markdown 记忆。', resources=('file_path',), local_read=False, local_write=False, local_schema=False))
+    register_node(NodeCodec('agent',AgentNode,lambda node,base:{'file_path':os.path.relpath(node.file_path,base),'creation_options':node.creation_options},lambda common,p,base:AgentNode(*common,file_path=base/p['file_path'],creation_options=p.get('creation_options')),parameter_fields=['file_path','creation_options'],resources=('file_path',),local_read=False,local_write=False,local_schema=False))
     for manifest in manifests():
         for module in manifest.get('python', {}).get('node_codecs', []):
-            before=set(_codecs)
-            import_module(module).register()
-            for key in set(_codecs)-before:_owners[key]=manifest['id']
+            before=dict(_codecs)
+            _replacement_types.update(manifest.get('replacesNodeTypes',[]))
+            try:import_module(module).register()
+            finally:_replacement_types.clear()
+            for key,value in _codecs.items():
+                if before.get(key) is not value:_owners[key]=manifest['id']
         for module in manifest.get('python',{}).get('toolbox_installers',[]):
             before=set(_toolboxes)
             import_module(module).register()
@@ -78,7 +92,7 @@ def attach_local_tools(node):
         return
     from datanet.core.read_request import request_schema
     from datanet.core.node import NodeResult
-    if codec.local_read and getattr(node, 'delivery', 'plain') != 'resident' and 'read' not in node.tool_definitions:
+    if codec.local_read and 'read' not in node.tool_definitions:
         node.register_tool('read', lambda request: node.read(request), description='读取本节点。key 按主键读取，filter 按条件查询，semantic 语义检索；不支持的方法返回 unsupported。', parameters={'type': 'object', 'properties': {'request': request_schema()}, 'required': ['request'], 'additionalProperties': False}, read_only=True)
     if codec.local_schema and 'get_schema' not in node.tool_definitions:
 
@@ -149,3 +163,20 @@ def node_enabled(node):
 
 def active_codecs():
     return {key:codec for key,codec in codecs().items() if key not in _owners or _owners[key] in enabled_components()}
+
+
+def resource_directory(source_file):
+    source=Path(source_file).resolve()
+    for parent in source.parents:
+        declaration=parent/'component.json'
+        if declaration.exists():
+            manifest=json.loads(declaration.read_text(encoding='utf-8'))
+            return (parent/manifest.get('resources','.')/source.relative_to(parent).parent).resolve()
+    # Frozen loaders relocate modules; retain the manifest's source/resource mapping.
+    if 'datanet' in source.parts:
+        relative=Path(*source.parts[source.parts.index('datanet'):])
+        for manifest in manifests():
+            python_path=manifest.get('python',{}).get('path')
+            if python_path and (manifest['implementation_directory']/python_path/relative).is_file():
+                return (manifest['directory']/python_path/relative.parent).resolve()
+    return source.parent

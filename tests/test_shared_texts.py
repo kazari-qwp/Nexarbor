@@ -67,7 +67,7 @@ class SharedTests(unittest.TestCase):
         self.assertIn('共享笔记更新', self.b.dispatch('resident_texts', {'actor': 'external/member_2', 'strength': 100})['texts'][0]['text'])
 
     def test_root_documents_are_query_only(self):
-        self.b.dispatch('load_root_network', {'package': 'host_configs/project_root/package.json'})
+        self.b.dispatch('load_root_network', {'package': 'project_root'})
         bindings = self.b.dispatch('text_bindings', {'actor': 'root', 'strength': 100})
         self.assertEqual({x['delivery'] for x in bindings['read']}, {'query'})
         self.assertEqual(len(bindings['read']), 3)

@@ -6,7 +6,7 @@ import re
 from pathlib import Path
 import shutil
 from datanet.core.network import Network
-from datanet.core.packages.agent import load_agent_package
+from datanet.core.execution import load_execution_package
 from datanet.core.packages.common import read_manifest
 from datanet.core.serialization import _build, _fields, _string, LINKS
 from datanet.core.tool_access import attach_discovery_tools
@@ -70,7 +70,7 @@ class NetworkPackage:
             if reference is not None:
                 _fields(reference, ('package',), 'Agent 配置包引用')
                 path = self.path.parent / _string(reference['package'], 'Agent 包路径')
-                entry['agent'] = load_agent_package(path).configure(node_bindings={**ids, 'self': ids[local_id]})
+                entry['agent'] = load_execution_package(path).configure(node_bindings={**ids, 'self': ids[local_id]})
             entry['node_id'] = ids[local_id]
             parent = entry.get('management_parent_id')
             if parent is not None:

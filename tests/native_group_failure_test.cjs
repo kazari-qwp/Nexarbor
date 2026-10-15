@@ -20,9 +20,10 @@ const base=productRoot;
  const loop=await get(pathToFileURL(base+'/adapters/harness/runtime/agent-loop/lib/index.js').href);await loop.link(link);await loop.evaluate();
  const host=new Context(),temp=await fs.mkdtemp(path.join(testRoot,'creation-'));
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']]){await host.plugin(native(name)[service]??native(name).default);}
+ await host.plugin(native('dsh-jobs-local').default??native('dsh-jobs-local'));
  host.provide('sessionTitle',{rename(){}});host.sessions.flush=async()=>{};
  await host.plugin(loop.namespace.default,{agents:[]});
- const controller=await entry.namespace.createAdapter(host,{workspace:temp,storage:path.join(temp,'.datanet'),backend:base+'/adapters/harness/runtime/backend/datanet-backend.exe',backendArgs:[],modelRoute:{provider:'mock-native',model:'native-flash'},rootNetwork:'project_root',rootToolboxes:['network_access','node_creation','agent_management','agent_delegation','interface_management','discussion'],maxSignalStrength:100});
+ const controller=await entry.namespace.createAdapter(host,{extensionRoot:path.join(productRoot,'extensions','multi_agent'),workspace:temp,storage:path.join(temp,'.datanet'),backend:base+'/adapters/harness/runtime/backend/datanet-backend.exe',backendArgs:[],modelRoute:{provider:'mock-native',model:'native-flash'},rootNetwork:'project_root',rootToolboxes:['network_access','node_creation','agent_management','agent_delegation','interface_management','discussion'],maxSignalStrength:100});
  const llm=native('dsh-llm');
  const spill=path.join(temp,'terminal-output.txt'),full='START\n'+'line\n'.repeat(5000)+'END\n';
  await fs.writeFile(spill,full);

@@ -1,40 +1,83 @@
-# 原功能与成品组件对照
+# 四部分重构与组件拆解表
 
-成品中的业务组件只使用工具、Skill、网络预设、工具箱、Agent 预设、节点六类。Harness 兼容代码独立放在已获准的适配层。
+核心、适配层、可选执行器、协作扩展包的边界见 [架构说明](ARCHITECTURE.md)。本表记录源组件的最终归属。
 
-| 原功能/组件 | 拆分后类别 | 成品位置 | 依赖或接入方式 | 启停 ID |
-|---|---|---|---|---|
-| 图、接口、管理树、访问预算、委托及序列化 | 基础框架 | python/datanet/core | 标准库；通用应用事件、组件服务和检查点也归 Python 本体 | 保留基础协议 |
-| Harness 会话、官方工具挂载、工具权限和文档历史 | Harness 适配层 | adapters/harness/framework | 原生 SDK；通过双向 RPC 执行 Python 返回的装配操作 | 宿主入口装配 |
-| Harness 双向 RPC 及运行循环兼容 | Harness 适配层 | adapters/harness/backend；adapters/harness/runtime | 原生 AgentLoop；stdio 传输，检查点归 Python core | 插件补丁装配 |
-| 建节点、建 Agent、建网络、管理接口和委托 | 工具 | components/tools/network_management | 节点及预设从清单发现 | tools/network_management |
-| Agent 私有 Markdown 身份载体 | 基础框架 | python/datanet/core/agent_node.py | 固定原生 Agent 挂载类型；工具由网络管理组件提供 | 保留基础协议 |
-| 拆链确认、离线文件夹、驻留释放和同根复用池 | 工具 | components/tools/agent_lifecycle | 图变更、原生 Agent 状态与委托事件 | tools/agent_lifecycle |
-| 异步委托、持久 FIFO、等待和结果回送 | 工具 | components/tools/agent_delegation | 网络管理调用原生循环；队列独立保存 | tools/agent_delegation |
-| 报告保存、UUIDv7 请求/委托索引及报告查询 | 工具 | components/tools/reports | 普通报告存储；委托事件开放查询入口 | tools/reports |
-| 执行记录、异常记录和中断记录 | 工具 | components/tools/execution_records | 独立 JSON 状态；报告与经验使用可选端口 | tools/execution_records |
-| 终端日志保存与读取 | 工具、工具箱 | components/tools/command_logs；components/toolboxes/command_logs | 原生 tool/result；工程工具箱装配，日志在源码工作树之外 | tools/command_logs；toolboxes/command_logs |
-| Python 私有临时目录与受限令牌兼容 | Harness 适配层 | adapters/harness/compat/windows_python；adapters/harness/framework/windows-python.js | 创建时保留父目录既有能力 ACE，插件生命周期管理启动环境 | 宿主入口装配 |
-| 网络管理能力说明和指南 | Skill | components/skills/network_management | 依赖网络管理工具和声明的工具箱 | skills/network_management |
-| 经验库、查询、候选经验及审核 | 工具箱 | components/toolboxes/experience | 独立持久库；Agent 能力事件装配 | toolboxes/experience |
-| 排障、尝试上限、反馈、修复和普通退出 | 工具箱 | components/toolboxes/problem_handling | 经验、执行记录；真实反馈事件开放修复入口 | toolboxes/problem_handling |
-| 管理树消息、插话、唤醒和一次性回复 | 工具箱 | components/toolboxes/agent_messaging | 管理关系与独立消息状态 | toolboxes/agent_messaging |
-| 发现节点、读写、结构及暴露工具访问 | 工具箱 | components/toolboxes/network_access | 基础网络访问协议 | toolboxes/network_access |
-| 节点本地读写工具装配 | 工具箱 | components/toolboxes/local_data | 节点协议及 NodeCodec；停用保留定义并拒绝执行 | toolboxes/local_data |
-| 工程、官方工具、官方 Skill、只读和分工能力组合 | 工具箱 | components/toolboxes/*/box.json | includes、工具选项及 Skill 授权声明 | 按对应 toolboxes/<ID> |
-| 项目根网络及固定项目资料 | 网络预设 | components/network_presets/project_root | 文本节点；根项目/进度/工作文件作为查询文本 | network_presets/project_root |
-| 讨论黑板、轮次调度、成员及 Recorder 流程 | 网络预设 | components/network_presets/discussion_group | 文本节点、成员/Leader/Recorder 预设、网络工具 | network_presets/discussion_group |
-| 数字网络、委托数字、实验分析及创建验证示例 | 网络预设 | components/network_presets/{number_network,delegated_number,experiment_analysis,creation_validation} | 相应节点与 Agent 预设 | 按对应 network_presets/<ID> |
-| Worker、Operator、Coordinator、讨论及示例角色提示词 | Agent 预设 | components/agent_presets/* | 每个预设自己的提示词、默认工具箱和依赖 | 按对应 agent_presets/<ID> |
-| 文本、常驻文本、查询文本、公共笔记及项目说明加载 | 节点 | components/nodes/text | 尾部由适配层 agent/request-tail 接入；查询正文进入历史 | nodes/text |
-| 单值、CSV、SQLite、LlamaIndex 数据读写 | 节点 | components/nodes/{value,csv,sqlite,llamaindex} | 各自编解码、存储和可选第三方库 | 按对应 nodes/<ID> |
+| 原功能/组件 | 新模块/组件 | 配置与资源位置 |
+|---|---|---|
+| `agent_presets/cooperative_worker` | `nodes/agent_cooperative_worker` | `extensions/multi_agent/nodes/agent_cooperative_worker/` |
+| `agent_presets/coordinator` | `nodes/agent_coordinator` | `extensions/multi_agent/nodes/agent_coordinator/` |
+| `agent_presets/discussion_leader` | `nodes/agent_discussion_leader` | `extensions/multi_agent/nodes/agent_discussion_leader/` |
+| `agent_presets/discussion_member` | `nodes/agent_discussion_member` | `extensions/multi_agent/nodes/agent_discussion_member/` |
+| `agent_presets/discussion_recorder` | `nodes/agent_discussion_recorder` | `extensions/multi_agent/nodes/agent_discussion_recorder/` |
+| `agent_presets/experiment_report` | `nodes/agent_experiment_report` | `extensions/multi_agent/nodes/agent_experiment_report/` |
+| `agent_presets/leader` | `nodes/agent_leader` | `extensions/multi_agent/nodes/agent_leader/` |
+| `agent_presets/member` | `nodes/agent_member` | `extensions/multi_agent/nodes/agent_member/` |
+| `agent_presets/number_manager` | `nodes/agent_number_manager` | `extensions/multi_agent/nodes/agent_number_manager/` |
+| `agent_presets/number_worker` | `nodes/agent_number_worker` | `extensions/multi_agent/nodes/agent_number_worker/` |
+| `agent_presets/operator` | `nodes/agent_operator` | `extensions/multi_agent/nodes/agent_operator/` |
+| `agent_presets/recorder` | `nodes/agent_recorder` | `extensions/multi_agent/nodes/agent_recorder/` |
+| `agent_presets/worker` | `nodes/agent_worker` | `extensions/multi_agent/nodes/agent_worker/` |
+| `network_presets/creation_validation` | `capabilities/creation_validation` | `extensions/multi_agent/network_presets/creation_validation/` |
+| `network_presets/decentralized_group` | `capabilities/decentralized_group` | `extensions/multi_agent/network_presets/decentralized_group/` |
+| `network_presets/delegated_number` | `capabilities/delegated_number` | `extensions/multi_agent/network_presets/delegated_number/` |
+| `network_presets/discussion_group` | `capabilities/discussion_group` | `extensions/multi_agent/network_presets/discussion_group/` |
+| `network_presets/experiment_analysis` | `capabilities/experiment_analysis` | `extensions/multi_agent/network_presets/experiment_analysis/` |
+| `network_presets/number_network` | `capabilities/number_network` | `extensions/multi_agent/network_presets/number_network/` |
+| `network_presets/project_root` | `capabilities/project_root` | `extensions/multi_agent/network_presets/project_root/` |
+| `nodes/csv` | `capabilities/csv` | `extensions/multi_agent/nodes/csv/` |
+| `nodes/llamaindex` | `capabilities/llamaindex` | `extensions/multi_agent/nodes/llamaindex/` |
+| `nodes/sqlite` | `capabilities/sqlite` | `extensions/multi_agent/nodes/sqlite/` |
+| `nodes/text` | `capabilities/text` | `extensions/multi_agent/nodes/text/` |
+| `nodes/value` | `capabilities/value` | `extensions/multi_agent/nodes/value/` |
+| `skills/network_management` | `capabilities/network_management` | `extensions/multi_agent/capabilities/network_management/` |
+| `toolboxes/agent_delegation` | `toolboxes/agent_delegation` | `extensions/multi_agent/toolboxes/agent_delegation/` |
+| `toolboxes/agent_feedback` | `toolboxes/agent_feedback` | `extensions/multi_agent/toolboxes/agent_feedback/` |
+| `toolboxes/agent_management` | `toolboxes/agent_management` | `extensions/multi_agent/toolboxes/agent_management/` |
+| `toolboxes/agent_messaging` | `capabilities/agent_messaging` | `extensions/multi_agent/toolboxes/agent_messaging/` |
+| `toolboxes/command_execution` | `capabilities/command_execution` | `extensions/multi_agent/toolboxes/command_execution/` |
+| `toolboxes/command_logs` | `toolboxes/command_logs` | `extensions/multi_agent/toolboxes/command_logs/` |
+| `toolboxes/cooperation` | `toolboxes/cooperation` | `extensions/multi_agent/toolboxes/cooperation/` |
+| `toolboxes/cooperation_control` | `toolboxes/cooperation_control` | `extensions/multi_agent/toolboxes/cooperation_control/` |
+| `toolboxes/discussion` | `toolboxes/discussion` | `extensions/multi_agent/toolboxes/discussion/` |
+| `toolboxes/discussion_member` | `toolboxes/discussion_member` | `extensions/multi_agent/toolboxes/discussion_member/` |
+| `toolboxes/engineering` | `toolboxes/engineering` | `extensions/multi_agent/toolboxes/engineering/` |
+| `toolboxes/experience` | `capabilities/experience` | `extensions/multi_agent/toolboxes/experience/` |
+| `toolboxes/experience_access` | `toolboxes/experience_access` | `extensions/multi_agent/toolboxes/experience_access/` |
+| `toolboxes/experience_maintenance` | `toolboxes/experience_maintenance` | `extensions/multi_agent/toolboxes/experience_maintenance/` |
+| `toolboxes/file_reader` | `toolboxes/file_reader` | `extensions/multi_agent/toolboxes/file_reader/` |
+| `toolboxes/interface_management` | `toolboxes/interface_management` | `extensions/multi_agent/toolboxes/interface_management/` |
+| `toolboxes/local_data` | `capabilities/local_data` | `extensions/multi_agent/toolboxes/local_data/` |
+| `toolboxes/network_access` | `capabilities/network_access` | `extensions/multi_agent/toolboxes/network_access/` |
+| `toolboxes/network_management` | `toolboxes/network_management` | `extensions/multi_agent/toolboxes/network_management/` |
+| `toolboxes/network_management_skill` | `toolboxes/network_management_skill` | `extensions/multi_agent/toolboxes/network_management_skill/` |
+| `toolboxes/node_creation` | `toolboxes/node_creation` | `extensions/multi_agent/toolboxes/node_creation/` |
+| `toolboxes/node_operations` | `toolboxes/node_operations` | `extensions/multi_agent/toolboxes/node_operations/` |
+| `toolboxes/official_readonly` | `toolboxes/official_readonly` | `extensions/multi_agent/toolboxes/official_readonly/` |
+| `toolboxes/official_skills` | `toolboxes/official_skills` | `extensions/multi_agent/toolboxes/official_skills/` |
+| `toolboxes/official_tools` | `toolboxes/official_tools` | `extensions/multi_agent/toolboxes/official_tools/` |
+| `toolboxes/problem_handling` | `capabilities/problem_handling` | `extensions/multi_agent/toolboxes/problem_handling/` |
+| `toolboxes/problem_steps` | `toolboxes/problem_steps` | `extensions/multi_agent/toolboxes/problem_steps/` |
+| `toolboxes/recovery` | `toolboxes/recovery` | `extensions/multi_agent/toolboxes/recovery/` |
+| `toolboxes/self_repair` | `toolboxes/self_repair` | `extensions/multi_agent/toolboxes/self_repair/` |
+| `toolboxes/skill_loader` | `toolboxes/skill_loader` | `extensions/multi_agent/toolboxes/skill_loader/` |
+| `toolboxes/topology_inspection` | `toolboxes/topology_inspection` | `extensions/multi_agent/toolboxes/topology_inspection/` |
+| `tools/agent_delegation` | `capabilities/agent_delegation` | `extensions/multi_agent/capabilities/agent_delegation/` |
+| `tools/agent_lifecycle` | `capabilities/agent_lifecycle` | `extensions/multi_agent/capabilities/agent_lifecycle/` |
+| `tools/command_logs` | `capabilities/command_logs` | `extensions/multi_agent/capabilities/command_logs/` |
+| `tools/execution_records` | `capabilities/execution_records` | `extensions/multi_agent/capabilities/execution_records/` |
+| `tools/network_management` | `capabilities/tools_network_management` | `extensions/multi_agent/capabilities/tools_network_management/` |
+| `tools/reports` | `capabilities/reports` | `extensions/multi_agent/capabilities/reports/` |
 
-所有组件都由同目录 `component.json` 声明。`python scripts/components.py disable <ID>` 和 `enable <ID>` 修改 profile，重启 Harness 生效。关闭依赖项时依赖它的组件一起停用；恢复时仍尊重显式关闭的组件。组件数据保留，重新启用由原组件恢复。
+| 原核心或适配功能 | 最终位置 |
+|---|---|
+| 普通 Agent 节点、私人记忆文件 | 核心 `core/agent_node.py` |
+| 普通文本节点 | 核心 `core/text_node.py` |
+| 原 Python Agent 模型循环 | 可选执行器 `executors/minimal/` |
+| Agent 角色配置、创建与管理策略 | `capabilities/agent_identity/` |
+| 常驻与查询文本行为 | `capabilities/text/`，配置位于 `nodes/text/` |
+| MALFORMED_RESPONSE 有限次纠正 | `capabilities/response_recovery/` |
+| 终端等待、硬上限及清理策略 | `capabilities/command_execution/` |
+| Harness RPC、原生事件与请求适配 | `adapters/harness/` |
+| 旧状态迁移、旧工作区回退、旧工具箱嵌套 | 删除 |
 
-## 本次源码迁移边界
-
-原目录 `E:/harness-discussion-plugin` 和 `E:/数据库项目` 保留。新项目包含源码、六类组件、独立适配层和 Windows 后端，无运行时依赖原来的项目目录。构建时可以使用具有 PyInstaller 与节点依赖的 Python 环境。原生 Harness 模块由宿主提供。
-
-## 实现归属
-
-上表业务组件的应用运行入口统一在其 `python/datanet/features/.../runtime.py`，图服务在 `python/datanet/services/.../services.py`，节点实现和配置包在原 `python/datanet/components` 命名空间。工具静态定义位于组件根 `tools.json`。组件目录中不再保留 JavaScript 业务实现。
+工具箱只保存工具 ID 列表；代码全部位于能力目录。含原 Python 示例实现的预设，其实现也归能力，原拓扑与资料归网络预设。每个角色或示例配置按引用读取自己的资源正文。

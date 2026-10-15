@@ -17,7 +17,7 @@ class DiscussionContextTests(unittest.TestCase):
         for actor in group['members']:
             bindings=self.backend.dispatch('text_bindings',dict(actor=actor,strength=2))
             self.assertIn(b.output_id,[n['node_id'] for n in bindings['read'] if n['delivery']=='query'])
-            tool=next(name for name,target in self.app.plugins['nodes/text'].targets[actor].items() if target==b.output_id)
+            tool=next(name for name,target in self.app.plugins['capabilities/text'].targets[actor].items() if target==b.output_id)
             self.invoke(tool,{},actor)
             self.assertIn('草稿细节',self.native.documents[(actor,'query-text:'+b.output_id)])
             if actor!=rec:
@@ -45,7 +45,7 @@ class DiscussionContextTests(unittest.TestCase):
 
     def test_round_messages_and_receipts_retain_archive_without_self_echo(self):
         group=self.group();self.backend.dispatch('group_begin',dict(group_id='discussion',task='唯一任务',caller='root'))
-        first=self.backend.dispatch('start_round',dict(group_id='discussion'));plugin=self.app.plugins['network_presets/discussion_group'];info=self.backend.dispatch('group_info',dict(group_id='discussion'))
+        first=self.backend.dispatch('start_round',dict(group_id='discussion'));plugin=self.app.plugins['capabilities/discussion_group'];info=self.backend.dispatch('group_info',dict(group_id='discussion'))
         self.assertIn('唯一任务',plugin.round_message('唯一任务',info,first,group['members'][0]))
         for member in group['members']:
             result=self.backend.dispatch('submit',dict(group_id='discussion',actor=member,content='发言:'+member))

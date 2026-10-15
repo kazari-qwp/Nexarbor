@@ -12,7 +12,7 @@ class CachePlacementTests(unittest.TestCase):
     def test_message_queries_and_short_notice_leave_no_automatic_contacts(self):
         group = self.team(count=2)
         member = group['members'][0]
-        plugin = self.app.plugins['toolboxes/agent_messaging']
+        plugin = self.app.plugins['capabilities/agent_messaging']
         before = self.app.view(member)
         self.app.event(member, 'context/prepare', {})
         self.assertNotIn((member, 'state:contacts'), self.native.documents)
@@ -45,7 +45,7 @@ class CachePlacementTests(unittest.TestCase):
         self.assertNotIn('datanet_contacts_channel', self.native.tools[member])
         self.assertNotIn('datanet_send_message', self.native.tools[member])
         with self.assertRaises(PermissionError):self.invoke('datanet_contacts_channel',actor=member)
-        plugin=self.app.plugins['toolboxes/agent_messaging']
+        plugin=self.app.plugins['capabilities/agent_messaging']
         entry=plugin.deliver('root',member,'定向提问')
         pending=self.invoke('datanet_pending_messages',actor=member)['messages']
         self.assertEqual([row['message_id'] for row in pending],[entry['message_id']])
@@ -60,7 +60,7 @@ class CachePlacementTests(unittest.TestCase):
         self.invoke('datanet_create_network_channel', {'preset':'discussion_group'})
         dg=self.invoke('datanet_create_network', {'preset':'discussion_group','instance_id':'discuss','project':'资料','member_count':1,'rounds':1})
         actor=dg['members'][0]
-        discussion=self.app.plugins['network_presets/discussion_group']
+        discussion=self.app.plugins['capabilities/discussion_group']
         discussion.turns[actor].update(active=True,count=0,round=1,total=1)
         before=self.app.view(actor)
         self.app.event(actor,'agent/request',{})
@@ -72,7 +72,7 @@ class CachePlacementTests(unittest.TestCase):
         self.invoke('handle_problem', {'problem':'依赖不可用','origin':'dependency'}, member)
         self.invoke('experience_query', actor=member)
         before=self.app.view(member)
-        p=self.app.plugins['toolboxes/problem_handling'].active(member)
+        p=self.app.plugins['capabilities/problem_handling'].active(member)
         self.assertEqual(self.invoke('datanet_contacts_channel',actor=member)['contacts'],['root'])
         self.assertEqual(self.invoke('datanet_pending_messages',actor=member)['messages'],[])
         p['stage']='attempt_failed'
@@ -84,7 +84,7 @@ class CachePlacementTests(unittest.TestCase):
 
     def test_large_shared_records_have_small_preview_and_full_id_lookup(self):
         group=self.team(count=1); actor=group['members'][0]
-        self.app.plugins['tools/agent_delegation'].start_worker=lambda target:None
+        self.app.plugins['capabilities/agent_delegation'].start_worker=lambda target:None
         self.invoke('datanet_cooperate',{'group_id':'team','action':'start','task':'TASK_LONG_'+'目标'*3000})
         content='FULL_RECORD_'+'记录'*10000
         note=self.invoke('datanet_team_note',{'kind':'FACT','content':content},actor)

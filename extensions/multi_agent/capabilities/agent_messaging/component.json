@@ -1,0 +1,39 @@
+{
+  "id": "capabilities/agent_messaging",
+  "kind": "capabilities",
+  "enabled": true,
+  "requires": [
+    "capabilities/agent_identity"
+  ],
+  "tools": [
+    "datanet_send_message",
+    "datanet_contacts_channel",
+    "datanet_pending_messages"
+  ],
+  "toolPatterns": [
+    "^datanet_reply_"
+  ],
+  "toolPolicies": {
+    "datanet_send_message": {
+      "properties": {}
+    },
+    "datanet_contacts_channel": {
+      "properties": {}
+    }
+  },
+  "agentPolicy": {
+    "baseline": true,
+    "exceptRoles": [
+      "discussion"
+    ]
+  },
+  "configurationFields": [
+    "messageReplyTimeoutMs"
+  ],
+  "python": {
+    "path": "python",
+    "runtime": "datanet.features.toolboxes.agent_messaging.runtime"
+  },
+  "toolDefinitions": "tools.json",
+  "resources": "../../toolboxes/agent_messaging"
+}

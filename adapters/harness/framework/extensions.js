@@ -9,7 +9,7 @@ export class ComponentExtensions{
     const key=p.component+':'+p.actor;
     if(!this.entries.has(key)){
       if(p.action==='dispose')return {ok:true};
-      const directory=path.join(this.root,'components',p.component),manifest=JSON.parse(await readFile(path.join(directory,'component.json'),'utf8'));
+      const directory=path.join(this.root,p.component),manifest=JSON.parse(await readFile(path.join(directory,'component.json'),'utf8'));
       if(manifest.id!==p.component||typeof manifest.harness!=='string')throw new Error('Component has no Harness extension');
       const file=path.resolve(directory,manifest.harness),relative=path.relative(directory,file);
       if(relative.startsWith('..')||path.isAbsolute(relative))throw new Error('Extension outside component');

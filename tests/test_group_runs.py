@@ -23,7 +23,7 @@ class GroupRunTests(unittest.TestCase):
             def __call__(native, name, p):
                 if name == 'run':
                     actor = p['actor']
-                    turn = native.app.plugins['network_presets/discussion_group'].turns.get(actor)
+                    turn = native.app.plugins['capabilities/discussion_group'].turns.get(actor)
                     if turn and turn['final']:
                         group = native.app.backend.groups[native.app.backend.agents[actor]['group_id']]
                         native.app.invoke(actor, 'node_write', dict(target=turn['expected_output'], key='content', value=group['task'] + '成果'))
@@ -54,7 +54,7 @@ class GroupRunTests(unittest.TestCase):
         self.native = fixtures.NativePort()
         self.app = fixtures.Application(self.backend, self.native, dict(rootNetwork='project_root', rootToolboxes=['network_access', 'node_creation', 'agent_management', 'interface_management', 'discussion'], maxSignalStrength=100))
         self.native.app = self.app
-        self.app.plugins['tools/network_management'].bind_root('root-session')
+        self.app.plugins['capabilities/tools_network_management'].bind_root('root-session')
         for actor in self.backend.agents:
             self.app.emit('agent/ensure-mounted', target=actor)
 
@@ -150,10 +150,10 @@ class GroupRunTests(unittest.TestCase):
         old_record = json.loads(Path(self.temp.name, archive, 'run.json').read_text(encoding='utf-8'))
         self.assertEqual(old_record['run_id'], a['run_id'])
         self.assertEqual(Path(self.temp.name, archive, 'output.md').read_text(encoding='utf-8'), '第一份成果')
-        queue = self.app.plugins['tools/agent_delegation']
+        queue = self.app.plugins['capabilities/agent_delegation']
         old = queue.jobs[next(iter(old_jobs.values()))]
         old['status'] = 'failed'
-        plugin = self.app.plugins['network_presets/decentralized_group']
+        plugin = self.app.plugins['capabilities/decentralized_group']
         plugin.settled(dict(actor=old['target'], delegation_id=old['id']))
         plugin.expire('team', a['run_id'])
         self.assertEqual(self.backend.cooperative_groups['team']['phase'], 'running')
@@ -174,7 +174,7 @@ class GroupRunTests(unittest.TestCase):
         state = self.invoke('datanet_cooperate', dict(group_id='team', action='status'))
         self.assertNotEqual(a['run_id'], b['run_id'])
         self.assertEqual(state['runs'][a['run_id']]['phase'], 'stopped')
-        plugin = self.app.plugins['network_presets/decentralized_group']
+        plugin = self.app.plugins['capabilities/decentralized_group']
         for terminal in ('failed', 'interrupted', 'budget_exhausted'):
             plugin.stop_group(self.backend.cooperative_groups['team'], terminal, '模拟结束')
             previous = self.backend.cooperative_groups['team']['run_id']

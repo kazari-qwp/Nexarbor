@@ -1,0 +1,102 @@
+{
+  "kind": "network",
+  "version": 1,
+  "id": "delegated_number",
+  "description": "协调者与数字处理者组成的委托拼图。",
+  "network": {
+    "version": 3,
+    "nodes": [
+      {
+        "type": "agent",
+        "node_id": "root",
+        "name": "委托协调者",
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "root_memory.md"
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "worker",
+              "threshold": 0,
+              "visibility": "public",
+              "multiplier": 1
+            }
+          ],
+          "write_interfaces": []
+        },
+        "agent": {
+          "package": "../../../../../../../nodes/agent_coordinator/python/datanet/components/agents/coordinator"
+        },
+        "description": "协调任务并委托 worker 处理本地数字。",
+        "divergence": -1,
+        "toolboxes": [],
+        "expose": [],
+        "management_parent_id": null
+      },
+      {
+        "type": "agent",
+        "node_id": "worker",
+        "name": "本地数字处理者",
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "worker_memory.md"
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "worker_data",
+              "threshold": 0,
+              "visibility": "private",
+              "multiplier": 1
+            }
+          ],
+          "write_interfaces": []
+        },
+        "agent": {
+          "package": "../../../../../../../nodes/agent_number_worker/python/datanet/components/agents/number_worker"
+        },
+        "description": "负责读取数字数据并回复委托。",
+        "divergence": -1,
+        "toolboxes": [],
+        "expose": [],
+        "management_parent_id": "root"
+      },
+      {
+        "type": "value",
+        "node_id": "worker_data",
+        "name": "数字数据",
+        "data_kind": "number",
+        "parameters": {
+          "value": 42
+        },
+        "connections": {
+          "read_interfaces": [],
+          "write_interfaces": []
+        },
+        "agent": null,
+        "description": "保存模拟数字42。",
+        "divergence": -1,
+        "toolboxes": [
+          "local_data"
+        ],
+        "expose": [
+          "read",
+          "get_schema"
+        ],
+        "management_parent_id": "worker"
+      }
+    ],
+    "delegations": [
+      {
+        "source": "root",
+        "target": "worker"
+      }
+    ]
+  },
+  "entry_points": {
+    "root": "root",
+    "worker": "worker"
+  },
+  "toolkits": {}
+}

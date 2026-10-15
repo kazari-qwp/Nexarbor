@@ -12,13 +12,13 @@ class GroupFailureTests(unittest.TestCase):
 
     def begin_team(self, count):
         group = self.team(count=count)
-        queue = self.app.plugins['tools/agent_delegation']
+        queue = self.app.plugins['capabilities/agent_delegation']
         queue.start_worker = lambda target: None
         self.invoke('datanet_cooperate', dict(group_id='team', action='start', task='自主交付并验收'))
         return group, self.backend.cooperative_groups['team']
 
     def fail(self, g, member):
-        queue = self.app.plugins['tools/agent_delegation']
+        queue = self.app.plugins['capabilities/agent_delegation']
         id = g['jobs'][member]
         queue.jobs[id].update(status='failed', result=dict(status='failed', error='MALFORMED_RESPONSE: invalid JSON'))
         queue.store.save()
@@ -35,7 +35,7 @@ class GroupFailureTests(unittest.TestCase):
 
     def test_loss_releases_claims_and_survivors_complete_with_one_notice(self):
         group,g = self.begin_team(4);a,b,c,d = group['members']
-        personal = self.app.plugins['network_presets/decentralized_group'].workspace(g).personal(a)
+        personal = self.app.plugins['capabilities/decentralized_group'].workspace(g).personal(a)
         preserved = personal / 'unfinished.py';preserved.write_text('valuable partial work',encoding='utf-8')
         claim = self.invoke('datanet_team_claim',dict(action='claim',scope='实现',paths=['src/main.py']),a)
         self.fail(g,a)
@@ -64,7 +64,7 @@ class GroupFailureTests(unittest.TestCase):
 
     def test_native_fatal_event_retires_before_delegation_settles(self):
         group,g=self.begin_team(2);a,b=group['members']
-        queue=self.app.plugins['tools/agent_delegation'];queue.jobs[g['jobs'][a]]['status']='running'
+        queue=self.app.plugins['capabilities/agent_delegation'];queue.jobs[g['jobs'][a]]['status']='running'
         self.app.emit('agent/error',actor=a,error='parser stopped',failure=dict(code='MALFORMED_RESPONSE',message='tool input is invalid JSON'))
         self.assertIn(a,g['unavailable']);self.assertEqual(g['phase'],'running')
         self.assertEqual(queue.jobs[g['jobs'][a]]['status'],'running')
@@ -139,7 +139,7 @@ class GroupFailureTests(unittest.TestCase):
         self.assertFalse(self.notices('discussion_degraded'))
 
     def test_execution_records_keep_original_native_error_code(self):
-        diagnostics=self.app.plugins['tools/execution_records'];diagnostics.start('root')
+        diagnostics=self.app.plugins['capabilities/execution_records'];diagnostics.start('root')
         self.app.emit('agent/error',actor='root',error='native stream failure',failure=dict(code='MALFORMED_RESPONSE',message='tool input is invalid JSON'))
         with self.assertRaisesRegex(RuntimeError,'MALFORMED_RESPONSE: tool input is invalid JSON'):diagnostics.complete('root',[])
 

@@ -30,7 +30,8 @@ class Backend:
         self.agents = {}
         self.failed = False
         self.network = Network()
-        self.root = Node('root', 'DataNet根节点', None)
+        from datanet.core.agent_node import AgentNode
+        self.root = AgentNode('root', 'DataNet根节点', file_path=self.directory / 'root-memory.md')
         self.network.add_node(self.root)
         self.extension_state = {}
         self.components = ComponentServices()
@@ -116,12 +117,10 @@ class Backend:
         if target not in self.network.nodes:
             raise ValueError('Agent target does not exist')
         from datanet.core.agent_node import AgentNode
-        if not isinstance(self.network.nodes[target], AgentNode):
-            raise ValueError('Agents must be bound to an Agent memory node')
+        if not isinstance(self.network.nodes[target],AgentNode):raise ValueError('Agents require an Agent node')
+        for validate in self.components.binding_validators:validate(self,p)
         old = self.agents.get(target, {})
         manager_id = p.get('manager_id', old.get('manager_id', p.get('creator_node_id')))
-        if target == 'root' and (p.get('kind') != 'root' or manager_id is not None or p.get('creator_node_id') is not None):
-            raise ValueError('Root binding is reserved for the native root Agent')
         if manager_id is not None and manager_id not in self.agents:
             raise ValueError('Manager has no Agent binding')
         seen = {target}
@@ -228,7 +227,7 @@ class Backend:
 
     def _dispatch(self, method, p):
         if method == 'recovery_info':
-            return {'node_count': len(self.network.nodes), 'agents': self.agents, 'groups': {}, 'feedback': [], 'management': {key: node.management_parent_id for key, node in self.network.nodes.items()}, 'unassigned_management_nodes': [key for key, node in self.network.nodes.items() if key != self.root.node_id and node.management_parent_id is None], 'pending_operations': self.store.pending(), 'checkpoint_count': self.store.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0], **self.components.status(self)}
+            return {'node_count': len(self.network.nodes), 'agents': self.agents, 'management': {key: node.management_parent_id for key, node in self.network.nodes.items()}, 'unassigned_management_nodes': [key for key, node in self.network.nodes.items() if key != self.root.node_id and node.management_parent_id is None], 'pending_operations': self.store.pending(), 'checkpoint_count': self.store.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0], **self.components.status(self)}
         if method in self.components.routes:
             return self.components.routes[method](self, p)
         if method == 'root_network_info':

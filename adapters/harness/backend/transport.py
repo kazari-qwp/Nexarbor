@@ -57,8 +57,7 @@ class Transport:
             raise RuntimeError('Application has not started')
         action = method.split('/', 1)[1]
         if action == 'root':
-            management = app.plugins['tools/network_management']
-            return management.bind_root(p['session_id'])
+            return app.bind_session(p['session_id'])
         if action == 'invoke':
             return app.invoke(p['actor'], p['name'], p.get('arguments', {}), p.get('execution_id'))
         if action == 'event':

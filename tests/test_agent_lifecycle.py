@@ -25,7 +25,7 @@ class LifecycleTests(unittest.TestCase):
         pending = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(direction='both', target_node_id=target)))
         self.assertTrue(pending['awaiting_confirmation'])
         result = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(confirmation_id=pending['confirmation_id'], choice=choice)))
-        self.app.plugins['tools/agent_lifecycle'].settle()
+        self.app.plugins['capabilities/agent_lifecycle'].settle()
         return result
 
     def test_agent_creation_and_private_memory(self):
@@ -70,7 +70,7 @@ class LifecycleTests(unittest.TestCase):
 
     def test_customized_agent_is_not_reused(self):
         old = self.agent()
-        self.app.plugins['tools/network_management'].update_prompt('root', old['node_id'], '定制角色')
+        self.app.plugins['capabilities/tools_network_management'].update_prompt('root', old['node_id'], '定制角色')
         self.detach(old['node_id'], 3)
         new = self.agent('new_worker')
         self.assertFalse(new['reused'])
@@ -132,14 +132,14 @@ class LifecycleTests(unittest.TestCase):
         self.native = NativePort()
         self.app = Application(self.backend, self.native, dict(rootNetwork='project_root', rootToolboxes=['network_access','network_management'], maxSignalStrength=100))
         self.native.app = self.app
-        self.app.plugins['tools/network_management'].bind_root('root-session')
+        self.app.plugins['capabilities/tools_network_management'].bind_root('root-session')
         self.assertNotIn(old['node_id'], self.app.states)
         self.assertNotIn(old['node_id'], self.backend.network.nodes)
         self.assertIn(old['node_id'], self.backend.lifecycle['archived'])
 
     def test_sleep_and_wake_restore_connected_agents(self):
         old = self.agent()
-        lifecycle = self.app.plugins['tools/agent_lifecycle']
+        lifecycle = self.app.plugins['capabilities/agent_lifecycle']
         lifecycle.last_activity = time.monotonic() - lifecycle.idle_seconds - 1
         lifecycle.tick()
         self.assertTrue(self.backend.lifecycle['sleeping'])
@@ -180,7 +180,7 @@ class LifecycleTests(unittest.TestCase):
             self.assertTrue(entered.wait(3))
             second = self.invoke('datanet_call_agent', dict(target=target, task='second'))
             self.assertNotEqual(first['delegation_id'], second['delegation_id'])
-            lifecycle = self.app.plugins['tools/agent_lifecycle']
+            lifecycle = self.app.plugins['capabilities/agent_lifecycle']
             lifecycle.last_activity = time.monotonic() - lifecycle.idle_seconds - 1
             lifecycle.tick()
             self.assertFalse(self.backend.lifecycle['sleeping'])
@@ -188,7 +188,7 @@ class LifecycleTests(unittest.TestCase):
             result = self.invoke('datanet_wait_agent', dict(delegation_id=second['delegation_id'], timeout_ms=5000))
             self.assertEqual(result['status'], 'completed')
             self.assertEqual(seen, ['first', 'second'])
-            queue = self.app.plugins['tools/agent_delegation']
+            queue = self.app.plugins['capabilities/agent_delegation']
             with self.assertRaises(PermissionError):
                 queue.tool_datanet_wait_agent(target, dict(delegation_id=first['delegation_id'], wait=False))
             deadline = time.monotonic() + 3
@@ -208,7 +208,7 @@ class LifecycleTests(unittest.TestCase):
 
     def test_persistent_queue_restores_on_next_root_turn(self):
         target = self.agent()['node_id']
-        queue = self.app.plugins['tools/agent_delegation']
+        queue = self.app.plugins['capabilities/agent_delegation']
         queue.start_worker = lambda target: None
         queued = self.invoke('datanet_call_agent', dict(target=target, task='重启后执行'))
         interrupted = self.invoke('datanet_call_agent', dict(target=target, task='中断委托'))
@@ -222,7 +222,7 @@ class LifecycleTests(unittest.TestCase):
         self.native = NativePort()
         self.app = Application(self.backend, self.native, dict(rootNetwork='project_root', rootToolboxes=['network_access', 'network_management'], maxSignalStrength=100))
         self.native.app = self.app
-        self.app.plugins['tools/network_management'].bind_root('root-session')
+        self.app.plugins['capabilities/tools_network_management'].bind_root('root-session')
         self.app.event('root', 'agent/pre-step', dict(messages=[]))
         result = self.invoke('datanet_wait_agent', dict(delegation_id=queued['delegation_id'], timeout_ms=5000))
         self.assertEqual(result['status'], 'completed')
@@ -230,8 +230,8 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(result['status'], 'interrupted')
 
     def test_lifecycle_and_delegation_components_can_be_unplugged(self):
-        self.app.disable('tools/agent_delegation')
-        self.app.disable('tools/agent_lifecycle')
+        self.app.disable('capabilities/agent_delegation')
+        self.app.disable('capabilities/agent_lifecycle')
         target = self.agent()['node_id']
         self.assertIsInstance(self.backend.network.nodes[target], AgentNode)
         result = self.invoke('datanet_call_agent', dict(target=target, task='使用基础委托'))

@@ -17,7 +17,7 @@ class MessageTailTests(unittest.TestCase):
         return '\n'.join(texts)
 
     def test_work_order_replied_once_and_optional_reply_read_without_ack(self):
-        group=self.team(count=2); a,b=group['members']; messaging=self.app.plugins['toolboxes/agent_messaging']
+        group=self.team(count=2); a,b=group['members']; messaging=self.app.plugins['capabilities/agent_messaging']
         receipt=self.invoke('datanet_send_message', {'target':a,'content':'确认接口'}, 'root')
         self.assertIn('存在待处理工单。',self.tail(a))
         msg=self.invoke('datanet_pending_messages',actor=a)['messages'][0]
@@ -54,7 +54,7 @@ class MessageTailTests(unittest.TestCase):
 
     def test_tail_is_constant_sized_and_review_notice_tracks_current_candidate(self):
         group=self.team(count=2);a,b=group['members']
-        self.app.plugins['tools/agent_delegation'].start_worker=lambda target:None
+        self.app.plugins['capabilities/agent_delegation'].start_worker=lambda target:None
         self.invoke('datanet_cooperate',{'group_id':'team','action':'start','task':'测试'})
         claim=self.invoke('datanet_team_claim',{'action':'claim','scope':'工作'*1000,'paths':['src/a.py']},a)
         note=self.invoke('datanet_team_note',{'kind':'FACT','content':'记录'*10000},a)
@@ -81,27 +81,27 @@ class MessageTailTests(unittest.TestCase):
     def test_read_state_survives_restore_and_legacy_messages_get_types(self):
         a=self.team(count=1)['members'][0]
         order=self.invoke('datanet_send_message',{'target':a,'content':'请答复'})
-        plugin=self.app.plugins['toolboxes/agent_messaging']
+        plugin=self.app.plugins['capabilities/agent_messaging']
         original=plugin.store.data['messages'][order['message_id']]
         reply=self.invoke(original['reply_tool'],{'content':'已完成'},a)
         entry=plugin.store.data['messages'][reply['message_id']]
         entry.pop('message_type');entry.pop('read_at');plugin.store.save()
         self.reopen()
-        plugin=self.app.plugins['toolboxes/agent_messaging']
+        plugin=self.app.plugins['capabilities/agent_messaging']
         self.assertEqual(plugin.store.data['messages'][reply['message_id']]['message_type'],'reply')
         self.assertIn('存在未读回复。',self.tail('root'))
         self.invoke('datanet_pending_messages')
         self.reopen()
         self.assertNotIn('存在未读回复。',self.tail('root'))
-        entry=self.app.plugins['toolboxes/agent_messaging'].store.data['messages'][reply['message_id']]
+        entry=self.app.plugins['capabilities/agent_messaging'].store.data['messages'][reply['message_id']]
         self.assertIn(entry['reply_tool'],self.native.tools['root'])
 
     def test_peer_message_type_is_forwarded(self):
         group=self.team(count=2);a,b=group['members']
-        self.app.plugins['tools/agent_delegation'].start_worker=lambda target:None
+        self.app.plugins['capabilities/agent_delegation'].start_worker=lambda target:None
         self.invoke('datanet_cooperate',{'group_id':'team','action':'start','task':'测试'})
         message=self.invoke('datanet_team_send',{'target':b,'content':'无需回复','message_type':'reply'},a)
-        plugin=self.app.plugins['toolboxes/agent_messaging']
+        plugin=self.app.plugins['capabilities/agent_messaging']
         self.assertEqual(plugin.store.data['messages'][message['message_id']]['message_type'],'reply')
         self.assertIn('存在未读回复。',self.tail(b))
         self.invoke('datanet_pending_messages',actor=b)

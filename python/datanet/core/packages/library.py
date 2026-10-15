@@ -1,6 +1,6 @@
 """按目录发现配置包，供搭建者选择；尚不自动替 Agent 做选择。"""
 from pathlib import Path
-from datanet.core.packages.agent import load_agent_package
+from datanet.core.execution import load_execution_package
 from datanet.core.packages.network import load_network_package
 
 def list_packages(directory, kind):
@@ -9,7 +9,7 @@ def list_packages(directory, kind):
     directory = Path(directory).resolve()
     if not directory.is_dir():
         raise FileNotFoundError(directory)
-    loader = load_agent_package if kind == 'agent' else load_network_package
+    loader = load_execution_package if kind == 'agent' else load_network_package
     result = []
     seen = set()
     for path in sorted(directory.glob('*/package.json')):

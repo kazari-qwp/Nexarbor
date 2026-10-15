@@ -14,7 +14,7 @@ class ClaimPathTests(unittest.TestCase):
 
     def setUp(self):
         fixtures.ApplicationTests.setUp(self)
-        self.app.plugins['tools/agent_delegation'].start_worker = lambda target: None
+        self.app.plugins['capabilities/agent_delegation'].start_worker = lambda target: None
         self.group = self.team(count=2)
         self.a, self.b = self.group['members']
         self.invoke('datanet_cooperate', dict(group_id='team', action='start', task='认领路径验证'))

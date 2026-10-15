@@ -118,7 +118,7 @@ class CooperationTests(unittest.TestCase):
         self.assertEqual(final['phase'], 'completed')
         messages = [m for m in self.native.messages['root'] if 'cooperation_result' in json.dumps(m)]
         self.assertEqual(len(messages), 1)
-        workspace = self.app.plugins['network_presets/decentralized_group'].workspace(self.backend.cooperative_groups['team'])
+        workspace = self.app.plugins['capabilities/decentralized_group'].workspace(self.backend.cooperative_groups['team'])
         head = workspace.git(workspace.main, 'rev-parse', 'HEAD')['stdout'].strip()
         status = self.invoke('datanet_cooperate', dict(group_id='team', action='status'))
         self.assertEqual(status['repository']['head_commit'], head)
@@ -128,7 +128,7 @@ class CooperationTests(unittest.TestCase):
         root_output = self.invoke('node_read', dict(target=final['output_id'], request=dict(method='key', key='content'), strength=100))
         self.assertEqual(root_output['items'][0]['content'], '三个文件全部完成')
         self.release.set()
-        queue = self.app.plugins['tools/agent_delegation']
+        queue = self.app.plugins['capabilities/agent_delegation']
         end = time.monotonic() + 5
         while any(j['status'] in ('queued', 'running') for j in queue.jobs.values()) and time.monotonic() < end:
             time.sleep(.01)
@@ -150,7 +150,7 @@ class CooperationTests(unittest.TestCase):
         self.assertEqual(self.backend.cooperative_groups['team']['phase'], 'running')
         with self.assertRaises(ValueError):
             self.invoke('datanet_team_finish', dict(action='approve', candidate_id=proposal['candidate']['id'], evidence='旧候选'), a)
-        plugin = self.app.plugins['network_presets/decentralized_group']
+        plugin = self.app.plugins['capabilities/decentralized_group']
         plugin.expire('team')
         self.assertEqual(self.backend.cooperative_groups['team']['phase'], 'budget_exhausted')
         self.assertIsNone(self.backend.cooperative_groups['team']['candidate'])
@@ -181,7 +181,7 @@ class CooperationTests(unittest.TestCase):
 
     def test_unplug_retains_state(self):
         self.team(count=1)
-        self.app.disable('network_presets/decentralized_group')
+        self.app.disable('capabilities/decentralized_group')
         self.assertNotIn('datanet_cooperate', self.native.tools['root'])
         with self.assertRaises(PermissionError):
             self.invoke('datanet_cooperate', dict(group_id='team', action='start', task='不能运行'))
@@ -189,7 +189,7 @@ class CooperationTests(unittest.TestCase):
 
     def test_interrupted_workers_are_not_replayed_after_restart(self):
         group = self.team(count=2)
-        queue = self.app.plugins['tools/agent_delegation']
+        queue = self.app.plugins['capabilities/agent_delegation']
         queue.start_worker = lambda target: None
         self.invoke('datanet_cooperate', dict(group_id='team', action='start', task='重启测试'))
         first = next(iter(queue.jobs.values()))
@@ -203,11 +203,11 @@ class CooperationTests(unittest.TestCase):
         self.native = fixtures.NativePort()
         self.app = fixtures.Application(self.backend, self.native, dict(rootNetwork='project_root', rootToolboxes=['network_access','node_creation','agent_management'], maxSignalStrength=100))
         self.native.app = self.app
-        self.app.plugins['tools/network_management'].bind_root('root-session')
+        self.app.plugins['capabilities/tools_network_management'].bind_root('root-session')
         self.app.event('root', 'agent/pre-step', dict(messages=[]))
         state = self.invoke('datanet_cooperate', dict(group_id='team', action='status'))
         self.assertEqual(state['phase'], 'interrupted')
-        jobs = self.app.plugins['tools/agent_delegation'].jobs
+        jobs = self.app.plugins['capabilities/agent_delegation'].jobs
         self.assertEqual({j['status'] for j in jobs.values()}, {'interrupted', 'cancelled'})
         self.assertFalse(any(name == 'run' for name, p in self.native.calls))
 
@@ -216,7 +216,7 @@ class CooperationTests(unittest.TestCase):
         self.invoke('datanet_interfaces_channel')
         pending = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(direction='both', target_node_id='old/board')))
         self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(confirmation_id=pending['confirmation_id'], choice=3)))
-        self.app.plugins['tools/agent_lifecycle'].settle()
+        self.app.plugins['capabilities/agent_lifecycle'].settle()
         new = self.team('new', count=2)
         self.assertEqual(set(new['members']), set(old['members']))
         for member in new['members']:

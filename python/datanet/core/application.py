@@ -4,14 +4,14 @@ from importlib import import_module
 from pathlib import Path
 from threading import RLock, local
 import json
-from datanet.core.component_registry import enabled_components
+from datanet.core.component_registry import enabled_components, component_root
 
 
 def checked(value):
     from dataclasses import asdict, is_dataclass
     if is_dataclass(value):
         value = asdict(value)
-    if isinstance(value, dict) and value.get('status', 'ok') != 'ok':
+    if isinstance(value, dict) and value.get('status', 'ok') in {'error','forbidden','not_found','unsupported','conflict'}:
         raise RuntimeError(json.dumps(value, ensure_ascii=False))
     return value
 
@@ -28,6 +28,8 @@ class Application:
         self.errors = []
         self.boxes, self.presets = {}, {}
         self.defaults = {}
+        bindings_file=component_root()/'tool-bindings.json'
+        self.bindings=json.loads(bindings_file.read_text(encoding='utf-8')) if bindings_file.exists() else {}
         for key, manifest in self.catalog.items():
             if key not in self.enabled:
                 continue
@@ -51,6 +53,16 @@ class Application:
         for plugin in self.plugins.values():
             plugin.install()
 
+    def bind_session(self, session_id):
+        payload = {'session_id': session_id, 'view': None}
+        for owner, handler in self.listeners['session/root']:
+            if owner in self.enabled:
+                handler(payload)
+        if payload['view'] is not None:
+            return payload['view']
+        grant = {'names': [], 'expanded': [], 'framework': {}, 'official': {'tools': [], 'skills': [], 'skillProviders': []}}
+        return self.bind('root', session_id, grant=grant)
+
     def resource(self, owner, relative, json_data=False):
         directory = self.catalog[owner]['directory'].resolve()
         path = (directory / relative).resolve()
@@ -73,7 +85,7 @@ class Application:
 
     def rpc(self, method, **params):
         result = self.backend.dispatch(method, params)
-        return result if method == 'report_feedback' else checked(result)
+        return checked(result)
 
     def state(self, actor):
         return self.states[actor]
@@ -95,30 +107,24 @@ class Application:
             if allowed is not None and name not in allowed:
                 raise PermissionError('Toolbox is not granted: ' + name)
         selected += [m['id'].split('/')[1] for m in policies if m['agentPolicy'].get('baseline') and role not in m['agentPolicy'].get('exceptRoles', [])]
-        active, done, expanded = set(), set(), []
-        def visit(name):
-            if name in active:
-                raise ValueError('Cyclic toolbox includes: ' + name)
-            if name in done:
-                return
+        expanded = []
+        for name in selected:
             if name not in self.boxes:
                 raise ValueError('Unknown toolbox: ' + name)
-            if 'toolboxes/' + name not in self.enabled:
-                return
-            active.add(name)
-            for child in self.boxes[name].get('includes', []):
-                visit(child)
-            active.remove(name)
-            done.add(name)
-            expanded.append(name)
-        for name in selected:
-            visit(name)
+            if 'toolboxes/' + name in self.enabled and name not in expanded:
+                expanded.append(name)
         framework, official, skills, providers = {}, [], [], []
         all_skills = False
         policies_by_tool = {name: policy for m in self.catalog.values() for name, policy in m.get('toolPolicies', {}).items()}
-        for name in expanded:
+        for name in list(expanded):
             box = self.boxes[name]
-            for item in box.get('tools', []):
+            for reference in box.get('tools', []):
+                item=self.bindings[reference]
+                for origin in item.get('grant_names',[]):
+                    if origin not in expanded:expanded.append(origin)
+                if item.get('skills')=='*':all_skills=True
+                elif item.get('skills'):skills.extend(item['skills'])
+                providers.extend(item.get('skillProviders',[]))
                 tool = item['name']
                 if item['source'] == 'harness':
                     if tool not in official:
@@ -146,11 +152,6 @@ class Application:
                     for field, method in policy['merge'].items():
                         options[field] = max(framework[tool].get(field, 0), options.get(field, 0)) if method == 'max' else bool(framework[tool].get(field) or options.get(field))
                 framework[tool] = options
-            if box.get('skills') == '*':
-                all_skills = True
-            else:
-                skills.extend(box.get('skills', []))
-            providers.extend(box.get('skillProviders', []))
         return dict(names=list(dict.fromkeys(selected)), expanded=expanded, framework=framework,
                     official=dict(tools=official, skills='*' if all_skills else list(dict.fromkeys(skills)), skillProviders=list(dict.fromkeys(providers))))
 

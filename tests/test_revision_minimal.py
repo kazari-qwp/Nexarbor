@@ -37,7 +37,7 @@ class RevisionTests(unittest.TestCase):
         class Port(fixtures.NativePort):
             def __call__(native, name, p):
                 if name == 'run' and p['actor'] in group['members']:
-                    turn = native.app.plugins['network_presets/discussion_group'].turns[p['actor']]
+                    turn = native.app.plugins['capabilities/discussion_group'].turns[p['actor']]
                     if not turn['final']:
                         n = turn['round']
                         testcase.assertNotIn('当前轮数：', p['text'])

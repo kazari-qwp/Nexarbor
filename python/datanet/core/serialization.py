@@ -10,8 +10,7 @@ from datanet.core.management import validate_management
 from dataclasses import asdict
 from datanet.core.network import Network
 from datanet.core.node import Node
-from datanet.core.agent import Agent
-from datanet.core.agent_configuration import validate_config
+from datanet.core.execution import encode_execution, decode_execution
 LINKS = ('read_interfaces', 'write_interfaces')
 
 def _string(value, label):
@@ -66,21 +65,9 @@ def save_network(network: Network, path: str | Path) -> None:
             if any((target not in network.nodes and target not in getattr(network, 'archived_ids', set()) for target in targets)):
                 raise ValueError(f'节点 {node_id} 的 {label} 含不存在的目标')
             connections[label] = [asdict(interface) for interface in getattr(node, label)]
-        agent_config = node.agent_config
-        if isinstance(node.agent, Agent):
-            if node.agent.extra_body not in (None, {'thinking': {'type': 'disabled'}}, {'thinking': {'type': 'enabled'}}):
-                raise ValueError('Agent 配置只支持 thinking 开关，不保存其他 extra_body')
-            agent_config = {'model': node.agent.model, 'prompt_path': str(node.agent.prompt_path), 'tools_path': (agent_config or {}).get('tools_path'), 'max_rounds': node.agent.max_rounds, 'max_tokens': node.agent.max_tokens, 'max_signal_strength': node.agent.max_signal_strength, 'thinking': None if node.agent.extra_body is None else node.agent.extra_body['thinking']['type'] == 'enabled', 'node_bindings': node.agent.node_bindings}
-            if agent_config['tools_path'] is None:
-                known = node.tool_definitions.keys() | node.agent_tool_definitions.keys() | {'list_nodes', 'list_tools', 'invoke_tool', 'ask_agent'}
-                if any((d['function']['name'] not in known for d in node.agent.tool_definitions)):
-                    raise ValueError('保存 Agent 前需要配置工具定义文件或登记本地工具元数据')
-        agent_config = validate_config(agent_config, path.parent)
-        if agent_config is not None:
-            for label in ('prompt_path', 'tools_path'):
-                if agent_config[label] is not None:
-                    agent_config[label] = _path_string(Path(agent_config[label]), path.parent)
-        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'toolboxes': node.toolboxes, 'expose': node.expose})
+        agent_config = encode_execution(node, path.parent)
+        _json_value(agent_config)
+        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding})
     if getattr(network, 'archived_entries', None):
         entries.extend(network.archived_entries())
     document = {'version': 3, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
@@ -109,7 +96,7 @@ def _build(document, base):
         raise ValueError('nodes 必须是列表')
     network = Network()
     for entry in document['nodes']:
-        _fields({k: v for k, v in entry.items() if k not in ('toolboxes', 'expose', 'management_parent_id')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
+        _fields({k: v for k, v in entry.items() if k not in ('toolboxes', 'expose', 'management_parent_id', 'execution')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
         node_id = _string(entry['node_id'], 'node_id')
         name = _string(entry['name'], 'name')
         kind = entry['data_kind']
@@ -126,7 +113,12 @@ def _build(document, base):
         node.expose = entry.get('expose', [])
         from datanet.core.node_toolboxes import attach_node_toolboxes
         attach_node_toolboxes(node)
-        node.agent_config = validate_config(entry['agent'], base)
+        node.agent_config = decode_execution(entry['agent'], base)
+        if node.agent_config is not None:
+            from datanet.core.agent_node import AgentNode
+            if not isinstance(node,AgentNode):raise ValueError('Agent configuration requires an Agent node')
+        node.execution_binding = entry.get('execution')
+        _json_value(node.execution_binding)
         description = entry['description']
         if not isinstance(description, str):
             raise ValueError('description 必须为字符串')

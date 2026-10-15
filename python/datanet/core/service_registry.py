@@ -3,14 +3,13 @@ from importlib import import_module
 from pathlib import Path
 import json
 import os
-from datanet.core.component_registry import manifests
+from datanet.core.component_registry import manifests, component_root
 
 class ComponentServices:
 
     def __init__(self):
         self.catalog = {m['id']: m for m in manifests()}
-        root = next(iter(self.catalog.values()))['directory'].parents[1] if self.catalog else None
-        profile_file = root / 'profile.json' if root else None
+        profile_file = component_root() / 'profile.json'
         profile = json.loads(profile_file.read_text(encoding='utf-8')) if profile_file and profile_file.exists() else {}
         profile.update(json.loads(os.environ.get('DATANET_COMPONENT_PROFILE', '{}')))
         self.enabled = {key for key, m in self.catalog.items() if profile.get(key, m.get('enabled', True))}
@@ -21,6 +20,7 @@ class ComponentServices:
                 if any((dep not in self.enabled for dep in self.catalog[key].get('requires', []))):
                     self.enabled.remove(key)
                     changed = True
+        self.binding_validators = []
         self.statusters = []
         self.routes = {}
         self.mutations = set()
@@ -28,7 +28,7 @@ class ComponentServices:
         self.network_presets = {}
         self.toolkit_factories = []
         self.initializers = []
-        self.migrations = []
+        self.graph_loaders = []
         self.snapshotters = []
         self.restorers = []
         self.node_restorers = []
@@ -51,7 +51,7 @@ class ComponentServices:
             fn(backend)
 
     def graph_loaded(self, backend):
-        for fn in self.migrations:
+        for fn in self.graph_loaders:
             fn(backend)
 
     def snapshot(self, backend):

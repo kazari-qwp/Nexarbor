@@ -22,13 +22,13 @@ class GroupGuideTests(unittest.TestCase):
         self.assertEqual(len(discussion['members']), 5)
         self.assertEqual(len(team['members']), 4)
         status = self.app.rpc('cooperative_status', actor='root', group_id=team['group_id'], strength=100)
-        workspace = self.app.plugins['network_presets/decentralized_group'].workspace(self.backend.cooperative_groups[team['group_id']])
+        workspace = self.app.plugins['capabilities/decentralized_group'].workspace(self.backend.cooperative_groups[team['group_id']])
         self.assertEqual(status['workspace'], str(workspace.main))
         self.assertNotIn('datanet_create_agent_channel', self.native.tools['root'])
         self.assertTrue(all(actor in self.native.agents for actor in discussion['members'] + team['members']))
 
     def text(self, preset, member=False):
-        path = fixtures.ROOT / 'components/network_presets' / preset
+        path = fixtures.ROOT / 'extensions/multi_agent/network_presets' / preset
         return (path / ('members/AGENTS.md' if member else 'AGENTS.md')).read_text(encoding='utf-8')
 
     def test_descriptions_reach_the_preset_directory(self):
@@ -40,7 +40,7 @@ class GroupGuideTests(unittest.TestCase):
         group = self.team(count=2)
         caller_key = ('root', 'preset:decentralized_group')
         self.assertEqual(self.native.documents[caller_key], self.text('decentralized_group'))
-        self.app.plugins['tools/agent_delegation'].start_worker = lambda target: None
+        self.app.plugins['capabilities/agent_delegation'].start_worker = lambda target: None
         self.invoke('datanet_cooperate', dict(group_id=group['group_id'], action='start', task='指南验证'))
         for actor in group['members']:
             key = (actor, 'preset:decentralized_group:member')
@@ -78,7 +78,7 @@ class GroupGuideTests(unittest.TestCase):
             self.assertNotIn((actor, 'preset:discussion_group'), self.native.documents)
             key = (actor, 'preset:discussion_group:member')
             self.native.documents.pop(key)
-            turn = self.app.plugins['network_presets/discussion_group'].turns[actor]
+            turn = self.app.plugins['capabilities/discussion_group'].turns[actor]
             turn.update(active=True, count=0)
             try:
                 self.app.event(actor, 'agent/pre-step', dict(messages=[]))

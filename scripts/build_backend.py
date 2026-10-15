@@ -10,9 +10,10 @@ staging.mkdir(parents=True,exist_ok=True)
 shutil.copytree(root/'python',staging/'python',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
 for file in (root/'adapters/harness/backend').glob('*.py'):
     if not file.name.startswith('test_'):shutil.copy2(file,staging/file.name)
+shutil.copytree(root/'executors/minimal/python',staging/'python',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
 paths=[staging/'python',staging]
 modules=[]
-for file in sorted((root/'components').glob('*/*/component.json')):
+for file in sorted((root/'extensions/multi_agent').glob('*/*/component.json')):
     m=json.loads(file.read_text(encoding='utf-8'))
     for section,key in [('python','path')]:
         relative=m.get(section,{}).get(key)

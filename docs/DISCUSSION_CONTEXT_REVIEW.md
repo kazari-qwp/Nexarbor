@@ -2,8 +2,8 @@
 
 ## 提示词与指南
 
-- Recorder：components/agent_presets/recorder/prompt.md
-- 讨论成员指南：components/network_presets/discussion_group/members/AGENTS.md
+- Recorder：extensions/multi_agent/nodes/agent_recorder/prompt.md
+- 讨论成员指南：extensions/multi_agent/network_presets/discussion_group/members/AGENTS.md
 
 ## 输出板描述原文
 

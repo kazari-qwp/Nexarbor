@@ -2,20 +2,20 @@
 
 ## 文档
 
-- 去中心化组成员：`components/network_presets/decentralized_group/members/AGENTS.md`。
-- 讨论组成员：`components/network_presets/discussion_group/members/AGENTS.md`。
+- 去中心化组成员：`extensions/multi_agent/network_presets/decentralized_group/members/AGENTS.md`。
+- 讨论组成员：`extensions/multi_agent/network_presets/discussion_group/members/AGENTS.md`。
 
 ## 工具与工具箱描述
 
-`datanet_command_logs`，来源 `components/tools/command_logs/tools.json`：
+`datanet_command_logs`，来源 `extensions/multi_agent/capabilities/command_logs/tools.json`：
 
 > 查询已执行命令的日志。
 
-`datanet_team_finish`，来源 `components/network_presets/decentralized_group/tools.json`：
+`datanet_team_finish`，来源 `extensions/multi_agent/network_presets/decentralized_group/tools.json`：
 
 > 提交成果与验收材料，或批准、否决当前候选。
 
-`command_logs` 工具箱，来源 `components/toolboxes/command_logs/box.json`：
+`command_logs` 工具箱，来源 `extensions/multi_agent/toolboxes/command_logs/box.json`：
 
 > 终端日志查询。
 
@@ -35,11 +35,11 @@
 
 ## 运行时提示
 
-讨论任务消息中替换的公共笔记说明，来源 `components/network_presets/discussion_group/python/datanet/features/network_presets/discussion_group/runtime.py`：
+讨论任务消息中替换的公共笔记说明，来源 `extensions/multi_agent/capabilities/discussion_group/python/datanet/features/network_presets/discussion_group/runtime.py`：
 
 > 公共笔记使用轮初共同快照；Recorder用write_resident_text维护，更新在下一轮可见。
 
-未批准成员结束循环时的提示，来源 `components/network_presets/decentralized_group/python/datanet/features/network_presets/decentralized_group/runtime.py`：
+未批准成员结束循环时的提示，来源 `extensions/multi_agent/capabilities/decentralized_group/python/datanet/features/network_presets/decentralized_group/runtime.py`：
 
 > 共同目标尚未收尾。依据当前协作状态继续推进；已有候选时阅读验收材料，有异议指出具体问题，无异议提交批准。
 

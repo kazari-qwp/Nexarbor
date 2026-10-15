@@ -1,0 +1,64 @@
+{
+  "read_round": {
+    "name": "read_round",
+    "description": "读取本组上轮讨论快照；不读取本轮其他人的实时提交。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "submit_round": {
+    "name": "submit_round",
+    "description": "向公共黑板追加本轮发言并结束本轮。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "skip_round": {
+    "name": "skip_round",
+    "description": "明确跳过本轮并结束。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "datanet_discuss": {
+    "name": "datanet_discuss",
+    "description": "运行或续跑讨论小组，由 Recorder 汇总成果；完成后传入 task 开始新任务。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "group_id": {
+          "type": "string"
+        },
+        "task": {
+          "type": "string",
+          "description": "完成后填写即开始新任务；省略时续跑未完成任务或读取已有成果。"
+        }
+      },
+      "required": [
+        "group_id"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

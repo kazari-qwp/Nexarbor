@@ -17,7 +17,6 @@ import {trackApprovals} from './approval-state.js';
 import {installWindowsPythonCompat} from './windows-python.js';
 import {prepareWindowsWorkspace} from './windows-workspace.js';
 import {installWindowsTerminal} from './windows-terminal.js';
-import {installRequestRecovery} from './request-recovery.js';
 
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof Error?String(item.message):typeof item==='function'?undefined:item));
@@ -66,7 +65,8 @@ async function createRuntime(ctx,config,rootAgent,owned){
   let bridge;
   const call=(method,params={},timeout)=>bridge.call(method,params,timeout);
   const agentFor=actor=>{const value=native.get(actor);if(!value)throw new Error('Agent is not mounted: '+actor);return value;};
-  const extensions=new ComponentExtensions(root,agentFor);
+  const extensionRoot=path.resolve(config.extensionRoot??path.join(root,'extensions','.none'));
+  const extensions=new ComponentExtensions(extensionRoot,agentFor);
   function render(view,entry){
     for(const section of view.sections??[]){
       if(entry.sections.has(section.owner+':'+section.name))continue;
@@ -88,7 +88,6 @@ async function createRuntime(ctx,config,rootAgent,owned){
     agent.ctx.systemPrompt.section({name:'datanet:role',order:90,interpolate:false,text:()=>entry.view.prompt??''});
     const own=payload=>!payload?.agent||payload.agent===agent;
     installWindowsTerminal(agent.ctx,agent,workspace);
-    installRequestRecovery(agent.ctx,agent);
     agent.ctx.on('agent/prepare-context',async()=>{await event(actor,'context/prepare');});
     agent.ctx.on('agent/request-tail',async(_payload,next)=>{
       const tail=await next();if(bridge?.closed)return tail;
@@ -175,7 +174,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
   }
   const source=path.join(root,'.venv','Scripts','python.exe'),useSource=!config.backend&&existsSync(source);
   bridge=new Bridge(config.backend??(useSource?source:path.join(root,'adapters/harness/runtime/backend/datanet-backend.exe')),directory,config.backendArgs??(useSource?[path.join(root,'adapters/harness/backend/server.py')]:[]),{
-    DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:path.join(root,'components'),DATANET_COMPONENT_PROFILE:JSON.stringify(config.components??{}),PYTHONDONTWRITEBYTECODE:'1'
+    DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:extensionRoot,DATANET_COMPONENT_PROFILE:JSON.stringify(config.components??{}),PYTHONDONTWRITEBYTECODE:'1'
   },host);
   try{await call('ping');await call('application/start',{config},0);}catch(error){await bridge.close();throw error;}
   {

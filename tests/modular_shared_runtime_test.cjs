@@ -22,7 +22,7 @@ const base=productRoot;
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']]){await host.plugin(native(name)[service]??native(name).default);}
  host.provide('sessionTitle',{rename(){}});host.sessions.flush=async()=>{};
  await host.plugin(loop.namespace.default,{agents:[]});
- const controller=await entry.namespace.createAdapter(host,{workspace:temp,storage:path.join(temp,'.datanet'),...(process.env.DATANET_TEST_PYTHON?{backend:process.env.DATANET_TEST_PYTHON,backendArgs:[base+'/adapters/harness/backend/server.py']}:{}),rootNetwork:'project_root',rootToolboxes:['network_access','node_creation','agent_management','agent_delegation','interface_management','discussion'],maxSignalStrength:100});
+ const controller=await entry.namespace.createAdapter(host,{extensionRoot:path.join(productRoot,'extensions','multi_agent'),workspace:temp,storage:path.join(temp,'.datanet'),...(process.env.DATANET_TEST_PYTHON?{backend:process.env.DATANET_TEST_PYTHON,backendArgs:[base+'/adapters/harness/backend/server.py']}:{}),rootNetwork:'project_root',rootToolboxes:['network_access','node_creation','agent_management','agent_delegation','interface_management','discussion'],maxSignalStrength:100});
  const llm=native('dsh-llm');
  class Model extends llm.LlmAdapter {
   requests=[];
@@ -71,7 +71,7 @@ const base=productRoot;
  assert.equal(completed.status,'completed',JSON.stringify(completed));assert.match(JSON.stringify(completed.result),/ok/);
  assert.ok(r.sessions.get('root/worker').handle.agent.session.deriveMessages().some(m=>m.role==='assistant'));
  console.log('PASS duplex RPC: Python delegates while native AgentLoop forwards events; result returned and report stored');
- const schemas=host.tools.schemas(root);await r.components.disable('nodes/text');assert.deepEqual(host.tools.schemas(root),schemas);
+ const schemas=host.tools.schemas(root);await r.components.disable('capabilities/text');assert.deepEqual(host.tools.schemas(root),schemas);
  const revoked=await host.tools.execute({agent:root,name:tool.name,arguments:{},callId:'revoked',signal:new AbortController().signal});assert.equal(revoked.isError,true);
  await send('component removed');assert.ok(!JSON.stringify(model.requests.at(-1).messages).includes('second'));
  console.log('PASS component removal: tool definitions retained, execution revoked and resident tail removed');

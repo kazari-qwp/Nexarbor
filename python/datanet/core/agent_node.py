@@ -12,6 +12,12 @@ class AgentNode(Node):
         self.file_path = Path(file_path).resolve()
         self._memory_lock = RLock()
         self.creation_options = dict(creation_options or {})
+        self.register_agent_tool('memory_read', self.read_memory,
+            description='读取自己的记忆文件。',
+            parameters={'type':'object','properties':{},'additionalProperties':False})
+        self.register_agent_tool('memory_write', self.write_memory,
+            description='更新自己的记忆文件。',
+            parameters={'type':'object','properties':{'content':{'type':'string'},'mode':{'type':'string','enum':['replace','append']}},'required':['content'],'additionalProperties':False})
 
     def read_memory(self):
         with self._memory_lock:

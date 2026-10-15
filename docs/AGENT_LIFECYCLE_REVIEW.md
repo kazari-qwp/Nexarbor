@@ -4,17 +4,17 @@
 
 | 用途 | 文档 |
 |---|---|
-| 创建 Agent 节点 | [AGENTS.md](../components/tools/network_management/guides/datanet_create_agent/AGENTS.md) |
-| 拆链确认、保存目录与重新连接 | [AGENTS.md](../components/tools/network_management/guides/datanet_interfaces/AGENTS.md) |
-| 异步委托与结果等待 | [AGENTS.md](../components/tools/agent_delegation/AGENTS.md) |
-| 网络管理总指南 | [AGENTS.md](../components/skills/network_management/resources/AGENTS.md)、[SKILL.md](../components/skills/network_management/resources/SKILL.md) |
-| 小组预设指南 | [AGENTS.md](../components/network_presets/discussion_group/AGENTS.md) |
-| 小组提示词 | [Leader](../components/agent_presets/leader/prompt.md)、[Recorder](../components/agent_presets/recorder/prompt.md)、[Member](../components/agent_presets/member/prompt.md) |
-| 通用 Worker 提示词 | [prompt.md](../components/agent_presets/worker/prompt.md) |
+| 创建 Agent 节点 | [AGENTS.md](../extensions/multi_agent/capabilities/tools_network_management/guides/datanet_create_agent/AGENTS.md) |
+| 拆链确认、保存目录与重新连接 | [AGENTS.md](../extensions/multi_agent/capabilities/tools_network_management/guides/datanet_interfaces/AGENTS.md) |
+| 异步委托与结果等待 | [AGENTS.md](../extensions/multi_agent/capabilities/agent_delegation/AGENTS.md) |
+| 网络管理总指南 | [AGENTS.md](../extensions/multi_agent/capabilities/network_management/resources/AGENTS.md)、[SKILL.md](../extensions/multi_agent/capabilities/network_management/resources/SKILL.md) |
+| 小组预设指南 | [AGENTS.md](../extensions/multi_agent/network_presets/discussion_group/AGENTS.md) |
+| 小组提示词 | [Leader](../extensions/multi_agent/nodes/agent_leader/prompt.md)、[Recorder](../extensions/multi_agent/nodes/agent_recorder/prompt.md)、[Member](../extensions/multi_agent/nodes/agent_member/prompt.md) |
+| 通用 Worker 提示词 | [prompt.md](../extensions/multi_agent/nodes/agent_worker/prompt.md) |
 
 ## 工具描述原文
 
-静态描述来源：[tools.json](../components/tools/network_management/tools.json)。对应通道入口沿用同一描述。
+静态描述来源：[tools.json](../extensions/multi_agent/capabilities/tools_network_management/tools.json)。对应通道入口沿用同一描述。
 
 **datanet_create_agent**
 
@@ -40,7 +40,7 @@
 查看预设与已保存的离线网络；指定 ID 查看对应说明或保存清单。
 ```
 
-动态描述来源：[网络管理 runtime.py](../components/tools/network_management/python/datanet/features/tools/network_management/runtime.py)、[异步委托 runtime.py](../components/tools/agent_delegation/python/datanet/features/tools/agent_delegation/runtime.py)。
+动态描述来源：[网络管理 runtime.py](../extensions/multi_agent/capabilities/tools_network_management/python/datanet/features/tools/network_management/runtime.py)、[异步委托 runtime.py](../extensions/multi_agent/capabilities/agent_delegation/python/datanet/features/tools/agent_delegation/runtime.py)。
 
 **datanet_memory_read**
 

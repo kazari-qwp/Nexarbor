@@ -3,7 +3,7 @@ from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 class Rpc:
     def __init__(self,directory,profile=None,binary=False):
-        env={**os.environ,'DATANET_PRODUCT_ROOT':str(ROOT),'DATANET_COMPONENT_ROOT':str(ROOT/'components'),'DATANET_COMPONENT_PROFILE':json.dumps(profile or {}),'PYTHONUTF8':'1','PYTHONDONTWRITEBYTECODE':'1'}
+        env={**os.environ,'DATANET_PRODUCT_ROOT':str(ROOT),'DATANET_COMPONENT_ROOT':str(ROOT/'extensions/multi_agent'),'DATANET_COMPONENT_PROFILE':json.dumps(profile or {}),'PYTHONUTF8':'1','PYTHONDONTWRITEBYTECODE':'1'}
         args=[str(ROOT/'adapters/harness/runtime/backend/datanet-backend.exe')] if binary else [sys.executable,str(ROOT/'adapters/harness/backend/server.py')]
         self.process=subprocess.Popen([*args,str(directory)],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',errors='replace')
     def call(self,name,**params):
@@ -32,11 +32,11 @@ node.toolboxes=['local_data']
 toolboxes()['local_data'](node)
 definition=dict(node.tool_definitions['write'])
 enabled=enabled_components()
-enabled.remove('toolboxes/local_data')
+enabled.remove('capabilities/local_data')
 assert node.invoke_tool('write',key='value',value=9).status=='forbidden'
 assert node.read({'method':'key','key':'value'}).items[0]['value']==7
 assert node.tool_definitions['write']==definition
-enabled.add('toolboxes/local_data')
+enabled.add('capabilities/local_data')
 assert node.invoke_tool('write',key='value',value=9).status=='ok'
 assert node.read({'method':'key','key':'value'}).items[0]['value']==9
 '''
@@ -49,7 +49,7 @@ assert node.read({'method':'key','key':'value'}).items[0]['value']==9
                 result=b.result('create_node',actor='root',child_id='value',node_spec={'type':'value','parameters':{'value':7},'toolboxes':['local_data'],'expose':['read','get_schema','write']},options={'allow_custom':True,'scope':'descendants'})
                 self.assertEqual(result['status'],'ok',result)
             finally:b.close()
-            b=Rpc(directory,{'toolboxes/local_data':False})
+            b=Rpc(directory,{'capabilities/local_data':False})
             try:
                 for tool,args,direction in [('read',{'request':{'method':'key','key':'value'}},'read'),('get_schema',{},'read'),('write',{'key':'value','value':9},'write')]:
                     result=b.result('invoke_tool',actor='root',target='root/value',tool=tool,arguments=args,direction=direction,strength=100)
@@ -73,7 +73,7 @@ assert node.read({'method':'key','key':'value'}).items[0]['value']==9
                 b.result('bind_agent',target='root',kind='root',session_id='test-root',creator_node_id=None)
                 feedback=b.result('report_feedback',actor='root',category='other',message='保存该反馈')
             finally:b.close()
-            b=Rpc(directory,{'network_presets/discussion_group':False,'toolboxes/problem_handling':False})
+            b=Rpc(directory,{'capabilities/discussion_group':False,'capabilities/problem_handling':False})
             try:
                 info=b.result('recovery_info');self.assertEqual(info['groups'],{});self.assertEqual(info['feedback'],[])
                 self.assertIn('unknown method',b.call('start_round',group_id='persist')['error'])
@@ -94,7 +94,7 @@ assert node.read({'method':'key','key':'value'}).items[0]['value']==9
                 value=b.result('create_node',actor='root',child_id='value',node_spec={'type':'value','parameters':{'value':7}},options={'allow_custom':True,'scope':'descendants'})
                 self.assertEqual(value['status'],'ok',value)
             finally:b.close()
-            b=Rpc(directory,{'nodes/text':False,'nodes/value':False})
+            b=Rpc(directory,{'capabilities/text':False,'capabilities/value':False})
             try:
                 self.assertIn('unknown method',b.call('text_bindings',actor='root')['error'])
                 result=b.result('read',actor='root',target='root/project',request={'method':'key','key':'content'},strength=100)

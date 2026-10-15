@@ -1,0 +1,33 @@
+{
+  "datanet_contacts_channel": {
+    "name": "datanet_contacts_channel",
+    "description": "进入联系通道，查看可主动联系的 Agent。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  "datanet_pending_messages": {
+    "name": "datanet_pending_messages",
+    "description": "查看工单和回复，或结束无需继续处理的消息。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "read",
+            "close"
+          ],
+          "default": "read"
+        },
+        "message_id": {
+          "type": "string",
+          "description": "close 时填写要结束的消息 ID。"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -5,7 +5,7 @@ from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
 os.environ['DATANET_PRODUCT_ROOT'] = str(ROOT)
-os.environ['DATANET_COMPONENT_ROOT'] = str(ROOT / 'components')
+os.environ['DATANET_COMPONENT_ROOT'] = str(ROOT / 'extensions/multi_agent')
 sys.path.insert(0, str(ROOT / 'adapters/harness/backend'))
 import config
 from server import Backend
@@ -54,7 +54,7 @@ class NativePort:
         if name == 'run':
             if self.failure:
                 raise RuntimeError(self.failure)
-            discussion = self.app.plugins['network_presets/discussion_group']
+            discussion = self.app.plugins['capabilities/discussion_group']
             turn = discussion.turns.get(actor)
             if turn and turn['final']:
                 self.app.invoke(actor, 'node_write', dict(target=turn['expected_output'], key='content', value='全部测试完成'))
@@ -77,7 +77,7 @@ class ApplicationTests(unittest.TestCase):
         self.native = NativePort()
         self.app = Application(self.backend, self.native, dict(rootNetwork='project_root', rootToolboxes=['network_access', 'node_creation', 'agent_management', 'interface_management', 'discussion', 'self_repair', 'network_management_skill'], maxSignalStrength=100))
         self.native.app = self.app
-        self.app.plugins['tools/network_management'].bind_root('root-session')
+        self.app.plugins['capabilities/tools_network_management'].bind_root('root-session')
 
     def tearDown(self):
         for plugin in self.app.plugins.values():
@@ -132,7 +132,7 @@ class ApplicationTests(unittest.TestCase):
         group = self.group()
         member = group['members'][2]
         receipt = self.invoke('datanet_send_message', dict(target=member, content='请回复'))
-        message = self.app.plugins['toolboxes/agent_messaging'].store.data['messages'][receipt['message_id']]
+        message = self.app.plugins['capabilities/agent_messaging'].store.data['messages'][receipt['message_id']]
         reply = message['reply_tool']
         self.assertEqual(self.native.tools[member][reply]['description'], '仅用来回复此条消息，调用一次后失效')
         self.invoke(reply, dict(content='已收到'), member)
@@ -164,29 +164,29 @@ class ApplicationTests(unittest.TestCase):
         self.assertIn(('root', 'tool:datanet_resolve_feedback'), self.native.documents)
         self.invoke('handle_problem', dict(problem='下属未完成操作', origin='subordinate', origin_node_id=member))
         self.invoke('problem_defer', dict(reason='下属没有工具', impact='操作部分未完成', continuation='当前任务允许正常报告失败'))
-        self.assertFalse(self.app.plugins['toolboxes/problem_handling'].active('root'))
+        self.assertFalse(self.app.plugins['capabilities/problem_handling'].active('root'))
         self.assertEqual(len(self.backend.feedback), 1)
-        problem = self.app.plugins['toolboxes/problem_handling']
+        problem = self.app.plugins['capabilities/problem_handling']
         for _ in range(3):
             problem.reserve('root', member, 'execute')
         with self.assertRaisesRegex(RuntimeError, 'RECOVERY_LIMIT_REACHED'):
             problem.reserve('root', member, 'execute')
-        removed = self.app.disable('toolboxes/experience')
-        self.assertIn('toolboxes/problem_handling', removed)
+        removed = self.app.disable('capabilities/experience')
+        self.assertIn('capabilities/problem_handling', removed)
         with self.assertRaises(PermissionError):
             self.invoke('datanet_resolve_feedback', dict(target=member, action='inspect'))
         self.assertIn('node_read', self.native.tools['root'])
 
     def test_reports_unplug_keeps_execution_and_discussion(self):
-        self.app.disable('tools/reports')
+        self.app.disable('capabilities/reports')
         group = self.group()
         result = self.invoke('datanet_discuss', dict(group_id=group['group_id'], task='独立于报告模块完成讨论'))
         self.assertEqual(result['status'], 'ok')
         self.assertIsNone(result['report_reference'])
         self.assertEqual(result['output'][0]['content'], '全部测试完成')
-        records = self.app.plugins['tools/execution_records']
+        records = self.app.plugins['capabilities/execution_records']
         self.assertTrue(records.last_completed)
-        self.assertNotIn('tools/reports', self.app.plugins)
+        self.assertNotIn('capabilities/reports', self.app.plugins)
 
 
 if __name__ == '__main__':

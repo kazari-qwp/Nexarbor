@@ -6,14 +6,14 @@
 
 **多 Agent 协作是这套核心框架的第一个应用。** 当前的讨论组、项目执行组和客户端测试，正在验证核心框架组织智能、连接数据与驱动工作流程的能力。接下来的数据库与动态世界应用，将沿用并继续发展同一套基础。
 
-代码、Python命名空间与Harness插件目前沿用 `DataNet` / `datanet` 标识；项目中文名称暂定为天网。当前插件版本为 **0.3.16**。
+代码、Python命名空间与Harness插件目前沿用 `DataNet` / `datanet` 标识；项目中文名称暂定为天网。当前插件版本为 **0.4.0**。
 
 ## 项目结构：一个核心，三个应用
 
 ```mermaid
 flowchart TB
     Core["天网核心网络框架<br/>节点 · 定向连接 · 访问协议 · 状态与事件 · 持久化"]
-    Components["可组合组件<br/>工具 · Skill · 网络预设 · 工具箱 · Agent预设 · 节点"]
+    Components["可组合组件<br/>节点配置 · 能力 · 工具箱 · 网络预设"]
     Core --> Components
     Components --> Agents["应用一：多Agent协作<br/>已实现并完成端到端验证"]
     Components --> Database["应用二：网络化数据库<br/>已有数据节点基础，完整应用规划中"]
@@ -35,7 +35,7 @@ flowchart TB
 | 组件清单与依赖装配 | 独立添加、启用、停用和替换能力，保留持久数据 |
 | 通用事件与宿主通信接口 | 组件响应图变更、执行和上下文事件；宿主特有的循环、会话和工具由适配层对接 |
 
-Python核心框架位于 `python/datanet/core/`。讨论、协作、经验、排障、报告、异步队列与驻留策略等应用能力位于 `components/`。Harness适配位于 `adapters/harness/`，通过双向RPC连接Python本体与原生运行时。
+Python核心框架位于 `python/datanet/core/`。讨论、协作、经验、排障、报告、异步队列与驻留策略等应用能力位于 `extensions/multi_agent/`。Harness 适配位于 `adapters/harness/`；`executors/minimal/` 提供不依赖 Harness 的可选模型循环。核心、适配层、执行器和协作扩展包分别维护。
 
 **可组合、可拔插和可持续演化，是核心架构的设计重点。** 新的工作方式可以形成网络预设，新的能力可以形成工具或工具箱，新的数据形态可以形成节点；这些扩展可以继续服务后续应用。
 
@@ -85,11 +85,11 @@ Python核心框架位于 `python/datanet/core/`。讨论、协作、经验、排
 当前提供Windows x64后端，已在DeepSeek Harness `0.2.0-rc.2`环境验证。
 
 1. 准备客户端、模型服务与API配置。
-2. 在客户端导入已构建的 `datanet-harness-0.3.16.tgz`，启用插件。
+2. 在客户端导入已构建的 `datanet-harness-0.4.0.tgz`，启用插件。
 3. 配置 `cordis.patch.yml` 中的工作目录、存储位置与模型路线。
 4. 进入网络管理Skill，或直接使用网络管理工具创建节点及网络。
 
-本地最新构建包位于 `build/datanet-harness-0.3.16.tgz`；构建目录不提交Git。源码仓库可按下方步骤生成安装包，之后再提供发布资产。
+本地最新构建包位于 `build/datanet-harness-0.4.0.tgz`；构建目录不提交Git。源码仓库可按下方步骤生成安装包，之后再提供发布资产。
 
 Agent循环、工具执行和会话由Harness原生运行时负责，天网组件负责网络结构与业务协作。模型配置与登录使用宿主客户端设置。
 
@@ -106,17 +106,20 @@ $env:PYTHONPATH = (Join-Path (Get-Location) "python")
 ```python
 from datanet.core.network import Network
 from datanet.core.interface import Interface
-from datanet.core.component_registry import codecs
+from datanet.core.node import Node
+from datanet.core.text_node import TextFileNode
+from datanet.core.agent_node import AgentNode
 
 network = Network()
-ValueNode = codecs()["value"].node_class
-source = ValueNode("source", "访问起点", "value", None)
-data = ValueNode("data", "数据节点", "value", {"message": "你好，天网"})
-source.read_interfaces.append(Interface("data"))
+source = Node("source", "访问起点", None)
+data = TextFileNode("data", "数据节点", "text", "data.md")
+data.write("content", "你好，天网", mode="upsert")
+source.read_interfaces.append(Interface("data", visibility="public"))
 network.add_node(source)
 network.add_node(data)
+network.add_node(AgentNode("worker", "Agent", file_path="worker-memory.md"))
 
-result = network.read("source", {"method": "key", "key": "value"})
+result = network.read("source", {"method": "key", "key": "content"}, strength=1)
 print(result.items)
 ```
 
@@ -126,11 +129,11 @@ Python建议使用3.11。基础图与访问协议使用标准库；组件依赖�
 
 ```powershell
 python scripts/components.py list
-python scripts/components.py disable toolboxes/experience
-python scripts/components.py enable toolboxes/experience
+python scripts/components.py disable capabilities/experience
+python scripts/components.py enable capabilities/experience
 ```
 
-配置保存到 `components/profile.json`，重启时生效。停用组件会连带停用依赖它的组件，已有节点、文件和业务状态保留。宿主也可通过 `config.components` 覆盖配置。
+配置保存到 `extensions/multi_agent/profile.json`，重启时生效。停用组件会连带停用依赖它的组件，已有节点、文件和业务状态保留。宿主也可通过 `config.components` 覆盖配置。
 
 增加组件时，在对应类别下新建目录与 `component.json`，声明入口、依赖、资源和工具归属。框架按清单发现组件。组件接口见[架构说明](docs/ARCHITECTURE.md)。
 
@@ -138,7 +141,8 @@ python scripts/components.py enable toolboxes/experience
 
 ```text
 python/datanet/core/       核心网络框架
-components/               六类可组合能力与应用组件
+extensions/multi_agent/   可拔插的协作扩展包（四类组件）
+executors/minimal/        可选的独立 Agent 执行器
 adapters/harness/         Harness通信、运行时与平台适配
 scripts/                  组件管理、构建与评估工具
 tests/                    基础协议、组件及原生联通测试

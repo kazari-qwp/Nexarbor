@@ -1,0 +1,55 @@
+{
+  "id": "capabilities/discussion_group",
+  "kind": "capabilities",
+  "enabled": true,
+  "requires": [
+    "nodes/agent_discussion_leader",
+    "nodes/agent_discussion_member",
+    "nodes/agent_discussion_recorder",
+    "nodes/agent_leader",
+    "nodes/agent_member",
+    "nodes/agent_recorder",
+    "capabilities/text",
+    "capabilities/tools_network_management",
+    "capabilities/agent_identity"
+  ],
+  "tools": [
+    "datanet_discuss",
+    "read_round",
+    "submit_round",
+    "skip_round"
+  ],
+  "toolPatterns": [],
+  "guide": "AGENTS.md",
+  "preset": "discussion_group",
+  "toolPolicies": {
+    "datanet_discuss": {
+      "properties": {}
+    },
+    "read_round": {
+      "properties": {}
+    },
+    "submit_round": {
+      "properties": {}
+    },
+    "skip_round": {
+      "properties": {}
+    }
+  },
+  "python": {
+    "node_codecs": [
+      "datanet.components.nodes.discussion_board_node.codec"
+    ],
+    "path": "python",
+    "services": [
+      "datanet.services.network_presets.discussion_group.services"
+    ],
+    "runtime": "datanet.features.network_presets.discussion_group.runtime"
+  },
+  "configurationFields": [
+    "discussionToolboxes",
+    "discussionMaxSignalStrength"
+  ],
+  "toolDefinitions": "tools.json",
+  "resources": "../../network_presets/discussion_group"
+}

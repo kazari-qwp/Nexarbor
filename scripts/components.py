@@ -1,7 +1,8 @@
 """Enable/disable catalog entries for the next Harness startup."""
 from pathlib import Path
-import json, sys, argparse
+import json, sys, argparse, os
 root=Path(__file__).resolve().parents[1]
+os.environ.setdefault('DATANET_COMPONENT_ROOT',str(root/'extensions/multi_agent'))
 sys.path.insert(0,str(root/'python'))
 from datanet.core.component_registry import manifests
 parser=argparse.ArgumentParser()
@@ -9,7 +10,7 @@ parser.add_argument('action',choices=['list','enable','disable'])
 parser.add_argument('ids',nargs='*')
 args=parser.parse_args()
 catalog={m['id']:m for m in manifests()}
-file=root/'components/profile.json'
+file=root/'extensions/multi_agent/profile.json'
 profile=json.loads(file.read_text(encoding='utf-8')) if file.exists() else {}
 if args.action!='list':
     if not args.ids:parser.error('Supply at least one component ID')

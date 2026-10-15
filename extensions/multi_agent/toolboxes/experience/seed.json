@@ -1,0 +1,80 @@
+[
+  {
+    "id": "delegation-result",
+    "applies": [
+      {
+        "kind": "common",
+        "id": "*"
+      }
+    ],
+    "trigger": "向上级返回委托结果",
+    "advice": "用正常回复返回结果；不要反向委托父 Agent。空数据 Node 不能保存报告，需要写入明确指定的可写数据节点。",
+    "evidence": "organization-management-final-20261011 与前次失败记录。",
+    "version": "datanet-harness 0.2.7+",
+    "core": true
+  },
+  {
+    "id": "discussion-scheduling",
+    "applies": [
+      {
+        "kind": "toolbox",
+        "id": "agent_delegation"
+      },
+      {
+        "kind": "tool",
+        "id": "datanet_call_agent"
+      }
+    ],
+    "trigger": "委托小组讨论成员",
+    "advice": "讨论成员只能由 datanet_discuss 调度。节点可达不代表能使用其 Agent 私有工具；执行任务请委托普通 Agent。",
+    "evidence": "organization-management-final-20261011，私有成员管理及委托边界验证。",
+    "version": "datanet-harness 0.2.7+",
+    "core": false
+  },
+  {
+    "id": "powershell-python",
+    "applies": [
+      {
+        "kind": "tool",
+        "id": "pwsh"
+      },
+      {
+        "kind": "toolbox",
+        "id": "engineering"
+      }
+    ],
+    "trigger": "PowerShell 内联 Python 引号错误",
+    "advice": "复杂 Python 内容写入 .py 文件再运行。检查实际输出和退出码，不仅凭文件存在判断成功。",
+    "evidence": "organization-management-final-20261011：内联命令失败后运行 check_org.py，PASS 且退出码 0。",
+    "version": "PowerShell / Python",
+    "core": false
+  },
+  {
+    "id": "operator-evidence",
+    "applies": [
+      {
+        "kind": "role",
+        "id": "operator"
+      }
+    ],
+    "trigger": "操作员完成执行或测试",
+    "advice": "简短返回执行结果、关键输出和退出码；没有指定有效数据节点时直接回复，不写入空组织节点。",
+    "evidence": "organization-management-final-20261011 操作员真实执行记录。",
+    "version": "datanet-harness 0.2.7+",
+    "core": true
+  },
+  {
+    "id": "network-agent-toolbox-setup",
+    "applies": [
+      {
+        "kind": "toolbox",
+        "id": "network_management"
+      }
+    ],
+    "trigger": "创建或扩展Agent时按职责装配工具箱",
+    "advice": "提示词和连接不能产生工具权限。默认常驻datanet_call_agent（agent_delegation；无下属不要用）、handle_problem（problem_handling；问题入口）及datanet_resolve_feedback（创建者修复真实下属报错）。进入问题通道才加载experience_query、experience_submit、incident_query、incident_resolve、problem_attempt、problem_resolved、problem_defer、datanet_feedback，关闭后撤销临时工具。未解决但当前委托可继续或交付失败结果时用problem_defer保留影响；只有自身委托确实受阻才上报。自行修复需self_repair授权。文件、终端、Skill及创建管理能力按职责另配宿主允许的工具箱，不得借用其他Agent私有工具。",
+    "evidence": "框架默认基线与attachExperience/attachManagement实际装配定义。",
+    "version": "datanet-harness 0.2.7+",
+    "core": true
+  }
+]

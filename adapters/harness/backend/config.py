@@ -3,7 +3,7 @@ import os,sys,json
 default_root=Path(sys.executable).resolve().parents[4] if getattr(sys,"frozen",False) else Path(__file__).resolve().parents[3]
 PRODUCT_ROOT=Path(os.environ.get("DATANET_PRODUCT_ROOT",default_root)).resolve()
 PROJECT_ROOT=PRODUCT_ROOT
-COMPONENTS_DIR=PRODUCT_ROOT/"components"
+COMPONENTS_DIR=Path(os.environ.get("DATANET_COMPONENT_ROOT",PRODUCT_ROOT/"extensions/.none"))
 os.environ.setdefault("DATANET_COMPONENT_ROOT",str(COMPONENTS_DIR))
 sys.path.insert(0,str(PRODUCT_ROOT/"python"))
 for file in sorted(COMPONENTS_DIR.glob("*/*/component.json")):
