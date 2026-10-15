@@ -1,0 +1,61 @@
+{
+  "id": "capabilities/problem_handling",
+  "kind": "capabilities",
+  "enabled": true,
+  "requires": [
+    "capabilities/experience",
+    "capabilities/execution_records",
+    "capabilities/tools_network_management",
+    "capabilities/agent_identity"
+  ],
+  "tools": [
+    "handle_problem",
+    "problem_attempt",
+    "problem_resolved",
+    "problem_defer",
+    "datanet_feedback",
+    "datanet_resolve_feedback",
+    "datanet_recovery_status"
+  ],
+  "toolPatterns": [],
+  "toolPolicies": {
+    "handle_problem": {
+      "properties": {
+        "allow_self_repair": {
+          "type": "boolean"
+        }
+      }
+    },
+    "problem_attempt": {
+      "properties": {}
+    },
+    "problem_resolved": {
+      "properties": {}
+    },
+    "problem_defer": {
+      "properties": {}
+    },
+    "datanet_feedback": {
+      "properties": {}
+    },
+    "datanet_resolve_feedback": {
+      "properties": {}
+    },
+    "datanet_recovery_status": {
+      "properties": {}
+    }
+  },
+  "agentPolicy": {
+    "baseline": true
+  },
+  "python": {
+    "path": "python",
+    "services": [
+      "datanet.services.toolboxes.problem_handling.services"
+    ],
+    "runtime": "datanet.features.toolboxes.problem_handling.runtime"
+  },
+  "toolDefinitions": "tools.json",
+  "resources": "../../toolboxes/problem_handling",
+  "version": "0.4.0"
+}

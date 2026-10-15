@@ -13,7 +13,7 @@ for file in (root/'adapters/harness/backend').glob('*.py'):
 shutil.copytree(root/'executors/minimal/python',staging/'python',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
 paths=[staging/'python',staging]
 modules=[]
-for file in sorted((root/'extensions/multi_agent').glob('*/*/component.json')):
+for file in sorted((root/'extensions').glob('*/*/*/component.json')):
     m=json.loads(file.read_text(encoding='utf-8'))
     for section,key in [('python','path')]:
         relative=m.get(section,{}).get(key)

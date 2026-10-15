@@ -4,6 +4,7 @@ from importlib import import_module
 from pathlib import Path
 import json
 import os
+from functools import lru_cache
 
 @dataclass
 class NodeCodec:
@@ -31,21 +32,15 @@ def register_node(codec):
         raise ValueError('Duplicate node codec: ' + codec.type_id)
     _codecs[codec.type_id] = codec
 
-def component_root():
-    configured = os.environ.get('DATANET_COMPONENT_ROOT')
-    if configured:
-        return Path(configured)
-    return Path(__file__).resolve().parents[3] / 'extensions' / '.none'
+from datanet.component_catalog import component_root, discover, resolve, mount_paths
 
 def manifests():
-    root = component_root()
-    for file in sorted(root.glob('*/*/component.json')):
-        value=json.loads(file.read_text(encoding='utf-8'))
-        if value['kind'] not in ('capabilities','nodes','toolboxes','network_presets'):raise ValueError('Unknown extension kind')
-        value['implementation_directory']=file.parent
-        value['directory']=(file.parent/value.get('resources','.')).resolve()
-        if not value['directory'].is_relative_to(root.resolve()):raise ValueError('Resource outside extension package')
-        yield value
+    yield from _manifest_catalog(str(component_root())).values()
+
+
+@lru_cache(maxsize=8)
+def _manifest_catalog(root):
+    return discover(root)
 
 
 def ensure_nodes():
@@ -64,7 +59,9 @@ def ensure_nodes():
     register_node(NodeCodec('text_file',TextFileNode,encode_text,decode_text,parameter_fields=['file_path','max_chars'],description='UTF-8 text file',resources=('file_path',)))
     from datanet.core.agent_node import AgentNode
     register_node(NodeCodec('agent',AgentNode,lambda node,base:{'file_path':os.path.relpath(node.file_path,base),'creation_options':node.creation_options},lambda common,p,base:AgentNode(*common,file_path=base/p['file_path'],creation_options=p.get('creation_options')),parameter_fields=['file_path','creation_options'],resources=('file_path',),local_read=False,local_write=False,local_schema=False))
-    for manifest in manifests():
+    catalog, order = mount_paths()
+    for key in order:
+        manifest = catalog[key]
         for module in manifest.get('python', {}).get('node_codecs', []):
             before=dict(_codecs)
             _replacement_types.update(manifest.get('replacesNodeTypes',[]))
@@ -82,6 +79,9 @@ def codecs():
     return _codecs
 
 def codec_for_node(node):
+    from datanet.core.dormant_node import DormantNode
+    if isinstance(node, DormantNode):
+        return NodeCodec(node.original_type, DormantNode, lambda n, base: n.original_parameters, None)
     return next((codec for codec in codecs().values() if type(node) is codec.node_class))
 
 def attach_local_tools(node):
@@ -124,7 +124,17 @@ def register_toolbox(name, installer):
 
 def toolboxes():
     ensure_nodes()
-    return {name: _guarded_installer(name, installer) for name, installer in _toolboxes.items()}
+    result = {name: _guarded_installer(name, installer) for name, installer in _toolboxes.items()}
+    for manifest in manifests():
+        if manifest['id'] not in enabled_components() and manifest.get('python', {}).get('toolbox_installers'):
+            name = manifest['id'].split('/')[-1]
+            def install(node, owner=manifest['id']):
+                from datanet.core.node import NodeResult
+                for tool in set(node.expose) | set(node.tool_definitions):
+                    old = node.tool_definitions.get(tool, {})
+                    node.register_tool(tool, lambda **args: NodeResult(status='forbidden', errors=['Component is disabled: ' + owner]), description='Component disabled', parameters=old.get('parameters', {'type':'object'}), read_only=old.get('read_only', tool not in {'write', 'delete'}))
+            result[name] = install
+    return result
 
 def _guarded_installer(name, installer):
     owner = _toolbox_owners.get(name)
@@ -145,18 +155,14 @@ def _guarded_installer(name, installer):
 def enabled_components():
     global _enabled
     if _enabled is None:
-        catalog={m['id']:m for m in manifests()}
-        file=component_root()/'profile.json'
-        profile=json.loads(file.read_text(encoding='utf-8')) if file.exists() else {}
-        profile.update(json.loads(os.environ.get('DATANET_COMPONENT_PROFILE','{}')))
-        _enabled={id for id,m in catalog.items() if profile.get(id,m.get('enabled',True))}
-        while True:
-            inactive={id for id in _enabled if any(dep not in _enabled for dep in catalog[id].get('requires',[]))}
-            if not inactive:break
-            _enabled.difference_update(inactive)
+        _, order, _ = resolve()
+        _enabled = set(order)
     return _enabled
 
 def node_enabled(node):
+    from datanet.core.dormant_node import DormantNode
+    if isinstance(node, DormantNode):
+        return False
     codec=codec_for_node(node)
     owner=_owners.get(codec.type_id)
     return owner is None or owner in enabled_components()

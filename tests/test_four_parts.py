@@ -48,7 +48,7 @@ class FourPartTests(unittest.TestCase):
             frozen=root/'build/frozen/_internal'/module
             resolved=resource_directory(frozen)/'prompts/paragraph_attribution.md'
             assert resolved.exists(),resolved
-            assert resolved.is_relative_to(root/'extensions/multi_agent/nodes/llamaindex')
+            assert resolved.is_relative_to(root/'extensions/storage/nodes/llamaindex')
         """)
 
     def test_only_capabilities_contain_extension_code(self):
@@ -56,7 +56,9 @@ class FourPartTests(unittest.TestCase):
         for file in package.rglob('*'):
             if file.suffix in ('.py','.js','.cjs','.mjs'):
                 self.assertEqual(file.relative_to(package).parts[0],'capabilities',str(file))
-        bindings=json.loads((package/'tool-bindings.json').read_text(encoding='utf8'))
+        from datanet.component_catalog import discover, tool_bindings
+        catalog=discover(package)
+        bindings=tool_bindings(catalog,list(catalog))
         for file in (package/'toolboxes').glob('*/box.json'):
             box=json.loads(file.read_text(encoding='utf8'))
             self.assertLessEqual(set(box),{'id','description','tools'},str(file))

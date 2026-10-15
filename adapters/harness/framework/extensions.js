@@ -1,16 +1,17 @@
 // Generic bridge for component-owned Harness extensions.
 import path from 'node:path';
-import {readFile} from 'node:fs/promises';
 import {pathToFileURL} from 'node:url';
 export class ComponentExtensions{
-  constructor(root,agentFor){this.root=root;this.agentFor=agentFor;this.entries=new Map();}
+  constructor(agentFor){this.agentFor=agentFor;this.entries=new Map();this.catalog=new Map();}
+  configure(entries){this.catalog=new Map(entries.map(entry=>[entry.id,entry]));}
   async invoke(p){
     if(!/^[a-z_]+\/[a-z_]+$/.test(p.component))throw new Error('Invalid component id');
     const key=p.component+':'+p.actor;
     if(!this.entries.has(key)){
       if(p.action==='dispose')return {ok:true};
-      const directory=path.join(this.root,p.component),manifest=JSON.parse(await readFile(path.join(directory,'component.json'),'utf8'));
-      if(manifest.id!==p.component||typeof manifest.harness!=='string')throw new Error('Component has no Harness extension');
+      const manifest=this.catalog.get(p.component);
+      if(!manifest||typeof manifest.harness!=='string')throw new Error('Component has no active Harness extension');
+      const directory=manifest.directory;
       const file=path.resolve(directory,manifest.harness),relative=path.relative(directory,file);
       if(relative.startsWith('..')||path.isAbsolute(relative))throw new Error('Extension outside component');
       const {agent}=this.agentFor(p.actor),module=await import(pathToFileURL(file).href);

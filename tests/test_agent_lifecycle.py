@@ -70,7 +70,7 @@ class LifecycleTests(unittest.TestCase):
 
     def test_customized_agent_is_not_reused(self):
         old = self.agent()
-        self.app.plugins['capabilities/tools_network_management'].update_prompt('root', old['node_id'], '定制角色')
+        self.app.plugins['capabilities/agent_runtime'].update_prompt('root', old['node_id'], '定制角色')
         self.detach(old['node_id'], 3)
         new = self.agent('new_worker')
         self.assertFalse(new['reused'])

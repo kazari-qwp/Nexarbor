@@ -1,28 +1,22 @@
-// Extension records are opaque to the native persistence reader.
+// Extension records remain available to our replay, while native readers may skip them.
 export const DATANET_LOG_EVENTS=new Set(['datanet/request-tail','datanet/request-recovery']);
 export function durableEvent(event){
   return DATANET_LOG_EVENTS.has(event.type)&&event.ignorable!==true?{...event,ignorable:true}:event;
 }
-const installed=new WeakSet();
-export function installSessionEventPersistence(ctx){
-  const storage=ctx.get('sessionPersistence');
-  if(!storage||installed.has(storage))return;
-  installed.add(storage);
-  const originals=new Map();
-  for(const method of ['create','open']){
-    const original=storage[method];
-    const wrapped=async function(...args){
-      const handle=await original.apply(this,args);
-      return new Proxy(handle,{get(target,key){
-        if(key==='append')return (events,...rest)=>target.append(events.map(durableEvent),...rest);
-        const value=Reflect.get(target,key,target);
-        return typeof value==='function'?value.bind(target):value;
-      }});
-    };
-    originals.set(method,{original,wrapped});storage[method]=wrapped;
+// Wrap the actual owned handle, rather than patching an optional Cordis service
+// during plugin startup. The persistence service may be loaded after AgentLoop.
+const liveWriters=new WeakSet();
+export function durableSessionHandle(handle){
+  // The native JSONL backend routes session/event directly to enqueueLive;
+  // wrapping append alone misses every event emitted after publication.
+  if(typeof handle.enqueueLive==='function'&&!liveWriters.has(handle)){
+    const enqueueLive=handle.enqueueLive;
+    handle.enqueueLive=function(event,...rest){return enqueueLive.call(this,durableEvent(event),...rest);};
+    liveWriters.add(handle);
   }
-  ctx.on('dispose',()=>{
-    for(const [method,{original,wrapped}] of originals)if(storage[method]===wrapped)storage[method]=original;
-    installed.delete(storage);
-  });
+  return new Proxy(handle,{get(target,key){
+    if(key==='append')return (events,...rest)=>target.append(events.map(durableEvent),...rest);
+    const value=Reflect.get(target,key,target);
+    return typeof value==='function'?value.bind(target):value;
+  }});
 }

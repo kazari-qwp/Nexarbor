@@ -1,4 +1,4 @@
-import {installSessionEventPersistence} from '../../session-events.js';
+import {durableSessionHandle} from '../../session-events.js';
 import { Service } from "@deepseek-ai/cordis";
 import { randomUUID } from "node:crypto";
 import z from "@deepseek-ai/schemastery";
@@ -1559,7 +1559,6 @@ var AgentLoop = class extends Service {
 	runtime;
 	constructor(ctx, config) {
 		super(ctx, "agentLoop");
-		installSessionEventPersistence(ctx);
 		this.config = {
 			agents: applyLauncherIdentities(config.agents, ctx.get(CONFIGURED_AGENT_IDENTITIES_KEY)),
 			maxParallelToolCalls: config.maxParallelToolCalls
@@ -1830,10 +1829,10 @@ var AgentLoop = class extends Service {
 		const persistence = this.runtime.ctx.get("sessionPersistence");
 		if (persistence === void 0) return void 0;
 		return {
-			handle: await persistence.create(session.header, {
+			handle: durableSessionHandle(await persistence.create(session.header, {
 				inheritedEventCount: session.inheritedEventCount,
 				...signal === void 0 ? {} : { signal }
-			}),
+			})),
 			storedCount: 0
 		};
 	}
@@ -1951,9 +1950,9 @@ var AgentLoop = class extends Service {
 			let preparation;
 			try {
 				try {
-					handle = await raceAbortCall(() => persistence.open(id, "write", { signal: fused }), fused, id, (abandoned) => {
+					handle = durableSessionHandle(await raceAbortCall(() => persistence.open(id, "write", { signal: fused }), fused, id, (abandoned) => {
 						abandoned.close();
-					});
+					}));
 					const coldRead = await handle.read(0, void 0, { signal: fused });
 					fused.throwIfAborted();
 					const persisted = coldRead.events;

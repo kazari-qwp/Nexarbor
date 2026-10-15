@@ -1,10 +1,10 @@
 # 按需通信与轮次尾部：Agent 文本原文
 
 修改的文档：
-- `extensions/multi_agent/toolboxes/agent_messaging/guides/datanet_messages/AGENTS.md`
+- `extensions/foundation/toolboxes/agent_messaging/guides/datanet_messages/AGENTS.md`
 - `extensions/multi_agent/network_presets/discussion_group/members/AGENTS.md`
 
-新增工具描述（来源 `extensions/multi_agent/toolboxes/agent_messaging/tools.json`）：
+新增工具描述（来源 `extensions/foundation/toolboxes/agent_messaging/tools.json`）：
 
 `datanet_contacts_channel`：进入联系通道，查看可主动联系的 Agent。
 

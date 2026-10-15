@@ -5,7 +5,7 @@ import json
 import hashlib
 from pathlib import Path
 from datanet.core.application import Component
-from .workspace import Workspace
+from datanet.workspace.git import Workspace
 
 
 class Plugin(Component):
@@ -66,7 +66,7 @@ class Plugin(Component):
         if e['arguments']['preset'] != 'decentralized_group' or e['arguments'].get('with_agents') is False:
             return
         group = self.r.backend.cooperative_groups[e['result']['group_id']]
-        manager = self.r.plugins['capabilities/tools_network_management']
+        manager = self.r.plugins['capabilities/agent_runtime']
         preset = self.r.presets['cooperative_worker']
         for old in list(group['members']):
             result = manager.create(old, self.r.resource(preset['owner'], preset['prompt']), e['actor'],

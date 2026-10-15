@@ -66,7 +66,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
   const call=(method,params={},timeout)=>bridge.call(method,params,timeout);
   const agentFor=actor=>{const value=native.get(actor);if(!value)throw new Error('Agent is not mounted: '+actor);return value;};
   const extensionRoot=path.resolve(config.extensionRoot??path.join(root,'extensions','.none'));
-  const extensions=new ComponentExtensions(extensionRoot,agentFor);
+  const extensions=new ComponentExtensions(agentFor);
   function render(view,entry){
     for(const section of view.sections??[]){
       if(entry.sections.has(section.owner+':'+section.name))continue;
@@ -174,9 +174,9 @@ async function createRuntime(ctx,config,rootAgent,owned){
   }
   const source=path.join(root,'.venv','Scripts','python.exe'),useSource=!config.backend&&existsSync(source);
   bridge=new Bridge(config.backend??(useSource?source:path.join(root,'adapters/harness/runtime/backend/datanet-backend.exe')),directory,config.backendArgs??(useSource?[path.join(root,'adapters/harness/backend/server.py')]:[]),{
-    DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:extensionRoot,DATANET_COMPONENT_PROFILE:JSON.stringify(config.components??{}),PYTHONDONTWRITEBYTECODE:'1'
+    DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:extensionRoot,DATANET_COMPONENT_PROFILE:JSON.stringify(config.components??{}),...(config.componentSelection?{DATANET_COMPONENT_SELECTION:JSON.stringify(config.componentSelection)}:{}),PYTHONDONTWRITEBYTECODE:'1'
   },host);
-  try{await call('ping');await call('application/start',{config},0);}catch(error){await bridge.close();throw error;}
+  try{await call('ping');extensions.configure(await call('application/catalog'));await call('application/start',{config},0);}catch(error){await bridge.close();throw error;}
   {
     const entry=attach('root',rootAgent);
     const view=await call('application/root',{session_id:rootAgent.id},0);render(view,entry);

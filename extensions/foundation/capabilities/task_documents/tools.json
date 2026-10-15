@@ -1,0 +1,70 @@
+{
+  "task_document_read": {
+    "name": "task_document_read",
+    "description": "读取原始任务或交付文档。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "node_id": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "task_document_write": {
+    "name": "task_document_write",
+    "description": "更新自己的交付文档，记录结果与依据。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "task_id": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "node_id": {
+                "type": "string"
+              },
+              "version": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "locator": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "node_id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "receipts": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

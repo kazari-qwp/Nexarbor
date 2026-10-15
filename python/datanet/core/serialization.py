@@ -49,8 +49,11 @@ def save_network(network: Network, path: str | Path) -> None:
     for node_id, node in network.nodes.items():
         if node_id != node.node_id:
             raise ValueError('网络注册编号与节点编号不一致')
-        if type(node) not in [c.node_class for c in codecs().values()]:
+        from datanet.core.dormant_node import DormantNode
+        if type(node) not in [c.node_class for c in codecs().values()] and not isinstance(node, DormantNode):
             raise ValueError(f'不支持保存的节点类型：{type(node).__name__}')
+        if isinstance(node, DormantNode) and path.parent != node.original_base:
+            raise ValueError('Enable the node component before relocating its storage manifest')
         _string(node_id, 'node_id')
         _string(node.name, 'name')
         if not isinstance(node.description, str):
@@ -105,9 +108,22 @@ def _build(document, base):
         params = entry['parameters']
         node_type = _string(entry['type'], 'type')
         common = (node_id, name, kind)
-        if node_type not in codecs():
-            raise ValueError('Unknown node type: ' + node_type)
-        node = codecs()[node_type].decode(common, params, base)
+        from datanet.core.component_registry import manifests, enabled_components
+        from datanet.core.dormant_node import DormantNode
+        # An optional replacement codec must not disable the ordinary core node
+        # when that replacement was never loaded. Extension-only parameters still
+        # require the owning component, and remain dormant while it is disabled.
+        inactive = next((m['id'] for m in manifests() if m['id'] not in enabled_components()
+                         and node_type in m.get('nodeTypes', [])
+                         and not (node_type in m.get('replacesNodeTypes', []) and node_type in codecs()
+                                  and codecs()[node_type].node_class.__module__.startswith('datanet.core.')
+                                  and not (set(params) - set(codecs()[node_type].parameter_fields)))), None)
+        if inactive:
+            node = DormantNode(common, node_type, params, base, inactive)
+        elif node_type not in codecs():
+            raise ValueError('Unknown node type or missing component: ' + node_type)
+        else:
+            node = codecs()[node_type].decode(common, params, base)
         node.management_parent_id = entry.get('management_parent_id')
         node.toolboxes = entry.get('toolboxes', [])
         node.expose = entry.get('expose', [])

@@ -1,0 +1,59 @@
+{
+  "id": "capabilities/network_access",
+  "kind": "capabilities",
+  "enabled": true,
+  "requires": [
+    "capabilities/agent_identity"
+  ],
+  "tools": [
+    "node_read",
+    "node_write",
+    "node_list",
+    "node_tools",
+    "node_invoke",
+    "network_structure"
+  ],
+  "toolPatterns": [],
+  "toolPolicies": {
+    "node_read": {
+      "properties": {}
+    },
+    "node_write": {
+      "properties": {}
+    },
+    "node_list": {
+      "properties": {}
+    },
+    "node_tools": {
+      "properties": {}
+    },
+    "node_invoke": {
+      "properties": {}
+    },
+    "network_structure": {
+      "properties": {
+        "inspect_private": {
+          "type": "boolean"
+        },
+        "max_depth": {
+          "type": "number"
+        }
+      },
+      "defaults": {
+        "max_depth": 100,
+        "inspect_private": false
+      },
+      "merge": {
+        "max_depth": "max",
+        "inspect_private": "or"
+      }
+    }
+  },
+  "python": {
+    "path": "python",
+    "runtime": "datanet.features.toolboxes.network_access.runtime"
+  },
+  "toolDefinitions": "tools.json",
+  "resources": "../../toolboxes/network_access",
+  "version": "0.4.0"
+}

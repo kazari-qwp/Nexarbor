@@ -1,0 +1,49 @@
+{
+  "kb_ingest": {
+    "name": "kb_ingest",
+    "description": "接收资料或文件，优先复用已有归档位置。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "content": {},
+        "file_path": {
+          "type": "string"
+        },
+        "purpose": {
+          "type": "string"
+        },
+        "collection": {
+          "type": "string"
+        },
+        "intake_id": {
+          "type": "string"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "kb_task": {
+    "name": "kb_task",
+    "description": "建立知识库任务；可选择自动、只读或归档模式。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "content": {},
+        "mode": {
+          "type": "string",
+          "enum": [
+            "agent",
+            "read",
+            "write"
+          ],
+          "default": "agent"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

@@ -14,17 +14,17 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 - [extensions/multi_agent/network_presets/discussion_group/AGENTS.md](../extensions/multi_agent/network_presets/discussion_group/AGENTS.md)
 - [extensions/multi_agent/network_presets/number_network/AGENTS.md](../extensions/multi_agent/network_presets/number_network/AGENTS.md)
-- [extensions/multi_agent/capabilities/network_management/resources/AGENTS.md](../extensions/multi_agent/capabilities/network_management/resources/AGENTS.md)
-- [extensions/multi_agent/toolboxes/agent_messaging/guides/datanet_messages/AGENTS.md](../extensions/multi_agent/toolboxes/agent_messaging/guides/datanet_messages/AGENTS.md)
-- [extensions/multi_agent/toolboxes/network_access/AGENTS.md](../extensions/multi_agent/toolboxes/network_access/AGENTS.md)
-- [extensions/multi_agent/toolboxes/problem_handling/docs/AGENTS.md](../extensions/multi_agent/toolboxes/problem_handling/docs/AGENTS.md)
-- [extensions/multi_agent/toolboxes/problem_handling/guides/datanet_recovery_status/AGENTS.md](../extensions/multi_agent/toolboxes/problem_handling/guides/datanet_recovery_status/AGENTS.md)
-- [extensions/multi_agent/toolboxes/problem_handling/guides/datanet_resolve_feedback/AGENTS.md](../extensions/multi_agent/toolboxes/problem_handling/guides/datanet_resolve_feedback/AGENTS.md)
-- [extensions/multi_agent/capabilities/tools_network_management/guides/datanet_create_agent/AGENTS.md](../extensions/multi_agent/capabilities/tools_network_management/guides/datanet_create_agent/AGENTS.md)
-- [extensions/multi_agent/capabilities/tools_network_management/guides/datanet_create_node/AGENTS.md](../extensions/multi_agent/capabilities/tools_network_management/guides/datanet_create_node/AGENTS.md)
-- [extensions/multi_agent/capabilities/tools_network_management/guides/datanet_interfaces/AGENTS.md](../extensions/multi_agent/capabilities/tools_network_management/guides/datanet_interfaces/AGENTS.md)
-- [extensions/multi_agent/capabilities/tools_network_management/guides/datanet_manage_agent/AGENTS.md](../extensions/multi_agent/capabilities/tools_network_management/guides/datanet_manage_agent/AGENTS.md)
-- [extensions/multi_agent/capabilities/reports/guides/datanet_reports/AGENTS.md](../extensions/multi_agent/capabilities/reports/guides/datanet_reports/AGENTS.md)
+- [extensions/foundation/capabilities/network_management/resources/AGENTS.md](../extensions/foundation/capabilities/network_management/resources/AGENTS.md)
+- [extensions/foundation/toolboxes/agent_messaging/guides/datanet_messages/AGENTS.md](../extensions/foundation/toolboxes/agent_messaging/guides/datanet_messages/AGENTS.md)
+- [extensions/foundation/toolboxes/network_access/AGENTS.md](../extensions/foundation/toolboxes/network_access/AGENTS.md)
+- [extensions/foundation/toolboxes/problem_handling/docs/AGENTS.md](../extensions/foundation/toolboxes/problem_handling/docs/AGENTS.md)
+- [extensions/foundation/toolboxes/problem_handling/guides/datanet_recovery_status/AGENTS.md](../extensions/foundation/toolboxes/problem_handling/guides/datanet_recovery_status/AGENTS.md)
+- [extensions/foundation/toolboxes/problem_handling/guides/datanet_resolve_feedback/AGENTS.md](../extensions/foundation/toolboxes/problem_handling/guides/datanet_resolve_feedback/AGENTS.md)
+- [extensions/foundation/capabilities/tools_network_management/guides/datanet_create_agent/AGENTS.md](../extensions/foundation/capabilities/tools_network_management/guides/datanet_create_agent/AGENTS.md)
+- [extensions/foundation/capabilities/tools_network_management/guides/datanet_create_node/AGENTS.md](../extensions/foundation/capabilities/tools_network_management/guides/datanet_create_node/AGENTS.md)
+- [extensions/foundation/capabilities/tools_network_management/guides/datanet_interfaces/AGENTS.md](../extensions/foundation/capabilities/tools_network_management/guides/datanet_interfaces/AGENTS.md)
+- [extensions/foundation/capabilities/tools_network_management/guides/datanet_manage_agent/AGENTS.md](../extensions/foundation/capabilities/tools_network_management/guides/datanet_manage_agent/AGENTS.md)
+- [extensions/foundation/capabilities/reports/guides/datanet_reports/AGENTS.md](../extensions/foundation/capabilities/reports/guides/datanet_reports/AGENTS.md)
 
 ## 工具描述原文
 
@@ -62,7 +62,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_skill
 
-来源：[extensions/multi_agent/capabilities/network_management/tools.json](../extensions/multi_agent/capabilities/network_management/tools.json)
+来源：[extensions/foundation/capabilities/network_management/tools.json](../extensions/foundation/capabilities/network_management/tools.json)
 
 ```text
 列出或加载获准能力包。load同时加载Skill文档并授予包声明的工具箱，无逐项二次授权；read按需读取已加载Skill的参考。
@@ -70,7 +70,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### experience_query
 
-来源：[extensions/multi_agent/toolboxes/experience/tools.json](../extensions/multi_agent/toolboxes/experience/tools.json)
+来源：[extensions/foundation/toolboxes/experience/tools.json](../extensions/foundation/toolboxes/experience/tools.json)
 
 ```text
 查询经验线索，默认包括已验证和待审核；status可筛选。待审核不代表建议可靠，不自动加载；不授予权限。
@@ -78,7 +78,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### experience_submit
 
-来源：[extensions/multi_agent/toolboxes/experience/tools.json](../extensions/multi_agent/toolboxes/experience/tools.json)
+来源：[extensions/foundation/toolboxes/experience/tools.json](../extensions/foundation/toolboxes/experience/tools.json)
 
 ```text
 提交已解决并验证的问题为候选经验；不会自动发布。未解决阻塞使用 datanet_feedback。
@@ -86,7 +86,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### experience_review
 
-来源：[extensions/multi_agent/toolboxes/experience/tools.json](../extensions/multi_agent/toolboxes/experience/tools.json)
+来源：[extensions/foundation/toolboxes/experience/tools.json](../extensions/foundation/toolboxes/experience/tools.json)
 
 ```text
 仅获授权维护者使用：查看候选、审核发布、合并重复、停用过期经验或set_core调整常加载。推广候选仍须维护者确认；发布前核实证据和版本。
@@ -94,7 +94,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### node_read
 
-来源：[extensions/multi_agent/toolboxes/network_access/tools.json](../extensions/multi_agent/toolboxes/network_access/tools.json)
+来源：[extensions/foundation/toolboxes/network_access/tools.json](../extensions/foundation/toolboxes/network_access/tools.json)
 
 ```text
 从所属节点出发读取网络数据，仍检查接口权限。文本用method=key,key=content；可以选target筛选可达目标。
@@ -102,7 +102,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### node_write
 
-来源：[extensions/multi_agent/toolboxes/network_access/tools.json](../extensions/multi_agent/toolboxes/network_access/tools.json)
+来源：[extensions/foundation/toolboxes/network_access/tools.json](../extensions/foundation/toolboxes/network_access/tools.json)
 
 ```text
 从所属节点出发向可写目标写入。
@@ -110,7 +110,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### network_structure
 
-来源：[extensions/multi_agent/toolboxes/network_access/tools.json](../extensions/multi_agent/toolboxes/network_access/tools.json)
+来源：[extensions/foundation/toolboxes/network_access/tools.json](../extensions/foundation/toolboxes/network_access/tools.json)
 
 ```text
 从所属节点查看连接摘要，默认使用最大depth，起点第0层，每个接口计1层；最大depth=100表示查看全部获准拓扑。只查看结构，不扩大数据或操作权限。
@@ -118,7 +118,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### node_list
 
-来源：[extensions/multi_agent/toolboxes/network_access/tools.json](../extensions/multi_agent/toolboxes/network_access/tools.json)
+来源：[extensions/foundation/toolboxes/network_access/tools.json](../extensions/foundation/toolboxes/network_access/tools.json)
 
 ```text
 发现所属节点可达的节点。
@@ -126,7 +126,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### node_tools
 
-来源：[extensions/multi_agent/toolboxes/network_access/tools.json](../extensions/multi_agent/toolboxes/network_access/tools.json)
+来源：[extensions/foundation/toolboxes/network_access/tools.json](../extensions/foundation/toolboxes/network_access/tools.json)
 
 ```text
 该节点向你暴露允许你使用的工具，这并不是该节点的工具列表
@@ -134,7 +134,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### node_invoke
 
-来源：[extensions/multi_agent/toolboxes/network_access/tools.json](../extensions/multi_agent/toolboxes/network_access/tools.json)
+来源：[extensions/foundation/toolboxes/network_access/tools.json](../extensions/foundation/toolboxes/network_access/tools.json)
 
 ```text
 按已发现定义调用可达节点工具。
@@ -142,7 +142,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### handle_problem
 
-来源：[extensions/multi_agent/toolboxes/problem_handling/tools.json](../extensions/multi_agent/toolboxes/problem_handling/tools.json)
+来源：[extensions/foundation/toolboxes/problem_handling/tools.json](../extensions/foundation/toolboxes/problem_handling/tools.json)
 
 ```text
 遇到影响任务继续的问题，从这里开始处理；按需加载经验查询、获准排障流程和工具。进入不代表上报，也不增加任何业务权限。简单的参数或格式错误，不要进入此通道。
@@ -150,7 +150,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### problem_attempt
 
-来源：[extensions/multi_agent/toolboxes/problem_handling/tools.json](../extensions/multi_agent/toolboxes/problem_handling/tools.json)
+来源：[extensions/foundation/toolboxes/problem_handling/tools.json](../extensions/foundation/toolboxes/problem_handling/tools.json)
 
 ```text
 查过经验后开始验证方案。有experience_id代表尝试查询到的经验；不填则自行修复，必须拥有self_repair授权。只使用原有业务工具。
@@ -158,7 +158,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### problem_resolved
 
-来源：[extensions/multi_agent/toolboxes/problem_handling/tools.json](../extensions/multi_agent/toolboxes/problem_handling/tools.json)
+来源：[extensions/foundation/toolboxes/problem_handling/tools.json](../extensions/foundation/toolboxes/problem_handling/tools.json)
 
 ```text
 问题已解决且完成实际工具验证后结束排障。填简短依据；自行修复须先提交候选经验。记录成功复用并撤下临时工具，不自动提升常加载。
@@ -166,7 +166,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### problem_defer
 
-来源：[extensions/multi_agent/toolboxes/problem_handling/tools.json](../extensions/multi_agent/toolboxes/problem_handling/tools.json)
+来源：[extensions/foundation/toolboxes/problem_handling/tools.json](../extensions/foundation/toolboxes/problem_handling/tools.json)
 
 ```text
 结束本次排障但不标记解决。仅当当前委托仍可继续或允许交付失败结果时使用；必须记录原因、未解决影响及继续/交付依据。保留尝试记录与提示，不报错、不结束任务、不计成功经验。
@@ -174,7 +174,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_feedback
 
-来源：[extensions/multi_agent/toolboxes/problem_handling/tools.json](../extensions/multi_agent/toolboxes/problem_handling/tools.json)
+来源：[extensions/foundation/toolboxes/problem_handling/tools.json](../extensions/foundation/toolboxes/problem_handling/tools.json)
 
 ```text
 仅当未解决问题确实阻塞自身当前委托时上报并停止。必填task_blocker说明无法继续或交付的原因；下属失败不自动等于自身阻塞。missing_tool/permission_denied使用固定短文本，只有other填写message。可交付失败结果时用problem_defer后正常汇报。
@@ -182,7 +182,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_resolve_feedback
 
-来源：[extensions/multi_agent/toolboxes/problem_handling/tools.json](../extensions/multi_agent/toolboxes/problem_handling/tools.json)
+来源：[extensions/foundation/toolboxes/problem_handling/tools.json](../extensions/foundation/toolboxes/problem_handling/tools.json)
 
 ```text
 仅限处理`datanet_feedback`的通道:管理者查看并修复真实报错节点，可补充指令、职责或工具箱。
@@ -190,7 +190,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_recovery_status
 
-来源：[extensions/multi_agent/toolboxes/problem_handling/tools.json](../extensions/multi_agent/toolboxes/problem_handling/tools.json)
+来源：[extensions/foundation/toolboxes/problem_handling/tools.json](../extensions/foundation/toolboxes/problem_handling/tools.json)
 
 ```text
 查看已恢复 Agent、网络讨论状态和中断时结果不明的操作；这些操作不会自动重放。
@@ -198,7 +198,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### incident_query
 
-来源：[extensions/multi_agent/capabilities/execution_records/tools.json](../extensions/multi_agent/capabilities/execution_records/tools.json)
+来源：[extensions/foundation/capabilities/execution_records/tools.json](../extensions/foundation/capabilities/execution_records/tools.json)
 
 ```text
 查询自动收集的阻塞和执行异常，包括未解决现象与重试记录；它们不是已验证经验。
@@ -206,7 +206,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### incident_resolve
 
-来源：[extensions/multi_agent/capabilities/execution_records/tools.json](../extensions/multi_agent/capabilities/execution_records/tools.json)
+来源：[extensions/foundation/capabilities/execution_records/tools.json](../extensions/foundation/capabilities/execution_records/tools.json)
 
 ```text
 报告者、管理者或获授权经验维护者可标记阻塞已解决。必须提供该节点在报错后正常完成的retry_run_id和具体结果依据；补工具或改提示词本身不能证明解决。可关联待审核或已验证经验ID。
@@ -214,7 +214,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_create_agent
 
-来源：[extensions/multi_agent/capabilities/tools_network_management/tools.json](../extensions/multi_agent/capabilities/tools_network_management/tools.json)
+来源：[extensions/foundation/capabilities/tools_network_management/tools.json](../extensions/foundation/capabilities/tools_network_management/tools.json)
 
 ```text
 创建 Agent 节点，自动配备独立会话、个人记忆和读写工具；配置匹配时复用当前网络池中的 Agent。
@@ -222,7 +222,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_call_agent
 
-来源：[extensions/multi_agent/capabilities/tools_network_management/tools.json](../extensions/multi_agent/capabilities/tools_network_management/tools.json)
+来源：[extensions/foundation/capabilities/tools_network_management/tools.json](../extensions/foundation/capabilities/tools_network_management/tools.json)
 
 ```text
 向获准的下属 Agent 异步委托任务，立即返回委托 ID；同一 Agent 按提交顺序执行，结果由框架回送。
@@ -230,7 +230,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_manage_agent
 
-来源：[extensions/multi_agent/capabilities/tools_network_management/tools.json](../extensions/multi_agent/capabilities/tools_network_management/tools.json)
+来源：[extensions/foundation/capabilities/tools_network_management/tools.json](../extensions/foundation/capabilities/tools_network_management/tools.json)
 
 ```text
 查看或调整获准 Agent 的提示词与会话。
@@ -238,7 +238,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_agent_capabilities
 
-来源：[extensions/multi_agent/capabilities/tools_network_management/tools.json](../extensions/multi_agent/capabilities/tools_network_management/tools.json)
+来源：[extensions/foundation/capabilities/tools_network_management/tools.json](../extensions/foundation/capabilities/tools_network_management/tools.json)
 
 ```text
 查看宿主允许为子 Agent 装配的工具箱。工具箱私有，不可跨 Agent 调用工具或 Skill。
@@ -246,7 +246,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_presets
 
-来源：[extensions/multi_agent/capabilities/tools_network_management/tools.json](../extensions/multi_agent/capabilities/tools_network_management/tools.json)
+来源：[extensions/foundation/capabilities/tools_network_management/tools.json](../extensions/foundation/capabilities/tools_network_management/tools.json)
 
 ```text
 查看预设与已保存的离线网络；指定 ID 查看对应说明或保存清单。
@@ -254,7 +254,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_interfaces
 
-来源：[extensions/multi_agent/capabilities/tools_network_management/tools.json](../extensions/multi_agent/capabilities/tools_network_management/tools.json)
+来源：[extensions/foundation/capabilities/tools_network_management/tools.json](../extensions/foundation/capabilities/tools_network_management/tools.json)
 
 ```text
 管理获准节点的链接；拆除导致节点与根断联时，确认取消、保存结构或分解进入复用池。
@@ -262,7 +262,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_create_node
 
-来源：[extensions/multi_agent/capabilities/tools_network_management/tools.json](../extensions/multi_agent/capabilities/tools_network_management/tools.json)
+来源：[extensions/foundation/capabilities/tools_network_management/tools.json](../extensions/foundation/capabilities/tools_network_management/tools.json)
 
 ```text
 创建数据或组织子节点，可选择预设或自定义受支持类型。
@@ -270,7 +270,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ### datanet_create_network
 
-来源：[extensions/multi_agent/capabilities/tools_network_management/tools.json](../extensions/multi_agent/capabilities/tools_network_management/tools.json)
+来源：[extensions/foundation/capabilities/tools_network_management/tools.json](../extensions/foundation/capabilities/tools_network_management/tools.json)
 
 ```text
 按预设创建网络，返回实际节点ID与连接摘要。
@@ -278,7 +278,7 @@ Python 旧配置包的 prompt_path 已指向以上同一份正文。
 
 ## 动态工具描述原文
 
-来源：[extensions/multi_agent/capabilities/text/python/datanet/features/nodes/text/runtime.py](../extensions/multi_agent/capabilities/text/python/datanet/features/nodes/text/runtime.py)
+来源：[extensions/foundation/capabilities/text/python/datanet/features/nodes/text/runtime.py](../extensions/foundation/capabilities/text/python/datanet/features/nodes/text/runtime.py)
 
 QUERY_DESCRIPTION（第 4 行）：
 
@@ -292,7 +292,7 @@ WRITE_DESCRIPTION（第 5 行）：
 写入有写入连接的常驻文本。target只能选择这些常驻文本节点；只有一个目标时可省略。
 ```
 
-来源：[extensions/multi_agent/capabilities/agent_messaging/python/datanet/features/toolboxes/agent_messaging/runtime.py](../extensions/multi_agent/capabilities/agent_messaging/python/datanet/features/toolboxes/agent_messaging/runtime.py)
+来源：[extensions/foundation/capabilities/agent_messaging/python/datanet/features/toolboxes/agent_messaging/runtime.py](../extensions/foundation/capabilities/agent_messaging/python/datanet/features/toolboxes/agent_messaging/runtime.py)
 
 SEND_DESCRIPTION（第 7 行）：
 
@@ -306,7 +306,7 @@ REPLY_DESCRIPTION（第 8 行）：
 仅用来回复此条消息，调用一次后失效
 ```
 
-来源：[extensions/multi_agent/capabilities/reports/python/datanet/features/tools/reports/runtime.py](../extensions/multi_agent/capabilities/reports/python/datanet/features/tools/reports/runtime.py)
+来源：[extensions/foundation/capabilities/reports/python/datanet/features/tools/reports/runtime.py](../extensions/foundation/capabilities/reports/python/datanet/features/tools/reports/runtime.py)
 
 description（第 98 行）：
 

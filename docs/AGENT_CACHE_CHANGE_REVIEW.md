@@ -9,7 +9,7 @@
 
 ## 新增或调整的运行时文字原文
 
-经验记录，来源 `extensions/multi_agent/capabilities/experience/python/datanet/features/toolboxes/experience/runtime.py`，方括号值为实际经验字段：
+经验记录，来源 `extensions/foundation/capabilities/experience/python/datanet/features/toolboxes/experience/runtime.py`，方括号值为实际经验字段：
 
 ```text
 经验只作参考；待审核不代表可靠，权限不变。
@@ -23,8 +23,8 @@
 当前请求次数：{count}/10。
 ```
 
-通讯录继续使用原文前缀 `可主动联系：`，没有发送权限时为 `可主动联系：[]`；待回复消息仍使用 `待回复消息：`。前者进入历史，后者进入尾部。来源 `extensions/multi_agent/capabilities/agent_messaging/python/datanet/features/toolboxes/agent_messaging/runtime.py`。
+通讯录继续使用原文前缀 `可主动联系：`，没有发送权限时为 `可主动联系：[]`；待回复消息仍使用 `待回复消息：`。前者进入历史，后者进入尾部。来源 `extensions/foundation/capabilities/agent_messaging/python/datanet/features/toolboxes/agent_messaging/runtime.py`。
 
-排障提示、管理者和下属反馈的文字沿用原文，位置改为当前排障在尾部，其余记录在历史。来源 `extensions/multi_agent/capabilities/problem_handling/python/datanet/features/toolboxes/problem_handling/runtime.py`。
+排障提示、管理者和下属反馈的文字沿用原文，位置改为当前排障在尾部，其余记录在历史。来源 `extensions/foundation/capabilities/problem_handling/python/datanet/features/toolboxes/problem_handling/runtime.py`。
 
 协作状态仍使用 `[协作状态：{group_id}]` 标识；JSON 的 `recent_entries` 改为 ID、成员、类型和 `preview`，候选保留 ID、批准成员与验收路径；完整内容仍由状态工具返回。来源 `extensions/multi_agent/capabilities/decentralized_group/python/datanet/features/network_presets/decentralized_group/runtime.py`。

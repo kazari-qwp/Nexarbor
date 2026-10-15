@@ -46,7 +46,7 @@
 
 ## 新增Agent说明
 
-[终端任务AGENTS](../../extensions/multi_agent/toolboxes/command_execution/AGENTS.md)。工具箱描述原文：`终端任务查询与停止。`。
+[终端任务AGENTS](../../extensions/foundation/toolboxes/command_execution/AGENTS.md)。工具箱描述原文：`终端任务查询与停止。`。
 
 ## 留存
 

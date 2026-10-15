@@ -45,6 +45,8 @@ class Transport:
 
     def dispatch(self, method, p):
         from datanet.core.application import Application
+        if method == 'application/catalog':
+            return [dict(id=key, directory=str(self.backend.components.catalog[key]['implementation_directory']), harness=self.backend.components.catalog[key]['harness']) for key in self.backend.components.order if key in self.backend.components.enabled and self.backend.components.catalog[key].get('harness')]
         if method == 'application/start':
             with self.application_lock:
                 if self.application is None:

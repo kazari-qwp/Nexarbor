@@ -39,9 +39,9 @@ python scripts/components.py enable nodes/csv --root extensions/storage
 | 位置 | 用途 |
 |---|---|
 | `extensions/foundation` | Agent 装配与执行、委托、消息、报告、终端、文本交付、排障、共享 Git 工作区等独立组件 |
-| `extensions/storage` | CSV、SQLite、LlamaIndex、MkDocs Wiki 适配等数据组件 |
+| `extensions/storage` | CSV、SQLite、LlamaIndex、llm-wiki、MkDocs 适配等数据组件 |
 | `extensions/multi_agent` | 第一应用的讨论、协作、角色及组合清单 |
-| `extensions/knowledge_base` | 第二应用的知识接口、固定角色、归档与查询组合 |
+| `extensions/knowledge_base` | 第二应用的知识接口、主 Agent 与受限助手、归档与查询组合 |
 | `extensions/all` | 两个应用共存的显式组合 |
 
 实现代码放在 `capabilities`；节点、工具箱和网络预设保持配置与文档。工具绑定归各工具箱的 `bindings.json` 所有，不再依赖整包工具登记表。

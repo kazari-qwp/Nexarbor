@@ -14,7 +14,7 @@ const {Context}=native('cordis'),llm=native('dsh-llm');
  }
  const link=(spec,ref)=>get(spec,ref.identifier);
  const loop=await get(pathToFileURL(productRoot+'/adapters/harness/runtime/agent-loop/lib/index.js').href);await loop.link(link);await loop.evaluate();
- const recovery=await get(pathToFileURL(productRoot+'/extensions/multi_agent/capabilities/response_recovery/harness.js').href);await recovery.link(link);await recovery.evaluate();
+ const recovery=await get(pathToFileURL(productRoot+'/extensions/foundation/capabilities/response_recovery/harness.js').href);await recovery.link(link);await recovery.evaluate();
  const host=new Context();for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']])await host.plugin(native(name)[service]??native(name).default);
  await host.plugin(loop.namespace.default,{agents:[]});
  let executed=0;host.tools.register({name:'recovery_probe',description:'Test execution boundary',parameters:{type:'object',properties:{value:{type:'string'}}},output:{schema:{},render:()=>[{type:'text',text:'ok'}]},execute:()=>{executed++;return {ok:true}}});

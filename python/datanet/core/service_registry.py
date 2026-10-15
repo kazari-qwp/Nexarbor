@@ -3,23 +3,14 @@ from importlib import import_module
 from pathlib import Path
 import json
 import os
-from datanet.core.component_registry import manifests, component_root
+from datanet.component_catalog import mount_paths
+from datanet.core.component_registry import enabled_components
 
 class ComponentServices:
 
     def __init__(self):
-        self.catalog = {m['id']: m for m in manifests()}
-        profile_file = component_root() / 'profile.json'
-        profile = json.loads(profile_file.read_text(encoding='utf-8')) if profile_file and profile_file.exists() else {}
-        profile.update(json.loads(os.environ.get('DATANET_COMPONENT_PROFILE', '{}')))
-        self.enabled = {key for key, m in self.catalog.items() if profile.get(key, m.get('enabled', True))}
-        changed = True
-        while changed:
-            changed = False
-            for key in list(self.enabled):
-                if any((dep not in self.enabled for dep in self.catalog[key].get('requires', []))):
-                    self.enabled.remove(key)
-                    changed = True
+        self.catalog, self.order = mount_paths()
+        self.enabled = enabled_components()
         self.binding_validators = []
         self.statusters = []
         self.routes = {}
@@ -34,10 +25,15 @@ class ComponentServices:
         self.node_restorers = []
         self.root_packages = {}
         self.network_handlers = {}
-        for key, m in self.catalog.items():
+        for key in self.order:
+            m = self.catalog[key]
             if key in self.enabled:
                 for module in m.get('python', {}).get('services', []):
                     import_module(module).register(self)
+        for entries in [self.network_presets,self.root_packages,self.network_handlers]:
+            for name in list(entries):
+                key='network_presets/'+name
+                if key in self.catalog and key not in self.enabled:entries.pop(name)
 
     def rpc(self, name, function, mutation=False):
         if name in self.routes:

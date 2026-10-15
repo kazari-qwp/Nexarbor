@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'adapters/harness/backend'))
 from server import Backend
 from datanet.core.storage_paths import storage_path
-from datanet.features.network_presets.decentralized_group.workspace import Workspace
+from datanet.workspace.git import Workspace
 from datanet.features.network_presets.decentralized_group.runtime import Plugin
 from types import SimpleNamespace
 

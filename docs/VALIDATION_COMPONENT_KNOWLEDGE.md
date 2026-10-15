@@ -2,6 +2,17 @@
 
 本次使用源码后端验证，未重新打包发布。真实 Harness 测试使用本机原生 AgentLoop 和桥接代码，生成模型由本地响应替身提供；未调用付费生成 API。
 
+## 本次单主 Agent 与受限助手（2026-10-15）
+
+- 定向回归 21 项全部通过，27.133 秒：知识库读写、四类存储、导入范围、组件解析、第一应用文本停用恢复、核心独立文本恢复，以及四项新增助手边界测试。日志 `build/knowledge-helpers-regression.log`。
+- 最后增补了父级模型/思考强度/50k 输出参数继承及新增集合不恢复被撤销连接的断言；四项新增用例复测通过，5.908 秒。日志 `build/knowledge-helpers-final.log`。
+- 原生 Harness 桥接通过：根直接归档及路由复用，不增加模型调用；显式创建 Wiki 助手；消息唤醒真实 AgentLoop，读原始任务和来源、写 Wiki、提交带回执的文档、一次性回复；拒绝写入 SQLite 与递归创建助手。生成模型为本地响应替身。日志 `build/native-knowledge-helpers.log`。
+- 真正执行固定上游 llm-wiki 的 BM25 与图分析，验证中文检索、缺失链接和来源变更提示；未启动额外 Wiki 模型循环。
+- 输入文档无写入路径，助手只写自己的交付文档；错误来源版本、旧交付版本、跨任务读取与其他任务的存储回执均拒绝。助手恢复后保持权限与文档绑定。
+- 没有重新下载或重跑此前的本地嵌入性能测试，没有重新运行历史付费项目。没有关闭用户客户端。
+
+以下为此前组件拆分与初版知识库的历史验证记录；其中“两名固定 Agent”已被本次单主 Agent 方案替换。
+
 ## 验证范围
 
 | 测试 | 结果与覆盖 |
@@ -12,6 +23,8 @@
 | 原生 Harness 共享运行时 | modular_shared_runtime_test.cjs 通过：尾部快照、工具变更、文档与权限 |
 | 原生 Harness 协作 | modular_cooperation_test.cjs 通过：两类小组重复任务、报告和独立会话 |
 | 原生 Harness 知识库 | native_knowledge_base_test.cjs 通过：归档、直接读取、路由复用、两个固定 Agent、只读检索权限 |
+| 恢复后的知识库插件入口 | 通过真正的 knowledge-base 导出入口及默认配置重复取得明确 PASS；不手动指定扩展目录、根网络或工具箱。日志 native-knowledge-entry.log |
+| 工作区文件导入 | 新增 1 项最小测试通过：相对工作区解析、CSV 类型转换、显式集合导入不调用模型，拒绝相对与绝对越界路径 |
 | Wiki | 实际 MkDocs 构建通过，生成页面与站内搜索索引 |
 | 语义检索 | 实际 LlamaIndex + 本地 BAAI/bge-small-zh-v1.5 测试通过，覆盖中文检索、更新、删除和重启 |
 
@@ -27,3 +40,5 @@
 这些是本机小数据集测试，不代表大库性能或生成模型的总响应速度。模型下载和可选依赖安装不计入查询耗时。
 
 测试日志与指标位于忽略的 build/ 目录：components-knowledge-regression-final.log、knowledge-final-targeted.log、knowledge-semantic-metrics.json、knowledge-direct-metrics.json。
+
+恢复开发后仅验证新增修复和真正的插件入口，未重复整套回归。原生 Harness 测试明确检查 PASS 文本与退出码，空输出不计通过。当前未配置 DEEPSEEK_API_KEY 测试环境变量，未进行真实生成模型的归档判断质量测试。

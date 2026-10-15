@@ -39,7 +39,7 @@ class Plugin(Component):
             e['result'].update(members=info['members'], leader_id=info['members'][0], recorder_id=info['recorder_id'])
 
     def make_members(self, parent, group):
-        management = self.r.plugins['capabilities/tools_network_management']
+        management = self.r.plugins['capabilities/agent_runtime']
         for actor in group['members']:
             if actor in self.r.states:
                 continue
@@ -140,7 +140,7 @@ class Plugin(Component):
         turn.update(count=saved.get('count', 0) if resume else 0, active=True, submitted=False, final=final, round=round, total=info['total'], output_written=False, expected_output=info['output_id'])
         self.r.emit('discussion/member-start', actor=actor, group_id=saved['group_id'], project_ids=info['project_ids'])
         try:
-            result = self.r.plugins['capabilities/tools_network_management'].execute(caller, actor, text, kind='archive' if final else 'discussion_member', parent=reference, round=round)
+            result = self.r.plugins['capabilities/agent_runtime'].execute(caller, actor, text, kind='archive' if final else 'discussion_member', parent=reference, round=round)
             if result['status'] == 'blocked':
                 raise RuntimeError('AGENT_BLOCKED: ' + actor + ' ' + result['feedback']['error'])
             if not final and not turn['submitted']:

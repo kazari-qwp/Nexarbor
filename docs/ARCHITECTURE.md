@@ -1,13 +1,13 @@
 # 四部分架构
 
-本项目由核心、宿主适配层、可选执行器和 multi-agent 协作扩展包组成。核心与执行器均不导入 Harness 或协作包。
+本项目由核心、宿主适配层、可选执行器和可组合扩展组件组成。核心与执行器均不导入 Harness 或业务应用。组件目录和选择机制见 [组件装配](COMPONENTS.md)。
 
 | 部分 | 目录 | 职责 |
 |---|---|---|
 | 核心 | `python/datanet/core/` | 普通节点、文本节点、Agent 节点，定向图、访问预算、管理关系、序列化、检查点、扩展注册与执行器接口 |
 | Harness 适配层 | `adapters/harness/` | 双向 RPC、原生会话句柄、工具注册、历史文档与请求尾部、平台兼容，以及原生循环的请求扩展 |
 | 可选执行器 | `executors/minimal/` | 独立的模型请求与工具循环、会话历史、消息投递、取消和执行预算；提供 MockExecutor 和 HTTPModelClient |
-| multi-agent 扩展包 | `extensions/multi_agent/` | 讨论、协作、消息、队列、经验、排障、报告、文本呈现、驻留复用与终端策略 |
+| 扩展组件与应用组合 | `extensions/` | foundation 与 storage 提供独立能力；multi_agent 和 knowledge_base 通过清单组合应用 |
 
 ## 核心 Agent 节点
 
@@ -22,7 +22,7 @@ Agent 节点不内置协调者、讨论成员或执行组角色。这些角色�
 - `toolboxes/`：工具 ID 列表及简短元数据。没有代码、嵌套工具箱或调度逻辑。
 - `network_presets/`：网络拓扑、人数参数、资源引用与使用指南。
 
-`component.json` 声明组件 ID、依赖、启停、资源和入口。能力可通过 `resources` 引用同扩展包里的节点、工具箱或网络预设资源。`tool-bindings.json` 定义工具 ID 对应的原生工具或扩展工具及授权配置，工具箱仅引用这些 ID。Skill 是能力提供的渐进式指南与授权入口，Agent 预设是节点配置。
+`component.json` 声明组件 ID、依赖、启停、资源和入口。能力可通过 `resources` 引用同扩展包里的节点、工具箱或网络预设资源。各工具箱的 `bindings.json` 定义工具 ID 对应的原生工具或扩展工具及授权配置，工具箱仅引用这些 ID。Skill 是能力提供的渐进式指南与授权入口，Agent 预设是节点配置。
 
 未设置 `DATANET_COMPONENT_ROOT` 时，不加载协作包。启用方式：
 
@@ -32,7 +32,7 @@ $env:DATANET_COMPONENT_ROOT = "$PWD/extensions/multi_agent"
 python scripts/components.py list
 ```
 
-`profile.json` 保存组件开关，`DATANET_COMPONENT_PROFILE` 可覆盖；启用依赖不满足的组件不会运行。停用能力会撤销其工具执行权限及上下文片段，持久数据保留。
+`extension.json` 选择组件及来源，依赖按拓扑顺序加载。`profile.json` 保存组件开关，`DATANET_COMPONENT_PROFILE` 可覆盖；明确停用依赖会阻止使用者运行，缺失、循环和版本冲突明确报错。停用能力会撤销其工具执行权限及上下文片段，持久数据保留。
 
 ## 执行器接口
 

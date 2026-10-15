@@ -7,7 +7,7 @@
 
 ## 工具与工具箱描述
 
-`datanet_command_logs`，来源 `extensions/multi_agent/capabilities/command_logs/tools.json`：
+`datanet_command_logs`，来源 `extensions/foundation/capabilities/command_logs/tools.json`：
 
 > 查询已执行命令的日志。
 
@@ -15,7 +15,7 @@
 
 > 提交成果与验收材料，或批准、否决当前候选。
 
-`command_logs` 工具箱，来源 `extensions/multi_agent/toolboxes/command_logs/box.json`：
+`command_logs` 工具箱，来源 `extensions/foundation/toolboxes/command_logs/box.json`：
 
 > 终端日志查询。
 

@@ -1,7 +1,7 @@
 # 消息、尾部与终端环境改动审阅
 
 Agent 指南：
-- [通信指南](E:/DataNet-模块化成品/extensions/multi_agent/toolboxes/agent_messaging/guides/datanet_messages/AGENTS.md)
+- [通信指南](E:/DataNet-模块化成品/extensions/foundation/toolboxes/agent_messaging/guides/datanet_messages/AGENTS.md)
 - [协作成员指南](E:/DataNet-模块化成品/extensions/multi_agent/network_presets/decentralized_group/members/AGENTS.md)
 
 工具描述原文：

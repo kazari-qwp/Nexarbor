@@ -4,7 +4,8 @@ from importlib import import_module
 from pathlib import Path
 from threading import RLock, local
 import json
-from datanet.core.component_registry import enabled_components, component_root
+from datanet.core.component_registry import enabled_components
+from datanet.component_catalog import tool_bindings, dependency
 
 
 def checked(value):
@@ -28,27 +29,32 @@ class Application:
         self.errors = []
         self.boxes, self.presets = {}, {}
         self.defaults = {}
-        bindings_file=component_root()/'tool-bindings.json'
-        self.bindings=json.loads(bindings_file.read_text(encoding='utf-8')) if bindings_file.exists() else {}
-        for key, manifest in self.catalog.items():
+        self.bindings = tool_bindings(self.catalog, backend.components.order)
+        for key in backend.components.order:
+            manifest = self.catalog[key]
             if key not in self.enabled:
                 continue
             self.defaults.update(manifest.get('agentDefaults', {}))
             if manifest.get('box'):
                 box = self.resource(key, manifest['box'], json_data=True)
+                if box['id'] in self.boxes:raise ValueError('Duplicate toolbox ID: '+box['id'])
                 self.boxes[box['id']] = box
             if manifest.get('agentPreset'):
                 preset = dict(manifest['agentPreset'])
                 preset['owner'] = key
+                if preset['id'] in self.presets:raise ValueError('Duplicate Agent preset ID: '+preset['id'])
                 self.presets[preset['id']] = preset
             if manifest.get('toolDefinitions'):
                 for name, spec in self.resource(key, manifest['toolDefinitions'], json_data=True).items():
+                    if name in self.tools:raise ValueError('Duplicate tool definition: '+name)
                     self.tools[name] = spec
                     self.tool_owners[name] = key
             module = manifest.get('python', {}).get('runtime')
             if module:
                 self.plugins[key] = import_module(module).Plugin(self, manifest)
         self.boxes.update(config.get('toolboxes', {}))
+        for key in backend.components.order:
+            self.defaults.update(self.catalog[key].get('agentDefaultsByRoot', {}).get(config.get('rootNetwork'), {}))
         self.allowed = config.get('allowedAgentToolboxes', self.defaults.get('allowedToolboxes', []))
         for plugin in self.plugins.values():
             plugin.install()
@@ -57,7 +63,12 @@ class Application:
         payload = {'session_id': session_id, 'view': None}
         for owner, handler in self.listeners['session/root']:
             if owner in self.enabled:
+                roots = self.catalog[owner].get('rootNetworks')
+                if roots is not None and self.config.get('rootNetwork') not in roots:
+                    continue
                 handler(payload)
+                if payload['view'] is not None:
+                    break
         if payload['view'] is not None:
             return payload['view']
         grant = {'names': [], 'expanded': [], 'framework': {}, 'official': {'tools': [], 'skills': [], 'skillProviders': []}}
@@ -100,7 +111,9 @@ class Application:
     def resolve(self, names, allowed=None, role=None):
         if len(set(names)) != len(names):
             raise ValueError('Toolboxes must be unique IDs')
-        policies = [m for key, m in self.catalog.items() if key in self.enabled and m.get('agentPolicy')]
+        role_policy = next((p for p in self.presets.values() if p['id'] == role), {})
+        baseline_names = role_policy.get('baselineToolboxes', self.defaults.get('baselineToolboxes', []))
+        policies = [m for key, m in self.catalog.items() if key in self.enabled and m.get('agentPolicy') and m['id'].split('/')[1] in baseline_names]
         baselines = {m['id'].split('/')[1] for m in policies if m['agentPolicy'].get('baseline')}
         selected = [name for name in names if name not in baselines]
         for name in selected:
@@ -236,7 +249,7 @@ class Application:
         while component in self.enabled:
             self.enabled.remove(component)
             removed.add(component)
-            dependent = next((key for key in self.enabled if any(dep not in self.enabled for dep in self.catalog[key].get('requires', []))), None)
+            dependent = next((key for key in self.enabled if any(dependency(dep)[0] not in self.enabled for dep in self.catalog[key].get('requires', []))), None)
             if dependent is None:
                 break
             component = dependent
