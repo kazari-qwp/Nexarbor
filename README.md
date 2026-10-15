@@ -1,18 +1,20 @@
-# 天网（数据与智能的动态网络）
+# 织林 · Nexarbor
 
-**英文暂定：Tianwang · A Dynamic Network for Data and Intelligence**
+[简体中文](README.md) | [English](README_EN.md)
 
-天网的目标是建立一套通用的动态网络框架，让数据、智能体和能力能够被组织、连接、访问与演化。以统一的节点和连接为基础，天网希望承载从协作团队到数据库，再到动态 NPC 网络世界的多种应用。
+**数据与智能的动态网络 · A Dynamic Network for Data and Intelligence**
+
+织林的目标是建立一套通用的动态网络框架，让数据、智能体和能力能够被组织、连接、访问与演化。以统一的节点和连接为基础，织林希望承载从协作团队到数据库，再到动态 NPC 网络世界的多种应用。
 
 **多 Agent 协作是这套核心框架的第一个应用。** 当前的讨论组、项目执行组和客户端测试，正在验证核心框架组织智能、连接数据与驱动工作流程的能力。接下来的数据库与动态世界应用，将沿用并继续发展同一套基础。
 
-代码、Python命名空间与Harness插件目前沿用 `DataNet` / `datanet` 标识；项目中文名称暂定为天网。当前插件版本为 **0.4.0**。
+项目名称为 **织林 / Nexarbor**。Python 命名空间与 Harness 插件目前沿用 `datanet` / `datanet-harness` 技术标识；当前插件版本为 **0.4.0**。
 
 ## 项目结构：一个核心，三个应用
 
 ```mermaid
 flowchart TB
-    Core["天网核心网络框架<br/>节点 · 定向连接 · 访问协议 · 状态与事件 · 持久化"]
+    Core["织林核心网络框架<br/>节点 · 定向连接 · 访问协议 · 状态与事件 · 持久化"]
     Components["可组合组件<br/>节点配置 · 能力 · 工具箱 · 网络预设"]
     Core --> Components
     Components --> Agents["应用一：多Agent协作<br/>已实现并完成端到端验证"]
@@ -24,7 +26,7 @@ flowchart TB
 
 ## 核心框架
 
-天网用节点表示数据、智能体与可调用能力，用定向连接描述它们之间的访问关系。网络结构可以在运行中调整，具体任务通过合适的组件组合完成。
+织林用节点表示数据、智能体与可调用能力，用定向连接描述它们之间的访问关系。网络结构可以在运行中调整，具体任务通过合适的组件组合完成。
 
 | 基础能力 | 作用 |
 |---|---|
@@ -39,7 +41,7 @@ Python核心框架位于 `python/datanet/core/`。讨论、协作、经验、排
 
 **可组合、可拔插和可持续演化，是核心架构的设计重点。** 新的工作方式可以形成网络预设，新的能力可以形成工具或工具箱，新的数据形态可以形成节点；这些扩展可以继续服务后续应用。
 
-详见[架构与事件接口](docs/ARCHITECTURE.md)和[组件拆解表](docs/COMPONENT_MAP.md)。
+详见[架构与事件接口](docs/ARCHITECTURE.md)和[组件拆解表](docs/COMPONENT_MAP.md)。不使用 Harness 时，可选用[独立执行器](executors/minimal/README.md)。
 
 ## 应用一：多 Agent 协作与工程交付
 
@@ -85,13 +87,13 @@ Python核心框架位于 `python/datanet/core/`。讨论、协作、经验、排
 当前提供Windows x64后端，已在DeepSeek Harness `0.2.0-rc.2`环境验证。
 
 1. 准备客户端、模型服务与API配置。
-2. 在客户端导入已构建的 `datanet-harness-0.4.0.tgz`，启用插件。
+2. 从 [v0.4.0 Release](https://github.com/kazari-qwp/Nexarbor/releases/tag/v0.4.0) 下载 `datanet-harness-0.4.0.tgz`，导入客户端并启用插件。
 3. 配置 `cordis.patch.yml` 中的工作目录、存储位置与模型路线。
 4. 进入网络管理Skill，或直接使用网络管理工具创建节点及网络。
 
-本地最新构建包位于 `build/datanet-harness-0.4.0.tgz`；构建目录不提交Git。源码仓库可按下方步骤生成安装包，之后再提供发布资产。
+正式安装包通过 GitHub Releases 分发。源码仓库可按下方步骤构建，产物位于 `build/datanet-harness-0.4.0.tgz`；安装包和构建目录不提交 Git。
 
-Agent循环、工具执行和会话由Harness原生运行时负责，天网组件负责网络结构与业务协作。模型配置与登录使用宿主客户端设置。
+Agent循环、工具执行和会话由Harness原生运行时负责，织林组件负责网络结构与业务协作。模型配置与登录使用宿主客户端设置。
 
 ### 方式二：使用Python网络基础
 
@@ -113,7 +115,7 @@ from datanet.core.agent_node import AgentNode
 network = Network()
 source = Node("source", "访问起点", None)
 data = TextFileNode("data", "数据节点", "text", "data.md")
-data.write("content", "你好，天网", mode="upsert")
+data.write("content", "你好，织林", mode="upsert")
 source.read_interfaces.append(Interface("data", visibility="public"))
 network.add_node(source)
 network.add_node(data)
@@ -176,7 +178,7 @@ Pop-Location
 - **可视化与多模态**：通过交互图、节点缩略图与结构操作，让人和智能体更直观地理解网络。
 - **适配与生态**：沿独立适配层连接更多宿主与工具，让成熟组件在不同应用之间复用。
 
-天网希望让每一个成熟节点、工具和网络预设，都成为后续应用可以继续使用的积木。三个应用会推动同一核心成长，也会相互贡献数据组织、协作与动态交互能力。
+织林希望让每一个成熟节点、工具和网络预设，都成为后续应用可以继续使用的积木。三个应用会推动同一核心成长，也会相互贡献数据组织、协作与动态交互能力。
 
 ## 文档与参与
 
