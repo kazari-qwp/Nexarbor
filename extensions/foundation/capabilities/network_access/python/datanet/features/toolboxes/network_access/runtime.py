@@ -14,6 +14,16 @@ class Plugin(Component):
             e['spec']['description'] = f'从所属节点查看连接摘要，默认使用最大depth，起点第0层，每个接口计1层；最大depth={depth}表示查看全部获准拓扑。只查看结构，不扩大数据或操作权限。'
 
     def invoke(self, actor, name, p):
+        # Public node handlers receive the authenticated caller out of band.
+        from types import SimpleNamespace
+        from datanet.core.access_budget import active_agent
+        token = active_agent.set((SimpleNamespace(max_signal_strength=self.r.state(actor)['strength']), actor))
+        try:
+            return self.access(actor, name, p)
+        finally:
+            active_agent.reset(token)
+
+    def access(self, actor, name, p):
         methods = dict(node_read='read', node_write='write', node_list='list_nodes', node_tools='list_tools', node_invoke='invoke_tool')
         if name == 'network_structure':
             options = self.r.state(actor)['grant']['framework'][name]

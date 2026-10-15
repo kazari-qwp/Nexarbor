@@ -16,23 +16,26 @@
 | `capabilities/decentralized_group` | `extensions/multi_agent/capabilities/decentralized_group` | `capabilities/tools_network_management`, `capabilities/agent_delegation`, `capabilities/text`, `toolboxes/engineering`, `capabilities/agent_messaging`, `nodes/agent_cooperative_worker`, `capabilities/agent_identity`, `capabilities/agent_runtime`, `capabilities/shared_workspace` |
 | `capabilities/delegated_number` | `extensions/multi_agent/capabilities/delegated_number` | `capabilities/agent_identity`, `nodes/value` |
 | `capabilities/discussion_group` | `extensions/multi_agent/capabilities/discussion_group` | `nodes/agent_discussion_leader`, `nodes/agent_discussion_member`, `nodes/agent_discussion_recorder`, `nodes/agent_leader`, `nodes/agent_member`, `nodes/agent_recorder`, `capabilities/text`, `capabilities/tools_network_management`, `capabilities/agent_identity`, `capabilities/agent_runtime` |
+| `capabilities/document_structure` | `extensions/storage/capabilities/document_structure` |  |
 | `capabilities/execution_records` | `extensions/foundation/capabilities/execution_records` | `capabilities/agent_identity` |
 | `capabilities/experience` | `extensions/foundation/capabilities/experience` | `capabilities/agent_identity` |
 | `capabilities/experiment_analysis` | `extensions/multi_agent/capabilities/experiment_analysis` | `capabilities/agent_identity`, `nodes/csv`, `nodes/sqlite` |
 | `capabilities/knowledge_agents` | `extensions/knowledge_base/capabilities/knowledge_agents` | `capabilities/scoped_workers`, `capabilities/knowledge_tools`, `nodes/knowledge_worker`, `toolboxes/knowledge_reader` |
-| `capabilities/knowledge_store` | `extensions/knowledge_base/capabilities/knowledge_store` | `nodes/csv`, `nodes/sqlite`, `nodes/llamaindex`, `capabilities/markdown_wiki` |
+| `capabilities/knowledge_store` | `extensions/knowledge_base/capabilities/knowledge_store` | `nodes/csv`, `nodes/sqlite`, `nodes/llamaindex`, `capabilities/markdown_wiki`, `capabilities/document_structure`, `capabilities/llm_wiki` |
 | `capabilities/knowledge_tools` | `extensions/knowledge_base/capabilities/knowledge_tools` | `nodes/knowledge_collection`, `capabilities/llm_wiki` |
 | `capabilities/llamaindex` | `extensions/storage/capabilities/llamaindex` |  |
-| `capabilities/llm_wiki` | `extensions/storage/capabilities/llm_wiki` |  |
+| `capabilities/llm_wiki` | `extensions/storage/capabilities/llm_wiki` | `capabilities/document_structure` |
 | `capabilities/local_data` | `extensions/foundation/capabilities/local_data` |  |
 | `capabilities/markdown_wiki` | `extensions/storage/capabilities/markdown_wiki` |  |
 | `capabilities/network_access` | `extensions/foundation/capabilities/network_access` | `capabilities/agent_identity` |
 | `capabilities/network_management` | `extensions/foundation/capabilities/network_management` | `capabilities/tools_network_management`, `capabilities/agent_identity` |
 | `capabilities/number_network` | `extensions/multi_agent/capabilities/number_network` | `capabilities/agent_identity`, `nodes/value` |
+| `capabilities/place_actions` | `extensions/npc_world/capabilities/place_actions` | `capabilities/world_state` |
 | `capabilities/problem_handling` | `extensions/foundation/capabilities/problem_handling` | `capabilities/experience`, `capabilities/execution_records`, `capabilities/tools_network_management`, `capabilities/agent_identity` |
 | `capabilities/project_root` | `extensions/multi_agent/capabilities/project_root` | `capabilities/text`, `capabilities/agent_identity`, `capabilities/tools_network_management`, `capabilities/agent_runtime`, `toolboxes/network_access`, `toolboxes/node_creation`, `toolboxes/agent_management`, `toolboxes/interface_management`, `toolboxes/discussion`, `toolboxes/recovery`, `toolboxes/discussion_member`, `toolboxes/engineering`, `toolboxes/cooperation`, `toolboxes/agent_delegation`, `toolboxes/agent_messaging`, `toolboxes/problem_handling`, `toolboxes/cooperation_control` |
 | `capabilities/reports` | `extensions/foundation/capabilities/reports` | `capabilities/execution_records`, `capabilities/agent_identity` |
 | `capabilities/response_recovery` | `extensions/foundation/capabilities/response_recovery` |  |
+| `capabilities/round_barrier` | `extensions/foundation/capabilities/round_barrier` |  |
 | `capabilities/scoped_workers` | `extensions/foundation/capabilities/scoped_workers` | `capabilities/agent_runtime`, `capabilities/task_documents`, `toolboxes/agent_messaging` |
 | `capabilities/shared_workspace` | `extensions/foundation/capabilities/shared_workspace` |  |
 | `capabilities/sqlite` | `extensions/storage/capabilities/sqlite` |  |
@@ -40,6 +43,8 @@
 | `capabilities/text` | `extensions/foundation/capabilities/text` |  |
 | `capabilities/tools_network_management` | `extensions/foundation/capabilities/tools_network_management` | `capabilities/agent_identity`, `capabilities/agent_runtime` |
 | `capabilities/value` | `extensions/storage/capabilities/value` |  |
+| `capabilities/world_runtime` | `extensions/npc_world/capabilities/world_runtime` | `capabilities/place_actions`, `capabilities/agent_runtime`, `capabilities/network_access`, `nodes/npc_resident`, `nodes/npc_child` |
+| `capabilities/world_state` | `extensions/npc_world/capabilities/world_state` | `capabilities/round_barrier` |
 | `network_presets/creation_validation` | `extensions/multi_agent/network_presets/creation_validation` | `capabilities/creation_validation`, `nodes/value` |
 | `network_presets/decentralized_group` | `extensions/multi_agent/network_presets/decentralized_group` | `capabilities/decentralized_group`, `toolboxes/network_access`, `toolboxes/engineering`, `toolboxes/cooperation` |
 | `network_presets/delegated_number` | `extensions/multi_agent/network_presets/delegated_number` | `capabilities/delegated_number`, `nodes/value` |
@@ -48,6 +53,7 @@
 | `network_presets/knowledge_base` | `extensions/knowledge_base/network_presets/knowledge_base` | `capabilities/knowledge_agents`, `toolboxes/knowledge_base` |
 | `network_presets/number_network` | `extensions/multi_agent/network_presets/number_network` | `capabilities/number_network`, `nodes/value` |
 | `network_presets/project_root` | `extensions/multi_agent/network_presets/project_root` | `capabilities/project_root` |
+| `network_presets/small_town` | `extensions/npc_world/network_presets/small_town` | `capabilities/world_runtime`, `toolboxes/world_operator`, `toolboxes/world_resident` |
 | `nodes/agent_cooperative_worker` | `extensions/multi_agent/nodes/agent_cooperative_worker` | `toolboxes/engineering` |
 | `nodes/agent_coordinator` | `extensions/multi_agent/nodes/agent_coordinator` | `toolboxes/discussion`, `toolboxes/network_management_skill`, `toolboxes/node_operations`, `toolboxes/topology_inspection`, `capabilities/agent_identity` |
 | `nodes/agent_discussion_leader` | `extensions/multi_agent/nodes/agent_discussion_leader` | `capabilities/agent_identity` |
@@ -65,6 +71,8 @@
 | `nodes/knowledge_collection` | `extensions/knowledge_base/nodes/knowledge_collection` | `capabilities/knowledge_store` |
 | `nodes/knowledge_worker` | `extensions/knowledge_base/nodes/knowledge_worker` | `toolboxes/knowledge_worker`, `toolboxes/task_documents`, `toolboxes/agent_messaging` |
 | `nodes/llamaindex` | `extensions/storage/nodes/llamaindex` | `capabilities/llamaindex` |
+| `nodes/npc_child` | `extensions/npc_world/nodes/npc_child` |  |
+| `nodes/npc_resident` | `extensions/npc_world/nodes/npc_resident` |  |
 | `nodes/sqlite` | `extensions/storage/nodes/sqlite` | `capabilities/sqlite` |
 | `nodes/text` | `extensions/foundation/nodes/text` | `capabilities/text` |
 | `nodes/value` | `extensions/storage/nodes/value` | `capabilities/value` |
@@ -104,5 +112,7 @@
 | `toolboxes/skill_loader` | `extensions/foundation/toolboxes/skill_loader` |  |
 | `toolboxes/task_documents` | `extensions/foundation/toolboxes/task_documents` | `capabilities/task_documents` |
 | `toolboxes/topology_inspection` | `extensions/foundation/toolboxes/topology_inspection` | `capabilities/network_access` |
+| `toolboxes/world_operator` | `extensions/npc_world/toolboxes/world_operator` | `capabilities/world_runtime` |
+| `toolboxes/world_resident` | `extensions/npc_world/toolboxes/world_resident` | `capabilities/world_runtime`, `toolboxes/network_access` |
 
-共 100 个唯一组件。
+共 110 个唯一组件。

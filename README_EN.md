@@ -22,11 +22,11 @@ The framework enforces access rules and capability boundaries. Agents choose the
 |---|---|
 | Shared project information, local communication, delegation, and acceptance | Collaborative teams that develop plans and deliver projects |
 | Fixed archive and retrieval roles connected to different storage nodes | Knowledge bases and application memory with classification and provenance |
-| Layered memory and interaction scopes determined by location and relationships | Planned dynamic NPC worlds |
+| Layered memory and interaction scopes determined by location and relationships | Discrete-time NPC worlds |
 
 Network structures provide the foundation; agents, permission settings, and business components implement the behavior. **Our goal is to make the organization of agents, data, and capabilities something that can be saved, reused, and continuously evolved as a network.**
 
-The project is named **Nexarbor / 织林**. The Python namespace and Harness plugin currently retain the `datanet` / `datanet-harness` technical identifiers. The current plugin version is **0.4.0**. This README includes the latest development work on component assembly and the knowledge base. Those implementations are still being prepared locally; this update publishes documentation only. Published packages contain the features documented in their release notes.
+The project is named **Nexarbor / 织林**. The Python namespace and Harness plugin currently retain the `datanet` / `datanet-harness` technical identifiers. The current plugin version is **0.4.0**. This README includes the latest development work on component assembly and the knowledge base. Implementation status is documented in each application’s validation records. Published packages contain the features documented in their release notes.
 
 ## One core, three applications
 
@@ -37,10 +37,10 @@ flowchart TB
     Core --> Components
     Components --> Agents["Application 1: Multi-agent collaboration<br/>Implemented and evaluated end to end"]
     Components --> Database["Application 2: Knowledge and memory network<br/>Initial implementation with component validation"]
-    Components --> World["Application 3: Dynamic NPC worlds<br/>Planned"]
+    Components --> World["Application 3: Dynamic NPC worlds<br/>Component-based town and local validation"]
 ```
 
-Multi-agent collaboration is the first application and has been evaluated end to end in real clients. The initial knowledge and memory application has component and native-bridge validation. Dynamic NPC worlds remain planned. The applications share the network foundation while keeping business rules in separate components.
+Multi-agent collaboration is the first application and has been evaluated end to end in real clients. The initial knowledge and memory application has component and native-bridge validation. An initial discrete-time NPC town has local validation. The applications share the network foundation while keeping business rules in separate components.
 
 ## Core framework
 
@@ -99,13 +99,11 @@ The application reuses pandas, SQLite, LlamaIndex, and MkDocs through the same c
 
 ## Application 3: Dynamic NPC worlds
 
-The third application plans to organize NPCs, scenes, memories, and public facilities into a persistent network. Entities act within their own scopes of information and capabilities.
+An optional extension implements a town with nine locations and six independent NPCs. Movement changes presence edges, which determine nearby people, local services, and adjacent movement tools through the existing access graph. Business rules stay outside the core.
 
-- **Layered information and memory:** world knowledge, social-group knowledge, and private memories have different access scopes.
-- **Location and relationships:** movement and changing relationships alter which entities and information are accessible, supporting local communication and message propagation.
-- **Public facilities and rules:** institutional nodes expose services that update world state through explicit rules.
+Each game day has five slots. NPCs choose actions in parallel and submit before one shared settlement. Read-only common knowledge, private Markdown memories, bounded execution, checkpoints, trade, work, marriage and a fictional two-day pregnancy are supported. Birth creates a real child Agent with independent memory, joining the next slot.
 
-These mechanisms will be implemented as extension components, reusing dynamic connections, permissions, events, and persistence from the core. The application remains planned; the complete world system will be designed and evaluated separately.
+Mocked lifecycle tests and a paid single-NPC Harness test have passed. A complete world with real Agents was deliberately not run. See the [NPC application guide](docs/applications/npc_world/README.md).
 
 ## Quick start
 

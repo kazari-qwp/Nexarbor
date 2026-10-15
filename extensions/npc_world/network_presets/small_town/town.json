@@ -1,0 +1,184 @@
+{
+  "places": [
+    {
+      "id": "civil_registry",
+      "name": "民政局",
+      "services": [
+        "marry"
+      ]
+    },
+    {
+      "id": "tavern",
+      "name": "酒馆",
+      "services": [
+        "drink"
+      ]
+    },
+    {
+      "id": "home1",
+      "name": "居民楼1",
+      "services": [
+        "rest",
+        "plan_family"
+      ]
+    },
+    {
+      "id": "home2",
+      "name": "居民楼2",
+      "services": [
+        "rest",
+        "plan_family"
+      ]
+    },
+    {
+      "id": "smithy",
+      "name": "铁匠铺",
+      "services": [
+        "repair"
+      ]
+    },
+    {
+      "id": "shop",
+      "name": "商店",
+      "services": [
+        "trade"
+      ]
+    },
+    {
+      "id": "mine",
+      "name": "矿坑",
+      "services": [
+        "mine"
+      ]
+    },
+    {
+      "id": "forest",
+      "name": "树林",
+      "services": [
+        "chop"
+      ]
+    },
+    {
+      "id": "hospital",
+      "name": "医院",
+      "services": [
+        "birth",
+        "rest"
+      ]
+    }
+  ],
+  "roads": [
+    [
+      "civil_registry",
+      "tavern"
+    ],
+    [
+      "tavern",
+      "home1"
+    ],
+    [
+      "tavern",
+      "home2"
+    ],
+    [
+      "tavern",
+      "smithy"
+    ],
+    [
+      "tavern",
+      "shop"
+    ],
+    [
+      "home1",
+      "hospital"
+    ],
+    [
+      "home2",
+      "hospital"
+    ],
+    [
+      "smithy",
+      "mine"
+    ],
+    [
+      "shop",
+      "forest"
+    ]
+  ],
+  "npcs": [
+    {
+      "id": "lin",
+      "name": "林舟",
+      "place": "home1",
+      "role": "resident",
+      "partner": "yue",
+      "goal": "你与月宁是情侣，希望商量结婚和组建家庭；尊重对方决定。"
+    },
+    {
+      "id": "yue",
+      "name": "月宁",
+      "place": "home1",
+      "role": "resident",
+      "partner": "lin",
+      "can_gestate": true,
+      "goal": "你与林舟是情侣，愿意讨论家庭计划，也想了解小镇。"
+    },
+    {
+      "id": "woodcutter",
+      "name": "阿森",
+      "place": "forest",
+      "role": "woodcutter",
+      "goal": "砍树出售木材，照顾工具与体力，和镇民建立关系。",
+      "inventory": {
+        "axe": 3
+      }
+    },
+    {
+      "id": "miner",
+      "name": "石岩",
+      "place": "mine",
+      "role": "miner",
+      "goal": "你的镐子坏了，想修好后挖矿赚钱；可以与铁匠商量。",
+      "inventory": {
+        "pickaxe": 0
+      }
+    },
+    {
+      "id": "smith",
+      "name": "老锤",
+      "place": "smithy",
+      "role": "smith",
+      "goal": "经营修理服务，留意矿石与木材补给，空闲时与镇民交流。"
+    },
+    {
+      "id": "wanderer",
+      "name": "小路",
+      "place": "tavern",
+      "role": "wanderer",
+      "goal": "你是流浪汉，想寻找住处和生活方向；可以交朋友、求助或劳动。",
+      "coins": 2
+    }
+  ],
+  "shop": {
+    "wood": {
+      "price": 2,
+      "stock": 12
+    },
+    "ore": {
+      "price": 3,
+      "stock": 8
+    },
+    "axe": {
+      "price": 4,
+      "stock": 4
+    },
+    "pickaxe": {
+      "price": 4,
+      "stock": 4
+    }
+  },
+  "smith_stock": {
+    "wood": 8,
+    "ore": 8
+  }
+}

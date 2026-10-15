@@ -1,0 +1,192 @@
+{
+  "move_here": {
+    "description": "计划移动到此地点。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "talk": {
+    "description": "向同场所的此人说话。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "give": {
+    "description": "计划赠送物品或钱给同场所的此人。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "enum": [
+            "coins",
+            "wood",
+            "ore"
+          ]
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        }
+      },
+      "required": [
+        "item",
+        "quantity"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "marry": {
+    "description": "在民政局申请与指定对象结婚，需双方同意。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "partner": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "partner"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "plan_family": {
+    "description": "在居民楼与配偶共同登记生育计划。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "partner": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "partner"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "rest": {
+    "description": "计划在此休息恢复体力。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "drink": {
+    "description": "计划花1金币喝饮料，恢复体力。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "repair": {
+    "description": "计划花2金币修理自己的镐子或斧头。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "enum": [
+            "axe",
+            "pickaxe"
+          ]
+        }
+      },
+      "required": [
+        "item"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "trade": {
+    "description": "计划在商店买卖木材、矿石或工具。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "side": {
+          "type": "string",
+          "enum": [
+            "buy",
+            "sell"
+          ]
+        },
+        "item": {
+          "type": "string",
+          "enum": [
+            "wood",
+            "ore",
+            "axe",
+            "pickaxe"
+          ]
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10
+        }
+      },
+      "required": [
+        "side",
+        "item",
+        "quantity"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "mine": {
+    "description": "计划用镐子挖矿，消耗体力与耐久。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "chop": {
+    "description": "计划用斧头砍树，消耗体力与耐久。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "birth": {
+    "description": "到期后在医院生产，迎接新的儿童居民。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  "local_info": {
+    "description": "查看本场所服务、价格与库存。",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    }
+  }
+}
