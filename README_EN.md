@@ -4,11 +4,29 @@
 
 **A Dynamic Network for Data and Intelligence**
 
-Nexarbor (织林) is a general framework for organizing data, agents, and capabilities as a dynamic network. Its shared foundation of nodes and directed connections is designed to support collaborative teams, networked databases, and dynamic NPC worlds.
+As models become better at reasoning, planning, and using tools, agents can take on more autonomous decisions. Nexarbor builds on this shift by using a graph primarily to express access permissions and capability connections, giving agents room to choose actions and organize collaboration within explicit boundaries.
 
-**Multi-agent collaboration is the first application of the core framework.** Discussion groups, project teams, and real-client evaluations demonstrate how the framework organizes agents, connects data, and coordinates work. The planned database and dynamic-world applications will build on the same foundation.
+Compared with graph orchestration centered on execution flow, Nexarbor focuses on **who can access which information, use which capabilities, and interact with whom. The network defines the space of permitted actions; agents decide how to pursue their goals within it.**
 
-The project is named **Nexarbor / 织林**. The Python namespace and Harness plugin currently retain the `datanet` / `datanet-harness` technical identifiers. The current plugin version is **0.4.0**.
+Nexarbor organizes agents, data, and tools into a network that can change at runtime. Different scopes of information sharing, capability assignments, and organizational structures support different applications: collaborative teams, knowledge and memory networks, and dynamic NPC worlds.
+
+## The idea: define the space in which agents act
+
+A connection in Nexarbor primarily expresses permitted access and interaction. An agent can consult a connected data node within its access rights, communicate or delegate through the appropriate agent interface, and invoke tools granted through an assigned toolbox. The framework checks those tool permissions. A connection does not require its target to execute next.
+
+The framework enforces access rules and capability boundaries. Agents choose their next actions based on goals, available information, and tool results. Application components can still define discussion rounds, task claims, acceptance, and completion conditions, combining autonomous decisions with explicit rules.
+
+**Autonomy has an explicit scope.** Users can configure a network in advance or authorize selected agents to change it. Ordinary agents receive the interfaces their roles require. Applications can use fixed structures, bounded changes, or agent-directed network construction.
+
+| Network organization | Applications it can support |
+|---|---|
+| Shared project information, local communication, delegation, and acceptance | Collaborative teams that develop plans and deliver projects |
+| Fixed archive and retrieval roles connected to different storage nodes | Knowledge bases and application memory with classification and provenance |
+| Layered memory and interaction scopes determined by location and relationships | Planned dynamic NPC worlds |
+
+Network structures provide the foundation; agents, permission settings, and business components implement the behavior. **Our goal is to make the organization of agents, data, and capabilities something that can be saved, reused, and continuously evolved as a network.**
+
+The project is named **Nexarbor / 织林**. The Python namespace and Harness plugin currently retain the `datanet` / `datanet-harness` technical identifiers. The current plugin version is **0.4.0**. This README includes the latest development work on component assembly and the knowledge base. Those implementations are still being prepared locally; this update publishes documentation only. Published packages contain the features documented in their release notes.
 
 ## One core, three applications
 
@@ -18,11 +36,11 @@ flowchart TB
     Components["Composable extensions<br/>Node configurations · Capabilities · Toolboxes · Network presets"]
     Core --> Components
     Components --> Agents["Application 1: Multi-agent collaboration<br/>Implemented and evaluated end to end"]
-    Components --> Database["Application 2: Networked database<br/>Data-node foundations available; full application planned"]
+    Components --> Database["Application 2: Knowledge and memory network<br/>Initial implementation with component validation"]
     Components --> World["Application 3: Dynamic NPC worlds<br/>Planned"]
 ```
 
-The applications share the network foundation while keeping their business rules in separate components. Future applications can reuse existing capabilities or introduce their own nodes, tools, and network presets.
+Multi-agent collaboration is the first application and has been evaluated end to end in real clients. The initial knowledge and memory application has component and native-bridge validation. Dynamic NPC worlds remain planned. The applications share the network foundation while keeping business rules in separate components.
 
 ## Core framework
 
@@ -44,11 +62,11 @@ The implementation is organized into four parts:
 | Core | `python/datanet/core/` | Ordinary nodes, text nodes, Agent nodes, graph access, permissions, persistence, extension registration, and the executor contract |
 | Harness adapter | `adapters/harness/` | Duplex RPC, native events, sessions, tool/context integration, and platform compatibility |
 | Optional executor | `executors/minimal/` | A standalone Python agent loop with model/tool calls, history, messages, cancellation, and budgets |
-| Collaboration extension | `extensions/multi_agent/` | Discussion, project collaboration, messaging, delegation queues, reports, experience, troubleshooting, and residency/reuse policies |
+| Extension components | `extensions/` | Independent foundation/storage capabilities assembled by multi-agent and knowledge-base recipes |
 
 Inside an extension package, business code belongs in **capabilities**. Node and role configurations, guides, toolboxes, and network presets are configuration and documentation. A toolbox lists tool-entry IDs; the framework grants and enforces the corresponding permissions when it is assigned to an Agent.
 
-**Composability, pluggability, and continued evolution are central design goals.** A new workflow can become a network preset, a new operation can become a capability, and a new data representation can become a node. These extensions can support later applications as well.
+**Components are reusable capabilities; applications combine components with a network structure.** Toolboxes group tools that can be granted to agents, while presets provide ready-to-use structures. The framework resolves selected components and their dependencies, loading each shared implementation once. Extension capabilities prioritize mature implementations for storage, retrieval, page generation, and agent execution, adapted through component interfaces. See [component assembly](docs/COMPONENTS.md) and [third-party reuse](docs/THIRD_PARTY_COMPONENTS.md).
 
 See the [architecture and event interfaces](docs/ARCHITECTURE.md) and the [component breakdown](docs/COMPONENT_MAP.md).
 
@@ -73,21 +91,21 @@ These results are engineering regression records for the first application. The 
 
 **[Application 1: Architecture strengths and evaluation history](docs/applications/agent_collaboration/README.md)**
 
-## Application 2: Networked database
+## Application 2: Knowledge base and application memory
 
-The second planned application is a database built on the network core: nodes and connections organize data, relationships, and access, bringing multiple data representations into a shared protocol that can work with agents.
+A fixed network and two on-demand agents classify data into CSV, SQLite, RAG, or Wiki collections. Exact reads, filters, and retrieval run directly; agents handle classification and complex questions.
 
-Value, text, CSV, SQLite, and LlamaIndex node components already provide a starting point, including reads, writes, filtering, and semantic retrieval where supported. The complete database application remains planned.
-
-Future work will define data organization and querying, storage and indexes, relationship traversal, and intelligent operations.
+The application reuses pandas, SQLite, LlamaIndex, and MkDocs through the same component, node, and permission contracts. It supports source references, versions, complete retrieval, exports, and restart recovery. See the [knowledge-base guide](docs/applications/knowledge_base/README.md), [component assembly guide](docs/COMPONENTS.md), and [component and knowledge-base validation](docs/VALIDATION_COMPONENT_KNOWLEDGE.md).
 
 ## Application 3: Dynamic NPC worlds
 
-The third planned application is a dynamic NPC network world. NPCs, scenes, items, memories, and events become interconnected nodes whose states, relationships, communication, and actions drive the world forward.
+The third application plans to organize NPCs, scenes, memories, and public facilities into a persistent network. Entities act within their own scopes of information and capabilities.
 
-Dynamic connections, independent memory, events, and persistent state provide a foundation. Future work will develop world-state models, behavior rules, event propagation, and interaction interfaces so agents can act within a persistent world.
+- **Layered information and memory:** world knowledge, social-group knowledge, and private memories have different access scopes.
+- **Location and relationships:** movement and changing relationships alter which entities and information are accessible, supporting local communication and message propagation.
+- **Public facilities and rules:** institutional nodes expose services that update world state through explicit rules.
 
-This application is currently planned. Existing collaboration tests exercise some reusable capabilities; the complete world system will be designed and evaluated separately.
+These mechanisms will be implemented as extension components, reusing dynamic connections, permissions, events, and persistence from the core. The application remains planned; the complete world system will be designed and evaluated separately.
 
 ## Quick start
 
@@ -152,7 +170,10 @@ To add a component, create a directory and `component.json` in the appropriate c
 
 ```text
 python/datanet/core/       Core network framework
-extensions/multi_agent/   Pluggable collaboration extension, with four component categories
+extensions/foundation/    Independent reusable capabilities
+extensions/storage/       Storage, retrieval and Wiki adapters
+extensions/multi_agent/   Collaboration application recipe
+extensions/knowledge_base/ Knowledge-base application recipe
 executors/minimal/        Optional standalone Agent executor
 adapters/harness/         Harness communication, runtime, and platform integration
 scripts/                  Component management, builds, and reusable evaluation tools
@@ -182,7 +203,7 @@ Tests cover the Python core, component lifecycle, persistence, native integratio
 
 - **Core network:** improve dynamic topology, access protocols, component boundaries, recovery, and observability.
 - **Collaboration:** develop more roles and presets, improve acceptance and long-term memory, and expand real-project benchmarks.
-- **Database:** define data models, storage, indexing, queries, and intelligent operations.
+- **Knowledge and memory:** extend formats and storage components, improve automatic archiving, provenance maintenance, and cross-collection retrieval, and evaluate larger datasets.
 - **NPC worlds:** develop world state, event propagation, memory, and behavior.
 - **Visualization and multimodality:** use interactive graphs, node thumbnails, and structural operations to help people and agents understand networks.
 - **Adapters and ecosystem:** connect additional hosts and tools through independent adapters and reuse mature components across applications.
@@ -193,6 +214,8 @@ Nexarbor aims to make each mature node, capability, and network preset a buildin
 
 - [Architecture and component interfaces](docs/ARCHITECTURE.md)
 - [Component breakdown](docs/COMPONENT_MAP.md)
+- [Component assembly and dependencies](docs/COMPONENTS.md)
+- [Knowledge base and application memory](docs/applications/knowledge_base/README.md)
 - [Application 1 and evaluation results](docs/applications/agent_collaboration/README.md)
 - [Agent guides and tool descriptions](docs/AGENT_REVIEW.md)
 - [Agent memory, reuse, and lifecycle](docs/AGENT_LIFECYCLE_REVIEW.md)
