@@ -135,3 +135,11 @@
 修复：实际persistence handle.append及enqueueLive都标记自定义事件ignorable；Wiki YAML标量规范；LlamaIndex fsspec Windows extended路径；组件启动在主线程预载完整HuggingFace依赖（只SciPy不够）；local_files_only；非RAG不伪称语义命中；locator和aggregate.field指南及错误反馈。无新增核心业务耦合。临时诊断wrapper已从测试profile移除，保留堆栈证据。
 
 报告 docs/applications/knowledge_base/TEST_REPORT_20261015.md；Agent指南改动清单与原文 docs/KNOWLEDGE_AGENT_REVIEW.md。本次未commit/push。保留原始认证失败和工程中断记录，不把有问题的会话冒充完整无故障重跑。
+
+## 2026-10-15 统一 Wiki 检索与交叉对照完成
+
+先提交基线 a2302e9，随后只在扩展实现 Wiki 正文向量索引、固定版本页面入口、同集合链接解析/分页和 evidence 引用参数。复用 LlamaIndex、llm-wiki 元数据和 markdown-it-py，核心未改。原文和历史版本保留，无结构片段不强制改写。
+
+真实嵌入同语料 10 份/78 向量，两方案5/5入口命中。真实 Harness 基线与修复后Wiki均五问正确、25项独立检查通过；旧55.538秒/22工具/299982 tokens，新51.859秒/24工具/371965 tokens。新全文读取11→5、未命中输入65674→52882，总token仍更多。首轮Wiki3次结构化来源失败保留，修复返回引用参数后新会话零错误，不向Agent喂答案。报告 WIKI_RETRIEVAL_COMPARISON_20261015.md。
+
+最后测试客户端是 build/wiki-ab/wiki-fixed/client-process.json（PID18792，本任务独立userData），会话已空闲；其配置回到本项目新方案。只使用用户已登录的隔离测试home，未读取其他客户端凭据。启动器曾继承GUI管道阻塞，发题前修复，不计入模型耗时。最后可读额度五小时剩余22%，未使用重置卡。Agent四份指南与两条描述已列在KNOWLEDGE_AGENT_REVIEW.md。

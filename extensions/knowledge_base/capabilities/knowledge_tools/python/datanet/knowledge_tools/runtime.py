@@ -62,5 +62,5 @@ class Plugin(Component):
         else:
             by_id = {r['id']: r for r in records}
             result['items'] = [dict(id=h['slug'], node_id=by_id[h['slug']]['node_id'], version=by_id[h['slug']]['version'],
-                                    title=h['title'], score=h['score']) for h in result['items']]
+                                    title=h['title'], score=h['score'],entry=by_id[h['slug']]['page']) for h in result['items']]
         return dict(engine='llm-wiki', **result)

@@ -55,6 +55,9 @@ class KnowledgeStore:
                 CREATE TABLE IF NOT EXISTS intake_items(intake_id TEXT NOT NULL, item_index INTEGER NOT NULL, collection_id TEXT NOT NULL, record_id TEXT NOT NULL, PRIMARY KEY(intake_id,item_index));
                 CREATE TABLE IF NOT EXISTS record_intakes(record_id TEXT NOT NULL,intake_id TEXT NOT NULL,PRIMARY KEY(record_id,intake_id));
                 CREATE TABLE IF NOT EXISTS routing_rules(signature TEXT PRIMARY KEY, collection_id TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS wiki_pages(record_id TEXT PRIMARY KEY,title TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS wiki_names(collection_id TEXT NOT NULL,name TEXT NOT NULL,record_id TEXT NOT NULL,
+                    PRIMARY KEY(collection_id,name,record_id));
                 CREATE TABLE IF NOT EXISTS intakes(
                     id TEXT PRIMARY KEY, raw_path TEXT NOT NULL, purpose TEXT NOT NULL,
                     status TEXT NOT NULL, result TEXT);
@@ -198,6 +201,9 @@ class KnowledgeStore:
         key = key or hash
         if not isinstance(key, str) or not key:
             raise ValueError('Record key must be a nonempty string')
+        if collection['storage']=='wiki':
+            from datanet.llm_wiki.navigation import identity
+            identity(dict(id='',key=key,content=value,metadata=metadata))
         with self.lock:
             with self.connection() as db:
                 old = db.execute('SELECT * FROM records WHERE collection_id=? AND record_key=?', (collection['id'], key)).fetchone()
@@ -227,7 +233,7 @@ class KnowledgeStore:
                 return dict(id=id,version=version,node_id=collection['node_id'])
             self._materialize(id)
             result = self.fetch(id)
-            if collection['storage'] == 'rag':
+            if collection['storage'] in {'rag','wiki'}:
                 result['index'] = self.index(collection['id'])
             return result
 
@@ -244,11 +250,48 @@ class KnowledgeStore:
                 raise RuntimeError('; '.join(result.errors))
         else:
             self._atomic(self._file('data/' + collection['id'] + '/pages/' + id + '.md'), value.encode('utf-8'))
-        with self.connection() as db:
+        with self.transaction() as db:
+            if collection['storage']=='wiki':
+                self._wiki_identity(dict(id=id,collection_id=collection['id'],key=row['record_key'],content=value,metadata=json.loads(row['metadata'])))
             db.execute('DELETE FROM searchable WHERE record_id=?', (id,))
             db.execute('INSERT INTO searchable VALUES(?,?)', (id, text_of(value)))
             self._short_index(db,id,text_of(value))
-            db.execute("UPDATE records SET state='ready',index_state=? WHERE id=?", ('pending' if collection['storage'] == 'rag' else 'ready', id))
+            db.execute("UPDATE records SET state='ready',index_state=? WHERE id=?", ('pending' if collection['storage'] in {'rag','wiki'} else 'ready', id))
+
+    def _wiki_identity(self, record):
+        from datanet.llm_wiki.navigation import identity
+        title,names=identity(record)
+        with self.connection() as db:
+            db.execute('INSERT OR REPLACE INTO wiki_pages VALUES(?,?)',(record['id'],title))
+            db.execute('DELETE FROM wiki_names WHERE record_id=?',(record['id'],))
+            db.executemany('INSERT INTO wiki_names VALUES(?,?,?)',[(record['collection_id'],name,record['id']) for name in names])
+
+    def _entry(self, record):
+        collection=self.collection(record['collection_id'])
+        result=dict(id=record['id'],node_id=collection['node_id'],version=record['version'],storage=collection['storage'],fetch=dict(id=record['id'],version=record['version']))
+        if collection['storage']=='wiki':
+            with self.connection() as db:title=db.execute('SELECT title FROM wiki_pages WHERE record_id=?',(record['id'],)).fetchone()
+            result.update(title=title['title'] if title else record['key'],wiki_link='[['+record['id']+']]',read=dict(id=record['id'],version=record['version'],view='section',section_id='document'))
+        return result
+
+    def _wiki_links(self,record,offset=0,limit=40):
+        from datanet.llm_wiki.navigation import references,target_parts
+        if type(offset) is not int or offset<0 or type(limit) is not int or not 1<=limit<=100:raise ValueError('Link offset must be nonnegative and limit 1..100')
+        links=references(record);items=[]
+        for target,label in links[offset:offset+limit]:
+            name,anchor=target_parts(target)
+            with self.connection() as db:
+                rows=db.execute("SELECT r.id,r.collection_id,r.record_key AS key,r.version FROM wiki_names n JOIN records r ON r.id=n.record_id WHERE n.collection_id=? AND n.name=? AND r.deleted=0 AND r.state='ready' ORDER BY r.id LIMIT 11",
+                                (record['collection_id'],(name or record['id']).casefold())).fetchall()
+            item=dict(target=target,label=label,anchor=anchor,status='resolved' if len(rows)==1 else 'ambiguous' if rows else 'unresolved')
+            if len(rows)==1:
+                item.update(self._entry(dict(rows[0])))
+                if anchor:item['read']=dict(id=item['id'],version=item['version'],view='outline')
+            elif rows:
+                item['candidates']=[self._entry(dict(row)) for row in rows[:10]];item['candidates_truncated']=len(rows)>10
+            items.append(item)
+        return dict(links=items,total_links=len(links),links_next_fetch=dict(id=record['id'],version=record['version'],view='links',offset=offset+limit,limit=limit) if offset+limit<len(links) else None,
+                    link_versions='target_current_at_read')
 
     def recover(self):
         with self.connection() as db:
@@ -286,12 +329,24 @@ class KnowledgeStore:
                     metadata=json.loads(record['metadata']), origins=origins, state=record['state'], index_state=record['index_state'], sources=references,
                     needs_refresh=any(r['deleted'] or r['current_version'] != r['source_version'] for r in references),
                     original_path=str(self._file(record['raw_path'])), fetch=dict(id=id, version=record['version']))
-        if view=='full':return result
+        result['evidence']=dict(node_id=result['node_id'],locator=id,version=result['version'])
+        is_wiki=self.collection(record['collection_id'])['storage']=='wiki'
+        if is_wiki:
+            from datanet.llm_wiki.navigation import identity
+            result['page']=self._entry(dict(id=id,collection_id=record['collection_id'],key=record['record_key'],version=record['version']))
+            result['page']['title']=identity(result)[0]
+        if view=='full':
+            if is_wiki:result.update(self._wiki_links(result,0,limit))
+            return result
         from datanet.document_structure.structure import DocumentStructure
         if not isinstance(value,str):raise ValueError('Outline and context views require a text document')
         structure=DocumentStructure(value)
         reference=dict(id=id,version=result['version'])
         summary={k:v for k,v in result.items() if k not in {'content','original_path','metadata'}}
+        if view=='links':
+            if not is_wiki:raise ValueError('Link navigation requires a Wiki collection')
+            selected=self._wiki_links(result,offset,limit)
+            return dict(**summary,**selected,view=view,is_excerpt=True,full_fetch=reference)
         if view=='outline':
             selected=structure.outline(offset,limit)
             for heading in selected['outline']:heading['read']=dict(**reference,view='section',section_id=heading['section_id'])
@@ -305,6 +360,12 @@ class KnowledgeStore:
             if continuation is not None:
                 if view=='section':continuation['section_id']=section_id or 'document'
                 else:continuation.update(start_line=start_line,**({'end_line':end_line} if end_line is not None else {}))
+        if is_wiki:
+            selected['links_fetch']=dict(**reference,view='links')
+            if view in ('section','window'):
+                local_links=self._wiki_links(dict(result,content=selected['content']),0,min(limit,10))
+                selected['links']=local_links['links'];selected['links_truncated']=local_links['total_links']>len(local_links['links'])
+                selected['link_versions']=local_links['link_versions']
         return dict(**summary,**selected,view=view,is_excerpt=True,next_fetch=continuation,full_fetch=reference)
 
     @staticmethod
@@ -362,17 +423,17 @@ class KnowledgeStore:
         if semantic:
             if not query.strip():
                 raise ValueError('Semantic queries require text')
-            targets = [scope] if scope else [c for c in self.catalog(limit=1000) if c['storage'] == 'rag']
+            targets = [scope] if scope else [c for c in self.catalog(limit=1000) if c['storage'] in {'rag','wiki'}]
             if allowed_collections is not None:
                 targets = [c for c in targets if c['id'] in allowed_collections]
-            if not targets or any(c['storage'] != 'rag' for c in targets):
-                raise ValueError('Semantic search requires an accessible RAG collection; use keyword search for other storage types')
+            if not targets or any(c['storage'] not in {'rag','wiki'} for c in targets):
+                raise ValueError('Semantic search requires an accessible RAG or Wiki collection; use field queries for structured storage')
             scores = {r['id']: 1 / (60 + i) for i, r in enumerate(hits, 1)}
             all_hits = {r['id']: r for r in hits}
             prepared={}
             for target in targets:
-                if target['storage'] != 'rag':
-                    continue
+                with self.connection() as db:count=db.execute("SELECT count(*) FROM records WHERE collection_id=? AND deleted=0 AND state='ready'",(target['id'],)).fetchone()[0]
+                if not count:continue
                 index = self._index(target)
                 if index is None:
                     raise RuntimeError('Semantic search needs the application embedding configuration; keyword search remains available')
@@ -406,6 +467,7 @@ class KnowledgeStore:
                         all_hits[id]['matches'].append(passage)
             hits = [all_hits[id] for id in sorted(scores, key=lambda k: (-scores[k], k))]
         if semantic: total=len(hits); hits=hits[offset:offset+limit]
+        for hit in hits:hit['entry']=self._entry(hit)
         return dict(items=hits,total=total,offset=offset,next_offset=offset+limit if offset+limit<total else None,method='hybrid' if semantic else 'keyword' if query else 'filter')
 
     def _index(self, collection):
@@ -421,7 +483,7 @@ class KnowledgeStore:
 
     def index(self, collection, rebuild=False):
         collection = self.collection(collection)
-        if collection['storage']!='rag':raise ValueError('Semantic indexes require a RAG collection')
+        if collection['storage'] not in {'rag','wiki'}:raise ValueError('Semantic indexes require a RAG or Wiki collection')
         if type(rebuild) is not bool:raise TypeError('rebuild must be boolean')
         with self.lock:
             node = self._index(collection)
@@ -436,6 +498,8 @@ class KnowledgeStore:
                     db.executemany("UPDATE records SET index_state='deleted' WHERE id=?",[(r['id'],) for r in deleted])
             if not rows:
                 return dict(status='ready', indexed=0)
+            if collection['storage']=='wiki':
+                for row in rows:self._wiki_identity(self.fetch(row['id']))
             try:
                 result = node.update_documents([str(self._file('data/' + collection['id'] + '/pages/' + r['id'] + '.md')) for r in rows])
                 self.embed_model = node.embed_model
@@ -614,7 +678,7 @@ class KnowledgeStore:
                         db.execute("UPDATE records SET state='ready',index_state='ready' WHERE id=?",(record_id,))
             else:
                 for record_id in pending:self._materialize(record_id)
-            index=self.index(target['id']) if target['storage']=='rag' else None
+            index=self.index(target['id']) if target['storage'] in {'rag','wiki'} else None
             signature=self.signature(intake['content'],intake['purpose']) if len(indices)==len(values) else None
             with self.connection() as db:
                 for item_index,record in zip(indices,records):

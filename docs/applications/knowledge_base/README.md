@@ -12,10 +12,14 @@
 | 单层助手与可授予权限检查 | foundation/scoped_workers | 通用能力，应用通过配置声明组件和权限范围 |
 | CSV / SQLite | storage/csv、storage/sqlite | 既有 CsvNode、SqliteNode、pandas / SQLite |
 | RAG | storage/llamaindex | LlamaIndex 与共享本地嵌入模型 |
-| Agent Wiki | storage/llm_wiki | 上游原版 ingest/query/lint 指南、BM25 与链接图分析 |
+| Agent Wiki | storage/llm_wiki + storage/llamaindex | 上游原版维护指南、BM25/图分析，复用向量索引及页面读取入口 |
 | Wiki 站点 | storage/markdown_wiki | MkDocs 页面与搜索索引构建 |
 
 知识库能力负责统一记录 ID、来源版本、集合目录和上述存储的适配。上游 llm-wiki 不调用模型；我们的 Agent 在现有 Harness 循环里按其指南维护页面。没有引入另一套 Agent 调度器，也没有复用上游 DB9 云同步。语义矛盾仍需要 Agent 判断。
+
+完整资料和无结构碎片都可保存成 Wiki 页面，正文直接向量化，不要求先整理成文章。统一通过 `kb_search` 找入口，再用 `kb_fetch` 读取页面、目录、章节或关联链接；已知入口时直接读取。Wiki 是相互连接的页面集合，不是一个巨大文件。CSV/SQLite 继续提供字段查询和统计。
+
+页面身份和别名使用 SQLite 索引，链接解析不扫描全部页面正文。同集合链接解析为真实记录与固定版本的读取参数；歧义、断链与权限撤销明确处理。章节解析复用 markdown-it-py，保留原文行号；历史页面与来源版本保留。链接是导航关系，不代替来源证据，也不增加权限。
 
 实现代码都在 capabilities；工具箱、节点预设与网络预设只保留配置和文档。组合关系见 [组件目录](../../COMPONENT_MAP.md)，上游固定版本、许可证和文件哈希见 [第三方复用](../../THIRD_PARTY_COMPONENTS.md)。
 

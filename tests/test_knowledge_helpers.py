@@ -128,7 +128,7 @@ assert not any('wiki:upstream' in key[1] for key in port.docs)
 hit=app.invoke('root','kb_wiki',dict(action='search',collection=wiki['id'],query='权限网络'))
 assert hit['engine']=='llm-wiki' and hit['items'][0]['id']==page['id']
 try:app.invoke('root','kb_search',dict(collection=wiki['id'],query='权限网络',semantic=True))
-except ValueError as error:assert 'RAG collection' in str(error)
+except RuntimeError as error:assert 'embedding configuration' in str(error)
 else:raise AssertionError('Keyword-only Wiki hits labeled as semantic search')
 app.invoke('root','kb_update',dict(id=source['id'],content='更新资料',expected_version=1))
 lint=app.invoke('root','kb_wiki',dict(action='lint',collection=wiki['id']))

@@ -82,3 +82,25 @@ Agent 可见指南本次只修改以下两份，角色提示词未改：
 | [kb_search](../extensions/knowledge_base/capabilities/knowledge_tools/tools.json) | 检索知识入口，返回片段、来源和按需展开的读取参数。 |
 
 新增 kb_fetch 参数：view、section_id、start_line、end_line、offset、max_chars、limit；新增 kb_index 参数 rebuild。其余工具描述不变。
+
+## 2026-10-15 统一 Wiki 页面入口
+
+本次修改四份给 Agent 读取的指南，角色提示词未改，上游原版指南未改：
+
+- [AGENTS.md](../extensions/knowledge_base/capabilities/knowledge_tools/AGENTS.md)：完整文本/碎片可直接保存为 Wiki，统一搜索，维护原文与来源，沿链接访问和索引维护。
+- [READING.md](../extensions/knowledge_base/capabilities/knowledge_tools/READING.md)：统一搜索入口、局部结构及页面链接的按需读取，处理歧义和历史版本。
+- [WIKI.md](../extensions/knowledge_base/capabilities/knowledge_tools/WIKI.md)：上游操作映射，明确正文向量检索与原有 BM25 的区别。
+- [USAGE.md](../extensions/knowledge_base/capabilities/knowledge_agents/USAGE.md)：交付 sources 可直接沿用读取返回的 evidence，避免记录 ID 与框架节点 ID 混淆。
+
+工具描述修改原文：
+
+| 工具 | 描述 |
+|---|---|
+| [kb_fetch](../extensions/knowledge_base/capabilities/knowledge_tools/tools.json) | 读取知识页或原文，按需展开章节与关联链接。 |
+| [kb_index](../extensions/knowledge_base/capabilities/knowledge_tools/tools.json) | 更新 Wiki 或文档集合的语义索引。 |
+
+kb_fetch 新增 view=links，沿 links_next_fetch 分页。搜索结果 entry、页面及局部阅读结果的 links 给出可直接沿用的读取参数；该链接不授予任何额外读取权限。
+
+USAGE 本次引用说明原文：
+
+> 引用知识记录时，sources 每项可直接沿用 kb_fetch 返回的 evidence；如手动填写，node_id、version 沿用返回值，locator 只填单个记录 ID，不填说明文字，也不把记录 ID 当作节点 ID。
