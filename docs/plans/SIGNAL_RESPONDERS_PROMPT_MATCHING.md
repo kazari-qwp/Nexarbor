@@ -16,3 +16,5 @@
 阶段完成：核心v5、共享signal_response/prompt_matching/node_metadata均已接入。统一MetadataRegistry直接服务Node.get_metadata/Network.get_metadata/describe，扩展自动合并且权限统一；Backend启动注册，节点业务通过提供器维护。当前35项联合测试通过，原生Harness+Mock与文档标记测试通过；最后做Backend启动/恢复接线的复核，不调用付费API。Agent文案已汇总到NPC审阅清单。
 
 最终验收：核心20项+共享组件6项+NPC9项，共35项联合测试通过；history_markers_test及真实Harness+Mock通过。匹配器不改角色系统提示，3次NPC请求只加载3份条件文档+1份元数据记录。节点元数据在纯Backend启动时注册，Node.get_metadata/Network.get_metadata/describe/创建摘要统一自动合并；无扩展回标准字段。旧过滤器及非等待分支已移除。无付费API、无整世界运行、未操作用户客户端。准备本地提交，不push或打包。
+
+追加复测（2026-10-16）：用户要求核实新版模块最小转圈及匹配器/元数据扩展兼容性。新增两组件联合装配用例，验证无扩展回退、扩展条件选择、状态更改、停用/重启用和压缩补载；原生Harness单NPC回环额外断言静态附加命名空间与NPC动态提供器共存于原生历史。共享7项+NPC9项共16项通过，原生Harness+Mock回环通过。未改产品代码或Agent文案，无付费API。

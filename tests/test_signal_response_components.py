@@ -1,5 +1,5 @@
 """Shared response workflows and prompt matching without an NPC application."""
-import os,subprocess,sys,textwrap,unittest
+import json,os,subprocess,sys,textwrap,unittest
 from pathlib import Path
 from test_knowledge_base import AGENT_SETUP
 ROOT=Path(__file__).resolve().parents[1]
@@ -18,7 +18,7 @@ def rule(id,channels,*steps):return dict(id=id,channels=channels,steps=[dict(too
 """
 class ComponentTests(unittest.TestCase):
     def case(self,code,component='signal_response'):
-        env=dict(os.environ,PYTHONPATH=str(ROOT/'python'),PYTHONUTF8='1',PYTHONDONTWRITEBYTECODE='1',DATANET_COMPONENT_ROOT=str(ROOT/'extensions/npc_world'),DATANET_COMPONENT_SELECTION='["capabilities/'+component+'"]',DATANET_COMPONENT_PROFILE='{}')
+        env=dict(os.environ,PYTHONPATH=str(ROOT/'python'),PYTHONUTF8='1',PYTHONDONTWRITEBYTECODE='1',DATANET_COMPONENT_ROOT=str(ROOT/'extensions/npc_world'),DATANET_COMPONENT_SELECTION=json.dumps(['capabilities/'+name for name in (component if isinstance(component,list) else [component])]),DATANET_COMPONENT_PROFILE='{}')
         result=subprocess.run([sys.executable,'-X','utf8','-c',SETUP+textwrap.dedent(code)],cwd=ROOT,env=env,text=True,encoding='utf-8',capture_output=True,timeout=30)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
 
@@ -116,6 +116,40 @@ class ComponentTests(unittest.TestCase):
                 assert not b.network.signal_runs and not hasattr(b.root,'department')
             finally:stop(app,b)
         """,'prompt_matching')
+
+
+    def test_prompt_matching_automatically_reads_optional_extensions(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=Port();app=Application(b,port,{});app.bind_session('root-session');b.agents['root']={'session_id':'root-session'}
+            matcher=app.plugins['capabilities/prompt_matching'];extra=app.plugins['capabilities/node_metadata']
+            docs=[dict(id='base',name='基础规则',when={'node_id':'root'},delivery='instructions',text='核心字段匹配。'),
+                  dict(id='miner',name='矿工规则',when={'/extensions/demo/role':'miner'},delivery='instructions',text='扩展字段匹配。'),
+                  dict(id='smith',name='铁匠规则',when={'/extensions/demo/role':'smith'},delivery='instructions',text='职业更改后匹配。')]
+            matcher.bind('root',scope='optional',documents=lambda:docs)
+            def match():return matcher.match('root')['scopes'][0]
+            def current():return app.rpc('prompt_matching_get',actor='root',scope='optional')['current']['metadata']
+            try:
+                assert app.catalog['capabilities/prompt_matching']['requires']==[]
+                assert 'capabilities/signal_response' not in app.enabled
+                assert match()['loaded']==['base'] and 'extensions' not in current()
+                extra.set('root','demo',{'role':'miner'})
+                hit=match();assert hit['matched']==['base','miner'] and hit['loaded']==['miner']
+                assert current()['extensions']['demo']['role']=='miner'
+                size=len(port.docs);assert not match()['loaded'] and len(port.docs)==size
+                extra.set('root','demo',{'role':'smith'})
+                hit=match();assert hit['matched']==['base','smith'] and hit['loaded']==['smith']
+                assert app.rpc('prompt_matching_get',actor='root',scope='optional')['removed']==['miner']
+                app.enabled.remove('capabilities/node_metadata')
+                hit=match();assert hit['matched']==['base'] and not hit['loaded']
+                assert 'extensions' not in current()
+                app.enabled.add('capabilities/node_metadata')
+                hit=match();assert hit['matched']==['base','smith'] and not hit['loaded']
+                assert current()['extensions']['demo']['role']=='smith'
+                port.docs.clear();assert match()['loaded']==['base','smith']
+                assert not b.network.signal_runs and not hasattr(b.root,'role')
+            finally:stop(app,b)
+        """,['prompt_matching','node_metadata'])
 
 
     def test_node_metadata_extends_plain_text_and_agent_nodes_and_restores(self):
