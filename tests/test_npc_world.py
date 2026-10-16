@@ -35,8 +35,12 @@ class WorldPort(Port):
 
 def use(actor,target,tool,args=None,read=False):
     direction='read' if read else 'write'
-    app.invoke(actor,'node_tools',dict(target=target,direction=direction))
-    return app.invoke(actor,'node_invoke',dict(target=target,tool=tool,direction=direction,arguments=args or {}))
+    assembly=instance(b,actor,'tools.assembly')
+    def find():return next((k for k,v in assembly.aliases.items() if v['target']==target and v['tool']==tool and v['direction']==direction),None)
+    name=find()
+    if name is None:assembly.assemble();name=find()
+    if name is None:raise PermissionError('No direct entry in current access scope')
+    return app.invoke(actor,name,args or {})
 def begin(actor,signal='fixture'):
     old=instance(b,actor,'agent.signal').state
     if old.get('status')=='running':b.dispatch('node_activity_end',dict(target=actor,signal_id=old['signal_id'],status='completed'))
@@ -129,22 +133,28 @@ class WorldTests(unittest.TestCase):
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             actor='world/npc/miner'
             try:
+                for npc in residents(b):
+                    names={d['name'] for d in app.definitions(npc)}
+                    assert not {'node_list','node_tools','node_invoke'}&names
+                    assert {'node_read','world_messages','datanet_memory_read','datanet_memory_write'}<=names
+                for name,args in [('node_list',{}),('node_tools',dict(target=address('smithy'))),('node_invoke',dict(target=address('smithy'),tool='move_here',arguments={}))]:
+                    try:app.invoke(actor,name,args)
+                    except PermissionError:pass
+                    else:raise AssertionError('discovery tool still granted')
                 view=app.invoke(actor,'world_look',{})
                 assert view['location']==dict(id=address('mine'),name='矿坑',service=business('mine'))
                 assert view['neighbors']==[dict(id=address('smithy'),name='铁匠铺')]
-                tools=app.invoke(actor,'node_tools',dict(target=address('smithy'),direction='write'))
-                assert [x['name'] for x in tools['items']]==['move_here']
-                assert tools['items'][0]['parameters']['properties']=={}
-                try:app.invoke(actor,'node_tools',dict(target=business('smithy'),direction='write'))
-                except RuntimeError as e:assert json.loads(str(e))['status']=='forbidden'
-                else:raise AssertionError('remote business access allowed')
+                assembly=instance(b,actor,'tools.assembly');assembly.assemble()
+                tools=[v for v in assembly.aliases.values() if v['target']==address('smithy')]
+                assert [x['tool'] for x in tools]==['move_here'] and tools[0]['spec']['parameters']['properties']=={}
+                assert not any(v['target']==business('smithy') for v in assembly.aliases.values())
                 try:app.invoke(actor,'node_read',dict(target=address('smithy'),request=dict(method='key',key='content')))
                 except RuntimeError as e:assert json.loads(str(e))['status']=='unsupported'
-                else:raise AssertionError('address exposed content')
+                else:raise AssertionError('address exposed text')
                 begin(actor);result=use(actor,address('smithy'),'move_here')
                 assert result['items'][0]['result']==dict(arrived=address('smithy'),tick_finished=True)
-                tools=app.invoke(actor,'node_tools',dict(target=business('smithy'),direction='write'))
-                assert 'repair' in [x['name'] for x in tools['items']]
+                begin(actor,'next-slot');assembly.assemble()
+                assert any(v['tool']=='repair' for v in assembly.aliases.values())
                 assert dict(id='world/npc/smith',name=person(b,'world/npc/smith').state['name']) in app.invoke(actor,'world_look',{})['people']
             finally:stop(app,b)
         """)

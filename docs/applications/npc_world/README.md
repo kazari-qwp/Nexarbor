@@ -71,3 +71,5 @@ NPC 的三步响应为 collect_information → assemble_tools → run_agent。�
 工具装配器从 NPC 自身强度2的读写权限生成绑定目标的直接工具。描述含地点或人物名称，NPC 可直接移动、使用本地业务或交谈；每次执行仍检查当前权限，离开的人和旧地点入口不能继续使用。
 
 首次活动、恢复后的首次活动和新生儿童的首次活动走同一流程，无需初始移动。只在 tick 开始刷新；移动后当前 tick 正常结束，下一 tick 才重收集/装配。三个通用组件分别位于 foundation 的 information_provider、information_collector、tool_assembly。核心仅增加默认无返回的 get_information 扩展入口，没有 NPC 或地图特判。
+
+NPC 工具箱已移除 node_list/node_tools/node_invoke；移动、业务和交谈只使用装配后的直接入口。world_look、world_messages、node_read 和私人记忆工具保留，知识正文与交谈仍可按需读取。其他应用的网络访问工具不受影响。

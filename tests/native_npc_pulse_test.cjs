@@ -39,10 +39,11 @@ const base=productRoot;
     yield {type:'block-start',index:0,blockType:block.type};yield {type:'block-end',index:0,block};yield {type:'finish',reason:{kind:'stop'}};return;
    }
    if(this.movementMode){
+    const move=options.tools.find(t=>(t.function?.name??t.name).startsWith('near_move_here_')&&(t.function?.description??t.description).startsWith('树林：'));
+    assert.ok(move);const name=move.function?.name??move.name;
     const plans=[
-     [{name:'node_tools',arguments:{target:'world/place/forest',direction:'write'}},{name:'node_tools',arguments:{target:'world/npc/woodcutter',direction:'write'}}],
-     [{name:'node_invoke',arguments:{target:'world/place/forest',tool:'move_here',arguments:{unexpected:true},direction:'write'}}],
-     [{name:'node_invoke',arguments:{target:'world/place/forest',tool:'move_here',arguments:{},direction:'write'}},{name:'node_invoke',arguments:{target:'world/npc/woodcutter',tool:'talk',arguments:{content:'FORBIDDEN_AFTER_MOVE'},direction:'write'}}]
+     [{name,arguments:{unexpected:true}}],
+     [{name,arguments:{}},{name,arguments:{}}]
     ];
     const step=this.movementRequests++;assert.ok(plans[step],'movement must conclude without another model request');
     for(const [index,call] of plans[step].entries()){
@@ -59,7 +60,8 @@ const base=productRoot;
    }
    this.requests.push(options);
    if(this.fail)throw new Error('simulated native Agent failure');
-   assert.ok(!options.tools.some(t=>(t.function?.name??t.name)==='world_submit'));
+   assert.ok(!options.tools.some(t=>['world_submit','node_list','node_tools','node_invoke'].includes(t.function?.name??t.name)));
+   for(const name of ['node_read','world_messages','datanet_memory_read','datanet_memory_write'])assert.ok(options.tools.some(t=>(t.function?.name??t.name)===name));
    const texts=options.messages.flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).join('\n');
    assert.ok(texts.includes('第1天-早'),'time text must be admitted before the first NPC request');
    assert.ok(texts.includes('你是一位伐木工') && texts.includes('你是一位男性居民'));
@@ -198,13 +200,13 @@ const base=productRoot;
    model.movementMode=false;
    assert.equal(moved.pulse.reports[0].status,'completed');assert.equal(moved.pulse.reports[0].returned,true);
    assert.equal(moved.activities['world/npc/woodcutter'].status,'completed');
-   assert.equal(model.movementRequests,3,'bad arguments can be corrected; successful move ends inference');
+   assert.equal(model.movementRequests,2,'bad arguments can be corrected; successful move ends inference');
    const events=worker.session.snapshotEvents(beforeMove);
    const results=events.filter(e=>e.type==='tool/result');
    const resultText=id=>JSON.stringify(results.find(e=>e.data.message.toolCallId===id)?.data.message);
-   assert.match(resultText('move-1-0'),/未声明的工具参数/);
-   assert.match(resultText('move-2-0'),/tick_finished/);
-   assert.match(resultText('move-2-1'),/Movement ended this time slot/);
+   assert.match(resultText('move-0-0'),/additional|未声明|unexpected|参数|schema|valid/i);
+   assert.match(resultText('move-1-0'),/tick_finished/);
+   assert.match(resultText('move-1-1'),/no longer reachable/);
    assert.equal(events.findLast(e=>e.type==='turn/end').data.reason.kind,'completed');
    const state=await exec('world_observe',{target:'world/npc/woodcutter'});
    assert.equal(state.resident.place,'world/place/forest');
@@ -212,7 +214,7 @@ const base=productRoot;
    const point=await r.checkpoints.checkpoint();assert.ok(point);
    const saved=await r.checkpoints.positions.read(point.contexts['world/npc/woodcutter']);
    assert.ok(saved.events.some(e=>e.type==='tool/result'&&JSON.stringify(e.data).includes('tick_finished')),'move result is durable before turn completion');
-   console.log('PASS movement: failed call corrected, success normally concludes, same-batch talk rejected, native move result durable, pulse returns');
+   console.log('PASS movement: failed direct call corrected, success normally concludes, stale same-batch move rejected, native result durable, pulse returns');
  }
  if(durable){
    model.directMoveMode=true;model.directMoveRequests=0;
