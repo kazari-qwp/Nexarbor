@@ -8,6 +8,17 @@ class Network:
     def __init__(self):
         self.nodes = {}
         self.delegation_permissions = {}
+        self.signal_runs = {}
+
+    @property
+    def signals(self):
+        if not hasattr(self,'_signal_runtime'):
+            from .signal_runtime import SignalRuntime
+            self._signal_runtime=SignalRuntime(self)
+        return self._signal_runtime
+
+    async def propagate(self,signal):
+        return await self.signals.propagate(signal)
 
     def add_node(self, node):
         if node.node_id in self.nodes:
@@ -67,7 +78,7 @@ class Network:
                     target = self.nodes.get(interface.target_node_id)
                     if target is None:
                         raise ValueError(f'接口目标不存在：{interface.target_node_id}')
-                    signal = remaining * interface.multiplier
+                    signal = remaining * interface.metadata.multiplier
                     validate_strength(signal)
                     if target.node_id not in pending:
                         pending[target.node_id] = [0, [*path, target.node_id]]

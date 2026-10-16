@@ -59,6 +59,14 @@ def ensure_nodes():
     register_node(NodeCodec('text_file',TextFileNode,encode_text,decode_text,parameter_fields=['file_path','max_chars'],description='UTF-8 text file',resources=('file_path',)))
     from datanet.core.agent_node import AgentNode
     register_node(NodeCodec('agent',AgentNode,lambda node,base:{'file_path':os.path.relpath(node.file_path,base),'creation_options':node.creation_options},lambda common,p,base:AgentNode(*common,file_path=base/p['file_path'],creation_options=p.get('creation_options')),parameter_fields=['file_path','creation_options'],resources=('file_path',),local_read=False,local_write=False,local_schema=False))
+    from datanet.core.pulse_node import PulseNode
+    from datanet.core.json_values import thaw
+    from dataclasses import asdict
+    register_node(NodeCodec('pulse',PulseNode,
+        lambda n,b:dict(channels=list(n.channels),strength=n.strength,content=thaw(n.content),activation=thaw(asdict(n.activation)),signal_options=thaw(n.signal_options),state=n.state),
+        lambda c,p,b:PulseNode(*c,**p),parameter_fields=['channels','strength','content','activation','signal_options','state'],
+        description='脉冲节点：按频道发出有限轮次信号，闭环返回并完成本轮处理后继续下一轮。',
+        local_read=False,local_write=False,local_schema=False))
     catalog, order = mount_paths()
     for key in order:
         manifest = catalog[key]

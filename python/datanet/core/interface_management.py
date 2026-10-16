@@ -4,7 +4,7 @@ from dataclasses import asdict, replace
 from threading import RLock
 from datanet.core.node import NodeResult
 from datanet.core.management import SCOPES, resolve_managed, can_manage
-from datanet.core.interface import Interface
+from datanet.core.interface import Interface, metadata_schema
 
 def attach_interface_management_tools(network, owner, *, scope='self', actions=('list', 'add', 'update', 'remove'), allow_external_targets=False):
     if network.nodes.get(owner.node_id) is not owner or scope not in SCOPES:
@@ -50,7 +50,7 @@ def attach_interface_management_tools(network, owner, *, scope='self', actions=(
                     if not allow_external_targets and (not can_manage(network, owner.node_id, target_node_id, scope)) and (reachable(target_node_id, strength) is None) and (not any((node.node_id == target_node_id for node, _, _ in network.walk_states(owner.node_id, direction='read', strength=strength)))):
                         raise PermissionError('Target is outside granted connection range')
                     options = {} if interface is None else interface
-                    if not isinstance(options, dict) or set(options) - {'threshold', 'visibility', 'multiplier'}:
+                    if not isinstance(options, dict) or set(options) - {'metadata'}:
                         raise ValueError('Invalid interface parameters')
                     link = Interface(target_node_id, **options)
                     links.append(link)
@@ -60,7 +60,7 @@ def attach_interface_management_tools(network, owner, *, scope='self', actions=(
                 if action == 'remove':
                     links.pop(index)
                     return NodeResult(items=[{'node_id': node.node_id, 'direction': direction, 'removed': asdict(before)}])
-                if not isinstance(changes, dict) or not changes or set(changes) - {'threshold', 'visibility', 'multiplier'}:
+                if not isinstance(changes, dict) or not changes or set(changes) - {'metadata'}:
                     raise ValueError('Invalid interface changes')
                 after = replace(before, **changes)
                 links[index] = after
@@ -69,5 +69,5 @@ def attach_interface_management_tools(network, owner, *, scope='self', actions=(
             return NodeResult(status='forbidden', errors=[str(error)])
         except (ValueError, TypeError) as error:
             return NodeResult(status='error', errors=[str(error)])
-    owner.register_agent_tool('manage_interfaces', manage, description='管理工具箱授权范围内的节点接口：list/add/update/remove。只供所属 Agent 使用。', parameters={'type': 'object', 'properties': {'action': {'type': 'string', 'enum': list(actions)}, 'node_id': {'type': 'string'}, 'direction': {'type': 'string', 'enum': ['read', 'write']}, 'target_node_id': {'type': 'string'}, 'interface': {'type': 'object'}, 'changes': {'type': 'object'}, 'interface_index': {'type': 'integer'}}, 'required': ['action'], 'additionalProperties': False})
+    owner.register_agent_tool('manage_interfaces', manage, description='管理工具箱授权范围内的节点接口：list/add/update/remove。只供所属 Agent 使用。', parameters={'type': 'object', 'properties': {'action': {'type': 'string', 'enum': list(actions)}, 'node_id': {'type': 'string'}, 'direction': {'type': 'string', 'enum': ['read', 'write']}, 'target_node_id': {'type': 'string'}, 'interface': {'type':'object','properties':{'metadata':metadata_schema()},'required':['metadata'],'additionalProperties':False}, 'changes': {'type':'object','properties':{'metadata':metadata_schema()},'required':['metadata'],'additionalProperties':False}, 'interface_index': {'type': 'integer'}}, 'required': ['action'], 'additionalProperties': False})
     return deepcopy(owner.agent_tool_definitions['manage_interfaces'])

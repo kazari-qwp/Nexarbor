@@ -21,7 +21,7 @@ class NetworkPackage:
 
     def __init__(self, path):
         self.path, self._document = read_manifest(path, 'network', ('kind', 'version', 'id', 'description', 'network', 'entry_points', 'toolkits'))
-        _fields(self._document['network'], ('version', 'nodes', 'delegations'), '拼图结构')
+        _fields(self._document['network'], ('version', 'nodes', 'delegations', 'signals'), '拼图结构')
         if not isinstance(self._document['network']['nodes'], list):
             raise ValueError('nodes 必须为列表')
         for label in ('entry_points', 'toolkits'):
@@ -56,6 +56,7 @@ class NetworkPackage:
         if instance_id is not None and (not isinstance(instance_id, str) or not re.fullmatch('[\\w.-]+', instance_id) or instance_id in ('.', '..')):
             raise ValueError('实例编号只能包含文字、数字、下划线、点或连字符')
         document = deepcopy(self._document['network'])
+        if document['signals']:raise ValueError('Network packages cannot contain signal execution history')
         ids = {}
         for entry in document['nodes']:
             if not isinstance(entry, dict):
@@ -84,7 +85,7 @@ class NetworkPackage:
                 if not isinstance(targets, list):
                     raise ValueError('连接必须为列表')
                 for interface in targets:
-                    _fields(interface, ('target_node_id', 'threshold', 'visibility', 'multiplier'), '接口')
+                    _fields(interface, ('target_node_id', 'metadata'), '接口')
                     target = interface['target_node_id']
                     if not isinstance(target, str) or target not in ids:
                         raise ValueError('拼图内部连接只能引用包内节点')

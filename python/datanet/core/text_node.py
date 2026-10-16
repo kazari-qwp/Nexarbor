@@ -7,6 +7,7 @@ from datanet.core.node import Node, NodeResult
 from datanet.core.write_support import validate_write
 
 class TextFileNode(Node):
+    signal_type = 'text_file'
 
     def __init__(self, node_id, name, data_kind, file_path, *, description='', max_chars=None):
         super().__init__(node_id, name, data_kind, description=description)

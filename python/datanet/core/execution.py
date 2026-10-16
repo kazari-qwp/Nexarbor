@@ -75,6 +75,35 @@ class ExecutorRegistry:
             try:return node.invoke_tool(tool_name,**arguments)
             finally:active_agent.reset(token)
         return self.executors[binding['executor']].run(request,{name:partial(invoke,name) for name in binding['tools']})
+    def bind_signals(self,runtime,node_id,*,max_steps=8):
+        """Register normal executor completion as signal completion; no model ready tool."""
+        import asyncio
+        import json
+        from dataclasses import asdict
+        from .json_values import thaw
+        if runtime.network is not self.network or node_id not in self.bindings:raise ValueError('Signal executor binding is absent')
+        if not hasattr(self,'_signal_workers'):self._signal_workers={}
+        async def handle(context):
+            previous=self._signal_workers.get(node_id)
+            if previous and not previous.done():raise RuntimeError('Previous executor work has not stopped')
+            content=thaw(context.signal.content)
+            message=content if isinstance(content,str) else json.dumps(content,ensure_ascii=False)
+            binding=self.bindings[node_id]
+            worker=asyncio.create_task(asyncio.to_thread(self.run,node_id,message,max_steps=max_steps,timeout_seconds=context.signal.node_timeout_seconds))
+            self._signal_workers[node_id]=worker
+            def finished(task):
+                if self._signal_workers.get(node_id) is task:self._signal_workers.pop(node_id,None)
+                if not task.cancelled():task.exception()
+            worker.add_done_callback(finished)
+            try:
+                result=await asyncio.shield(worker)
+            except asyncio.CancelledError:
+                self.executors[binding['executor']].cancel(binding['session_id'])
+                raise
+            if result.status!='completed':raise RuntimeError(result.error or 'Agent signal processing failed: '+result.status)
+            return asdict(result)
+        runtime.bind(node_id,handle,capabilities=lambda:self.bindings[node_id]['tools'],access_strength=lambda:self.bindings[node_id]['strength'])
+
     def restore_bindings(self):
         for node in self.network.nodes.values():
             binding=getattr(node,'execution_binding',None)

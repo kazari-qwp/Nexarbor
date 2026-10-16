@@ -1,5 +1,7 @@
 # 织林 · Nexarbor
 
+> 当前开发分支已引入核心信号、脉冲节点及v4网络格式，旧应用与旧配置尚未统一迁移；下方应用测试记录对应此前实现。详见[核心信号说明](docs/CORE_SIGNALS.md)。
+
 [简体中文](README.md) | [English](README_EN.md)
 
 **数据与智能的动态网络 · A Dynamic Network for Data and Intelligence**

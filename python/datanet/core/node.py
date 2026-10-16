@@ -13,6 +13,7 @@ class NodeResult:
     skipped: list[dict[str, Any]] = field(default_factory=list)
 
 class Node:
+    signal_type = 'node'
 
     def __init__(self, node_id: str, name: str, data_kind: str | None, *, description: str='', divergence: int=-1):
         if not isinstance(description, str):

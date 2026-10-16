@@ -49,6 +49,12 @@ class Backend:
             self.store.close()
             raise
 
+    @property
+    def signals(self):
+        runtime=self.network.signals
+        runtime.checkpoint=lambda:self.dispatch('save',{})
+        return runtime
+
     def close(self):
         self.store.close()
 
@@ -192,7 +198,7 @@ class Backend:
                 for source in layer:
                     targets = []
                     for link in getattr(self.network.nodes[source], label + '_interfaces'):
-                        if link.visibility == 'private' and source != actor and (not inspect_private):
+                        if link.metadata.visibility == 'private' and source != actor and (not inspect_private):
                             continue
                         target = link.target_node_id
                         if target not in self.network.nodes:

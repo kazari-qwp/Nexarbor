@@ -24,7 +24,7 @@ class FourPartTests(unittest.TestCase):
             from datanet.core.text_node import TextFileNode
             from datanet.core.network import Network
             from datanet.core.serialization import save_network,load_network
-            assert set(codecs())=={'node','text_file','agent'},set(codecs())
+            assert set(codecs())=={'node','text_file','agent','pulse'},set(codecs())
             with tempfile.TemporaryDirectory() as folder:
                 root=Path(folder);network=Network()
                 agent=AgentNode('worker','Worker',file_path=root/'memory.md')

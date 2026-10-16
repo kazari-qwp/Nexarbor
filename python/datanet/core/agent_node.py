@@ -7,6 +7,7 @@ from datanet.core.node import Node
 
 
 class AgentNode(Node):
+    signal_type = 'agent'
     def __init__(self, node_id, name, data_kind=None, file_path=None, *, description='', creation_options=None):
         super().__init__(node_id, name, 'agent', description=description)
         self.file_path = Path(file_path).resolve()

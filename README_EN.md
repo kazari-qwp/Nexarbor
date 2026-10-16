@@ -1,5 +1,7 @@
 # Nexarbor
 
+> The development branch now contains core signals, PulseNode and the v4 network format. Existing applications and old configurations have not yet been migrated; application test records below describe earlier implementations. See [core signal notes](docs/CORE_SIGNALS.md).
+
 [English](README_EN.md) | [简体中文](README.md)
 
 **A Dynamic Network for Data and Intelligence**
