@@ -13,10 +13,11 @@ from datanet.core.interface import Interface
 def address(place):return 'world/place/'+place
 def business(place):return 'world/service/'+place
 class WorldPort(Port):
-    def __init__(self):super().__init__();self.actions={};self.calls=[];self.tails=[];self.failure=None;self.views=[];self.during=None
+    def __init__(self):super().__init__();self.actions={};self.calls=[];self.tails=[];self.failure=None;self.views=[];self.during=None;self.conclusions=[]
     def __call__(self,name,p):
         if name=='view-update':self.views.append(p['actor'])
         if name=='cancel-agent':return {}
+        if name=='conclude':self.conclusions.append(p.get('execution_id'));return {}
         if name=='run':
             actor=p['actor'];self.calls.append(actor)
             app.event(actor,'agent/pre-step',{});app.event(actor,'agent/request',{})
@@ -141,7 +142,7 @@ class WorldTests(unittest.TestCase):
                 except RuntimeError as e:assert json.loads(str(e))['status']=='unsupported'
                 else:raise AssertionError('address exposed content')
                 begin(actor);result=use(actor,address('smithy'),'move_here')
-                assert result['items'][0]['result']==dict(arrived=address('smithy'))
+                assert result['items'][0]['result']==dict(arrived=address('smithy'),tick_finished=True)
                 tools=app.invoke(actor,'node_tools',dict(target=business('smithy'),direction='write'))
                 assert 'repair' in [x['name'] for x in tools['items']]
                 assert dict(id='world/npc/smith',name=person(b,'world/npc/smith').state['name']) in app.invoke(actor,'world_look',{})['people']
@@ -161,9 +162,39 @@ class WorldTests(unittest.TestCase):
                 assert business('mine') not in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
                 assert 'world/npc/smith' in [e.target_node_id for e in b.network.nodes[address('smithy')].read_interfaces]
                 try:use(actor,business('smithy'),'repair',dict(item='pickaxe'))
-                except ValueError as e:assert 'One primary action' in str(e)
+                except ValueError as e:assert 'Movement ended this time slot' in str(e)
                 else:raise AssertionError('second action accepted')
-                assert use(actor,business('smithy'),'local_info',read=True)
+                assert len(port.conclusions)==1
+                try:use(actor,'world/npc/smith','talk',dict(content='should not send'))
+                except ValueError as e:assert 'Movement ended this time slot' in str(e)
+                else:raise AssertionError('conversation after movement accepted')
+                assert not person(b,'world/npc/smith').state['inbox']
+                begin(actor,'next-tick');assert use(actor,business('smithy'),'local_info',read=True)
+                use(actor,'world/npc/smith','talk',dict(content='next tick'))
+                assert person(b,'world/npc/smith').state['inbox'][-1]['content']=='next tick'
+            finally:stop(app,b)
+        """)
+
+    def test_failed_movement_keeps_turn_and_parallel_npcs_do_not_wait_for_each_other(self):
+        self.case("""
+        from threading import Barrier
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            actor='world/npc/miner'
+            try:
+                begin(actor)
+                try:use(actor,address('smithy'),'move_here',dict(unexpected=True))
+                except ValueError:pass
+                else:raise AssertionError('invalid movement accepted')
+                assert not port.conclusions and person(b,actor).state['place']==address('mine')
+                assert person(b,actor).state['action_tick'] is None
+                use(actor,address('smithy'),'move_here');assert len(port.conclusions)==1
+                b.dispatch('node_activity_end',dict(target=actor,signal_id='fixture',status='completed'))
+                gate=Barrier(2,timeout=5)
+                port.during=lambda target:gate.wait()
+                result=instance(b,'root','scene.operator').run([actor,'world/npc/woodcutter'],15)
+                assert result['pulse']['reports'][0]['status']=='completed', result
+                assert set(port.calls)=={actor,'world/npc/woodcutter'}
             finally:stop(app,b)
         """)
 

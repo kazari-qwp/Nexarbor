@@ -31,6 +31,19 @@ const base=productRoot;
   requests=[];fail=false;
   async resolveModel(provider,id){return {provider,id,name:id,toolUpdate:'addition-only',systemPromptUpdate:'in-history'};}
   async *stream(options){
+   if(this.movementMode){
+    const plans=[
+     [{name:'node_tools',arguments:{target:'world/place/forest',direction:'write'}},{name:'node_tools',arguments:{target:'world/npc/woodcutter',direction:'write'}}],
+     [{name:'node_invoke',arguments:{target:'world/place/forest',tool:'move_here',arguments:{unexpected:true},direction:'write'}}],
+     [{name:'node_invoke',arguments:{target:'world/place/forest',tool:'move_here',arguments:{},direction:'write'}},{name:'node_invoke',arguments:{target:'world/npc/woodcutter',tool:'talk',arguments:{content:'FORBIDDEN_AFTER_MOVE'},direction:'write'}}]
+    ];
+    const step=this.movementRequests++;assert.ok(plans[step],'movement must conclude without another model request');
+    for(const [index,call] of plans[step].entries()){
+     const block={type:'tool-call',id:'move-'+step+'-'+index,name:call.name,arguments:JSON.stringify(call.arguments)};
+     yield {type:'block-start',index,blockType:block.type};yield {type:'block-end',index,block};
+    }
+    yield {type:'finish',reason:{kind:'stop'}};return;
+   }
    if(this.checkpointMode){
     const block=this.checkpointRequests++===0?{type:'tool-call',id:'full-save-tool',name:'world_observe',arguments:'{}'}:{type:'text',text:'Checkpoint tool complete.'};
     yield {type:'block-start',index:0,blockType:block.type};
@@ -169,6 +182,29 @@ const base=productRoot;
    assert.equal(bundle.document.network.nodes.find(n=>n.node_id==='world/savepoint').modules['checkpoint.counter'].state.count,5);
    await r.checkpoints.positions.read(full.contexts.root);
    console.log('PASS fifth signal full checkpoint: open tool defers, durable result releases full point with all native cursors');
+ }
+ if(durable){
+   model.movementMode=true;model.movementRequests=0;
+   const beforeMove=worker.session.seq;
+   const moved=await exec('world_run_npc',{target:'world/npc/woodcutter'});
+   model.movementMode=false;
+   assert.equal(moved.pulse.reports[0].status,'completed');assert.equal(moved.pulse.reports[0].returned,true);
+   assert.equal(moved.activities['world/npc/woodcutter'].status,'completed');
+   assert.equal(model.movementRequests,3,'bad arguments can be corrected; successful move ends inference');
+   const events=worker.session.snapshotEvents(beforeMove);
+   const results=events.filter(e=>e.type==='tool/result');
+   const resultText=id=>JSON.stringify(results.find(e=>e.data.message.toolCallId===id)?.data.message);
+   assert.match(resultText('move-1-0'),/未声明的工具参数/);
+   assert.match(resultText('move-2-0'),/tick_finished/);
+   assert.match(resultText('move-2-1'),/Movement ended this time slot/);
+   assert.equal(events.findLast(e=>e.type==='turn/end').data.reason.kind,'completed');
+   const state=await exec('world_observe',{target:'world/npc/woodcutter'});
+   assert.equal(state.resident.place,'world/place/forest');
+   assert.ok(!state.resident.inbox.some(m=>m.content==='FORBIDDEN_AFTER_MOVE'));
+   const point=await r.checkpoints.checkpoint();assert.ok(point);
+   const saved=await r.checkpoints.positions.read(point.contexts['world/npc/woodcutter']);
+   assert.ok(saved.events.some(e=>e.type==='tool/result'&&JSON.stringify(e.data).includes('tick_finished')),'move result is durable before turn completion');
+   console.log('PASS movement: failed call corrected, success normally concludes, same-batch talk rejected, native move result durable, pulse returns');
  }
  await controller.components.dispose();await host.fiber.dispose();clearInterval(keepAlive);
  console.log('PASS native Harness NPC pulse: channel response sequence, stable role and personality prompt, explicit context-node sources, independent history documents, resident clock, location tool, natural completion, return to source, native error rejected; no model API calls');

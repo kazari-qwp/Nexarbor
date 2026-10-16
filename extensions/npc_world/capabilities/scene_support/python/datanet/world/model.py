@@ -66,6 +66,8 @@ class ActionModule(NodeModule):
     def check(self,actor,name):
         a=person(self.backend,actor).state
         if self.config.get('address') and a['place']!=self.config['address']:raise PermissionError('Service is outside your current place')
+        last=a.get('last_result') or {}
+        if last.get('tool')=='move_here' and last.get('tick')==tick(self.backend):raise ValueError('Movement ended this time slot; wait until the next time slot')
         if name=='local_info':return
         turn=instance(self.backend,actor,'agent.signal').state
         if turn.get('status')!='running' or turn.get('signal_id')!=clock(self.backend).state.get('signal_id'):raise ValueError('No active activity for this resident')

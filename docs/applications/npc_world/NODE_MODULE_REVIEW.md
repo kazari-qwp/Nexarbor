@@ -13,7 +13,7 @@
 
 先用 `node_tools` 发现目标工具，再用 `node_invoke` 调用。行动和交谈走 `direction="write"`；当前业务节点的 `local_info` 走 `direction="read"`。邻居入口提供 `move_here`，当前 `location.service` 提供当地业务，同场所居民提供 `talk(content)`。
 
-工具成功时立即生效，每时刻只能成功执行一个主要行动；失败不消耗额度。移动立即更新位置和可访问工具，但本时刻不能再做第二个主要行动。交谈不占主要行动，最多三次，不额外唤醒对方。对方可能本时刻已结束，下次活动才看到。
+工具成功时立即生效，每时刻只能成功执行一个主要行动；失败不消耗额度。移动成功会自动结束本时刻活动，请在移动前完成需要的操作；到达后的行动与交谈留到下个时刻。交谈不占主要行动，最多三次，不额外唤醒对方。对方可能本时刻已结束，下次活动才看到。
 
 处理完正常结束回复即可，无需提交或就绪工具。执行出错不会撤销已经成功的行动。对工具返回的错误当场调整做法，不要假定失败操作已经生效。
 
@@ -45,7 +45,7 @@
 
 这里是一个演示小世界，规则不必符合现实生理和地理。世界事实由获准工具改变，个人记忆和传闻可能不准确。
 
-一天有早上、中午、下午、傍晚、午夜五个时刻。每个时刻可交谈最多三次，选择一个主要行动；也可以等待。主要行动在工具成功时立即生效，不能撤回重选；失败不消耗行动次数。移动立即改变位置和可使用的工具，但本时刻不能再执行第二个主要行动。正常结束回复即可，所有居民处理完后才进入下一时刻。
+一天有早上、中午、下午、傍晚、午夜五个时刻。每个时刻可交谈最多三次，选择一个主要行动；也可以等待。主要行动在工具成功时立即生效，不能撤回重选；失败不消耗行动次数。移动成功会立即改变位置并结束本时刻活动，下个时刻才能在新地点继续行动或交谈；请在移动前完成需要的操作。正常结束回复即可，所有居民处理完后才进入下一时刻。
 
 本世界的居民不需要睡觉，晚上和午夜也可以正常活动，不必为了过夜返回住处。只有需要恢复体力时，才按自己的安排前往可休息的场所。
 
@@ -75,7 +75,7 @@
 | `rest` | 在自己居住的居民楼休息，恢复体力。 | [定义](../../../extensions/npc_world/capabilities/household/tools.json) |
 | `marry` | 在民政局申请与指定对象结婚，需双方同意。 | [定义](../../../extensions/npc_world/capabilities/marriage_registry/tools.json) |
 | `local_info` | 查看本场所服务、价格与库存。 | [定义](../../../extensions/npc_world/capabilities/place_information/tools.json) |
-| `move_here` | 移动到此地点。 | [定义](../../../extensions/npc_world/capabilities/place_movement/tools.json) |
+| `move_here` | 移动到此地点，成功后结束本时刻活动。 | [定义](../../../extensions/npc_world/capabilities/place_movement/tools.json) |
 | `drink` | 花1金币喝饮料，恢复体力。 | [定义](../../../extensions/npc_world/capabilities/refreshment/tools.json) |
 | `talk` | 向同场所的此人说话。 | [定义](../../../extensions/npc_world/capabilities/resident_life/tools.json) |
 | `give` | 赠送物品或钱给同场所的此人。 | [定义](../../../extensions/npc_world/capabilities/resident_life/tools.json) |
@@ -105,3 +105,15 @@
 - 出生：`儿童在下一次脉冲加入。`
 - 一个主要行动已用：`One primary action per time slot; the previous action already took effect`
 - 非本楼休息：`只能在自己登记居住的居民楼休息。`
+
+## 移动结束当前时刻（2026-10-16）
+
+成功移动返回 `{"arrived":"<地点ID>","tick_finished":true}`。失败时仍返回原有参数、权限或业务错误，不结束活动。
+
+同一批调用中，成功移动后的场所操作和交谈返回：
+
+```text
+Movement ended this time slot; wait until the next time slot
+```
+
+移动成功通过原生 conclude 机制结束当前活动，结果仍写入原生日志；无需二次确认，也不需要另行提交或调用就绪工具。
