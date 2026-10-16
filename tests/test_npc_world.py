@@ -320,6 +320,7 @@ class WorldTests(unittest.TestCase):
                 assert port.calls==[child] and len(residents(b))==7
                 app.plugins['capabilities/context_assembly'].assemble(child)
                 assert any('你住在居民楼1。' in section['text'] for section in app.view(child)['sections'])
+                assert any('# 小镇常识（只读）' in section['text'] for section in app.view(child)['sections'])
             finally:stop(app,b)
         """)
 
@@ -331,6 +332,15 @@ class WorldTests(unittest.TestCase):
             try:
                 stable=app.state(actor)['prompt'];matcher=app.plugins['capabilities/context_assembly']
                 first=matcher.assemble(actor);assert len(first['sources'][0]['loaded'])==3
+                system='\\n'.join(section['text'] for section in app.view(actor)['sections'])
+                assert system.count('# 小镇常识（只读）')==1
+                assert '本世界的居民不需要睡觉' in system
+                assert 'common' not in app.invoke(actor,'world_look',{})
+                try:app.invoke(actor,'node_read',dict(target='world/common',request=dict(method='key',key='content')))
+                except RuntimeError as e:assert json.loads(str(e))['status']=='forbidden'
+                else:raise AssertionError('redundant common read grant remains')
+                family=app.invoke(actor,'node_read',dict(target='world/knowledge/life/family',request=dict(method='key',key='content')))
+                assert '结婚需' in family['items'][0]['content']
                 assert not matcher.assemble(actor)['sources'][0]['loaded']
                 saved=b.modules.unmount(actor+'/context','context.sources')
                 assert not matcher.assemble(actor)['sources']

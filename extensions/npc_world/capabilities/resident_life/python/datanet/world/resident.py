@@ -34,7 +34,7 @@ def look(b,p):
       location=dict(id=a['place'],name=address.node.name,service=address.config['service']),neighbors=[dict(id=k,name=b.network.nodes[k].name) for k in adjacent],
       people=[dict(id=k,name=v.state['name']) for k,v in residents(b).items() if k!=actor and v.state['place']==a['place']],
       pregnancies=[dict(id=k,due=date(v['due_tick']),ready=tick(b)>=v['due_tick']) for module in b.modules.find('world.family') for k,v in module.state['pregnancies'].items() if v['carrier']==actor and not v.get('child')],
-      common=m.config['common'],knowledge=instance(b,actor,'world.knowledge').references(),last_result=a.get('last_result'),
+      knowledge=instance(b,actor,'world.knowledge').references(),last_result=a.get('last_result'),
       finished=instance(b,actor,'agent.signal').state.get('status')!='running')
 def messages(b,p):
     a=person(b,p['actor']).state;items=deepcopy([v for v in a['inbox'] if not v.get('read')])

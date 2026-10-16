@@ -15,7 +15,7 @@
 
 处理完正常结束回复即可，无需提交或就绪工具。执行出错不会撤销已经成功的行动。对工具返回的错误当场调整做法，不要假定失败操作已经生效。
 
-世界常识 `world/common` 和自己的知识节点用 `node_read` 按需读取：`{"method":"key","key":"content"}`。它们只读。其他居民的陈述不自动成为世界事实。
+自己的按需知识用 `node_read` 读取：`{"method":"key","key":"content"}`。它们只读。其他居民的陈述不自动成为世界事实。
 ```
 
 ## extensions/npc_world/network_presets/small_town/AGENTS.md
@@ -165,3 +165,15 @@ Duplicate or reserved preparation step
 NPC 行动指南整段删除自动装配说明及 node_list/node_tools/node_invoke 的探索指引，没有新增替代文案。完整当前指南见本页第一节。
 
 world_resident 工具箱移除 node_list、node_tools、node_invoke；保留 world_look、world_messages、node_read，私人记忆工具继续由 agent_runtime 提供。动态地点/人物工具描述不变。其他应用的网络工具保留。
+
+## 世界常识自动系统加载（2026-10-16）
+
+世界常识正文未改，改为通过居民/儿童上下文配置的 world-common system_prompt 来源自动加载。NPC 直接读取常识的连接及 world_look.common 引用已移除，不再提示主动查询常识。
+
+指南最后一段现为：
+
+```text
+自己的按需知识用 `node_read` 读取：`{"method":"key","key":"content"}`。它们只读。其他居民的陈述不自动成为世界事实。
+```
+
+node_read 保留给成人家庭知识等 reference_only 资料；其工具描述未改。

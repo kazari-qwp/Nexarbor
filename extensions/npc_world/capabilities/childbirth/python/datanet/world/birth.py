@@ -33,7 +33,7 @@ class Birth(ActionModule):
         assembly.read_interfaces=[Interface(**e) for e in spec['context_reads']]
         for target,entries in ((child,spec['actor_modules']),(child+'/context',spec['context_modules'])):
             for key,value in entries.items():b.modules.mount(target,key,**value,bind=False)
-        resident.read_interfaces=[Interface(child+'/context',{'threshold':1,'visibility':'private'}),Interface(spec['common'],{'threshold':1})]
+        resident.read_interfaces=[Interface(child+'/context',{'threshold':1,'visibility':'private'})]
         resident.write_interfaces=[Interface(spec['signal_return'],{'threshold':1,'channels':spec['channels']})]
         presence(b,child,self.config['address'])
         if home:home.state['residents'].append(child)

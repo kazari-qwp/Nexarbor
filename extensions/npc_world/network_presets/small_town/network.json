@@ -2024,9 +2024,7 @@
               "child_template": {
                 "actor_modules": {
                   "world.resident": {
-                    "config": {
-                      "common": "world/common"
-                    },
+                    "config": {},
                     "state": {
                       "id": "{{actor}}",
                       "name": "{{name}}",
@@ -2458,19 +2456,36 @@
                             "type": "node",
                             "target": "world/knowledge/life/parent"
                           }
+                        },
+                        {
+                          "id": "world-common",
+                          "kind": "system_prompt",
+                          "source": {
+                            "type": "node",
+                            "target": "world/common"
+                          }
                         }
                       ]
                     },
                     "state": {}
                   }
                 },
-                "common": "world/common",
                 "channels": [
                   "world.tick"
                 ],
                 "context_reads": [
                   {
                     "target_node_id": "world/time",
+                    "metadata": {
+                      "visibility": "private",
+                      "threshold": 1,
+                      "multiplier": 1,
+                      "channels": [],
+                      "attributes": {}
+                    }
+                  },
+                  {
+                    "target_node_id": "world/common",
                     "metadata": {
                       "visibility": "private",
                       "threshold": 1,
@@ -2513,16 +2528,6 @@
                 "attributes": {
                   "world_presence": true
                 }
-              }
-            },
-            {
-              "target_node_id": "world/common",
-              "metadata": {
-                "visibility": "public",
-                "threshold": 1,
-                "multiplier": 1,
-                "channels": [],
-                "attributes": {}
               }
             },
             {
@@ -2570,9 +2575,7 @@
         "inputs": {},
         "modules": {
           "world.resident": {
-            "config": {
-              "common": "world/common"
-            },
+            "config": {},
             "state": {
               "id": "lin",
               "name": "林舟",
@@ -2824,6 +2827,16 @@
                 "channels": [],
                 "attributes": {}
               }
+            },
+            {
+              "target_node_id": "world/common",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
             }
           ],
           "write_interfaces": []
@@ -3025,6 +3038,14 @@
                     "type": "node",
                     "target": "world/knowledge/life/parent"
                   }
+                },
+                {
+                  "id": "world-common",
+                  "kind": "system_prompt",
+                  "source": {
+                    "type": "node",
+                    "target": "world/common"
+                  }
                 }
               ]
             },
@@ -3058,16 +3079,6 @@
                 "attributes": {
                   "world_presence": true
                 }
-              }
-            },
-            {
-              "target_node_id": "world/common",
-              "metadata": {
-                "visibility": "public",
-                "threshold": 1,
-                "multiplier": 1,
-                "channels": [],
-                "attributes": {}
               }
             },
             {
@@ -3115,9 +3126,7 @@
         "inputs": {},
         "modules": {
           "world.resident": {
-            "config": {
-              "common": "world/common"
-            },
+            "config": {},
             "state": {
               "id": "yue",
               "name": "月宁",
@@ -3370,6 +3379,16 @@
                 "channels": [],
                 "attributes": {}
               }
+            },
+            {
+              "target_node_id": "world/common",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
             }
           ],
           "write_interfaces": []
@@ -3571,6 +3590,14 @@
                     "type": "node",
                     "target": "world/knowledge/life/parent"
                   }
+                },
+                {
+                  "id": "world-common",
+                  "kind": "system_prompt",
+                  "source": {
+                    "type": "node",
+                    "target": "world/common"
+                  }
                 }
               ]
             },
@@ -3604,16 +3631,6 @@
                 "attributes": {
                   "world_presence": true
                 }
-              }
-            },
-            {
-              "target_node_id": "world/common",
-              "metadata": {
-                "visibility": "public",
-                "threshold": 1,
-                "multiplier": 1,
-                "channels": [],
-                "attributes": {}
               }
             },
             {
@@ -3661,9 +3678,7 @@
         "inputs": {},
         "modules": {
           "world.resident": {
-            "config": {
-              "common": "world/common"
-            },
+            "config": {},
             "state": {
               "id": "woodcutter",
               "name": "阿森",
@@ -3916,6 +3931,16 @@
                 "channels": [],
                 "attributes": {}
               }
+            },
+            {
+              "target_node_id": "world/common",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
             }
           ],
           "write_interfaces": []
@@ -4117,6 +4142,14 @@
                     "type": "node",
                     "target": "world/knowledge/life/parent"
                   }
+                },
+                {
+                  "id": "world-common",
+                  "kind": "system_prompt",
+                  "source": {
+                    "type": "node",
+                    "target": "world/common"
+                  }
                 }
               ]
             },
@@ -4150,16 +4183,6 @@
                 "attributes": {
                   "world_presence": true
                 }
-              }
-            },
-            {
-              "target_node_id": "world/common",
-              "metadata": {
-                "visibility": "public",
-                "threshold": 1,
-                "multiplier": 1,
-                "channels": [],
-                "attributes": {}
               }
             },
             {
@@ -4207,9 +4230,7 @@
         "inputs": {},
         "modules": {
           "world.resident": {
-            "config": {
-              "common": "world/common"
-            },
+            "config": {},
             "state": {
               "id": "miner",
               "name": "石岩",
@@ -4462,6 +4483,16 @@
                 "channels": [],
                 "attributes": {}
               }
+            },
+            {
+              "target_node_id": "world/common",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
             }
           ],
           "write_interfaces": []
@@ -4663,6 +4694,14 @@
                     "type": "node",
                     "target": "world/knowledge/life/parent"
                   }
+                },
+                {
+                  "id": "world-common",
+                  "kind": "system_prompt",
+                  "source": {
+                    "type": "node",
+                    "target": "world/common"
+                  }
                 }
               ]
             },
@@ -4696,16 +4735,6 @@
                 "attributes": {
                   "world_presence": true
                 }
-              }
-            },
-            {
-              "target_node_id": "world/common",
-              "metadata": {
-                "visibility": "public",
-                "threshold": 1,
-                "multiplier": 1,
-                "channels": [],
-                "attributes": {}
               }
             },
             {
@@ -4753,9 +4782,7 @@
         "inputs": {},
         "modules": {
           "world.resident": {
-            "config": {
-              "common": "world/common"
-            },
+            "config": {},
             "state": {
               "id": "smith",
               "name": "老锤",
@@ -5006,6 +5033,16 @@
                 "channels": [],
                 "attributes": {}
               }
+            },
+            {
+              "target_node_id": "world/common",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
             }
           ],
           "write_interfaces": []
@@ -5207,6 +5244,14 @@
                     "type": "node",
                     "target": "world/knowledge/life/parent"
                   }
+                },
+                {
+                  "id": "world-common",
+                  "kind": "system_prompt",
+                  "source": {
+                    "type": "node",
+                    "target": "world/common"
+                  }
                 }
               ]
             },
@@ -5240,16 +5285,6 @@
                 "attributes": {
                   "world_presence": true
                 }
-              }
-            },
-            {
-              "target_node_id": "world/common",
-              "metadata": {
-                "visibility": "public",
-                "threshold": 1,
-                "multiplier": 1,
-                "channels": [],
-                "attributes": {}
               }
             },
             {
@@ -5297,9 +5332,7 @@
         "inputs": {},
         "modules": {
           "world.resident": {
-            "config": {
-              "common": "world/common"
-            },
+            "config": {},
             "state": {
               "id": "wanderer",
               "name": "小路",
@@ -5550,6 +5583,16 @@
                 "channels": [],
                 "attributes": {}
               }
+            },
+            {
+              "target_node_id": "world/common",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
             }
           ],
           "write_interfaces": []
@@ -5750,6 +5793,14 @@
                   "source": {
                     "type": "node",
                     "target": "world/knowledge/life/parent"
+                  }
+                },
+                {
+                  "id": "world-common",
+                  "kind": "system_prompt",
+                  "source": {
+                    "type": "node",
+                    "target": "world/common"
                   }
                 }
               ]

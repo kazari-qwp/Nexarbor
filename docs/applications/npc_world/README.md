@@ -73,3 +73,5 @@ NPC 的三步响应为 collect_information → assemble_tools → run_agent。�
 首次活动、恢复后的首次活动和新生儿童的首次活动走同一流程，无需初始移动。只在 tick 开始刷新；移动后当前 tick 正常结束，下一 tick 才重收集/装配。三个通用组件分别位于 foundation 的 information_provider、information_collector、tool_assembly。核心仅增加默认无返回的 get_information 扩展入口，没有 NPC 或地图特判。
 
 NPC 工具箱已移除 node_list/node_tools/node_invoke；移动、业务和交谈只使用装配后的直接入口。world_look、world_messages、node_read 和私人记忆工具保留，知识正文与交谈仍可按需读取。其他应用的网络访问工具不受影响。
+
+世界常识已作为 context.sources 的 system_prompt 来源自动加载（居民与出生模板一致），正文沿用 COMMON.md。只有上下文子节点保留到 world/common 的私有读取连接，NPC 无需读取它；world_look 不再返回常识查询引用。node_read 保留给仍按需披露的成人家庭知识。
