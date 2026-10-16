@@ -86,6 +86,11 @@ class Node:
         registry = getattr(self, '_metadata_registry', None)
         return registry.read(self) if registry else self.standard_metadata()
 
+    def get_information(self, context):
+        """Internal extension entry; absent providers publish no information."""
+        provider=getattr(self,'_information_provider',None)
+        return provider(context) if provider else None
+
     def describe(self, *, include_schema: bool=True) -> dict:
         result = self.get_metadata()
         if include_schema:

@@ -32,6 +32,7 @@ class Plugin(Component):
         if name == 'node_invoke' and (p['target'], p.get('direction', 'read'), p['tool']) not in self.discovered.get(actor, set()):
             raise PermissionError('Discover the exposed node tool first')
         result = self.r.rpc(methods[name], actor=actor, **p)
+        if name == 'node_invoke':self.r.emit('node/tool-invoked',actor=actor,target=p['target'],tool=p['tool'],direction=p.get('direction','read'),result=result)
         if name == 'node_list':
             for item in result.get('items', []):
                 item['has_agent'] = item['node_id'] in self.r.states

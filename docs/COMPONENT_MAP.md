@@ -36,6 +36,9 @@
 | `capabilities/marriage_registry` | `extensions/npc_world/capabilities/marriage_registry` | `capabilities/scene_support` |
 | `capabilities/network_access` | `extensions/foundation/capabilities/network_access` | `capabilities/agent_identity`, `capabilities/context_assembly` |
 | `capabilities/network_management` | `extensions/foundation/capabilities/network_management` | `capabilities/tools_network_management`, `capabilities/agent_identity` |
+| `capabilities/information_provider` | `extensions/foundation/capabilities/information_provider` |  |
+| `capabilities/information_collector` | `extensions/foundation/capabilities/information_collector` | `capabilities/information_provider` |
+| `capabilities/tool_assembly` | `extensions/foundation/capabilities/tool_assembly` |  |
 | `capabilities/node_agent_session` | `extensions/foundation/capabilities/node_agent_session` | `capabilities/agent_runtime` |
 | `capabilities/node_savepoint` | `extensions/foundation/capabilities/node_savepoint` | `capabilities/signal_response` |
 | `capabilities/node_clock` | `extensions/foundation/capabilities/node_clock` | `capabilities/signal_response` |
@@ -53,7 +56,7 @@
 | `capabilities/resource_gathering` | `extensions/npc_world/capabilities/resource_gathering` | `capabilities/scene_support` |
 | `capabilities/response_recovery` | `extensions/foundation/capabilities/response_recovery` |  |
 | `capabilities/round_barrier` | `extensions/foundation/capabilities/round_barrier` |  |
-| `capabilities/scene_operator` | `extensions/npc_world/capabilities/scene_operator` | `capabilities/network_access`, `nodes/npc_resident`, `nodes/npc_child`, `nodes/resident_knowledge`, `capabilities/resident_life`, `capabilities/place_movement`, `capabilities/household`, `capabilities/resource_gathering`, `capabilities/shop_trade`, `capabilities/tool_repair`, `capabilities/refreshment`, `capabilities/place_information`, `capabilities/marriage_registry`, `capabilities/family_planning`, `capabilities/childbirth`, `capabilities/identity_knowledge`, `capabilities/disk_network`, `capabilities/node_context_sources`, `capabilities/node_agent_session`, `capabilities/node_signal_agent`, `capabilities/node_clock`, `capabilities/node_savepoint` |
+| `capabilities/scene_operator` | `extensions/npc_world/capabilities/scene_operator` | `capabilities/network_access`, `nodes/npc_resident`, `nodes/npc_child`, `nodes/resident_knowledge`, `capabilities/resident_life`, `capabilities/place_movement`, `capabilities/household`, `capabilities/resource_gathering`, `capabilities/shop_trade`, `capabilities/tool_repair`, `capabilities/refreshment`, `capabilities/place_information`, `capabilities/marriage_registry`, `capabilities/family_planning`, `capabilities/childbirth`, `capabilities/identity_knowledge`, `capabilities/disk_network`, `capabilities/node_context_sources`, `capabilities/node_agent_session`, `capabilities/node_signal_agent`, `capabilities/node_clock`, `capabilities/node_savepoint`, `capabilities/information_collector`, `capabilities/tool_assembly` |
 | `capabilities/scene_support` | `extensions/npc_world/capabilities/scene_support` | `capabilities/text`, `capabilities/node_metadata` |
 | `capabilities/scoped_workers` | `extensions/foundation/capabilities/scoped_workers` | `capabilities/agent_runtime`, `capabilities/task_documents`, `toolboxes/agent_messaging` |
 | `capabilities/shared_workspace` | `extensions/foundation/capabilities/shared_workspace` |  |

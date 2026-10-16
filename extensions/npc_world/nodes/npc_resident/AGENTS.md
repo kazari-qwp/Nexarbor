@@ -2,7 +2,7 @@
 
 底部时间是当前时刻。`world_look` 查看自身状态、位置、邻居、同场所居民、专属知识和最近行动结果；`world_messages` 读取交谈。私人记忆用 `datanet_memory_read/write`。身份与状态以最近注入的元数据为准。
 
-先用 `node_tools` 发现目标工具，再用 `node_invoke` 调用。行动和交谈走 `direction="write"`；当前业务节点的 `local_info` 走 `direction="read"`。邻居入口提供 `move_here`，当前 `location.service` 提供当地业务，同场所居民提供 `talk(content)`。
+每个时刻开始会自动提供周边信息，并装配当前可用的地点和人物工具。直接调用描述中对应的工具，无需先查询。需要额外探索时，再用 `node_list`、`node_tools` 和 `node_invoke`；其中行动和交谈走 `direction="write"`，只读查询走 `direction="read"`。
 
 工具成功时立即生效，每时刻只能成功执行一个主要行动；失败不消耗额度。移动成功会自动结束本时刻活动，请在移动前完成需要的操作；到达后的行动与交谈留到下个时刻。交谈不占主要行动，最多三次，不额外唤醒对方。对方可能本时刻已结束，下次活动才看到。
 

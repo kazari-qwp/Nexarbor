@@ -7,10 +7,9 @@ class Address(ActionModule):
     module_name='world.address';tools=TOOLS
     def bind(self,r):
         self.r=r
-        if not self.listeners:self.listen(r,'capabilities/place_movement','tool/after',self.moved)
+        if not self.listeners:self.listen(r,'capabilities/place_movement','node/tool-invoked',self.moved)
     def moved(self,e):
-        args=e['arguments']
-        if e['name']=='node_invoke' and args.get('target')==self.node.node_id and args.get('tool')=='move_here':
+        if e['target']==self.node.node_id and e['tool']=='move_here':
             # The domain transaction has finished. Native conclude records the tool
             # result before closing the turn, without cancellation or another request.
             self.r.host('conclude')

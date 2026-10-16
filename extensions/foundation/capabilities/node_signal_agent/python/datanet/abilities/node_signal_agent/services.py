@@ -13,8 +13,17 @@ class SignalAgent(NodeModule):
         if not self.listeners:
             self.listen(r,OWNER,'agent/request',self.request)
             self.listen(r,OWNER,'agent/pre-step',self.pre_step)
-        rules=[dict(id='execute-agent',channels=self.config['channels'],steps=[dict(tool='assemble_context',arguments={}),dict(tool='run_agent',arguments=dict(task={'$ref':'/signal/content/task'},timeout_ms={'$ref':'/signal/content/timeout_ms'}))])]
-        r.plugins['capabilities/signal_response'].bind(self.node.node_id,rules,dict(assemble_context=self.assemble,run_agent=self.run),access_strength=self.config.get('strength',2),on_error=self.failed)
+        tools=dict(assemble_context=self.assemble,run_agent=self.run)
+        steps=[]
+        for entry in self.config.get('prepare',[]):
+            if entry['step'] in tools:raise ValueError('Duplicate or reserved preparation step')
+            module=self.backend.modules.get(self.node.node_id,entry['module'])
+            tools[entry['step']]=getattr(module,entry['method'])
+            steps.append(dict(tool=entry['step'],arguments={}))
+        if not steps:steps=[dict(tool='assemble_context',arguments={})]
+        steps.append(dict(tool='run_agent',arguments=dict(task={'$ref':'/signal/content/task'},timeout_ms={'$ref':'/signal/content/timeout_ms'})))
+        rules=[dict(id='execute-agent',channels=self.config['channels'],steps=steps)]
+        r.plugins['capabilities/signal_response'].bind(self.node.node_id,rules,tools,access_strength=self.config.get('strength',2),on_error=self.failed)
     def pre_step(self,e):
         if e['actor']!=self.node.node_id:return
         if self.config.get('guide'):self.r.load(e['actor'],'node:activity-guide',text(self.r,self.config['guide']))
@@ -27,7 +36,9 @@ class SignalAgent(NodeModule):
         return self.r.plugins['capabilities/context_assembly'].assemble(self.node.node_id)
     def execute(self,context,task,timeout_ms,execution_id):
         previous=getattr(self.r.local,'execution_id',None);self.r.local.execution_id=execution_id
-        try:return self.r.plugins['capabilities/agent_runtime'].execute(self.config.get('manager','root'),self.node.node_id,task,kind=self.config.get('kind','agent'),timeout_ms=timeout_ms)
+        try:
+            if self.config.get('prepare'):self.assemble(context)
+            return self.r.plugins['capabilities/agent_runtime'].execute(self.config.get('manager','root'),self.node.node_id,task,kind=self.config.get('kind','agent'),timeout_ms=timeout_ms)
         finally:self.r.local.execution_id=previous
     async def run(self,context,task,timeout_ms):
         previous=getattr(self,'worker',None)

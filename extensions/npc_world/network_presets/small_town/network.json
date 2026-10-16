@@ -666,6 +666,18 @@
               "service": "world/service/civil_registry"
             },
             "state": {}
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "名称": "/name"
+              },
+              "labels_by_hops": {
+                "1": "本地",
+                "2": "相邻"
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -875,6 +887,18 @@
               "service": "world/service/tavern"
             },
             "state": {}
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "名称": "/name"
+              },
+              "labels_by_hops": {
+                "1": "本地",
+                "2": "相邻"
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -1047,6 +1071,18 @@
               "service": "world/service/home1"
             },
             "state": {}
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "名称": "/name"
+              },
+              "labels_by_hops": {
+                "1": "本地",
+                "2": "相邻"
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -1182,6 +1218,18 @@
           "world.address": {
             "config": {
               "service": "world/service/home2"
+            },
+            "state": {}
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "名称": "/name"
+              },
+              "labels_by_hops": {
+                "1": "本地",
+                "2": "相邻"
+              }
             },
             "state": {}
           }
@@ -1346,6 +1394,18 @@
               "service": "world/service/smithy"
             },
             "state": {}
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "名称": "/name"
+              },
+              "labels_by_hops": {
+                "1": "本地",
+                "2": "相邻"
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -1474,6 +1534,18 @@
           "world.address": {
             "config": {
               "service": "world/service/shop"
+            },
+            "state": {}
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "名称": "/name"
+              },
+              "labels_by_hops": {
+                "1": "本地",
+                "2": "相邻"
+              }
             },
             "state": {}
           }
@@ -1621,6 +1693,18 @@
               "service": "world/service/mine"
             },
             "state": {}
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "名称": "/name"
+              },
+              "labels_by_hops": {
+                "1": "本地",
+                "2": "相邻"
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -1751,6 +1835,18 @@
               "service": "world/service/forest"
             },
             "state": {}
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "名称": "/name"
+              },
+              "labels_by_hops": {
+                "1": "本地",
+                "2": "相邻"
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -1875,6 +1971,18 @@
           "world.address": {
             "config": {
               "service": "world/service/hospital"
+            },
+            "state": {}
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "名称": "/name"
+              },
+              "labels_by_hops": {
+                "1": "本地",
+                "2": "相邻"
+              }
             },
             "state": {}
           }
@@ -2101,13 +2209,53 @@
                       "guide": {
                         "component": "nodes/npc_resident",
                         "file": "AGENTS.md"
-                      }
+                      },
+                      "prepare": [
+                        {
+                          "step": "collect_information",
+                          "module": "information.collector",
+                          "method": "collect"
+                        },
+                        {
+                          "step": "assemble_tools",
+                          "module": "tools.assembly",
+                          "method": "assemble"
+                        }
+                      ]
                     },
                     "state": {
                       "status": "idle",
                       "requests": 0,
                       "signal_id": null
                     }
+                  },
+                  "information.provider": {
+                    "config": {
+                      "fields": {
+                        "姓名": "/name",
+                        "性别": "/extensions/npc/gender"
+                      }
+                    },
+                    "state": {}
+                  },
+                  "information.collector": {
+                    "config": {
+                      "strength": 2
+                    },
+                    "state": {}
+                  },
+                  "tools.assembly": {
+                    "config": {
+                      "strength": 2,
+                      "filters": {
+                        "move_here": {
+                          "hops": [
+                            2
+                          ]
+                        }
+                      }
+                    },
+                    "state": {}
                   }
                 },
                 "context_modules": {
@@ -2606,13 +2754,53 @@
               "guide": {
                 "component": "nodes/npc_resident",
                 "file": "AGENTS.md"
-              }
+              },
+              "prepare": [
+                {
+                  "step": "collect_information",
+                  "module": "information.collector",
+                  "method": "collect"
+                },
+                {
+                  "step": "assemble_tools",
+                  "module": "tools.assembly",
+                  "method": "assemble"
+                }
+              ]
             },
             "state": {
               "status": "idle",
               "requests": 0,
               "signal_id": null
             }
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "姓名": "/name",
+                "性别": "/extensions/npc/gender"
+              }
+            },
+            "state": {}
+          },
+          "information.collector": {
+            "config": {
+              "strength": 2
+            },
+            "state": {}
+          },
+          "tools.assembly": {
+            "config": {
+              "strength": 2,
+              "filters": {
+                "move_here": {
+                  "hops": [
+                    2
+                  ]
+                }
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -3112,13 +3300,53 @@
               "guide": {
                 "component": "nodes/npc_resident",
                 "file": "AGENTS.md"
-              }
+              },
+              "prepare": [
+                {
+                  "step": "collect_information",
+                  "module": "information.collector",
+                  "method": "collect"
+                },
+                {
+                  "step": "assemble_tools",
+                  "module": "tools.assembly",
+                  "method": "assemble"
+                }
+              ]
             },
             "state": {
               "status": "idle",
               "requests": 0,
               "signal_id": null
             }
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "姓名": "/name",
+                "性别": "/extensions/npc/gender"
+              }
+            },
+            "state": {}
+          },
+          "information.collector": {
+            "config": {
+              "strength": 2
+            },
+            "state": {}
+          },
+          "tools.assembly": {
+            "config": {
+              "strength": 2,
+              "filters": {
+                "move_here": {
+                  "hops": [
+                    2
+                  ]
+                }
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -3618,13 +3846,53 @@
               "guide": {
                 "component": "nodes/npc_resident",
                 "file": "AGENTS.md"
-              }
+              },
+              "prepare": [
+                {
+                  "step": "collect_information",
+                  "module": "information.collector",
+                  "method": "collect"
+                },
+                {
+                  "step": "assemble_tools",
+                  "module": "tools.assembly",
+                  "method": "assemble"
+                }
+              ]
             },
             "state": {
               "status": "idle",
               "requests": 0,
               "signal_id": null
             }
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "姓名": "/name",
+                "性别": "/extensions/npc/gender"
+              }
+            },
+            "state": {}
+          },
+          "information.collector": {
+            "config": {
+              "strength": 2
+            },
+            "state": {}
+          },
+          "tools.assembly": {
+            "config": {
+              "strength": 2,
+              "filters": {
+                "move_here": {
+                  "hops": [
+                    2
+                  ]
+                }
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -4124,13 +4392,53 @@
               "guide": {
                 "component": "nodes/npc_resident",
                 "file": "AGENTS.md"
-              }
+              },
+              "prepare": [
+                {
+                  "step": "collect_information",
+                  "module": "information.collector",
+                  "method": "collect"
+                },
+                {
+                  "step": "assemble_tools",
+                  "module": "tools.assembly",
+                  "method": "assemble"
+                }
+              ]
             },
             "state": {
               "status": "idle",
               "requests": 0,
               "signal_id": null
             }
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "姓名": "/name",
+                "性别": "/extensions/npc/gender"
+              }
+            },
+            "state": {}
+          },
+          "information.collector": {
+            "config": {
+              "strength": 2
+            },
+            "state": {}
+          },
+          "tools.assembly": {
+            "config": {
+              "strength": 2,
+              "filters": {
+                "move_here": {
+                  "hops": [
+                    2
+                  ]
+                }
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -4628,13 +4936,53 @@
               "guide": {
                 "component": "nodes/npc_resident",
                 "file": "AGENTS.md"
-              }
+              },
+              "prepare": [
+                {
+                  "step": "collect_information",
+                  "module": "information.collector",
+                  "method": "collect"
+                },
+                {
+                  "step": "assemble_tools",
+                  "module": "tools.assembly",
+                  "method": "assemble"
+                }
+              ]
             },
             "state": {
               "status": "idle",
               "requests": 0,
               "signal_id": null
             }
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "姓名": "/name",
+                "性别": "/extensions/npc/gender"
+              }
+            },
+            "state": {}
+          },
+          "information.collector": {
+            "config": {
+              "strength": 2
+            },
+            "state": {}
+          },
+          "tools.assembly": {
+            "config": {
+              "strength": 2,
+              "filters": {
+                "move_here": {
+                  "hops": [
+                    2
+                  ]
+                }
+              }
+            },
+            "state": {}
           }
         }
       },
@@ -5132,13 +5480,53 @@
               "guide": {
                 "component": "nodes/npc_resident",
                 "file": "AGENTS.md"
-              }
+              },
+              "prepare": [
+                {
+                  "step": "collect_information",
+                  "module": "information.collector",
+                  "method": "collect"
+                },
+                {
+                  "step": "assemble_tools",
+                  "module": "tools.assembly",
+                  "method": "assemble"
+                }
+              ]
             },
             "state": {
               "status": "idle",
               "requests": 0,
               "signal_id": null
             }
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "姓名": "/name",
+                "性别": "/extensions/npc/gender"
+              }
+            },
+            "state": {}
+          },
+          "information.collector": {
+            "config": {
+              "strength": 2
+            },
+            "state": {}
+          },
+          "tools.assembly": {
+            "config": {
+              "strength": 2,
+              "filters": {
+                "move_here": {
+                  "hops": [
+                    2
+                  ]
+                }
+              }
+            },
+            "state": {}
           }
         }
       },

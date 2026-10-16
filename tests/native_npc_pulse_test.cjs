@@ -31,6 +31,13 @@ const base=productRoot;
   requests=[];fail=false;
   async resolveModel(provider,id){return {provider,id,name:id,toolUpdate:'addition-only',systemPromptUpdate:'in-history'};}
   async *stream(options){
+   if(this.directMoveMode){
+    assert.equal(this.directMoveRequests++,0,'a direct move must finish without another request');
+    const tool=options.tools.find(t=>(t.function?.name??t.name).startsWith('near_move_here_')&&(t.function?.description??t.description).startsWith('商店：'));
+    assert.ok(tool,'neighbor destination must be directly available');
+    const block={type:'tool-call',id:'direct-move',name:tool.function?.name??tool.name,arguments:'{}'};
+    yield {type:'block-start',index:0,blockType:block.type};yield {type:'block-end',index:0,block};yield {type:'finish',reason:{kind:'stop'}};return;
+   }
    if(this.movementMode){
     const plans=[
      [{name:'node_tools',arguments:{target:'world/place/forest',direction:'write'}},{name:'node_tools',arguments:{target:'world/npc/woodcutter',direction:'write'}}],
@@ -59,7 +66,8 @@ const base=productRoot;
    assert.ok(!texts.includes('你目前正在怀孕') && !texts.includes('预产时刻'));
    const calls=options.messages.filter(m=>m.role==='assistant').flatMap(m=>m.content.filter(b=>b.type==='tool-call'));
    const last=calls.at(-1)?.name;
-   const call=!last?{name:'node_tools',arguments:{target:'world/service/forest',direction:'write'}}:last==='node_tools'?{name:'node_invoke',arguments:{target:'world/service/forest',tool:'chop',arguments:{},direction:'write'}}:null;
+   const direct=options.tools.find(t=>(t.function?.name??t.name).startsWith('near_chop_'));assert.ok(direct,'local action must be assembled before the first request');
+   const call=!calls.some(c=>c.name.startsWith('near_chop_'))?{name:direct.function?.name??direct.name,arguments:{}}:null;
    const block=call?{type:'tool-call',id:'npc-'+this.requests.length,name:call.name,arguments:JSON.stringify(call.arguments)}:{type:'text',text:'本时刻砍树计划已完成，正常结束。'};
    yield {type:'block-start',index:0,blockType:block.type};
    if(!call)yield {type:'text-delta',index:0,text:block.text};
@@ -90,12 +98,12 @@ const base=productRoot;
  assert.equal(worker.session.snapshotEvents().filter(e=>e.type==='system/message').length,1,'identical assembled system text must not create repeated system updates');
  assert.ok(model.requests.every(o=>o.messages.some(m=>m.role==='system'&&m.content.some(b=>b.type==='text'&&b.text.includes('你是阿森。')))),'read-only personality must use the system prompt surface');
  assert.ok(!(await r.bridge.call('application/view',{actor:'world/npc/woodcutter'})).prompt.includes('伐木工'),'profession must not rewrite the role system prompt');
- assert.deepEqual(JSON.parse(JSON.stringify(report.deliveries[1].value.responders[0].steps.map(s=>s.tool))),['assemble_context','run_agent']);
+ assert.deepEqual(JSON.parse(JSON.stringify(report.deliveries[1].value.responders[0].steps.map(s=>s.tool))),['collect_information','assemble_tools','run_agent']);
  const world=await exec('world_observe',{});
  assert.equal(world.actors['world/npc/woodcutter'].inventory.wood,2);assert.equal(world.actors['world/npc/woodcutter'].inventory.axe,2);
  assert.equal(world.activities['world/npc/woodcutter'].status,'completed');
- assert.equal(model.requests.length,3);assert.ok(!host.tools.schemas(worker).some(t=>t.name==='world_submit'));
- const tails=worker.session.snapshotEvents().filter(e=>e.type==='datanet/request-tail');assert.ok(tails.length>=3);
+ assert.equal(model.requests.length,2);assert.ok(!host.tools.schemas(worker).some(t=>t.name==='world_submit'));
+ const tails=worker.session.snapshotEvents().filter(e=>e.type==='datanet/request-tail');assert.ok(tails.length>=2);
  assert.ok(tails.every(e=>JSON.stringify(e.data.messages).includes('第1天-早')));
  if(durable){
    const point=await r.checkpoints.checkpoint();assert.ok(point,r.checkpoints.status().deferred??r.checkpoints.status().error);
@@ -121,7 +129,7 @@ const base=productRoot;
      const read=await child.read();
      assert.equal(child.inheritedEventCount,point.contexts['world/npc/woodcutter'].event_count);
      assert.ok(!JSON.stringify(read.events).includes('AFTER_SAVED_POINT'));
-     assert.ok(JSON.stringify(read.events).includes('node_invoke'));
+     assert.ok(JSON.stringify(read.events).includes('near_chop_'));
    }finally{await child.close();}
    assert.ok((await host.sessionPersistence.stat(worker.id)),'original source log remains');
    console.log('PASS durable native checkpoints: disk-backed 7 sessions, unchanged/core-only cursor reuse, log-only update, exact prefix fork and independent core recovery');
@@ -130,7 +138,7 @@ const base=productRoot;
  const directFile=path.join(temp,'direct-input.md');await fs.writeFile(directFile,'External document smoke test.');
  const directPatch={system_prompt:{file:directFile},context:[{id:'direct-guide',text:{file:directFile}}],inputs:[{id:'direct-event',text:{file:directFile},delivery:'followup'}],tail:[{file:directFile}]};
  await r.bridge.call('application/inputs',{actor:'world/npc/woodcutter',source:'external-test',patch:directPatch});await worker.whenIdle();
- assert.equal(model.requests.length,4,'one new event causes exactly one new request');
+ assert.equal(model.requests.length,3,'one new event causes exactly one new request');
  const latest=model.requests.at(-1);
  assert.ok(latest.messages.some(m=>m.role==='system'&&m.content.some(b=>b.type==='text'&&b.text.includes('External document smoke test.'))));
  assert.ok(worker.session.deriveMessages().some(m=>m.source?.kind==='nexarbor-input'&&m.source.event==='direct-event'));
@@ -138,7 +146,7 @@ const base=productRoot;
  assert.ok(worker.session.snapshotEvents().findLast(e=>e.type==='datanet/request-tail').data.messages.some(m=>m.content.some(b=>b.type==='text'&&b.text==='External document smoke test.')));
  const systemCount=worker.session.snapshotEvents().filter(e=>e.type==='system/message').length;
  await r.bridge.call('application/inputs',{actor:'world/npc/woodcutter',source:'external-test',patch:directPatch});await worker.whenIdle();
- assert.equal(model.requests.length,4,'repeating the same event must not wake another turn');
+ assert.equal(model.requests.length,3,'repeating the same event must not wake another turn');
  assert.equal(worker.session.snapshotEvents().filter(e=>e.type==='system/message').length,systemCount,'identical file input must not cause another system update');
  // Same application, native error ending must never be mistaken for ready/completed.
  model.fail=true;
@@ -205,6 +213,19 @@ const base=productRoot;
    const saved=await r.checkpoints.positions.read(point.contexts['world/npc/woodcutter']);
    assert.ok(saved.events.some(e=>e.type==='tool/result'&&JSON.stringify(e.data).includes('tick_finished')),'move result is durable before turn completion');
    console.log('PASS movement: failed call corrected, success normally concludes, same-batch talk rejected, native move result durable, pulse returns');
+ }
+ if(durable){
+   model.directMoveMode=true;model.directMoveRequests=0;
+   const moved=await exec('world_run_npc',{target:'world/npc/woodcutter'});model.directMoveMode=false;
+   assert.equal(model.directMoveRequests,1);assert.equal(moved.pulse.reports[0].status,'completed');
+   assert.equal(moved.pulse.reports[0].returned,true);
+   const state=await exec('world_observe',{target:'world/npc/woodcutter'});assert.equal(state.resident.place,'world/place/shop');
+   const steps=moved.pulse.reports[0].deliveries[1].value.responders[0].steps;
+   assert.deepEqual(JSON.parse(JSON.stringify(steps.map(s=>s.tool))),['collect_information','assemble_tools','run_agent']);
+   assert.ok(steps[0].value.items.some(x=>x.label==='本地'&&x.fields['名称']==='树林'));
+   const point=await r.checkpoints.checkpoint();assert.ok(point);
+   await r.checkpoints.positions.read(point.contexts['world/npc/woodcutter']);
+   console.log('PASS direct move: tick-start local information, assembled one-call destination, native normal completion, durable log');
  }
  await controller.components.dispose();await host.fiber.dispose();clearInterval(keepAlive);
  console.log('PASS native Harness NPC pulse: channel response sequence, stable role and personality prompt, explicit context-node sources, independent history documents, resident clock, location tool, natural completion, return to source, native error rejected; no model API calls');
