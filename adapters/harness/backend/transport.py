@@ -70,8 +70,10 @@ class Transport:
                 if owner in app.enabled:
                     function(payload)
             return payload['reason']
+        if action == 'inputs':
+            return app.update_inputs(p['actor'],p['source'],**p.get('patch',{}))
         if action == 'tail':
-            payload = dict(actor=p['actor'], texts=[])
+            payload = dict(actor=p['actor'], texts=app.input_tail(p['actor']))
             for owner, function in app.listeners['context/tail']:
                 if owner in app.enabled:
                     function(payload)

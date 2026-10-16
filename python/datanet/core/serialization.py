@@ -70,7 +70,7 @@ def save_network(network: Network, path: str | Path) -> None:
             connections[label] = [asdict(interface) for interface in getattr(node, label)]
         agent_config = encode_execution(node, path.parent)
         _json_value(agent_config)
-        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding})
+        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding, 'inputs': node.inputs.snapshot() if hasattr(node,'inputs') else getattr(node,'_saved_inputs',None)})
     if getattr(network, 'archived_entries', None):
         entries.extend(network.archived_entries())
     document = {'version': 5, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
@@ -99,7 +99,7 @@ def _build(document, base):
         raise ValueError('nodes 必须是列表')
     network = Network()
     for entry in document['nodes']:
-        _fields({k: v for k, v in entry.items() if k not in ('toolboxes', 'expose', 'management_parent_id', 'execution')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
+        _fields({k: v for k, v in entry.items() if k not in ('toolboxes', 'expose', 'management_parent_id', 'execution', 'inputs')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
         node_id = _string(entry['node_id'], 'node_id')
         name = _string(entry['name'], 'name')
         kind = entry['data_kind']
@@ -133,6 +133,11 @@ def _build(document, base):
         if node.agent_config is not None:
             from datanet.core.agent_node import AgentNode
             if not isinstance(node,AgentNode):raise ValueError('Agent configuration requires an Agent node')
+        if entry.get('inputs') is not None:
+            from datanet.core.agent_inputs import AgentInputs
+            if hasattr(node,'inputs'):node.inputs=AgentInputs(entry['inputs'])
+            elif isinstance(node,DormantNode):node._saved_inputs=entry['inputs']
+            else:raise ValueError('Input state requires an Agent node')
         node.execution_binding = entry.get('execution')
         _json_value(node.execution_binding)
         description = entry['description']

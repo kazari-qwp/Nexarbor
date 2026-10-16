@@ -4,7 +4,7 @@ import path from 'node:path';
 import {mkdir} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import {existsSync} from 'node:fs';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {createUserMessage} from '@deepseek-ai/dsh-llm';
 import {Bridge} from './bridge.js';
 import {requestRoute} from './request-route.js';
@@ -83,7 +83,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
   }
   function attach(actor,agent){
     owned.add(agent.ctx);
-    const entry={actor,agent,view:{},sections:new Set(),tools:new Map(),pendingApprovals:trackApprovals(agent)};native.set(actor,entry);scopes.set(agent.ctx,actor);
+    const entry={actor,agent,view:{},sections:new Set(),tools:new Map(),inputEvents:new Set(),pendingApprovals:trackApprovals(agent)};native.set(actor,entry);scopes.set(agent.ctx,actor);
     history.bind(agent.ctx,agent);permissions.state(agent.ctx);
     agent.ctx.systemPrompt.section({name:'datanet:role',order:90,interpolate:false,text:()=>entry.view.prompt??''});
     const own=payload=>!payload?.agent||payload.agent===agent;
@@ -128,6 +128,19 @@ async function createRuntime(ctx,config,rootAgent,owned){
       }
       return {ok:true};
     }
+    if(operation==='input-message'){
+      const entry=agentFor(p.actor),agent=entry.agent;
+      const hash=createHash('sha256').update(JSON.stringify([p.actor,p.source,p.event.id])).digest('hex');
+      const id=`${hash.slice(0,8)}-${hash.slice(8,12)}-${hash.slice(12,16)}-${hash.slice(16,20)}-${hash.slice(20,32)}`;
+      const seen=entry.inputEvents.has(id)||[...agent.session.deriveMessages(),...(agent.inbox?.nextTurn??[]),...(agent.inbox?.nextStep??[])].some(m=>m.id===id)||agent.session.snapshotEvents().some(e=>e.data?.id===id||e.data?.message?.id===id||e.data?.inserted?.some?.(m=>m.id===id));
+      if(!seen){
+        const message={...user(p.event.text,{kind:'nexarbor-input',source:p.source,event:p.event.id}),id};
+        entry.inputEvents.add(id);
+        try{if(p.event.delivery==='steer')agent.steer(message);else agent.followup(message);}catch(error){entry.inputEvents.delete(id);throw error;}
+      }
+      await ctx.sessions.flush(agent.session);
+      return {queued:!seen,id};
+    }
     if(operation==='load-document')return history.load(agentFor(p.actor).agent.ctx,p.document,p.text);
     if(operation==='view-update'){render(p.view,agentFor(p.actor));return {ok:true};}
     if(operation==='document-present')return history.has(agentFor(p.actor).agent.ctx,p.document);
@@ -161,7 +174,8 @@ async function createRuntime(ctx,config,rootAgent,owned){
       signal?.throwIfAborted();signal?.addEventListener('abort',cancel,{once:true});
       const timer=setTimeout(()=>{expired=true;cancel();},p.timeout_ms??180000);
       try{
-        agent.followup(user(p.text));await agent.whenIdle();signal?.throwIfAborted();
+        if(p.input_event)await host('input-message',{actor:p.actor,source:p.input_source,event:p.input_event});else agent.followup(user(p.text));
+        await agent.whenIdle();signal?.throwIfAborted();
         if(expired)throw new Error('Agent execution timeout');
         const messages=agent.session.deriveMessages().slice(start);assertCompleteOutput(messages);
         const completion=assertCompletedTurns(agent.session.snapshotEvents().slice(eventStart));

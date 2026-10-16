@@ -36,7 +36,7 @@ def presence(b,w):
         n.read_interfaces=[];n.write_interfaces=[]
         edge(b,actor,address(a['place']));edge(b,address(a['place']),actor)
         edge(b,actor,'world/common',('read',))
-        n.read_interfaces.append(Interface('world/time',{'threshold':1,'visibility':'private'}))
+        n.read_interfaces.append(Interface(profiles.context_id(actor),{'threshold':1,'visibility':'private'}))
         n.write_interfaces.append(Interface('world/pulse',{'threshold':1,'channels':['world.tick']}))
     profiles.sync(b,w)
 
@@ -46,6 +46,9 @@ def create_resident(b,actor,a):
                    creation_options=dict(identity=actor,world='small_town'),description=a['name'])
         n.write_memory('# '+a['name']+'的私人记忆\n'+a.get('background','')+'\n')
         b.network.add_node(n)
+    if profiles.context_id(actor) not in b.network.nodes:
+        from datanet.core.node import Node
+        b.network.add_node(Node(profiles.context_id(actor),a['name']+'的上下文装配',None))
     if hasattr(b,'world_tools'):b.world_tools(b,b.network.nodes[actor])
 
 def initialize(b,p):
@@ -68,7 +71,7 @@ def initialize(b,p):
         a={**deepcopy(spec),'gender':spec.get('gender','unspecified'),'coins':spec.get('coins',8),'stamina':5,'inventory':deepcopy(spec.get('inventory',{})),'spouse':None,'children':[],'born_tick':-1,'inbox':[]}
         w['actors'][actor]=a;create_resident(b,actor,a)
     b.network.add_node(PulseNode('world/pulse','世界脉冲',channels=['world.tick'],strength=3,signal_options={'failure_policy':'continue','max_hops':3,'node_timeout_seconds':120}))
-    time_node=TextFileNode('world/time','时间','text',b.directory/'world'/'time.md',delivery='resident')
+    time_node=TextFileNode('world/time','时间','text',b.directory/'world'/'time.md')
     time_node.expose=[];time_node.write('content','第1天-早');b.network.add_node(time_node)
     b.network.nodes['world/pulse'].write_interfaces.append(Interface('world/time',{'threshold':1,'channels':['world.tick']}))
     b.extension_state['npc_world']=w;presence(b,w)

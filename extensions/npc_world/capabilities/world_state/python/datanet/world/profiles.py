@@ -43,13 +43,18 @@ def configure(b,w,profiles):
     return dict(nodes=[p['node_id'] for p in catalog])
 
 
+def context_id(actor):return actor+'/context'
+
 def sync(b,w):
     for actor in w['actors']:
         n=b.network.nodes[actor];values=attributes(b,w,actor)
         n.read_interfaces=[e for e in n.read_interfaces if not e.metadata.attributes.get('resident_knowledge')]
+        assembly=b.network.nodes[context_id(actor)]
+        assembly.read_interfaces=[Interface('world/time',{'threshold':1,'visibility':'private'})]
         for spec in w.get('knowledge_catalog',[]):
             if matches(spec,values):
                 n.read_interfaces.append(Interface(spec['node_id'],{'threshold':1,'visibility':'private','attributes':{'resident_knowledge':True}}))
+                assembly.read_interfaces.append(Interface(spec['node_id'],{'threshold':1,'visibility':'private'}))
 
 
 def linked(b,w,actor):

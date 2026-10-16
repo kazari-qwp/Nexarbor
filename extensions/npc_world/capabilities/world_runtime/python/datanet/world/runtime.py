@@ -14,7 +14,6 @@ class Plugin(Component):
         self.on('tool/before',self.guide)
         self.on('agent/pre-step',self.pre_step)
         self.on('agent/request',self.request)
-        self.on('context/tail',self.tail)
         self.on('node/metadata-changed',self.metadata_changed)
 
     def root(self,e):
@@ -28,10 +27,17 @@ class Plugin(Component):
         self.mount()
 
     def mount(self):
-        matcher=self.r.plugins['capabilities/prompt_matching']
+        assembler=self.r.plugins['capabilities/context_assembly']
         for actor,a in list(state(self.r.backend)['actors'].items()):
-            matcher.bind(actor,scope='npc.identity',
-                         documents=lambda t=actor:profiles.documents(self.r.backend,state(self.r.backend),t))
+            node_id=profiles.context_id(actor)
+            sources=[dict(id='clock',kind='tail',source=dict(type='node',target='world/time'))]
+            owner='nodes/npc_child' if a['role']=='child' else 'nodes/npc_resident'
+            file='personality.md' if a['role']=='child' else 'personalities/'+actor.rsplit('/',1)[-1]+'.md'
+            sources.append(dict(id='personality',kind='system_prompt',source=dict(type='resource',component=owner,file=file)))
+            for spec in state(self.r.backend).get('knowledge_catalog',[]):
+                sources.append(dict(id=spec['node_id'],name=spec['name'],kind='context',when=spec['when'],reference_only=spec['delivery']=='query',source=dict(type='node',target=spec['node_id'])))
+            assembler.configure(node_id,sources)
+            assembler.bind(actor,node_id)
             if actor in self.r.states:continue
             owner='nodes/npc_child' if a['role']=='child' else 'nodes/npc_resident'
             prompt=self.r.resource(owner,'prompt.md')
@@ -52,7 +58,7 @@ class Plugin(Component):
 
     def pre_step(self,e):
         if e['actor'] not in (state(self.r.backend) or {}).get('actors',{}):return
-        self.resident_guide(e['actor']);turn=self.turns.get(e['actor'])
+        self.resident_guide(e['actor']);self.update_status(e['actor']);turn=self.turns.get(e['actor'])
         if turn and turn['active'] and turn['count']>=turn['limit']:raise RuntimeError('World NPC request budget exhausted')
 
     def request(self,e):
@@ -62,15 +68,15 @@ class Plugin(Component):
             turn['count']+=1
             self.r.rpc('agent_progress',target=actor,world_signal_id=turn['signal_id'],world_requests=turn['count'])
 
-    def tail(self,e):
-        w=state(self.r.backend);actor=e['actor']
+    def update_status(self,actor):
+        w=state(self.r.backend)
         if not w or actor not in w['actors']:return
         a=w['actors'][actor];text='[小镇] 地点：'+a['place']+'。'
         if any(not m.get('read') for m in a['inbox']):text+='有未读交谈。'
         if any(v['carrier']==actor and not v.get('child') and v['due_tick']-w['tick']<=5 for v in w['pregnancies'].values()):text+='临近或已到预产时刻，请查看 world_look。'
         turn=self.turns.get(actor)
         if turn and turn['active']:text+=f"本次请求已用{turn['count']}/{turn['limit']}，处理完后自然结束。"
-        e['texts'].append(text)
+        self.r.update_inputs(actor,'npc:status',tail=[text])
 
     def tool_world_look(self,actor,p):return self.r.rpc('world_look',actor=actor)
     def tool_world_messages(self,actor,p):return self.r.rpc('world_messages',actor=actor)
@@ -115,8 +121,8 @@ class Plugin(Component):
             finally:self.r.local.execution_id=previous
         def update_time(context,signal_id):
             return with_execution(self.r.rpc,'world_open_pulse',actor='root',signal_id=signal_id)
-        def match_prompts(context):
-            return with_execution(self.r.plugins['capabilities/prompt_matching'].match,context.delivery.node_id)
+        def assemble_context(context):
+            return with_execution(self.r.plugins['capabilities/context_assembly'].assemble,context.delivery.node_id)
         async def run_actor(context,task,timeout_ms):
             target=context.delivery.node_id;signal=context.signal
             previous=self.inflight.get(target)
@@ -137,7 +143,7 @@ class Plugin(Component):
             self.r.rpc('world_complete_pulse_actor',actor='root',target=target,signal_id=context.signal.signal_id,status='unavailable',reason=str(error) or type(error).__name__)
         response.bind('world/time',config['clock'],{'world_update_time':update_time})
         for target in targets:
-            response.bind(target,config['npc'],{'match_prompts':match_prompts,'world_run_actor':run_actor},access_strength=2,on_error=failed)
+            response.bind(target,config['npc'],{'assemble_context':assemble_context,'world_run_actor':run_actor},access_strength=2,on_error=failed)
         pulse.content=freeze(dict(task=self.r.config.get('worldPulseTask','本时刻按自己的想法活动，处理完后正常结束。'),timeout_ms=min(90000,int(timeout_seconds*1000))))
         settlement=None
         async def settle(source,report):

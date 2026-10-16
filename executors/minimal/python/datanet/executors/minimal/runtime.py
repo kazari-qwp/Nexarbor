@@ -24,7 +24,9 @@ class MinimalExecutor:
             identity={'node_id':request.node_id,'session_id':request.session_id}
             if metadata.exists() and json.loads(metadata.read_text(encoding='utf-8'))!=identity:raise ValueError('Session belongs to another node')
             metadata.write_text(json.dumps(identity),encoding='utf-8')
-            prompt=folder/'prompt.md';prompt.write_text(request.prompt or 'Complete the requested task using the available tools.',encoding='utf-8')
+            sources=sorted(request.input_state.items())
+            system='\n\n'.join([request.prompt,*[s['system_prompt'] for _,s in sources if s['system_prompt']]]).strip()
+            prompt=folder/'prompt.md';prompt.write_text(system or 'Complete the requested task using the available tools.',encoding='utf-8')
             actor=Agent(self.client,self.model,prompt,request.tools,request.max_steps,self.max_tokens)
             actor.timeout_seconds=request.timeout_seconds
             history=folder/'messages.json'
@@ -33,6 +35,16 @@ class MinimalExecutor:
                 if not isinstance(restored,list):raise ValueError('Invalid saved session')
                 actor.messages=restored
                 actor.messages[0]={'role':'system','content':actor.system_prompt}
+            from datanet.core.agent_inputs import digest
+            for source,value in sources:
+                for doc in value['context']:
+                    body='[Nexarbor document '+digest([source,doc['id'],doc['text']])+']\n'+doc['text']
+                    if not any(m.get('role')=='user' and m.get('content')==body for m in actor.messages):actor.messages.append(dict(role='user',content=body))
+                for event in value['inputs']:
+                    if event['status']!='pending':continue
+                    body='[Nexarbor input '+digest([source,event['id']])+']\n'+event['text']
+                    if not any(m.get('role')=='user' and m.get('content')==body for m in actor.messages):actor.messages.append(dict(role='user',content=body))
+            actor.request_tail=[t for _,value in sources for t in value['tail']]
             node=AgentNode(request.node_id,request.node_id,file_path=folder/'memory.md');node.agent=actor
             for spec in request.tools:
                 definition=spec.get('function',spec);name=definition['name']

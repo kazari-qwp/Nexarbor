@@ -36,7 +36,7 @@ Interface('target', metadata={
   "id": "live-this-moment",
   "channels": ["world.tick"],
   "steps": [
-    {"tool": "match_prompts", "arguments": {}},
+    {"tool": "assemble_context", "arguments": {}},
     {"tool": "run_agent", "arguments": {"task": {"$ref": "/signal/content/task"}}}
   ]
 }
@@ -48,18 +48,14 @@ Interface('target', metadata={
 
 ```python
 responses = app.plugins['capabilities/signal_response']
-responses.bind(node_id, rules, {'match_prompts': match, 'run_agent': run}, access_strength=2)
+responses.bind(node_id, rules, {'assemble_context': match, 'run_agent': run}, access_strength=2)
 ```
 
 异步工具接受 `(context, **arguments)` 并await；普通函数在线程调用，同样接受context。普通节点也可使用，无需Agent。配置可随Backend检查点保存，恢复后由宿主重新绑定可执行工具；不会自动重放中断的步骤。
 
-## 提示词匹配器独立于信号
+## 独立上下文装配器
 
-`capabilities/prompt_matching` 不导入信号模块。元数据统一通过核心 `Network.get_metadata` 读取，装配时只绑定文档来源；可以从响应器调用，也可单独调用。它通过已有 `load-document/document-present` 通道工作，不修改角色系统提示词。
-
-文档以ID、正文/条件/投放方式的版本哈希作为标记。已有且仍在上下文中的文档不重复注入；首次、内容变更、压缩后标记消失时补充。`instructions`投放正文，`query`只提供文本节点入口。当前元数据或匹配集合变化时追加一条简短最新记录；版本号区分A→B→A，不能因旧A记录仍在就跳过新的状态通知。
-
-匹配器保存的是当前适用集合及修订号，不是“已经加载”的永久标记。真正是否加载以原生会话投影或待入队文档为准；上下文标记丢失后重新加载。旧文本不从历史抹除，文档带条件，最新元数据记录说明当前条件与失配项。同一文档以最近注入版本为准。条件支持标准字段名或JSON Pointer，例如`/extensions/npc/role`；读取方不需要知道元数据扩展器是否存在。
+`capabilities/context_assembly`已替代旧匹配器。Agent节点核心提供system_prompt/context/inputs/tail四类输入，可直接接收文档引用；装配器是可选来源组织模块。专用普通装配节点读取明确清单中的文档、组件资源或直接连接的节点，按Agent统一元数据匹配，不扫描业务网络。四类分别走原生系统提示、历史文档、消息队列和请求尾部。无信号或元数据扩展器依赖；系统提示变化检测交给Harness，文档仍按原生标记补载。详见[四类输入与装配](CONTEXT_ASSEMBLY.md)。
 
 ## 节点元数据扩展器
 
@@ -78,7 +74,7 @@ network.nodes[node_id].describe()  # 节点列表等现有操作也自动合并
 
 扩展命名空间默认只供节点自身、根与宿主读取，可通过注册提供器的public参数声明公开，统一读取仍遵守此可见性，避免把私人身份状态随节点列表泄露给其他节点。
 
-NPC用`npc`命名空间提供性别、职业、孕期等字段。匹配器不导入元数据扩展器，只读统一核心接口。三个共享组件均可单独装配，没有NPC依赖，也没有相互强制依赖。
+NPC用`npc`命名空间提供性别、职业、孕期等字段。装配器不导入元数据扩展器，只读统一核心接口。共享响应器、装配器和元数据组件均可单独装配，没有NPC依赖。
 
 ## PulseNode与持久化
 
@@ -88,6 +84,4 @@ NPC用`npc`命名空间提供性别、职业、孕期等字段。匹配器不导
 
 ## 最小验证
 
-核心20项、共享组件6项、NPC9项通过；另有原生Harness+Mock和历史文档标记测试。没有付费调用，也没有运行全世界真实Agent。第一、第二应用未迁移，不以旧应用结果宣称兼容v5。
-
-新增工具描述原文：`按自己的身份元数据补充尚未加载的提示文档。` NPC响应器内部调用该工具，不默认暴露给NPC模型。
+核心信号、四类输入、共享响应器、独立装配器及NPC最小回环已验证，原生Harness使用Mock模型。当前记录见[NPC验证](applications/npc_world/VALIDATION.md)。无整世界真实Agent运行。旧匹配工具已移除，没有新增Agent可见工具描述。

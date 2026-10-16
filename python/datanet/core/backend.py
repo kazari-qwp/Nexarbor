@@ -160,7 +160,7 @@ class Backend:
     def _dispatch_transaction(self, method, p):
         if self.failed:
             raise RuntimeError('Checkpoint failed; restart before further operations')
-        mutation = method in self.components.mutations or method in {'write', 'invoke_tool', 'save', 'bind_agent', 'agent_progress'}
+        mutation = method in self.components.mutations or method in {'write', 'invoke_tool', 'save', 'bind_agent', 'agent_progress', 'agent_inputs_update', 'agent_inputs_ack'}
         if not mutation:
             return self._dispatch(method, p)
         operation_id = uuid4().hex
@@ -238,6 +238,12 @@ class Backend:
             return {'node_count': len(self.network.nodes), 'agents': self.agents, 'management': {key: node.management_parent_id for key, node in self.network.nodes.items()}, 'unassigned_management_nodes': [key for key, node in self.network.nodes.items() if key != self.root.node_id and node.management_parent_id is None], 'pending_operations': self.store.pending(), 'checkpoint_count': self.store.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0], **self.components.status(self)}
         if method in self.components.routes:
             return self.components.routes[method](self, p)
+        if method in ('agent_inputs_update','agent_inputs_ack'):
+            from datanet.core.agent_node import AgentNode
+            node=self.network.nodes[p['target']]
+            if not isinstance(node,AgentNode):raise TypeError('Input target requires an Agent node')
+            if method=='agent_inputs_update':return node.inputs.update(p['source'],p['patch'])
+            node.inputs.acknowledge(p['source'],p['event_id']);return {'ok':True}
         if method == 'root_network_info':
             return {'root_node_id': self.root.node_id, 'agent_config': self.root.agent_config}
         if method == 'bind_agent':

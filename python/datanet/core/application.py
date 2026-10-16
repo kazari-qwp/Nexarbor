@@ -27,6 +27,7 @@ class Application:
         self.plugins, self.states, self.tools, self.tool_owners = {}, {}, {}, {}
         self.lock, self.local = RLock(), local()
         self.errors = []
+        self.input_locks = defaultdict(RLock)
         self.boxes, self.presets = {}, {}
         self.defaults = {}
         self.bindings = tool_bindings(self.catalog, backend.components.order)
@@ -181,9 +182,40 @@ class Application:
     def load(self, actor, document, text):
         return self.host('load-document', actor=actor, document=document, text=text)
 
+    def update_inputs(self, actor, source, **patch):
+        """Trusted producer API; omitted surfaces stay unchanged, empty snapshots clear."""
+        result=self.rpc('agent_inputs_update',target=actor,source=source,patch=patch)
+        if actor in self.states:
+            result['_loaded']=self.publish_inputs(actor)
+            self.host('view-update',actor=actor,view=self.view(actor))
+        return result
+
+    def publish_inputs(self,actor):
+        from datanet.core.agent_inputs import digest
+        node=self.backend.network.nodes[actor]
+        if not hasattr(node,'inputs'):return []
+        loaded=[]
+        with self.input_locks[actor]:
+            for source,value in sorted(node.inputs.snapshot().items()):
+                for doc in value['context']:
+                    key='agent-input:'+digest([source,doc['id']])
+                    if self.load(actor,key,doc['text']):loaded.append(dict(source=source,id=doc['id']))
+            for source,event in node.inputs.pending():
+                self.host('input-message',actor=actor,source=source,event=event)
+                self.rpc('agent_inputs_ack',target=actor,source=source,event_id=event['id'])
+        return loaded
+
+    def input_tail(self,actor):
+        node=self.backend.network.nodes[actor]
+        return node.inputs.tail() if hasattr(node,'inputs') else []
+
     def view(self, actor):
         state = self.state(actor)
         sections = [{**s, 'text': s['text']() if callable(s['text']) else s['text']} for s in state['sections'].values() if s['owner'] in self.enabled]
+        node=self.backend.network.nodes[actor]
+        if hasattr(node,'inputs'):
+            from datanet.core.agent_inputs import digest
+            sections.extend(dict(owner='core:agent-inputs',name='agent-input:'+digest(source),text=value['system_prompt'],order=95) for source,value in sorted(node.inputs.snapshot().items()) if value['system_prompt'])
         return dict(prompt=state['prompt'].replace('{{node:self}}', actor), sections=sections, grant=state['grant'])
 
     def definitions(self, actor):
@@ -265,6 +297,7 @@ class Application:
 
     def event(self, actor, name, payload):
         self.emit(name, actor=actor, **payload)
+        if name in ('agent/pre-step','context/prepare'):self.publish_inputs(actor)
         return self.view(actor)
 
 

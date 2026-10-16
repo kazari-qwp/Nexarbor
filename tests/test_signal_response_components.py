@@ -99,59 +99,6 @@ class ComponentTests(unittest.TestCase):
             finally:stop(app,b)
         """)
 
-    def test_prompt_matching_works_with_non_npc_metadata_and_without_signals(self):
-        self.case("""
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);port=Port();app=Application(b,port,{});app.bind_session('root-session');b.agents['root']={'session_id':'root-session'}
-            p=app.plugins['capabilities/prompt_matching'];b.root.name='finance'
-            docs=[dict(id='policy',name='部门规范',when={'name':['finance','legal']},delivery='instructions',text='按所在部门处理资料。')]
-            p.bind('root',scope='company',documents=lambda:docs)
-            try:
-                assert p.tool_match_prompts('root',{})['scopes'][0]['loaded']==['policy']
-                first=len(port.docs);assert not p.match('root')['scopes'][0]['loaded'] and len(port.docs)==first
-                b.root.name='other';assert not p.match('root')['scopes'][0]['matched']
-                b.root.name='finance';assert not p.match('root')['scopes'][0]['loaded']
-                assert app.rpc('prompt_matching_get',actor='root',scope='company')['revision']==3
-                port.docs.clear();assert p.match('root')['scopes'][0]['loaded']==['policy']
-                assert not b.network.signal_runs and not hasattr(b.root,'department')
-            finally:stop(app,b)
-        """,'prompt_matching')
-
-
-    def test_prompt_matching_automatically_reads_optional_extensions(self):
-        self.case("""
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);port=Port();app=Application(b,port,{});app.bind_session('root-session');b.agents['root']={'session_id':'root-session'}
-            matcher=app.plugins['capabilities/prompt_matching'];extra=app.plugins['capabilities/node_metadata']
-            docs=[dict(id='base',name='基础规则',when={'node_id':'root'},delivery='instructions',text='核心字段匹配。'),
-                  dict(id='miner',name='矿工规则',when={'/extensions/demo/role':'miner'},delivery='instructions',text='扩展字段匹配。'),
-                  dict(id='smith',name='铁匠规则',when={'/extensions/demo/role':'smith'},delivery='instructions',text='职业更改后匹配。')]
-            matcher.bind('root',scope='optional',documents=lambda:docs)
-            def match():return matcher.match('root')['scopes'][0]
-            def current():return app.rpc('prompt_matching_get',actor='root',scope='optional')['current']['metadata']
-            try:
-                assert app.catalog['capabilities/prompt_matching']['requires']==[]
-                assert 'capabilities/signal_response' not in app.enabled
-                assert match()['loaded']==['base'] and 'extensions' not in current()
-                extra.set('root','demo',{'role':'miner'})
-                hit=match();assert hit['matched']==['base','miner'] and hit['loaded']==['miner']
-                assert current()['extensions']['demo']['role']=='miner'
-                size=len(port.docs);assert not match()['loaded'] and len(port.docs)==size
-                extra.set('root','demo',{'role':'smith'})
-                hit=match();assert hit['matched']==['base','smith'] and hit['loaded']==['smith']
-                assert app.rpc('prompt_matching_get',actor='root',scope='optional')['removed']==['miner']
-                app.enabled.remove('capabilities/node_metadata')
-                hit=match();assert hit['matched']==['base'] and not hit['loaded']
-                assert 'extensions' not in current()
-                app.enabled.add('capabilities/node_metadata')
-                hit=match();assert hit['matched']==['base','smith'] and not hit['loaded']
-                assert current()['extensions']['demo']['role']=='smith'
-                port.docs.clear();assert match()['loaded']==['base','smith']
-                assert not b.network.signal_runs and not hasattr(b.root,'role')
-            finally:stop(app,b)
-        """,['prompt_matching','node_metadata'])
-
-
     def test_node_metadata_extends_plain_text_and_agent_nodes_and_restores(self):
         self.case("""
         from datanet.core.text_node import TextFileNode

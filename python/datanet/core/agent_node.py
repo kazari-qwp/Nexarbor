@@ -12,6 +12,8 @@ class AgentNode(Node):
         super().__init__(node_id, name, 'agent', description=description)
         self.file_path = Path(file_path).resolve()
         self._memory_lock = RLock()
+        from datanet.core.agent_inputs import AgentInputs
+        self.inputs = AgentInputs()
         self.creation_options = dict(creation_options or {})
         self.register_agent_tool('memory_read', self.read_memory,
             description='读取自己的记忆文件。',
@@ -19,6 +21,9 @@ class AgentNode(Node):
         self.register_agent_tool('memory_write', self.write_memory,
             description='更新自己的记忆文件。',
             parameters={'type':'object','properties':{'content':{'type':'string'},'mode':{'type':'string','enum':['replace','append']}},'required':['content'],'additionalProperties':False})
+
+    def update_inputs(self, source, **patch):
+        return self.inputs.update(source, patch)
 
     def read_memory(self):
         with self._memory_lock:

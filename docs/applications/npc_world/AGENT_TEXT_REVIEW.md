@@ -1,3 +1,5 @@
+当前新增文案以[四类输入与人格审阅](CONTEXT_ASSEMBLY_REVIEW.md)为准。下列历次记录中，旧match_prompts工具已删除，旧常驻文本尾部机制已被装配器替代。
+
 # 本次 Agent 文档与工具描述原文
 
 本表为当前 Agent 可见文档与描述。2026-10-16脉冲接线改动了居民/儿童提示词、居民/操作指南、只读常识、world_round/world_run_npc和居民工具箱描述；移除了world_submit。

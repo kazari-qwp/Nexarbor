@@ -191,15 +191,18 @@ from uuid import uuid4
 from datanet.core.backend import Backend
 from datanet.core.application import Application
 class Port:
-    def __init__(self):self.agents={'root':dict(status='idle',options={})};self.tools={};self.runs=[];self.docs={};self.inboxes={}
+    def __init__(self):self.agents={'root':dict(status='idle',options={})};self.tools={};self.runs=[];self.docs={};self.inboxes={};self.input_events={}
     def __call__(self,name,p):
         actor=p.get('actor')
         if name=='tools':self.tools[actor]=[t['name'] for t in p['definitions']];return {}
         if name in ['inbox-snapshot','messages']:return self.inboxes.get(actor,[])
+        if name=='input-message':
+            key=(actor,p['source'],p['event']['id']);self.input_events.setdefault(key,p['event']);return dict(queued=True)
         if name=='document-present':return (actor,p['document']) in self.docs
         if name=='inspect':return self.agents[actor]
         if name=='create':self.agents[actor]=dict(status='idle',options={});return dict(session_id=p['binding']['session_id'])
-        if name=='load-document':self.docs[(actor,p['document'])]=p['text'];return True
+        if name=='load-document':
+            key=(actor,p['document']);changed=self.docs.get(key)!=p['text'];self.docs[key]=p['text'];return changed
         if name in ['view-update','component-extension','capabilities']:return {}
         if name=='make-message':return dict(id=uuid4().hex,role='user',content=p['text'])
         if name=='steer':self.inboxes.setdefault(actor,[]).append(p['message']);return {}

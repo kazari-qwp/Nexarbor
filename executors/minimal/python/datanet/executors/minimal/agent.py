@@ -44,6 +44,7 @@ class Agent:
         self.inbox=SimpleQueue()
         self.timeout_seconds=60
         self.steps=0
+        self.request_tail=[]
         self.reset()
 
     def rebuild(self) -> Agent:
@@ -97,6 +98,7 @@ class Agent:
             while not self.inbox.empty():messages.append({'role':'user','content':self.inbox.get()})
             completion = task_completion.get()
             request_messages = deepcopy(messages)
+            request_messages.extend(dict(role='user',content=t) for t in self.request_tail)
             request_messages.append({'role': 'system', 'content': f'当前请求次数：{request_number}/{self.max_rounds}。这是本次任务的模型请求上限。' + ('请在额度内使用提供的工具完成任务。' if completion else '')})
             request = {'model': self.model, 'messages': request_messages, 'max_tokens': self.max_tokens}
             if self.tool_definitions:

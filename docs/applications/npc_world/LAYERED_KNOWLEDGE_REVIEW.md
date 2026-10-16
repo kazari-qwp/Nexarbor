@@ -1,8 +1,6 @@
 # NPC分层文案与匹配器审阅
 
-本轮新增工具描述：**按自己的身份元数据补充尚未加载的提示文档。**
-
-工具名为match_prompts，由NPC的信号响应器内部调用，不默认暴露给NPC模型。信号响应器和节点元数据扩展器没有新增Agent工具描述。
+当前已由独立上下文装配器替代旧匹配器。以下保留全部知识正文供审阅；最新人格、输入分类及包装见[装配审阅](CONTEXT_ASSEMBLY_REVIEW.md)。旧match_prompts工具及描述已删除，没有装配器Agent工具。
 
 ## 本轮修改的文档与配置
 
@@ -10,7 +8,6 @@
 - [孕期知识](../../../extensions/npc_world/nodes/resident_knowledge/life/pregnant.md)
 - [匹配配置](../../../extensions/npc_world/nodes/resident_knowledge/profiles.json)
 - [响应配置](../../../extensions/npc_world/network_presets/small_town/responses.json)
-- [工具描述原文件](../../../extensions/foundation/capabilities/prompt_matching/tools.json)
 
 角色系统提示词不再拼接身份/职业/当前状态，相关文档改为独立历史注入。以下汇总当前全部分层正文，未改的正文也列出以便整体审阅。
 
@@ -162,10 +159,10 @@
 ```
 
 ```text
-[当前元数据：<作用域>]
+[当前元数据：<装配节点ID>]
 以本条最新元数据为准，旧提示仅在其适用条件仍满足时生效；同一文档以最近注入版本为准。
 <完整的获准元数据JSON>
-生效文档：<文档ID列表>
+生效来源：<系统及文档来源ID列表>
 已不匹配：<已失配文档ID列表，仅在需要时出现>
 ```
 

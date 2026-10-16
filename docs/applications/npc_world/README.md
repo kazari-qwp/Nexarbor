@@ -39,14 +39,14 @@ worldMaxRequests: 8
 | 核心图、Agent节点、信号、PulseNode、检查点 | 权限、身份、逐层等待执行与闭环 | 复用新核心通用机制 |
 | foundation/agent_runtime | 装配、恢复、执行 Agent 与记忆工具 | 直接复用 |
 | foundation/network_access | 按图发现和调用服务 | 复用；补充可信调用者上下文，不接受模型冒充身份 |
-| foundation/text | 常驻文本在每次模型请求尾部更新 | 直接复用；时间文本无工具 |
+| foundation/text | 普通文本与按需查询 | 时间为普通文本，自动装配由独立模块承担 |
 | npc_world/world_state | 世界状态、在场连接、节点编解码、时钟与完成记录 | 应用能力 |
 | npc_world/place_actions | 场所工具、业务规则和统一结算 | 应用能力 |
 | npc_world/world_runtime | 原生事件、轻量尾部、信号处理器与限额并行执行 | 应用能力 |
 | npc_resident / npc_child | 成人与儿童通用角色提示 | 配置与文档 |
 | resident_knowledge | 性别、职业、家庭及孕期知识的匹配条件与文本 | 纯配置与文档；复用普通文本节点 |
 | foundation/signal_response | 按频道执行节点的有序工具步骤 | 通用可选组件 |
-| foundation/prompt_matching | 按统一元数据和原生上下文标记补充独立文档 | 通用可选组件，与信号无依赖 |
+| foundation/context_assembly | 专用装配节点组织四类输入，支持真实文档与节点来源 | 通用可选组件，无信号/元数据扩展器依赖 |
 | foundation/node_metadata | 为任意节点提供分命名空间元数据 | 通用可选组件，不改核心节点字段 |
 | world_resident / world_operator | 居民与操作入口的授权工具列表 | 配置 |
 | small_town | 地图、道路、初始人物、库存与只读常识 | 配置与文档 |
@@ -63,9 +63,9 @@ worldMaxRequests: 8
 world/pulse --world.tick--> world/time --world.tick--> NPC --world.tick--> world/pulse
 ```
 
-这是强度3的公有写边环，每条边阈值1。核心按广度逐层执行：更新时间文本 → 并行运行订阅居民 → 返回源节点。NPC的频道响应器按responses.json依次执行提示词匹配和Agent运行，等待原生Agent循环的正常 `turn/end(completed)`，再冻结行动并返回；没有手工提交工具。源节点收到返回信号后，本次运行统一结算。当前操作入口每次只发一轮，不自动连续运行。
+这是强度3的公有写边环，每条边阈值1。核心按广度逐层执行：更新时间文本 → 并行运行订阅居民 → 返回源节点。NPC的频道响应器按responses.json依次执行上下文装配和Agent运行，等待原生Agent循环的正常 `turn/end(completed)`，再冻结行动并返回；没有手工提交工具。源节点收到返回信号后，本次运行统一结算。当前操作入口每次只发一轮，不自动连续运行。
 
-每个NPC另有一条私有只读边指向时间文本；复用常驻文本能力，在请求尾部读取最新的“第1天-早”等短文本。时间节点不暴露工具。地图道路与业务边没有 `world.tick` 频道，因此脉冲不会沿地图扩散。场所业务仍通过独立的强度2访问权限发现和调用，不消耗脉冲传播强度。
+每个NPC以私有读边连接自己的装配节点，装配节点私有指向时间与获准知识节点；人格是明确清单中的只读文档资源。NPC不再直接读取时间；时间正文通过核心tail口进入请求底部，时间节点不暴露工具。地图道路与业务边没有 `world.tick` 频道，因此脉冲不会沿地图扩散。场所业务仍通过独立的强度2访问权限发现和调用，不消耗脉冲传播强度。
 
 居民异常退出不算正常完成，不传播其返回分支；其他正常居民仍能回环，失败者按等待结算。中断的PulseNode保留状态以供核对，不自动重放已经产生效果的请求。前两个应用未在此次迁移范围内。
 
@@ -79,11 +79,11 @@ world/pulse --world.tick--> world/time --world.tick--> NPC --world.tick--> world
 - 孕育能力、当前怀孕、已为父母：分别按真实状态匹配。性别与孕育能力独立；仅当前孕者获得两天孕期和到院生产说明。出生结算后撤下当前孕期资料及提示片段，双方获得父母身份。
 - 私人经历：仍使用原Agent Markdown记忆和读写工具，不与共享职业文本混写。
 
-`world_look.knowledge` 列出当前获准知识节点。NPC不能修改这些节点。身份、职业、状态和初始目标由节点元数据扩展器的npc提供器从已有业务状态读取，不新增核心Agent字段。附加自定义属性也可放在npc命名空间，但不能覆盖业务提供器维护的字段。所有读方通过核心get_metadata/describe统一取得标准字段和获准的extensions；未装扩展器就只有标准字段，不要求工具逐个适配。提示词匹配器按独立文档ID和版本哈希检查原生标记，首次/更新/压缩丢失后补载。角色系统提示保持稳定，时间仍走请求尾部。状态变化追加最新元数据及失配文档通知，不删除已有历史或私人记忆。
+`world_look.knowledge` 列出当前获准知识节点。NPC不能修改这些节点。身份、职业、状态和初始目标由节点元数据扩展器的npc提供器从已有业务状态读取，不新增核心Agent字段。附加自定义属性也可放在npc命名空间，但不能覆盖业务提供器维护的字段。所有读方通过核心get_metadata/describe统一取得标准字段和获准的extensions；未装扩展器就只有标准字段，不要求工具逐个适配。上下文装配器通过核心四口交付输入，历史文档由原生标记补载；固定人格作为独立系统section，Harness自行比较变化，时间走请求尾部。状态变化追加最新元数据及失配文档通知，不删除已有历史或私人记忆。
 
-响应器配置见 `network_presets/small_town/responses.json`：时间节点匹配world.tick后调用更新时间工具，NPC匹配后依次调用match_prompts和world_run_actor。三个共享模块都不认识小镇业务，NPC只负责绑定提供器、工具和配置。
+响应器配置见 `network_presets/small_town/responses.json`：时间节点匹配world.tick后调用更新时间工具，NPC匹配后依次调用assemble_context和world_run_actor。三个共享模块都不认识小镇业务，NPC只负责绑定提供器、工具和配置。
 
-增加一种身份知识通常只需新增Markdown并添加匹配配置；`when` 用JSON Pointer匹配统一元数据，例如 `/extensions/npc/role`、`/extensions/npc/life_stage`、`/extensions/npc/pregnant` 和 `/extensions/npc/is_parent`。没有新增Agent工具、核心节点类型或核心业务分支。六名初始居民在town.json显式配置性别；新生儿默认未设定。
+增加一种身份知识通常只需新增Markdown并添加匹配配置；`when` 用JSON Pointer匹配统一元数据，例如 `/extensions/npc/role`、`/extensions/npc/life_stage`、`/extensions/npc/pregnant` 和 `/extensions/npc/is_parent`。没有新增Agent工具或NPC专用核心节点类型；核心只新增通用四类输入契约。六名初始居民在town.json显式配置性别；新生儿默认未设定。
 
 ## 初始地图
 
@@ -103,3 +103,7 @@ flowchart LR
 情侣林舟/月宁从居民楼1出发；阿森在树林；石岩在矿坑且镐子已损坏；老锤在铁匠铺；小路在酒馆。只给个人初始打算，不预写行动剧本。
 
 [验证记录](VALIDATION.md) · [Agent文档与描述审阅清单](AGENT_TEXT_REVIEW.md)
+
+## 固定人格与四类输入
+
+六名初始居民各有独立只读人格文件，儿童使用人格模板；文件不向NPC开放写入。人格、条件知识、每时刻新任务和短时钟/状态分别交给system_prompt/context/inputs/tail口。所有四口及独立装配器均支持真实UTF-8文档引用。来源和权限、更新/去重/恢复规则见[装配机制](../../CONTEXT_ASSEMBLY.md)；全部新增人格原文见[本轮文案审阅](CONTEXT_ASSEMBLY_REVIEW.md)。

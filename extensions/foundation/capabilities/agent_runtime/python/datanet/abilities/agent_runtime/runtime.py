@@ -111,7 +111,9 @@ class Plugin(Component):
             if diagnostics:
                 diagnostics.start(target)
             boundary = r.state(target).pop('pending_task_boundary', '')
-            response = r.host('run', actor=target, text=(boundary + '\n' if boundary else '') + task, timeout_ms=timeout_ms or r.config.get('turnTimeoutMs', 180000))
+            event=dict(id=uuid4().hex,text=(boundary + '\n' if boundary else '') + task,delivery='followup')
+            r.rpc('agent_inputs_update',target=target,source='core:execution',patch=dict(inputs=[event]))
+            response = r.host('run', actor=target, text=event['text'], input_source='core:execution', input_event=event, timeout_ms=timeout_ms or r.config.get('turnTimeoutMs', 180000))
             if response.get('completion') != 'completed':
                 raise RuntimeError('Host did not confirm normal Agent completion')
             feedback = problem.latest(target) if problem else None

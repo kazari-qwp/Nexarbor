@@ -13,6 +13,7 @@ class ExecutionRequest:
     tools:list=field(default_factory=list)
     max_steps:int=8
     timeout_seconds:float=60
+    input_state:dict=field(default_factory=dict)
 
 @dataclass
 class ExecutionResult:
@@ -69,12 +70,16 @@ class ExecutorRegistry:
         for name in binding['tools']:
             spec=definitions[name];spec=spec.get('function',spec)
             tools.append({'type':'function','function':{k:deepcopy(spec[k]) for k in ['name','description','parameters']}})
-        request=ExecutionRequest(binding['session_id'],node_id,message,tools=tools,**options)
+        request=ExecutionRequest(binding['session_id'],node_id,message,tools=tools,input_state=node.inputs.snapshot(),**options)
         def invoke(tool_name,/,**arguments):
             token=active_agent.set((SimpleNamespace(max_signal_strength=binding['strength']),node_id))
             try:return node.invoke_tool(tool_name,**arguments)
             finally:active_agent.reset(token)
-        return self.executors[binding['executor']].run(request,{name:partial(invoke,name) for name in binding['tools']})
+        result=self.executors[binding['executor']].run(request,{name:partial(invoke,name) for name in binding['tools']})
+        if result.status=='completed':
+            for source,event in node.inputs.pending():
+                if any(e['id']==event['id'] for e in request.input_state.get(source,{}).get('inputs',[])):node.inputs.acknowledge(source,event['id'])
+        return result
     def bind_signals(self,runtime,node_id,*,max_steps=8):
         """Register normal executor completion as signal completion; no model ready tool."""
         import asyncio

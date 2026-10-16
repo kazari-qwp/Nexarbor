@@ -13,7 +13,7 @@ class WorldPort(Port):
         if name=='run':
             actor=p['actor'];self.calls.append(actor)
             app.event(actor,'agent/pre-step',{});app.event(actor,'agent/request',{})
-            tail=dict(actor=actor,texts=[]);app.emit('context/tail',**tail);self.tails.append(tail)
+            tail=dict(actor=actor,texts=app.input_tail(actor));app.emit('context/tail',**tail);self.tails.append(tail)
             if actor==self.failure:return dict(session_id=self.agents[actor]['session_id'],messages=[],completion='failed')
             action=self.actions.get(actor)
             if action:
@@ -51,7 +51,8 @@ class WorldTests(unittest.TestCase):
                 assert 'world_submit' not in port.tools[actor] and 'write_resident_text' not in port.tools[actor]
                 assert not b.network.nodes['world/time'].expose
                 assert not app.plugins['capabilities/text'].targets[actor]
-                assert 'world/time' in [e.target_node_id for e in b.network.nodes[actor].read_interfaces if e.metadata.visibility=='private']
+                assert 'world/time' not in [e.target_node_id for e in b.network.nodes[actor].read_interfaces]
+                assert any(e.target_node_id=='world/time' for e in b.network.nodes[actor+'/context'].read_interfaces)
                 assert all(not e.metadata.channels for n in b.network.nodes.values() if getattr(n,'kind',None)=='address' for e in n.write_interfaces)
                 assert all(d['node_id'] not in [address('forest'),business('forest')] for d in report['deliveries'])
                 second=app.invoke('root','world_run_npc',dict(target=actor))
@@ -128,7 +129,7 @@ class WorldTests(unittest.TestCase):
                 port.actions[actor]=(business('hospital'),'birth',{})
                 result=app.invoke('root','world_run_npc',dict(target=actor));child=result['settlement']['newborns'][0]
                 assert child not in port.calls and child in app.states
-                assert any(e.target_node_id=='world/time' and e.metadata.visibility=='private' for e in b.network.nodes[child].read_interfaces)
+                assert any(e.target_node_id==child+'/context' and e.metadata.visibility=='private' for e in b.network.nodes[child].read_interfaces)
                 port.actions={};port.calls=[]
                 app.invoke('root','world_round',{})
                 assert child in port.calls and len(state(b)['actors'])==7
@@ -143,13 +144,13 @@ class WorldTests(unittest.TestCase):
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
                 miner='world/npc/miner';wood='world/npc/woodcutter';yue='world/npc/yue'
-                matcher=app.plugins['capabilities/prompt_matching'];plugin=app.plugins['capabilities/world_runtime']
+                matcher=app.plugins['capabilities/context_assembly'];plugin=app.plugins['capabilities/world_runtime']
                 stable=app.state(miner)['prompt'];assert '男性' not in stable and '矿工' not in stable
-                first=matcher.match(miner);assert len(first['scopes'][0]['loaded'])==3
+                first=matcher.assemble(miner);assert len(first['sources'][0]['loaded'])==3
                 text=' '.join(v for (actor,key),v in port.docs.items() if actor==miner)
                 assert '你是一位男性居民' in text and '你是一位矿工' in text
                 assert '你是一位伐木工' not in text and '医院选择birth' not in text
-                assert not matcher.match(miner)['scopes'][0]['loaded']
+                assert not matcher.assemble(miner)['sources'][0]['loaded']
                 page='world/knowledge/profession/miner'
                 result=app.invoke(miner,'node_read',dict(target=page,request=dict(method='key',key='content')))
                 assert '获得2矿石' in json.dumps(result,ensure_ascii=False)
@@ -158,16 +159,16 @@ class WorldTests(unittest.TestCase):
                 try:app.invoke(wood,'node_read',dict(target=page,request=dict(method='key',key='content')))
                 except RuntimeError as error:assert 'forbidden' in str(error)
                 else:raise AssertionError('another profession knowledge leaked')
-                port.views=[];plugin.mount();assert not port.views
+                port.views=[];plugin.mount()
                 port.actions[miner]=(address('smithy'),'move_here',{})
                 app.invoke('root','world_run_npc',dict(target=miner))
-                assert app.state(miner)['prompt']==stable and not port.views
+                assert app.state(miner)['prompt']==stable
                 assert page in {n.node_id for n,_ in b.network.walk(miner,strength=2)}
                 assert not any(e.target_node_id==page for e in b.network.nodes[miner].write_interfaces)
                 assert not app.plugins['capabilities/text'].targets[miner]
                 from datanet.world.state import presence
                 state(b)['actors'][wood]['role']='miner';presence(b,state(b));plugin.mount()
-                assert page in matcher.match(wood)['scopes'][0]['matched']
+                assert page in matcher.assemble(wood)['sources'][0]['matched']
                 assert b.network.nodes[wood].__dict__.get('gender') is None
             finally:stop(app,b)
         """)
@@ -179,31 +180,31 @@ class WorldTests(unittest.TestCase):
             actor='world/npc/yue';lin='world/npc/lin';miner='world/npc/miner'
             try:
                 from datanet.world.state import presence
-                plugin=app.plugins['capabilities/world_runtime'];matcher=app.plugins['capabilities/prompt_matching'];w=state(b)
+                plugin=app.plugins['capabilities/world_runtime'];matcher=app.plugins['capabilities/context_assembly'];w=state(b)
                 stable=app.state(actor)['prompt'];w['actors'][miner]['gender']='female';presence(b,w);plugin.mount()
-                selected=matcher.match(miner)['scopes'][0]['matched']
+                selected=matcher.assemble(miner)['sources'][0]['matched']
                 assert 'world/knowledge/gender/female' in selected and 'world/knowledge/life/gestation' not in selected
                 common=b.network.nodes['world/common']._read_key('content').items[0]['content']
                 assert '预产' not in common and '孕期' not in common and '预产' not in app.resource('nodes/npc_resident','AGENTS.md')
-                assert 'world/knowledge/life/pregnant' not in matcher.match(actor)['scopes'][0]['matched']
+                assert 'world/knowledge/life/pregnant' not in matcher.assemble(actor)['sources'][0]['matched']
                 w['actors'][actor]['place']='hospital';w['pregnancies']['fixture']=dict(parents=[lin,actor],carrier=actor,due_tick=0,child=None)
                 presence(b,w);plugin.mount()
-                assert 'world/knowledge/life/pregnant' in matcher.match(actor)['scopes'][0]['matched']
-                assert 'world/knowledge/life/pregnant' not in matcher.match(lin)['scopes'][0]['matched']
+                assert 'world/knowledge/life/pregnant' in matcher.assemble(actor)['sources'][0]['matched']
+                assert 'world/knowledge/life/pregnant' not in matcher.assemble(lin)['sources'][0]['matched']
                 port.actions[actor]=(business('hospital'),'birth',{})
                 result=app.invoke('root','world_run_npc',dict(target=actor));child=result['settlement']['newborns'][0]
-                selected=matcher.match(actor)['scopes'][0]['matched']
+                selected=matcher.assemble(actor)['sources'][0]['matched']
                 assert 'world/knowledge/life/pregnant' not in selected and 'world/knowledge/life/parent' in selected
-                latest=app.rpc('prompt_matching_get',actor=actor,scope='npc.identity')
+                latest=app.rpc('context_assembly_get',target=actor,node_id=actor+'/context')
                 assert latest['current']['metadata']['extensions']['npc']['pregnant'] is False and 'world/knowledge/life/pregnant' in latest['removed']
                 assert app.state(actor)['prompt']==stable
                 assert any('医院选择birth' in text for (owner,key),text in port.docs.items() if owner==actor)
-                assert 'world/knowledge/profession/child' in matcher.match(child)['scopes'][0]['matched']
+                assert 'world/knowledge/profession/child' in matcher.assemble(child)['sources'][0]['matched']
                 b.dispatch('save',{})
             finally:stop(app,b)
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
-                matched=app.plugins['capabilities/prompt_matching'].match(actor)['scopes'][0]['matched']
+                matched=app.plugins['capabilities/context_assembly'].assemble(actor)['sources'][0]['matched']
                 assert 'world/knowledge/life/parent' in matched and 'world/knowledge/life/pregnant' not in matched
             finally:stop(app,b)
         """)
@@ -213,23 +214,24 @@ class WorldTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
-                actor='world/npc/miner';matcher=app.plugins['capabilities/prompt_matching'];page='world/knowledge/profession/miner'
-                stable=app.state(actor)['prompt'];first=matcher.match(actor);count=len(port.docs)
-                assert not port.calls and not matcher.match(actor)['scopes'][0]['loaded'] and len(port.docs)==count
-                removed=[key for key in port.docs if key[0]==actor and key[1].startswith('prompt:npc.identity:'+page+':')]
+                actor='world/npc/miner';matcher=app.plugins['capabilities/context_assembly'];page='world/knowledge/profession/miner'
+                stable=app.state(actor)['prompt'];first=matcher.assemble(actor);count=len(port.docs)
+                assert not port.calls and not matcher.assemble(actor)['sources'][0]['loaded'] and len(port.docs)==count
+                from datanet.core.agent_inputs import digest
+                removed=[key for key in port.docs if key[0]==actor and key[1]=='agent-input:'+digest(['context-assembly:'+actor+'/context',page])]
                 del port.docs[removed[0]]
-                assert matcher.match(actor)['scopes'][0]['loaded']==[page] and len(port.docs)==count
+                assert matcher.assemble(actor)['sources'][0]['loaded']==[page] and len(port.docs)==count
                 b.network.nodes[page].write('content','矿工知识新版：留意镐子耐久。')
-                assert matcher.match(actor)['scopes'][0]['loaded']==[page]
-                before=app.rpc('prompt_matching_get',actor=actor,scope='npc.identity')['revision']
+                assert matcher.assemble(actor)['sources'][0]['loaded']==[page]
+                before=app.rpc('context_assembly_get',target=actor,node_id=actor+'/context')['revision']
                 from datanet.world.state import presence
-                state(b)['actors'][actor]['gender']='female';presence(b,state(b));matcher.match(actor)
-                state(b)['actors'][actor]['gender']='male';presence(b,state(b));back=matcher.match(actor)
-                assert not back['scopes'][0]['loaded']
-                assert app.rpc('prompt_matching_get',actor=actor,scope='npc.identity')['revision']==before+2
+                state(b)['actors'][actor]['gender']='female';presence(b,state(b));matcher.assemble(actor)
+                state(b)['actors'][actor]['gender']='male';presence(b,state(b));back=matcher.assemble(actor)
+                assert not back['sources'][0]['loaded']
+                assert app.rpc('context_assembly_get',target=actor,node_id=actor+'/context')['revision']==before+2
                 for key in list(port.docs):
                     if key[0]==actor:del port.docs[key]
-                again=matcher.match(actor);assert len(again['scopes'][0]['loaded'])==3
+                again=matcher.assemble(actor);assert len(again['sources'][0]['loaded'])==3
                 assert app.state(actor)['prompt']==stable and not port.calls
             finally:stop(app,b)
         """)
@@ -240,11 +242,11 @@ class WorldTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
-                actor='world/npc/miner';extra=app.plugins['capabilities/node_metadata'];matcher=app.plugins['capabilities/prompt_matching']
+                actor='world/npc/miner';extra=app.plugins['capabilities/node_metadata'];matcher=app.plugins['capabilities/context_assembly']
                 extra.set(actor,'npc',{'temperament':'cautious'})
                 values=b.network.get_metadata(actor)['extensions']['npc'];assert values['role']=='miner' and values['temperament']=='cautious'
-                matcher.match(actor)
-                current=app.rpc('prompt_matching_get',actor=actor,scope='npc.identity')['current']['metadata']
+                matcher.assemble(actor)
+                current=app.rpc('context_assembly_get',target=actor,node_id=actor+'/context')['current']['metadata']
                 assert current['extensions']['npc']['temperament']=='cautious' and current['extensions']['npc']['role']=='miner'
                 assert not hasattr(b.network.nodes[actor],'temperament') and 'temperament' not in state(b)['actors'][actor]
             finally:stop(app,b)
