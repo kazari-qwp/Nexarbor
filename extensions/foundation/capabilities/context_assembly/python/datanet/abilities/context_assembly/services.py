@@ -49,5 +49,13 @@ def bind(b,p):
 def get(b,p):return deepcopy(state(b)['matches'].get(p['target'],{}).get(p['node_id']))
 def put(b,p):
     host(p);freeze(p['value']);state(b)['matches'].setdefault(p['target'],{})[p['node_id']]=deepcopy(p['value']);return dict(saved=True)
+def remove(b,p):
+    host(p);node=p['node_id'];data=state(b);actors=[]
+    for actor,bindings in data['bindings'].items():
+        if node in bindings:bindings.remove(node);actors.append(actor)
+        data['matches'].get(actor,{}).pop(node,None)
+    data['nodes'].pop(node,None)
+    return dict(actors=actors)
+
 def register(s):
-    for name,fn,mut in [('configure',configure,True),('bind',bind,True),('get',get,False),('put',put,True)]:s.rpc('context_assembly_'+name,fn,mutation=mut)
+    for name,fn,mut in [('configure',configure,True),('bind',bind,True),('get',get,False),('put',put,True),('remove',remove,True)]:s.rpc('context_assembly_'+name,fn,mutation=mut)

@@ -13,6 +13,9 @@ class ComponentServices:
         self.enabled = enabled_components()
         self.binding_validators = []
         self.statusters = []
+        self.module_types = {}
+        self.module_owners = {}
+        self.loading_component = None
         self.routes = {}
         self.mutations = set()
         self.node_presets = {}
@@ -28,12 +31,18 @@ class ComponentServices:
         for key in self.order:
             m = self.catalog[key]
             if key in self.enabled:
+                self.loading_component = key
                 for module in m.get('python', {}).get('services', []):
                     import_module(module).register(self)
         for entries in [self.network_presets,self.root_packages,self.network_handlers]:
             for name in list(entries):
                 key='network_presets/'+name
                 if key in self.catalog and key not in self.enabled:entries.pop(name)
+
+    def node_module(self, name, factory):
+        if name in self.module_types:raise ValueError("Duplicate node module: "+name)
+        self.module_types[name]=factory
+        self.module_owners[name]=self.loading_component
 
     def rpc(self, name, function, mutation=False):
         if name in self.routes:

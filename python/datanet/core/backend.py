@@ -36,12 +36,15 @@ class Backend:
         self.network.add_node(self.root)
         self.extension_state = {}
         self.components = ComponentServices()
+        from .node_modules import NodeModules
+        self.modules = NodeModules(self,self.components.module_types)
         try:
             self.components.install(self)
             previous = self.store.latest()
             if previous is not None:
                 self.restore(previous)
             self.components.graph_loaded(self)
+            if previous is None:self.modules.restore()
             self.attach_creation()
             attach_interface_management_tools(self.network, self.root, scope='descendants')
             if previous is None:
@@ -57,6 +60,7 @@ class Backend:
         return runtime
 
     def close(self):
+        self.modules.clear()
         self.store.close()
 
     def snapshot(self):
@@ -91,9 +95,6 @@ class Backend:
                 for name,definition in document.get('tools',{}).get(node.node_id,{}).items():
                     node.register_tool(name,inactive,description=definition['description'],parameters=definition['parameters'],read_only=definition.get('read_only',False))
                 for name in node.tools:node.tools[name]=inactive
-        from datanet.core.node_toolboxes import validate_exposure
-        for node in self.network.nodes.values():
-            validate_exposure(node)
         for name, content in document['files'].items():
             target = (self.directory / name).resolve()
             if not target.is_relative_to(self.directory):
@@ -105,6 +106,10 @@ class Backend:
                 temporary = target.with_name(target.name + '.restore.tmp')
                 temporary.write_text(content, encoding='utf-8')
                 temporary.replace(target)
+
+        self.modules.restore()
+        from datanet.core.node_toolboxes import validate_exposure
+        for node in self.network.nodes.values():validate_exposure(node)
 
     def _restore_agent_managers(self):
         for node_id, binding in self.agents.items():
@@ -155,7 +160,7 @@ class Backend:
     def _dispatch_transaction(self, method, p):
         if self.failed:
             raise RuntimeError('Checkpoint failed; restart before further operations')
-        mutation = method in self.components.mutations or method in {'write', 'invoke_tool', 'save', 'bind_agent', 'agent_progress', 'agent_inputs_update', 'agent_inputs_ack'}
+        mutation = method in self.components.mutations or method in {'write', 'invoke_tool', 'save', 'bind_agent', 'agent_progress', 'agent_inputs_update', 'agent_inputs_ack', 'network_initialize'}
         if not mutation:
             return self._dispatch(method, p)
         operation_id = uuid4().hex
@@ -229,6 +234,12 @@ class Backend:
         return {'node_ids': ids, 'entry_points': report['entry_points'], 'parent_node_id': parent_id, 'nodes': nodes, 'interfaces': interfaces, 'attachment_interfaces': attachment}
 
     def _dispatch(self, method, p):
+        if method == 'network_initialize':
+            if set(self.network.nodes)!={'root'}:return {'loaded':False}
+            self.restore(p['document'])
+            self.components.graph_loaded(self)
+            self.attach_creation()
+            return {'loaded':True}
         if method == 'persistence_info':
             from .recovery import required_contexts
             return {**self.store.stats(),'pending':self.store.pending(),'executor_restore_required':required_contexts(self.store)}

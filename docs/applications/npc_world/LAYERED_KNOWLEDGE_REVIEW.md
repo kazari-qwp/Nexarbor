@@ -1,3 +1,5 @@
+> 历史审阅记录：本轮显式节点模块重构后的有效文案与路径见 [NODE_MODULE_REVIEW.md](NODE_MODULE_REVIEW.md)，以下旧结算说明不再使用。
+
 # NPC分层文案与匹配器审阅
 
 当前已由独立上下文装配器替代旧匹配器。以下保留全部知识正文供审阅；最新人格、输入分类及包装见[装配审阅](CONTEXT_ASSEMBLY_REVIEW.md)。旧match_prompts工具及描述已删除，没有装配器Agent工具。

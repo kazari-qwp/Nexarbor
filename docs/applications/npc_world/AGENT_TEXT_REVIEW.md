@@ -1,3 +1,5 @@
+> 历史审阅记录：本轮显式节点模块重构后的有效文案与路径见 [NODE_MODULE_REVIEW.md](NODE_MODULE_REVIEW.md)，以下旧结算说明不再使用。
+
 最新住所、休息权限及场所元数据文案见[本轮完整原文](HOUSING_REVIEW.md)。
 
 当前新增文案以[四类输入与人格审阅](CONTEXT_ASSEMBLY_REVIEW.md)为准。下列历次记录中，旧match_prompts工具已删除，旧常驻文本尾部机制已被装配器替代。

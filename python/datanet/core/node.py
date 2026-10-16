@@ -31,6 +31,7 @@ class Node:
         self.write_interfaces: list[Interface] = []
         self.tools: dict[str, Callable[..., Any]] = {}
         self.tool_definitions: dict[str, dict] = {}
+        self.modules: dict = {}
         self.toolboxes: list[str] = []
         self.expose: list[str] = []
         self.agent_tool_definitions: dict[str, dict] = {}

@@ -1,3 +1,5 @@
+> 历史审阅记录：本轮显式节点模块重构后的有效文案与路径见 [NODE_MODULE_REVIEW.md](NODE_MODULE_REVIEW.md)，以下旧结算说明不再使用。
+
 # 住所、休息权限与场所元数据审阅
 
 2026-10-16。新增规则全部位于NPC扩展，复用capabilities/node_metadata，不修改核心。

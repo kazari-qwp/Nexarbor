@@ -288,6 +288,8 @@ class Application:
                 break
             component = dependent
         enabled_components().difference_update(removed)
+        for module in list(self.backend.modules.instances.values()):
+            if module.owner in removed:module.close()
         for key in removed:
             plugin = self.plugins.get(key)
             if plugin and hasattr(plugin, 'close'):

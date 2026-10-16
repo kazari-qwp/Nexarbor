@@ -1,12 +1,19 @@
-"""NPC application over core pulses, actual graph tools and resident text."""
+"""Node-local NPC modules, immediate effects, graph grants and restart."""
 import os,subprocess,sys,textwrap,unittest
 from pathlib import Path
 from test_knowledge_base import AGENT_SETUP
 ROOT=Path(__file__).resolve().parents[1]
 SETUP=AGENT_SETUP+r"""
-from datanet.world.state import state,address,business
+from datanet.world.model import instance,person,residents,presence,clock,tick
+from pathlib import Path
+ROOT=Path.cwd()
+from datanet.core.node import Node
+from datanet.core.interface import Interface
+
+def address(place):return 'world/place/'+place
+def business(place):return 'world/service/'+place
 class WorldPort(Port):
-    def __init__(self):super().__init__();self.actions={};self.calls=[];self.tails=[];self.failure=None;self.views=[]
+    def __init__(self):super().__init__();self.actions={};self.calls=[];self.tails=[];self.failure=None;self.views=[];self.during=None
     def __call__(self,name,p):
         if name=='view-update':self.views.append(p['actor'])
         if name=='cancel-agent':return {}
@@ -18,12 +25,22 @@ class WorldPort(Port):
             action=self.actions.get(actor)
             if action:
                 target,tool,args=action
-                app.invoke(actor,'node_tools',dict(target=target,direction='write'))
-                app.invoke(actor,'node_invoke',dict(target=target,tool=tool,direction='write',arguments=args))
+                use(actor,target,tool,args)
+            if self.during:self.during(actor)
             return dict(session_id=self.agents[actor]['session_id'],messages=[dict(role='assistant',content='本次活动结束。')],completion='completed')
         result=super().__call__(name,p)
         if name=='create':self.agents[p['actor']]['session_id']=p['binding']['session_id']
         return result
+
+def use(actor,target,tool,args=None,read=False):
+    direction='read' if read else 'write'
+    app.invoke(actor,'node_tools',dict(target=target,direction=direction))
+    return app.invoke(actor,'node_invoke',dict(target=target,tool=tool,direction=direction,arguments=args or {}))
+def begin(actor,signal='fixture'):
+    old=instance(b,actor,'agent.signal').state
+    if old.get('status')=='running':b.dispatch('node_activity_end',dict(target=actor,signal_id=old['signal_id'],status='completed'))
+    b.dispatch('node_clock_advance',dict(target='world/time',signal_id=signal))
+    b.dispatch('node_activity_start',dict(target=actor,signal_id=signal))
 """
 class WorldTests(unittest.TestCase):
     def case(self,code):
@@ -32,303 +49,207 @@ class WorldTests(unittest.TestCase):
         result=subprocess.run([sys.executable,'-X','utf8','-c',SETUP+textwrap.dedent(code)],cwd=ROOT,env=env,text=True,encoding='utf-8',capture_output=True,timeout=60)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
 
-    def test_real_npc_location_tool_automatic_completion_and_closed_pulse(self):
-        self.case("""
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town',worldAllowFullRun=False));app.bind_session('root-session')
-            try:
-                actor='world/npc/woodcutter';port.actions[actor]=(business('forest'),'chop',{})
-                result=app.invoke('root','world_run_npc',dict(target=actor));report=result['pulse']['reports'][0]
-                assert report['returned'] and report['status']=='completed'
-                assert report['layers']==[['world/time'],[actor],['world/pulse']]
-                assert [d['strength'] for d in report['deliveries']]==[2,1,0]
-                assert port.calls==[actor]
-                assert state(b)['actors'][actor]['inventory']['wood']==2
-                assert state(b)['actors'][actor]['inventory']['axe']==2
-                assert state(b)['round']['outcomes'][actor]['status']=='completed'
-                assert not state(b)['round']['active']
-                assert '第1天-早' in ' '.join(port.tails[0]['texts'])
-                assert 'world_submit' not in port.tools[actor] and 'write_resident_text' not in port.tools[actor]
-                assert not b.network.nodes['world/time'].expose
-                assert not app.plugins['capabilities/text'].targets[actor]
-                assert 'world/time' not in [e.target_node_id for e in b.network.nodes[actor].read_interfaces]
-                assert any(e.target_node_id=='world/time' for e in b.network.nodes[actor+'/context'].read_interfaces)
-                assert all(not e.metadata.channels for n in b.network.nodes.values() if getattr(n,'kind',None)=='address' for e in n.write_interfaces)
-                assert all(d['node_id'] not in [address('forest'),business('forest')] for d in report['deliveries'])
-                second=app.invoke('root','world_run_npc',dict(target=actor))
-                assert '第1天-午' in ' '.join(port.tails[1]['texts'])
-                assert second['pulse']['reports'][0]['signal']['signal_id']!=report['signal']['signal_id']
-            finally:stop(app,b)
-        """)
-
-    def test_business_range_readonly_clock_and_location_move(self):
+    def test_disk_graph_has_no_start_special_nodes_or_settler(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
-                actor='world/npc/miner';reachable={n.node_id for n,_ in b.network.walk(actor,strength=2)}
-                assert business('mine') in reachable and address('smithy') in reachable
-                assert business('smithy') not in reachable
-                assert app.invoke(actor,'node_tools',dict(target='world/time',direction='write'))=='该节点并未有向你开放的工具'
-                port.actions[actor]=(address('smithy'),'move_here',{})
-                app.invoke('root','world_run_npc',dict(target=actor));assert state(b)['actors'][actor]['place']=='smithy'
-                port.actions[actor]=(business('smithy'),'repair',dict(item='pickaxe'))
-                app.invoke('root','world_run_npc',dict(target=actor))
-                assert state(b)['actors'][actor]['inventory']['pickaxe']==5
-                assert state(b)['actors'][actor]['coins']==6
-                assert b.network.get_metadata(address('smithy'))['extensions']['place']['materials']=={'wood':7,'ore':7}
-                assert b.network.get_metadata(business('smithy'))['extensions']['place']['materials']=={'wood':7,'ore':7}
-                assert business('mine') not in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
+                assert len(b.network.nodes)==47 and not port.calls
+                assert not any('start' in k or 'settle' in k for k in b.network.nodes)
+                assert 'world_init' not in b.components.routes and 'world_settle' not in b.components.routes
+                assert 'npc_world' not in b.extension_state
+                assert type(b.network.nodes[address('mine')]) is Node
+                from datanet.core.agent_node import AgentNode
+                assert type(b.network.nodes['world/npc/miner']) is AgentNode
+                assert not hasattr(b.network.nodes[address('mine')],'place')
+                assert set(app.states)=={'root',*residents(b)}
+                doc=json.loads((ROOT/'extensions/npc_world/network_presets/small_town/network.json').read_text(encoding='utf-8'))
+                assert len(doc['network']['nodes'])==len(b.network.nodes)
             finally:stop(app,b)
         """)
 
-    def test_error_is_not_normal_completion_and_siblings_continue(self):
-        self.case("""
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
-            try:
-                actor='world/npc/woodcutter';port.failure='world/npc/miner';port.actions[actor]=(business('forest'),'chop',{})
-                result=app.invoke('root','world_round',{})
-                assert result['pulse']['reports'][0]['status']=='partial'
-                assert result['pulse']['reports'][0]['returned']
-                assert result['settlement']['unavailable']==['world/npc/miner']
-                assert state(b)['actors'][actor]['inventory']['wood']==2
-                assert set(port.calls)==set(state(b)['actors'])
-                assert state(b)['round']['outcomes']['world/npc/miner']['status']=='unavailable'
-            finally:stop(app,b)
-        """)
-
-    def test_restore_uses_resident_time_and_rebinds_pulse_handlers(self):
+    def test_closed_signal_loop_and_immediate_effect_before_agent_end(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             actor='world/npc/woodcutter'
             try:
                 port.actions[actor]=(business('forest'),'chop',{})
+                def during(target):
+                    assert person(b,actor).state['inventory']['wood']==2
+                    assert instance(b,actor,'agent.signal').state['status']=='running'
+                port.during=during
+                result=app.invoke('root','world_run_npc',dict(target=actor));report=result['pulse']['reports'][0]
+                assert report['returned'] and report['status']=='completed'
+                assert report['layers']==[['world/time'],[actor],['world/pulse']]
+                assert instance(b,actor,'agent.signal').state['status']=='completed'
+                assert 'settlement' not in result and '第1天-早' in ' '.join(port.tails[0]['texts'])
+                assert 'world_submit' not in port.tools[actor] and not b.network.nodes['world/time'].expose
+                port.actions={};port.during=None
                 app.invoke('root','world_run_npc',dict(target=actor))
-            finally:stop(app,b)
-            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
-            try:
-                assert b.network.nodes['world/pulse'].state['sequence']==1
-                assert b.network.nodes['world/time']._read_key('content').items[0]['content']=='第1天-早'
-                result=app.invoke('root','world_run_npc',dict(target=actor))
-                assert result['pulse']['reports'][0]['returned']
-                assert b.network.nodes['world/pulse'].state['sequence']==2
-                assert '第1天-午' in ' '.join(port.tails[0]['texts'])
+                assert '第1天-午' in ' '.join(port.tails[1]['texts'])
             finally:stop(app,b)
         """)
 
-    def test_birth_waits_for_next_pulse_and_has_private_clock_link(self):
+    def test_move_changes_permissions_now_and_cannot_spend_two_actions(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            actor='world/npc/miner'
             try:
-                actor='world/npc/yue';lin='world/npc/lin'
-                # Fixture establishes the already-agreed due pregnancy; production uses place tools.
-                w=state(b);w['actors'][actor]['place']='hospital';w['pregnancies']['fixture']=dict(parents=[lin,actor],carrier=actor,due_tick=0,child=None)
-                from datanet.world.state import presence
-                presence(b,w);b.dispatch('save',{})
-                port.actions[actor]=(business('hospital'),'birth',{})
-                result=app.invoke('root','world_run_npc',dict(target=actor));child=result['settlement']['newborns'][0]
-                assert child not in port.calls and child in app.states
-                assert child in state(b)['housing']['home1']
-                assert child in [entry['node_id'] for entry in b.network.get_metadata(address('home1'))['extensions']['place']['residents']]
-                assert any('你住在居民楼1。' in section['text'] for section in (app.plugins['capabilities/context_assembly'].assemble(child),app.view(child))[1]['sections'])
-                assert any(e.target_node_id==child+'/context' and e.metadata.visibility=='private' for e in b.network.nodes[child].read_interfaces)
-                port.actions={};port.calls=[]
-                app.invoke('root','world_round',{})
-                assert child in port.calls and len(state(b)['actors'])==7
+                assert business('smithy') not in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
+                begin(actor);use(actor,address('smithy'),'move_here')
+                assert person(b,actor).state['place']==address('smithy')
+                assert business('smithy') in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
+                assert business('mine') not in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
+                assert 'world/npc/smith' in [e.target_node_id for e in b.network.nodes[address('smithy')].read_interfaces]
+                try:use(actor,business('smithy'),'repair',dict(item='pickaxe'))
+                except ValueError as e:assert 'One primary action' in str(e)
+                else:raise AssertionError('second action accepted')
+                assert use(actor,business('smithy'),'local_info',read=True)
             finally:stop(app,b)
         """)
 
-
-
-    def test_identity_knowledge_private_links_and_profession_survives_moving(self):
+    def test_failed_action_rolls_back_resources_and_keeps_quota(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            actor='world/npc/miner'
             try:
-                miner='world/npc/miner';wood='world/npc/woodcutter';yue='world/npc/yue'
-                matcher=app.plugins['capabilities/context_assembly'];plugin=app.plugins['capabilities/world_runtime']
-                stable=app.state(miner)['prompt'];assert '男性' not in stable and '矿工' not in stable
-                first=matcher.assemble(miner);assert len(first['sources'][0]['loaded'])==3
-                text=' '.join(v for (actor,key),v in port.docs.items() if actor==miner)
-                assert '你是一位男性居民' in text and '你是一位矿工' in text
-                assert '你是一位伐木工' not in text and '医院选择birth' not in text
-                assert not matcher.assemble(miner)['sources'][0]['loaded']
-                page='world/knowledge/profession/miner'
-                result=app.invoke(miner,'node_read',dict(target=page,request=dict(method='key',key='content')))
-                assert '获得2矿石' in json.dumps(result,ensure_ascii=False)
-                assert b.network.nodes[page].expose==['read']
-                assert page not in {n.node_id for n,_ in b.network.walk(wood,strength=100)}
-                try:app.invoke(wood,'node_read',dict(target=page,request=dict(method='key',key='content')))
-                except RuntimeError as error:assert 'forbidden' in str(error)
-                else:raise AssertionError('another profession knowledge leaked')
-                port.views=[];plugin.mount()
-                port.actions[miner]=(address('smithy'),'move_here',{})
-                app.invoke('root','world_run_npc',dict(target=miner))
-                assert app.state(miner)['prompt']==stable
-                assert page in {n.node_id for n,_ in b.network.walk(miner,strength=2)}
-                assert not any(e.target_node_id==page for e in b.network.nodes[miner].write_interfaces)
-                assert not app.plugins['capabilities/text'].targets[miner]
-                from datanet.world.state import presence
-                state(b)['actors'][wood]['role']='miner';presence(b,state(b));plugin.mount()
-                assert page in matcher.assemble(wood)['sources'][0]['matched']
-                assert b.network.nodes[wood].__dict__.get('gender') is None
+                presence(b,actor,address('smithy'));begin(actor)
+                a=person(b,actor).state;a['coins']=1
+                stock=instance(b,business('smithy'),'world.repair').state
+                try:use(actor,business('smithy'),'repair',dict(item='pickaxe'))
+                except ValueError:pass
+                else:raise AssertionError('unfunded repair succeeded')
+                assert stock['materials']=={'wood':8,'ore':8} and a['inventory']['pickaxe']==0 and a['action_tick'] is None
+                a['coins']=8;use(actor,business('smithy'),'repair',dict(item='pickaxe'))
+                assert a['coins']==6 and a['inventory']['pickaxe']==5
+                assert b.network.get_metadata(address('smithy'))['extensions']['place']['materials']=={'wood':7,'ore':7}
             finally:stop(app,b)
         """)
 
-    def test_pregnancy_profiles_change_documents_without_changing_system_prompt(self):
+    def test_mount_any_node_unmount_and_restore_are_explicit(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
-            actor='world/npc/yue';lin='world/npc/lin';miner='world/npc/miner'
+            actor='world/npc/woodcutter'
             try:
-                from datanet.world.state import presence
-                plugin=app.plugins['capabilities/world_runtime'];matcher=app.plugins['capabilities/context_assembly'];w=state(b)
-                stable=app.state(actor)['prompt'];w['actors'][miner]['gender']='female';presence(b,w);plugin.mount()
-                selected=matcher.assemble(miner)['sources'][0]['matched']
-                assert 'world/knowledge/gender/female' in selected and 'world/knowledge/life/gestation' not in selected
-                common=b.network.nodes['world/common']._read_key('content').items[0]['content']
-                assert '预产' not in common and '孕期' not in common and '预产' not in app.resource('nodes/npc_resident','AGENTS.md')
-                assert 'world/knowledge/life/pregnant' not in matcher.assemble(actor)['sources'][0]['matched']
-                w['actors'][actor]['place']='hospital';w['pregnancies']['fixture']=dict(parents=[lin,actor],carrier=actor,due_tick=0,child=None)
-                presence(b,w);plugin.mount()
-                assert 'world/knowledge/life/pregnant' in matcher.assemble(actor)['sources'][0]['matched']
-                assert 'world/knowledge/life/pregnant' not in matcher.assemble(lin)['sources'][0]['matched']
-                port.actions[actor]=(business('hospital'),'birth',{})
-                result=app.invoke('root','world_run_npc',dict(target=actor));child=result['settlement']['newborns'][0]
-                selected=matcher.assemble(actor)['sources'][0]['matched']
-                assert 'world/knowledge/life/pregnant' not in selected and 'world/knowledge/life/parent' in selected
-                latest=app.rpc('context_assembly_get',target=actor,node_id=actor+'/context')
-                assert latest['current']['metadata']['extensions']['npc']['pregnant'] is False and 'world/knowledge/life/pregnant' in latest['removed']
-                assert app.state(actor)['prompt']==stable
-                assert any('医院选择birth' in text for (owner,key),text in port.docs.items() if owner==actor)
-                assert 'world/knowledge/profession/child' in matcher.assemble(child)['sources'][0]['matched']
-                b.dispatch('save',{})
-            finally:stop(app,b)
-            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
-            try:
-                matched=app.plugins['capabilities/context_assembly'].assemble(actor)['sources'][0]['matched']
-                assert 'world/knowledge/life/parent' in matched and 'world/knowledge/life/pregnant' not in matched
-            finally:stop(app,b)
-        """)
-
-    def test_prompt_markers_versioning_and_compaction_independent_of_signals(self):
-        self.case("""
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
-            try:
-                actor='world/npc/miner';matcher=app.plugins['capabilities/context_assembly'];page='world/knowledge/profession/miner'
-                stable=app.state(actor)['prompt'];first=matcher.assemble(actor);count=len(port.docs)
-                assert not port.calls and not matcher.assemble(actor)['sources'][0]['loaded'] and len(port.docs)==count
-                from datanet.core.agent_inputs import digest
-                removed=[key for key in port.docs if key[0]==actor and key[1]=='agent-input:'+digest(['context-assembly:'+actor+'/context',page])]
-                del port.docs[removed[0]]
-                assert matcher.assemble(actor)['sources'][0]['loaded']==[page] and len(port.docs)==count
-                b.network.nodes[page].write('content','矿工知识新版：留意镐子耐久。')
-                assert matcher.assemble(actor)['sources'][0]['loaded']==[page]
-                before=app.rpc('context_assembly_get',target=actor,node_id=actor+'/context')['revision']
-                from datanet.world.state import presence
-                state(b)['actors'][actor]['gender']='female';presence(b,state(b));matcher.assemble(actor)
-                state(b)['actors'][actor]['gender']='male';presence(b,state(b));back=matcher.assemble(actor)
-                assert not back['sources'][0]['loaded']
-                assert app.rpc('context_assembly_get',target=actor,node_id=actor+'/context')['revision']==before+2
-                for key in list(port.docs):
-                    if key[0]==actor:del port.docs[key]
-                again=matcher.assemble(actor);assert len(again['sources'][0]['loaded'])==3
-                assert app.state(actor)['prompt']==stable and not port.calls
-            finally:stop(app,b)
-        """)
-
-
-    def test_npc_uses_node_metadata_extender_without_adding_core_fields(self):
-        self.case("""
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
-            try:
-                actor='world/npc/miner';extra=app.plugins['capabilities/node_metadata'];matcher=app.plugins['capabilities/context_assembly']
-                extra.set(actor,'npc',{'temperament':'cautious'})
-                values=b.network.get_metadata(actor)['extensions']['npc'];assert values['role']=='miner' and values['temperament']=='cautious'
-                matcher.assemble(actor)
-                current=app.rpc('context_assembly_get',target=actor,node_id=actor+'/context')['current']['metadata']
-                assert current['extensions']['npc']['temperament']=='cautious' and current['extensions']['npc']['role']=='miner'
-                assert not hasattr(b.network.nodes[actor],'temperament') and 'temperament' not in state(b)['actors'][actor]
-            finally:stop(app,b)
-        """)
-
-    def test_household_metadata_is_public_live_and_persistent(self):
-        self.case("""
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
-            try:
-                expected={'home1':{'world/npc/lin','world/npc/yue'},'home2':{'world/npc/woodcutter','world/npc/miner','world/npc/smith'}}
-                for home,members in expected.items():
-                    for target in (address(home),business(home)):
-                        values=b.network.get_metadata(target)['extensions']['place']['residents']
-                        assert {entry['node_id'] for entry in values}==members
-                        assert 'world/npc/wanderer' not in {entry['node_id'] for entry in values}
-                # This is registered residency, even while residents are elsewhere.
-                assert state(b)['actors']['world/npc/miner']['place']=='mine'
-                from datanet.world.state import presence
-                state(b)['actors']['world/npc/miner']['place']='home1';presence(b,state(b))
-                nodes=app.invoke('world/npc/miner','node_list',{})['items']
-                home=next(n for n in nodes if n['node_id']==address('home1'))
-                assert {v['name'] for v in home['extensions']['place']['residents']}=={'林舟','月宁'}
-                assert not hasattr(b.network.nodes[address('home1')],'residents')
-                assert b.network.get_metadata(address('smithy'))['extensions']['place']['materials']=={'wood':8,'ore':8}
+                # An ordinary service node gains a second gathering operation only by mounting.
+                target=business('forest');assert 'drink' not in b.network.nodes[target].tools
+                b.modules.mount(target,'world.refreshment',dict(address=address('forest'),price=1,restore=1))
+                begin(actor);person(b,actor).state['stamina']=1;use(actor,target,'drink')
+                assert person(b,actor).state['stamina']==2
+                b.modules.unmount(target,'world.refreshment');assert 'drink' not in b.network.nodes[target].tools and 'drink' not in b.network.nodes[target].expose
                 b.dispatch('save',{})
             finally:stop(app,b)
             b=Backend(folder)
             try:
-                assert {v['node_id'] for v in b.network.get_metadata(address('home2'))['extensions']['place']['residents']}==expected['home2']
-                assert b.network.get_metadata(business('smithy'))['extensions']['place']['materials']=={'wood':8,'ore':8}
+                assert 'drink' not in b.network.nodes[target].tools
+                assert person(b,actor).state['stamina']==2
+                assert 'chop' in b.network.nodes[target].tools
+                assert 'chop' not in b.network.nodes[business('mine')].tools
             finally:b.close()
         """)
 
-    def test_rest_requires_own_home_but_visit_and_passage_remain_allowed(self):
+    def test_rest_permission_and_public_metadata(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
-            from datanet.world.state import presence,may_rest
-            actor='world/npc/miner';w=state(b)
+            actor='world/npc/miner'
             try:
-                w['actors'][actor]['place']='tavern';w['actors'][actor]['stamina']=1;presence(b,w)
-                port.actions[actor]=(address('home1'),'move_here',{})
-                result=app.invoke('root','world_run_npc',dict(target=actor));assert state(b)['actors'][actor]['place']=='home1'
-                b.dispatch('world_prepare_pulse',dict(actor='root',targets=[actor]));b.dispatch('world_open_pulse',dict(actor='root',signal_id='rest-permission'))
-                app.invoke(actor,'node_tools',dict(target=business('home1'),direction='write'))
-                try:app.invoke(actor,'node_invoke',dict(target=business('home1'),tool='rest',direction='write',arguments={}))
-                except PermissionError as error:assert '自己登记居住' in str(error)
-                else:raise AssertionError('Visitor rested in another household')
-                assert actor not in state(b)['intents'] and state(b)['actors'][actor]['stamina']==1
-                app.invoke(actor,'node_tools',dict(target=address('hospital'),direction='write'))
-                app.invoke(actor,'node_invoke',dict(target=address('hospital'),tool='move_here',direction='write',arguments={}))
-                assert state(b)['intents'][actor]['destination']=='hospital'
-                assert not may_rest(state(b),'world/npc/wanderer','home1') and not may_rest(state(b),'world/npc/wanderer','home2')
-                assert 'rest' not in b.network.nodes[business('hospital')].expose
+                presence(b,actor,address('home1'));begin(actor);person(b,actor).state['stamina']=1
+                try:use(actor,business('home1'),'rest')
+                except PermissionError as e:assert '自己登记居住' in str(e)
+                else:raise AssertionError('visitor rested')
+                assert person(b,actor).state['action_tick'] is None
+                presence(b,actor,address('home2'));use(actor,business('home2'),'rest')
+                assert person(b,actor).state['stamina']==4
+                for home,count in [('home1',2),('home2',3)]:
+                    assert len(b.network.get_metadata(address(home))['extensions']['place']['residents'])==count
+                assert 'rest' not in b.network.nodes[business('hospital')].tools
             finally:stop(app,b)
         """)
 
-    def test_own_home_rest_is_checked_again_at_settlement(self):
+    def test_failed_residents_keep_successful_effects_and_siblings_continue(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
-            from datanet.world.state import presence
-            actor='world/npc/miner'
             try:
-                w=state(b);w['actors'][actor]['place']='home2';w['actors'][actor]['stamina']=1;presence(b,w)
-                port.actions[actor]=(business('home2'),'rest',{})
+                port.failure='world/npc/miner';port.actions['world/npc/woodcutter']=(business('forest'),'chop',{})
+                def later_error(actor):
+                    if actor=='world/npc/woodcutter':raise RuntimeError('model failed after successful tool')
+                port.during=later_error
+                result=app.invoke('root','world_round',{})
+                assert result['pulse']['reports'][0]['returned'] and result['pulse']['reports'][0]['status']=='partial'
+                assert instance(b,port.failure,'agent.signal').state['status']=='unavailable'
+                assert instance(b,'world/npc/woodcutter','agent.signal').state['status']=='unavailable'
+                assert person(b,'world/npc/woodcutter').state['inventory']['wood']==2
+                assert set(port.calls)==set(residents(b))
+            finally:stop(app,b)
+        """)
+
+    def test_marriage_family_birth_and_next_signal_child(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            lin='world/npc/lin';yue='world/npc/yue'
+            try:
+                for actor in (lin,yue):presence(b,actor,address('civil_registry'));begin(actor,'marriage')
+                use(lin,business('civil_registry'),'marry',dict(partner=yue));assert person(b,lin).state['spouse'] is None
+                use(yue,business('civil_registry'),'marry',dict(partner=lin));assert person(b,lin).state['spouse']==yue
+                for actor in (lin,yue):presence(b,actor,address('home1'));begin(actor,'family')
+                use(lin,business('home1'),'plan_family',dict(partner=yue));use(yue,business('home1'),'plan_family',dict(partner=lin))
+                pregnancy=next(iter(instance(b,business('home1'),'world.family').state['pregnancies'].values()))
+                assert pregnancy['due_tick']==tick(b)+10
+                app.event(yue,'context/prepare',{})
+                assert 'world/knowledge/life/pregnant' in app.plugins['capabilities/context_assembly'].assemble(yue)['sources'][0]['matched']
+                presence(b,yue,address('hospital'));begin(yue,'too-early')
+                try:use(yue,business('hospital'),'birth')
+                except ValueError:pass
+                else:raise AssertionError('early birth')
+                assert len(residents(b))==6
+                pregnancy=next(iter(instance(b,business('home1'),'world.family').state['pregnancies'].values()))
+                clock(b).state['tick']=pregnancy['due_tick'];begin(yue,'due')
+                use(yue,business('hospital'),'birth');child=pregnancy['child']
+                assert child in residents(b) and child not in port.calls
+                assert child not in [e.target_node_id for e in b.network.nodes['world/time'].write_interfaces]
+                assert child in instance(b,business('home1'),'world.household').state['residents']
+                assert person(b,child).state['parents']==[lin,yue]
+                app.event(yue,'context/prepare',{})
+                assert 'world/knowledge/life/pregnant' not in app.plugins['capabilities/context_assembly'].assemble(yue)['sources'][0]['matched']
+                app.invoke('root','world_run_npc',dict(target=child))
+                assert port.calls==[child] and len(residents(b))==7
+                app.plugins['capabilities/context_assembly'].assemble(child)
+                assert any('你住在居民楼1。' in section['text'] for section in app.view(child)['sections'])
+            finally:stop(app,b)
+        """)
+
+    def test_context_identity_memory_and_restart_clock(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            actor='world/npc/woodcutter'
+            try:
+                stable=app.state(actor)['prompt'];matcher=app.plugins['capabilities/context_assembly']
+                first=matcher.assemble(actor);assert len(first['sources'][0]['loaded'])==3
+                assert not matcher.assemble(actor)['sources'][0]['loaded']
+                saved=b.modules.unmount(actor+'/context','context.sources')
+                assert not matcher.assemble(actor)['sources']
+                assert not b.network.nodes[actor].inputs.snapshot()['context-assembly:'+actor+'/context']['tail']
+                b.modules.mount(actor+'/context','context.sources',**saved)
+                assert 'world/time' not in [e.target_node_id for e in b.network.nodes[actor].read_interfaces]
+                assert 'world/time' in [e.target_node_id for e in b.network.nodes[actor+'/context'].read_interfaces]
+                port.actions[actor]=(business('forest'),'chop',{})
+                app.invoke('root','world_run_npc',dict(target=actor));assert app.state(actor)['prompt']==stable
+                app.invoke(actor,'datanet_memory_write',dict(content='记住树林'))
+            finally:stop(app,b)
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                assert b.network.nodes[actor].read_memory()['content']=='记住树林'
+                assert person(b,actor).state['inventory']['wood']==2
                 result=app.invoke('root','world_run_npc',dict(target=actor))
-                assert result['settlement']['results'][actor]['ok'] and state(b)['actors'][actor]['stamina']==4
-                b.dispatch('world_prepare_pulse',dict(actor='root',targets=[actor]));b.dispatch('world_open_pulse',dict(actor='root',signal_id='rest-recheck'))
-                app.invoke(actor,'node_tools',dict(target=business('home2'),direction='write'))
-                app.invoke(actor,'node_invoke',dict(target=business('home2'),tool='rest',direction='write',arguments={}))
-                state(b)['housing']['home2'].remove(actor)
-                b.dispatch('world_complete_pulse_actor',dict(actor='root',target=actor,signal_id='rest-recheck',status='completed'))
-                result=b.dispatch('world_settle',dict(actor='root'))
-                assert not result['results'][actor]['ok'] and state(b)['actors'][actor]['stamina']==4
-                assert actor not in [v['node_id'] for v in b.network.get_metadata(business('home2'))['extensions']['place']['residents']]
+                assert result['pulse']['reports'][0]['returned'] and '第1天-午' in ' '.join(port.tails[0]['texts'])
             finally:stop(app,b)
         """)
 

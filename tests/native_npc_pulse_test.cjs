@@ -16,7 +16,7 @@ const base=productRoot;
   if(!file){const ns=spec.startsWith('@deepseek-ai/')?native(spec.slice(13)):spec==='zod'?require(path.join(nativeRoot,'zod')):await import(spec);const mod=synthetic(ns,key);cache.set(key,mod);return mod;}
   const mod=new vm.SourceTextModule(await fs.readFile(file,'utf8'),{context,identifier:pathToFileURL(file).href,initializeImportMeta:m=>m.url=pathToFileURL(file).href,importModuleDynamically:async(spec,ref)=>{const m=await get(spec,ref.identifier);if(m.status==='unlinked')await m.link(link);if(m.status==='linked')await m.evaluate();return m}});cache.set(key,mod);return mod;
  }
- const link=(spec,ref)=>get(spec,ref.identifier),entry=await get(pathToFileURL(base+'/extensions/npc_world/capabilities/world_runtime/entry.js').href);await entry.link(link);await entry.evaluate();
+ const link=(spec,ref)=>get(spec,ref.identifier),entry=await get(pathToFileURL(base+'/extensions/npc_world/capabilities/scene_operator/entry.js').href);await entry.link(link);await entry.evaluate();
  const loop=await get(pathToFileURL(base+'/adapters/harness/runtime/agent-loop/lib/index.js').href);await loop.link(link);await loop.evaluate();
  const host=new Context(),temp=await fs.mkdtemp(path.join(testRoot,'creation-'));
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']]){await host.plugin(native(name)[service]??native(name).default);}
@@ -69,10 +69,10 @@ const base=productRoot;
  assert.equal(worker.session.snapshotEvents().filter(e=>e.type==='system/message').length,1,'identical assembled system text must not create repeated system updates');
  assert.ok(model.requests.every(o=>o.messages.some(m=>m.role==='system'&&m.content.some(b=>b.type==='text'&&b.text.includes('你是阿森。')))),'read-only personality must use the system prompt surface');
  assert.ok(!(await r.bridge.call('application/view',{actor:'world/npc/woodcutter'})).prompt.includes('伐木工'),'profession must not rewrite the role system prompt');
- assert.deepEqual(JSON.parse(JSON.stringify(report.deliveries[1].value.responders[0].steps.map(s=>s.tool))),['assemble_context','world_run_actor']);
- const world=await r.bridge.call('world_observe',{actor:'root'});
+ assert.deepEqual(JSON.parse(JSON.stringify(report.deliveries[1].value.responders[0].steps.map(s=>s.tool))),['assemble_context','run_agent']);
+ const world=await exec('world_observe',{});
  assert.equal(world.actors['world/npc/woodcutter'].inventory.wood,2);assert.equal(world.actors['world/npc/woodcutter'].inventory.axe,2);
- assert.equal(world.round.outcomes['world/npc/woodcutter'].status,'completed');
+ assert.equal(world.activities['world/npc/woodcutter'].status,'completed');
  assert.equal(model.requests.length,3);assert.ok(!host.tools.schemas(worker).some(t=>t.name==='world_submit'));
  const tails=worker.session.snapshotEvents().filter(e=>e.type==='datanet/request-tail');assert.ok(tails.length>=3);
  assert.ok(tails.every(e=>JSON.stringify(e.data.messages).includes('第1天-早')));
@@ -94,8 +94,8 @@ const base=productRoot;
  model.fail=true;
  const failed=await exec('world_run_npc',{target:'world/npc/woodcutter'});
  assert.equal(failed.pulse.reports[0].returned,false);assert.equal(failed.pulse.reports[0].status,'partial');
- const after=await r.bridge.call('world_observe',{actor:'root'});
- assert.equal(after.round.outcomes['world/npc/woodcutter'].status,'unavailable');
+ const after=await exec('world_observe',{});
+ assert.equal(after.activities['world/npc/woodcutter'].status,'unavailable');
  assert.equal(after.actors['world/npc/woodcutter'].inventory.wood,2);
  await controller.components.dispose();await host.fiber.dispose();clearInterval(keepAlive);
  console.log('PASS native Harness NPC pulse: channel response sequence, stable role and personality prompt, explicit context-node sources, independent history documents, resident clock, location tool, natural completion, return to source, native error rejected; no model API calls');
