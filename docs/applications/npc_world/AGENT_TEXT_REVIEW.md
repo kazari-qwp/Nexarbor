@@ -1,6 +1,6 @@
 # 本次 Agent 文档与工具描述原文
 
-以下均为本次新增；原有 Agent 提示词和描述未改。foundation/network_access 的变更仅涉及执行上下文。
+本表为当前 Agent 可见文档与描述。2026-10-16脉冲接线改动了居民/儿童提示词、居民/操作指南、只读常识、world_round/world_run_npc和居民工具箱描述；移除了world_submit。
 
 ## 文档与配置
 
@@ -18,10 +18,9 @@
 |---|---|
 | `world_look` | 查看自己的状态、当前场所、邻居和上次结算。 |
 | `world_messages` | 读取同场所居民留给自己的未读交谈。 |
-| `world_submit` | 提交本时刻的行动计划；未选行动则等待。 |
 | `world_observe` | 观察小镇地图、居民会话和最近结算。 |
-| `world_round` | 开启、结算或运行一个小镇时刻；run会并行启动所有居民。 |
-| `world_run_npc` | 仅运行指定居民本时刻的行动，供局部观察与测试。 |
+| `world_round` | 运行一个小镇时刻，居民并行活动后自动结算。 |
+| `world_run_npc` | 仅运行指定居民的一个时刻，正常结束后自动结算。 |
 | `move_here` | 计划移动到此地点。 |
 | `talk` | 向同场所的此人说话。 |
 | `give` | 计划赠送物品或钱给同场所的此人。 |
@@ -40,4 +39,10 @@
 
 - `network_presets/small_town/component.json`：NPC小世界：在地点权限网络中移动、交流和生活，按五个时刻统一结算。
 - `toolboxes/world_operator/box.json`：小世界观察与逐时刻推进。
-- `toolboxes/world_resident/box.json`：在当前地点行动、交流并提交本时刻。
+- `toolboxes/world_resident/box.json`：在当前地点行动与交流。
+
+地点业务登记后的共同返回提示：
+
+> 这是行动计划；本次活动结束时自动确定，随后统一结算。
+
+共享执行器的非正常结束诊断（由框架返回，非角色提示词）：`Host did not confirm normal Agent completion`；Harness无本次结束事件时报 `AGENT_EXECUTION_INCOMPLETE: No turn completion was recorded`，非正常结束时报 `AGENT_EXECUTION_NOT_COMPLETED: <kind> <error.message>`。

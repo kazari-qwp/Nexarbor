@@ -5,7 +5,6 @@ import json
 from datanet.core.access_budget import active_agent,current_access
 from datanet.world.nodes import WorldNode,Resident
 from datanet.world.state import state,require,address,business,clock,presence,create_resident
-from datanet.rounds import barrier
 
 TOOLS=json.loads((Path(__file__).resolve().parents[3]/'tools.json').read_text(encoding='utf-8'))
 ADULT={'marry','plan_family','repair','trade','mine','chop','birth','drink','give'}
@@ -18,11 +17,9 @@ def caller(b,target):
     return actor
 
 def active(w,actor):
-    r=w['barrier']
+    r=w['round']
     if not r.get('active') or actor not in r['participants']:raise ValueError('No active world round')
-    if actor in r['submitted']:raise ValueError('This round is already submitted')
-    import time
-    if time.time()>=r['deadline']:raise TimeoutError('Round deadline exceeded')
+    if actor in r['outcomes']:raise ValueError('This resident has already finished the pulse')
 
 def install(b,node,*_):
     if not isinstance(node,(WorldNode,Resident)):return
@@ -70,7 +67,7 @@ def invoke(b,node,name,args):
         if args['partner']==actor or args['partner'] not in w['actors']:raise ValueError('Choose another resident ID')
         if w['actors'][args['partner']]['place']!=a['place']:raise ValueError('Partner must be present')
     w['intents'][actor]=intent
-    return dict(queued=deepcopy(intent),notice='这是行动计划；可在提交前更换，提交后统一结算。',**({'expected_due':clock(w['tick']+10)} if name=='plan_family' else {}))
+    return dict(queued=deepcopy(intent),notice='这是行动计划；本次活动结束时自动确定，随后统一结算。',**({'expected_due':clock(w['tick']+10)} if name=='plan_family' else {}))
 
 def take(a,item,n):
     if item=='coins':
@@ -155,14 +152,12 @@ def apply(w,actor,intent,actions,handled):
 def settle(b,p):
     if p.get('actor')!='root':raise PermissionError('Only the operator settles rounds')
     original=state(b)
-    if not original['barrier'].get('active'):
+    if not original['round'].get('active'):
         if original['last_settled'] is not None:return deepcopy(original['last_settled'])
         raise ValueError('No round to settle')
-    # Expiration is itself a durable change; effects remain isolated until commit.
-    barrier.expire(original['barrier'])
-    if barrier.pending(original['barrier']):raise ValueError('Participants are still pending')
-    w=deepcopy(original);entries=barrier.finish(w['barrier'])
-    actions={actor:(v['payload']['action'] if v['status']=='submitted' else dict(type='wait')) for actor,v in entries.items()}
+    if any(t not in original['round']['outcomes'] for t in original['round']['participants']):raise ValueError('Residents are still processing the pulse')
+    w=deepcopy(original);entries=w['round']['outcomes'];w['round']['active']=False
+    actions={actor:(v['payload']['action'] if v['status']=='completed' else dict(type='wait')) for actor,v in entries.items()}
     handled=set();members=list(entries);offset=w['tick']%len(members);members=members[offset:]+members[:offset]
     for actor in members:
         if actor in handled:continue

@@ -11,7 +11,7 @@ import {requestRoute} from './request-route.js';
 import {InstructionHistory} from './instructions.js';
 import {ToolPermissions} from './tool-permissions.js';
 import {applyCapabilities,updateCapabilityTools} from './capabilities.js';
-import {assertCompleteOutput} from './response-status.js';
+import {assertCompleteOutput,assertCompletedTurns} from './response-status.js';
 import {networkDirectory} from './storage.js';
 import {trackApprovals} from './approval-state.js';
 import {installWindowsPythonCompat} from './windows-python.js';
@@ -156,6 +156,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
     if(operation==='run'){
       const agent=agentFor(p.actor).agent,execution=executions.get(p.execution_id),signal=execution?.exec?.signal;
       const start=agent.session.deriveMessages().length;
+      const eventStart=agent.session.snapshotEvents().length;
       const cancel=()=>agent.cancel('user');let expired=false;
       signal?.throwIfAborted();signal?.addEventListener('abort',cancel,{once:true});
       const timer=setTimeout(()=>{expired=true;cancel();},p.timeout_ms??180000);
@@ -163,7 +164,8 @@ async function createRuntime(ctx,config,rootAgent,owned){
         agent.followup(user(p.text));await agent.whenIdle();signal?.throwIfAborted();
         if(expired)throw new Error('Agent execution timeout');
         const messages=agent.session.deriveMessages().slice(start);assertCompleteOutput(messages);
-        return {messages,session_id:agent.id};
+        const completion=assertCompletedTurns(agent.session.snapshotEvents().slice(eventStart));
+        return {messages,session_id:agent.id,completion};
       }finally{clearTimeout(timer);signal?.removeEventListener('abort',cancel);await ctx.sessions.flush(agent.session);}
     }
     if(operation==='make-message')return user(p.text,{kind:'agent-message',form:'relay',senderSessionId:agentFor(p.from).agent.id});

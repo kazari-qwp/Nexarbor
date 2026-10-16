@@ -1,9 +1,10 @@
 """World state and graph are committed together by the existing checkpoint service."""
 from copy import deepcopy
 from datanet.core.interface import Interface
-from datanet.core.text_node import TextFileNode
+from datanet.components.nodes.text_file_node.text_file_node import TextFileNode
+from datanet.core.pulse_node import PulseNode
 from datanet.world.nodes import WorldNode,Resident
-from datanet.rounds import barrier
+
 
 SLOTS=('早上','中午','下午','傍晚','午夜')
 def address(place):return 'world/place/'+place
@@ -20,7 +21,7 @@ def require(b,actor):
 def edge(b,source,target,directions=('read','write')):
     for direction in directions:
         links=getattr(b.network.nodes[source],direction+'_interfaces')
-        if not any(x.target_node_id==target for x in links):links.append(Interface(target,threshold=1))
+        if not any(x.target_node_id==target for x in links):links.append(Interface(target,{'threshold':1}))
 
 def presence(b,w):
     # Rebuild only the presence edges; road and business connections remain fixed.
@@ -34,6 +35,8 @@ def presence(b,w):
         n.read_interfaces=[];n.write_interfaces=[]
         edge(b,actor,address(a['place']));edge(b,address(a['place']),actor)
         edge(b,actor,'world/common',('read',))
+        n.read_interfaces.append(Interface('world/time',{'threshold':1,'visibility':'private'}))
+        n.write_interfaces.append(Interface('world/pulse',{'threshold':1,'channels':['world.tick']}))
 
 def create_resident(b,actor,a):
     if actor not in b.network.nodes:
@@ -47,7 +50,7 @@ def initialize(b,p):
     if p.get('actor')!='root':raise PermissionError('Only the world operator initializes the map')
     if state(b):return dict(existing=True,clock=clock(state(b)['tick']))
     config=deepcopy(p['config'])
-    w=dict(tick=0,config=config,actors={},barrier={},intents={},results={},events=[],pregnancies={},families=[],
+    w=dict(tick=0,config=config,actors={},round={},intents={},results={},events=[],pregnancies={},families=[],
            shop=deepcopy(config['shop']),smith_stock=deepcopy(config['smith_stock']),last_settled=None)
     for place in config['places']:
         b.network.add_node(WorldNode(address(place['id']),place['name'],place=place['id'],kind='address',description=place['name']+'入口'))
@@ -60,7 +63,12 @@ def initialize(b,p):
         actor='world/npc/'+spec['id']
         a={**deepcopy(spec),'coins':spec.get('coins',8),'stamina':5,'inventory':deepcopy(spec.get('inventory',{})),'spouse':None,'children':[],'born_tick':-1,'inbox':[]}
         w['actors'][actor]=a;create_resident(b,actor,a)
+    b.network.add_node(PulseNode('world/pulse','世界脉冲',channels=['world.tick'],strength=3,signal_options={'failure_policy':'continue','max_hops':3,'node_timeout_seconds':120}))
+    time_node=TextFileNode('world/time','时间','text',b.directory/'world'/'time.md',delivery='resident')
+    time_node.expose=[];time_node.write('content','第1天-早');b.network.add_node(time_node)
+    b.network.nodes['world/pulse'].write_interfaces.append(Interface('world/time',{'threshold':1,'channels':['world.tick']}))
     b.extension_state['npc_world']=w;presence(b,w)
+    subscriptions(b,list(w['actors']))
     if hasattr(b,'world_tools'):
         for node in b.network.nodes.values():b.world_tools(b,node)
     return dict(existing=False,clock=clock(0),actors=list(w['actors']))
@@ -75,33 +83,54 @@ def look(b,p):
                 neighbors=[dict(id=address(x),name=names[x]) for x in neighbors],
                 people=[dict(id=k,name=v['name']) for k,v in w['actors'].items() if k!=p['actor'] and v['place']==place],
                 common='world/common',pregnancies=due,last_result=deepcopy(w['results'].get(p['actor'])),
-                pending_action=deepcopy(w['intents'].get(p['actor'])),submitted=p['actor'] in w['barrier'].get('submitted',{}))
+                pending_action=deepcopy(w['intents'].get(p['actor'])),finished=p['actor'] in w['round'].get('outcomes',{}))
 
 def messages(b,p):
     w,a=require(b,p['actor']);items=[m for m in a['inbox'] if not m.get('read')]
     for m in items:m['read']=True
     return dict(items=deepcopy(items))
 
-def begin(b,p):
-    if p.get('actor')!='root':raise PermissionError('Only the world operator advances time')
+def subscriptions(b,targets):
+    b.network.nodes['world/time'].write_interfaces=[Interface(target,{'threshold':1,'channels':['world.tick']}) for target in targets]
+
+def prepare(b,p):
+    if p.get('actor')!='root':raise PermissionError('Only operator may route the world pulse')
     w=state(b)
-    if not w:raise ValueError('World not initialized')
-    if not w['barrier'].get('active'):w['intents']={}
-    return barrier.begin(w['barrier'],str(w['tick']),list(w['actors']),p.get('timeout_seconds',180))
+    if w['round'].get('active'):raise RuntimeError('Previous pulse requires settlement or reconciliation')
+    targets=p.get('targets',list(w['actors']))
+    if not targets or len(targets)!=len(set(targets)) or any(t not in w['actors'] for t in targets):raise ValueError('Invalid pulse participants')
+    subscriptions(b,targets)
+    return dict(participants=targets)
 
-def submit(b,p):
-    w,a=require(b,p['actor']);payload=dict(action=deepcopy(w['intents'].get(p['actor'],dict(type='wait'))),summary=p.get('summary','')[:300])
-    return barrier.submit(w['barrier'],p['actor'],payload)
+def open_pulse(b,p):
+    if p.get('actor')!='root':raise PermissionError('Only the clock handler may open the world pulse')
+    w=state(b)
+    if w['round'].get('active'):
+        if w['round']['signal_id']==p['signal_id']:return dict(existing=True)
+        raise RuntimeError('Another world pulse is active')
+    targets=[e.target_node_id for e in b.network.nodes['world/time'].write_interfaces if e.carries(['world.tick'],strength=2)]
+    w['round']=dict(active=True,signal_id=p['signal_id'],tick=w['tick'],participants=targets,outcomes={})
+    w['intents']={}
+    slots=('早','午','下午','傍晚','午夜');text=f"第{w['tick']//5+1}天-{slots[w['tick']%5]}"
+    b.network.nodes['world/time'].write('content',text)
+    return dict(clock=clock(w['tick']),text=text,participants=targets)
 
-def abandon(b,p):
-    if p.get('actor')!='root':raise PermissionError('Only the operator may mark unavailable')
-    w=state(b);barrier.abandon(w['barrier'],p['target'],p.get('reason','unavailable'))
-    return dict(pending=barrier.pending(w['barrier']))
+def complete(b,p):
+    if p.get('actor')!='root':raise PermissionError('Only the execution handler may record completion')
+    w=state(b);r=w['round'];target=p['target']
+    if not r.get('active') or r['signal_id']!=p['signal_id'] or target not in r['participants']:raise ValueError('Resident is outside this pulse')
+    if target in r['outcomes']:return deepcopy(r['outcomes'][target])
+    status=p['status']
+    if status not in ('completed','unavailable'):raise ValueError('Invalid resident outcome')
+    payload=dict(action=deepcopy(w['intents'].get(target,dict(type='wait'))) if status=='completed' else dict(type='wait'))
+    outcome=dict(status=status,payload=payload,reason=p.get('reason','')[:500])
+    r['outcomes'][target]=outcome
+    return deepcopy(outcome)
 
 def observe(b,p):
     if p.get('actor')!='root':raise PermissionError('Operator view is private')
     return deepcopy(state(b))
 
 def register(s):
-    for name,fn,mutation in [('init',initialize,True),('look',look,False),('messages',messages,True),('begin',begin,True),('submit',submit,True),('abandon',abandon,True),('observe',observe,False)]:
+    for name,fn,mutation in [('init',initialize,True),('look',look,False),('messages',messages,True),('prepare_pulse',prepare,True),('open_pulse',open_pulse,True),('complete_pulse_actor',complete,True),('observe',observe,False)]:
         s.rpc('world_'+name,fn,mutation=mutation)

@@ -1,19 +1,17 @@
-"""Native Harness events plus an explicit, bounded single-phase scheduler."""
-from concurrent.futures import ThreadPoolExecutor,as_completed
-from threading import Lock
+"""World policy over core pulses, resident text, and the existing Agent executor."""
+import asyncio
 import json
+from threading import Lock,Thread
 from datanet.core.application import Component
 from datanet.world.state import state,clock
-from datanet.rounds import barrier
 
 class Plugin(Component):
     def install(self):
-        self.turns={};self.running=set();self.lock=Lock();self.phase_lock=Lock()
+        self.turns={};self.phase_lock=Lock();self.loop=None;self.thread=None;self.inflight={}
         self.on('session/root',self.root)
         self.on('tool/before',self.guide)
         self.on('agent/pre-step',self.pre_step)
         self.on('agent/request',self.request)
-        self.on('agent/turn-stopping',self.stopping)
         self.on('context/tail',self.tail)
 
     def root(self,e):
@@ -37,16 +35,14 @@ class Plugin(Component):
     def guide(self,e):
         if e['actor']=='root' and e['name'].startswith('world_'):
             self.r.load('root','world:operator',self.r.resource('network_presets/small_town','AGENTS.md'))
-        elif e['actor'] in (state(self.r.backend) or {}).get('actors',{}):
-            self.resident_guide(e['actor'])
+        elif e['actor'] in (state(self.r.backend) or {}).get('actors',{}):self.resident_guide(e['actor'])
 
     def resident_guide(self,actor):
         self.r.load(actor,'world:resident',self.r.resource('nodes/npc_resident','AGENTS.md'))
 
     def pre_step(self,e):
         if e['actor'] not in (state(self.r.backend) or {}).get('actors',{}):return
-        self.resident_guide(e['actor'])
-        turn=self.turns.get(e['actor'])
+        self.resident_guide(e['actor']);turn=self.turns.get(e['actor'])
         if turn and turn['active'] and turn['count']>=turn['limit']:raise RuntimeError('World NPC request budget exhausted')
 
     def request(self,e):
@@ -54,115 +50,115 @@ class Plugin(Component):
         if turn and turn['active']:
             if turn['count']>=turn['limit']:raise RuntimeError('World NPC request budget exhausted')
             turn['count']+=1
-            self.r.rpc('agent_progress',target=actor,world_tick=turn['tick'],world_requests=turn['count'])
-
-    def stopping(self,e):
-        actor=e['actor'];turn=self.turns.get(actor);w=state(self.r.backend) or {}
-        if turn and turn['active'] and actor not in w['barrier']['submitted'] and turn['count']<turn['limit']:
-            self.r.host('steer',actor=actor,text='本时刻尚未提交。请用 world_submit 提交已选行动；未选行动表示等待。')
+            self.r.rpc('agent_progress',target=actor,world_signal_id=turn['signal_id'],world_requests=turn['count'])
 
     def tail(self,e):
         w=state(self.r.backend);actor=e['actor']
         if not w or actor not in w['actors']:return
-        a=w['actors'][actor];c=clock(w['tick'])
-        if w['barrier'].get('active'):
-            status='已提交' if actor in w['barrier']['submitted'] else '待提交'
-        else:status='等待下一时刻开启'
-        text=f"[小镇] 第{c['day']}天·{c['slot']}；地点：{a['place']}；{status}。"
+        a=w['actors'][actor];text='[小镇] 地点：'+a['place']+'。'
         if any(not m.get('read') for m in a['inbox']):text+='有未读交谈。'
         if any(v['carrier']==actor and not v.get('child') and v['due_tick']-w['tick']<=5 for v in w['pregnancies'].values()):text+='临近或已到预产时刻，请查看 world_look。'
         turn=self.turns.get(actor)
-        if turn and turn['active']:
-            left=max(0,turn['limit']-turn['count'])
-            text+=f"本时刻模型请求已用{turn['count']}/{turn['limit']}。"
-            if left<=1:text+='下次必须提交 world_submit；不要再查询或写记忆。'
+        if turn and turn['active']:text+=f"本次请求已用{turn['count']}/{turn['limit']}，处理完后自然结束。"
         e['texts'].append(text)
 
     def tool_world_look(self,actor,p):return self.r.rpc('world_look',actor=actor)
     def tool_world_messages(self,actor,p):return self.r.rpc('world_messages',actor=actor)
-    def tool_world_submit(self,actor,p):
-        result=self.r.rpc('world_submit',actor=actor,**p)
-        self.r.host('conclude')
-        return result
     def tool_world_observe(self,actor,p):
         w=self.r.rpc('world_observe',actor=actor)
         if p.get('target'):
             if p['target'] not in w['actors']:raise ValueError('Unknown resident')
             return dict(clock=clock(w['tick']),resident=w['actors'][p['target']],binding=self.r.backend.agents.get(p['target']),result=w['results'].get(p['target']))
-        return dict(clock=clock(w['tick']),places=w['config']['places'],roads=w['config']['roads'],
+        pulse=self.r.backend.network.nodes['world/pulse']
+        return dict(clock=clock(w['tick']),time_text=self.r.backend.network.nodes['world/time']._read_key('content').items[0]['content'],pulse=pulse.state,
+                    places=w['config']['places'],roads=w['config']['roads'],
                     residents=[dict(id=k,name=a['name'],place=a['place'],role=a['role'],session_id=self.r.backend.agents.get(k,{}).get('session_id')) for k,a in w['actors'].items()],
-                    active=w['barrier'].get('active',False),pending=barrier.pending(w['barrier']) if w['barrier'].get('active') else [],
-                    events=w['events'][-20:],results=w['results'])
+                    active=w['round'].get('active',False),events=w['events'][-20:],results=w['results'])
 
-    def schedule(self,actor,target,timeout_ms):
-        w=state(self.r.backend)
-        if actor!='root' or target not in w['actors']:raise PermissionError('Only operator may run a resident')
-        if not w['barrier'].get('active') or target not in w['barrier']['participants']:raise ValueError('Begin the time slot first')
-        if target in w['barrier']['submitted']:return dict(status='already_submitted')
-        import time
-        timeout_ms=min(timeout_ms,max(1,int((w['barrier']['deadline']-time.time())*1000)))
-        with self.lock:
-            if target in self.running:raise RuntimeError('Resident already running')
-            self.running.add(target)
+    def start_loop(self):
+        if self.loop:return
+        self.loop=asyncio.new_event_loop();self.thread=Thread(target=self.loop.run_forever,name='npc-signals',daemon=True);self.thread.start()
+
+    def execute_npc(self,target,signal,execution_id,timeout_ms):
+        previous=getattr(self.r.local,'execution_id',None);self.r.local.execution_id=execution_id
+        limit=min(10,max(1,int(self.r.config.get('worldMaxRequests',8))))
+        self.turns[target]=dict(active=True,signal_id=signal.signal_id,count=0,limit=limit)
         try:
-            limit=min(10,max(1,int(self.r.config.get('worldMaxRequests',8))))
-            saved=self.r.backend.agents[target]
-            count=saved.get('world_requests',0) if saved.get('world_tick')==w['tick'] else 0
-            self.turns[target]=dict(active=True,tick=w['tick'],count=count,limit=limit)
             self.resident_guide(target)
             observation=self.r.rpc('world_look',actor=target)
-            # Exact prior results are admitted once per game slot; the tail remains short.
-            text='现在是新的小镇时刻。按自己的想法行动，最后提交一次。\n'+json.dumps(observation,ensure_ascii=False)
-            result=self.r.plugins['capabilities/agent_runtime'].execute(actor,target,text,kind='world_npc',timeout_ms=timeout_ms)
-            if target not in state(self.r.backend)['barrier']['submitted']:raise RuntimeError('Resident ended without submitting; requests='+str(self.turns[target]['count'])+'/'+str(limit))
-            return dict(status='submitted',session_id=result['session_id'],requests=self.turns[target]['count'])
-        except Exception as error:
-            # An already-disconnected native handle must not block the barrier.
-            try:self.r.host('cancel-agent',actor=target)
-            except Exception:pass
-            self.r.rpc('world_abandon',actor='root',target=target,reason=str(error))
-            return dict(status='unavailable',reason=str(error))
+            task=self.r.config.get('worldPulseTask','本时刻按自己的想法活动，处理完后正常结束。')
+            text=task+'\n'+json.dumps(observation,ensure_ascii=False)
+            result=self.r.plugins['capabilities/agent_runtime'].execute('root',target,text,kind='world_npc',timeout_ms=timeout_ms)
+            if result['status']!='ok':raise RuntimeError('Resident execution did not complete normally')
+            return dict(session_id=result['session_id'],requests=self.turns[target]['count'])
         finally:
-            if target in self.turns:self.turns[target]['active']=False
-            with self.lock:self.running.discard(target)
+            self.turns[target]['active']=False;self.r.local.execution_id=previous
+
+    async def pulse_cycle(self,targets,timeout_seconds,execution_id):
+        self.r.local.execution_id=execution_id
+        self.r.rpc('world_prepare_pulse',actor='root',targets=targets)
+        runtime=self.r.backend.signals;pulse=self.r.backend.network.nodes['world/pulse']
+        async def clock_handler(context):
+            return self.r.rpc('world_open_pulse',actor='root',signal_id=context.signal.signal_id)
+        runtime.bind('world/time',clock_handler)
+        async def npc_handler(context):
+            target=context.delivery.node_id;signal=context.signal
+            previous=self.inflight.get(target)
+            if previous and not previous.done():raise RuntimeError('Previous NPC execution is still stopping')
+            task=asyncio.create_task(asyncio.to_thread(self.execute_npc,target,signal,execution_id,min(90000,int(timeout_seconds*1000))))
+            self.inflight[target]=task
+            def finished(job):
+                if self.inflight.get(target) is job:self.inflight.pop(target,None)
+                if not job.cancelled():job.exception()
+            task.add_done_callback(finished)
+            try:
+                result=await asyncio.shield(task)
+                outcome=self.r.rpc('world_complete_pulse_actor',actor='root',target=target,signal_id=signal.signal_id,status='completed')
+                return dict(**result,outcome=outcome)
+            except BaseException as error:
+                try:await asyncio.to_thread(self.r.host,'cancel-agent',actor=target)
+                except Exception:pass
+                self.r.rpc('world_complete_pulse_actor',actor='root',target=target,signal_id=signal.signal_id,status='unavailable',reason=str(error) or type(error).__name__)
+                raise
+        for target in targets:
+            runtime.bind(target,npc_handler,capabilities=lambda t=target:tuple(self.r.state(t)['grant']['framework']),access_strength=2)
+        settlement=None
+        async def settle(source,report):
+            nonlocal settlement
+            settlement=self.r.rpc('world_settle',actor='root')
+        try:
+            result=await pulse.run(runtime,cycles=1,timeout_seconds=timeout_seconds,cycle_complete=settle,allow_partial=True)
+            # A failed branch has no return edge; settle explicitly if every NPC failed.
+            if state(self.r.backend)['round'].get('active'):
+                round=state(self.r.backend)['round']
+                for target in round['participants']:
+                    if target not in round['outcomes']:
+                        self.r.rpc('world_complete_pulse_actor',actor='root',target=target,signal_id=round['signal_id'],status='unavailable',reason='Pulse ended without a normal completion')
+                settlement=self.r.rpc('world_settle',actor='root')
+            return dict(pulse=result,settlement=settlement)
+        finally:self.r.local.execution_id=None
+
+    def run_pulse(self,actor,targets,timeout_seconds):
+        if actor!='root':raise PermissionError('Only operator may run the world pulse')
+        if not self.phase_lock.acquire(blocking=False):raise RuntimeError('Another world pulse is active')
+        try:
+            self.mount();self.start_loop()
+            future=asyncio.run_coroutine_threadsafe(self.pulse_cycle(targets,timeout_seconds,getattr(self.r.local,'execution_id',None)),self.loop)
+            try:result=future.result(timeout=timeout_seconds+15)
+            except BaseException:future.cancel();raise
+            self.mount()
+            return result
+        finally:self.phase_lock.release()
 
     def tool_world_run_npc(self,actor,p):
-        if not self.phase_lock.acquire(blocking=False):raise RuntimeError('Another world operation is in progress')
-        try:
-            self.mount()
-            return self.schedule(actor,p['target'],min(120000,max(1000,p.get('timeout_ms',90000))))
-        finally:self.phase_lock.release()
+        return self.run_pulse(actor,[p['target']],min(120,max(1,p.get('timeout_ms',90000)/1000)))
 
     def tool_world_round(self,actor,p):
-        if not self.phase_lock.acquire(blocking=False):raise RuntimeError('Another world operation is in progress')
-        try:return self.round_operation(actor,p)
-        finally:self.phase_lock.release()
+        if not self.r.config.get('worldAllowFullRun',True):raise PermissionError('This runtime permits only single-NPC tests')
+        return self.run_pulse(actor,list(state(self.r.backend)['actors']),min(180,max(1,p.get('timeout_seconds',180))))
 
-    def round_operation(self,actor,p):
-        if actor!='root':raise PermissionError('Only operator may advance the world')
-        action=p['action']
-        if action=='begin':return self.r.rpc('world_begin',actor=actor,timeout_seconds=p.get('timeout_seconds',180))
-        if action=='settle':
-            result=self.r.rpc('world_settle',actor=actor);self.mount();return result
-        if action=='cancel':
-            w=state(self.r.backend)
-            with self.lock:
-                if self.running:raise ValueError('Wait for bounded NPC runs to finish before cancelling the round')
-            if not w['barrier'].get('active'):return dict(cancelled=False)
-            for target in barrier.pending(w['barrier']):self.r.rpc('world_abandon',actor=actor,target=target,reason='operator_end_slot')
-            result=self.r.rpc('world_settle',actor=actor);self.mount();return result
-        if action!='run':raise ValueError('Unknown round action')
-        if not self.r.config.get('worldAllowFullRun',True):raise PermissionError('This runtime allows only single-resident tests')
-        with self.lock:
-            if self.running:raise RuntimeError('A resident is already running')
-        self.mount();self.r.rpc('world_begin',actor=actor,timeout_seconds=p.get('timeout_seconds',180))
-        execution=getattr(self.r.local,'execution_id',None)
-        def run(target):
-            self.r.local.execution_id=execution
-            return self.schedule(actor,target,120000)
-        targets=barrier.pending(state(self.r.backend)['barrier']);results={}
-        with ThreadPoolExecutor(max_workers=max(1,len(targets)),thread_name_prefix='world-npc') as pool:
-            jobs={pool.submit(run,t):t for t in targets}
-            for job in as_completed(jobs):results[jobs[job]]=job.result()
-        settled=self.r.rpc('world_settle',actor=actor);self.mount()
-        return dict(runs=results,settlement=settled)
+    def close(self):
+        if not self.loop:return
+        future=asyncio.run_coroutine_threadsafe(self.r.backend.signals.close(),self.loop)
+        try:future.result(timeout=5)
+        finally:self.loop.call_soon_threadsafe(self.loop.stop);self.thread.join(timeout=5);self.loop.close();self.loop=None

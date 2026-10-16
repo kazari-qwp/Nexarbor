@@ -19,21 +19,6 @@
     },
     "name": "world_messages"
   },
-  "world_submit": {
-    "description": "提交本时刻的行动计划；未选行动则等待。",
-    "parameters": {
-      "type": "object",
-      "properties": {
-        "summary": {
-          "type": "string",
-          "maxLength": 300
-        }
-      },
-      "required": [],
-      "additionalProperties": false
-    },
-    "name": "world_submit"
-  },
   "world_observe": {
     "description": "观察小镇地图、居民会话和最近结算。",
     "parameters": {
@@ -49,34 +34,23 @@
     "name": "world_observe"
   },
   "world_round": {
-    "description": "开启、结算或运行一个小镇时刻；run会并行启动所有居民。",
+    "description": "运行一个小镇时刻，居民并行活动后自动结算。",
     "parameters": {
       "type": "object",
       "properties": {
-        "action": {
-          "type": "string",
-          "enum": [
-            "begin",
-            "settle",
-            "run",
-            "cancel"
-          ]
-        },
         "timeout_seconds": {
           "type": "integer",
           "minimum": 1,
           "maximum": 180
         }
       },
-      "required": [
-        "action"
-      ],
+      "required": [],
       "additionalProperties": false
     },
     "name": "world_round"
   },
   "world_run_npc": {
-    "description": "仅运行指定居民本时刻的行动，供局部观察与测试。",
+    "description": "仅运行指定居民的一个时刻，正常结束后自动结算。",
     "parameters": {
       "type": "object",
       "properties": {

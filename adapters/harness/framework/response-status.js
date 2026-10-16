@@ -10,3 +10,15 @@ export function assertCompleteOutput(messages) {
     }
   }
 }
+
+
+export function assertCompletedTurns(events) {
+  const endings=events.filter(event=>event.type==='turn/end');
+  if(!endings.length)throw new Error('AGENT_EXECUTION_INCOMPLETE: No turn completion was recorded');
+  const abnormal=endings.find(event=>event.data?.reason?.kind!=='completed');
+  if(abnormal){
+    const reason=abnormal.data?.reason;
+    throw new Error('AGENT_EXECUTION_NOT_COMPLETED: '+(reason?.kind??'unknown')+' '+(reason?.error?.message??''));
+  }
+  return 'completed';
+}

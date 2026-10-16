@@ -1,28 +1,28 @@
-"""World tests use actual graph tools and checkpoints; no paid full-world simulation."""
-import os
+"""NPC application over core pulses, actual graph tools and resident text."""
+import os,subprocess,sys,textwrap,unittest
 from pathlib import Path
-import subprocess
-import sys
-import textwrap
-import unittest
 from test_knowledge_base import AGENT_SETUP
 ROOT=Path(__file__).resolve().parents[1]
 SETUP=AGENT_SETUP+r"""
 from datanet.world.state import state,address,business
-from datanet.core.access_budget import active_agent
-from datanet.rounds import barrier
 class WorldPort(Port):
+    def __init__(self):super().__init__();self.actions={};self.calls=[];self.tails=[];self.failure=None
     def __call__(self,name,p):
-        if name in ('conclude','cancel-agent'):return {}
-        return super().__call__(name,p)
-def tool(app,actor,target,name,**args):
-    app.invoke(actor,'node_tools',dict(target=target,direction='write'))
-    return app.invoke(actor,'node_invoke',dict(target=target,tool=name,direction='write',arguments=args))
-def finish(app,b):
-    for actor in barrier.pending(state(b)['barrier']):app.invoke(actor,'world_submit',{})
-    return app.invoke('root','world_round',dict(action='settle'))
-def begin(app):return app.invoke('root','world_round',dict(action='begin'))
-def move(app,actor,destination):return tool(app,actor,address(destination),'move_here')
+        if name=='cancel-agent':return {}
+        if name=='run':
+            actor=p['actor'];self.calls.append(actor)
+            app.event(actor,'agent/pre-step',{});app.event(actor,'agent/request',{})
+            tail=dict(actor=actor,texts=[]);app.emit('context/tail',**tail);self.tails.append(tail)
+            if actor==self.failure:return dict(session_id=self.agents[actor]['session_id'],messages=[],completion='failed')
+            action=self.actions.get(actor)
+            if action:
+                target,tool,args=action
+                app.invoke(actor,'node_tools',dict(target=target,direction='write'))
+                app.invoke(actor,'node_invoke',dict(target=target,tool=tool,direction='write',arguments=args))
+            return dict(session_id=self.agents[actor]['session_id'],messages=[dict(role='assistant',content='本次活动结束。')],completion='completed')
+        result=super().__call__(name,p)
+        if name=='create':self.agents[p['actor']]['session_id']=p['binding']['session_id']
+        return result
 """
 class WorldTests(unittest.TestCase):
     def case(self,code):
@@ -31,165 +31,107 @@ class WorldTests(unittest.TestCase):
         result=subprocess.run([sys.executable,'-X','utf8','-c',SETUP+textwrap.dedent(code)],cwd=ROOT,env=env,text=True,encoding='utf-8',capture_output=True,timeout=60)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
 
-    def test_graph_authority_privacy_and_movement_restore(self):
+    def test_real_npc_location_tool_automatic_completion_and_closed_pulse(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'))
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town',worldAllowFullRun=False));app.bind_session('root-session')
             try:
-                app.bind_session('root-session');miner='world/npc/miner';lin='world/npc/lin';yue='world/npc/yue'
-                assert len(app.states)==7 and not port.runs
-                assert set(port.tools[miner])=={'world_look','world_messages','world_submit','node_read','node_list','node_tools','node_invoke','datanet_memory_read','datanet_memory_write'}
-                reachable={n.node_id for n,_ in b.network.walk(miner,strength=2)}
-                assert business('mine') in reachable and address('smithy') in reachable
-                assert business('smithy') not in reachable and 'world/npc/smith' not in reachable and address('tavern') not in reachable
-                forbidden=[business('smithy'),'world/npc/smith',address('tavern')]
-                for target in forbidden:
-                    try:app.invoke(miner,'node_tools',dict(target=target,direction='write'))
-                    except RuntimeError as error:assert 'forbidden' in str(error)
-                    else:raise AssertionError('Out-of-range tool discovery accepted')
-                text=app.invoke(miner,'node_read',dict(target='world/common',request=dict(method='key',key='content')))
-                assert '10个时刻' in text['items'][0]['content']
-                for target,toolname,args in [('world/common','write',dict(key='content',value='hack')), (yue,'memory_read',{})]:
-                    try:tool(app,lin,target,toolname,**args)
-                    except (PermissionError,RuntimeError,ValueError):pass
-                    else:raise AssertionError('Private write/read leaked')
-                assert active_agent.get() is None
-                begin(app)
-                app.invoke(lin,'node_tools',dict(target=yue,direction='write'))
-                try:app.invoke(lin,'node_invoke',dict(target=yue,tool='talk',direction='write',arguments=dict(content='伪造身份',actor=yue)))
-                except (TypeError,ValueError):pass
-                else:raise AssertionError('Actor spoof accepted')
-                try:b.network.nodes[business('mine')].invoke_tool('mine')
-                except PermissionError:pass
-                else:raise AssertionError('Unauthenticated public tool accepted')
-                tool(app,lin,yue,'talk',content='明天商量婚礼。')
-                assert app.invoke(yue,'world_messages',{})['items'][0]['content']=='明天商量婚礼。'
-                assert not app.invoke(yue,'world_messages',{})['items']
-                move(app,miner,'smithy')
-                assert state(b)['actors'][miner]['place']=='mine'
-                receipt=app.invoke(miner,'world_submit',{});assert app.invoke(miner,'world_submit',{})==receipt
-                try:move(app,miner,'smithy')
-                except ValueError:pass
-                else:raise AssertionError('Changed submitted action')
-                try:app.invoke('root','world_round',dict(action='settle'))
-                except ValueError:pass
-                else:raise AssertionError('Bypassed barrier')
-                app.invoke(miner,'datanet_memory_write',dict(content='我的私人经历'))
-                finish(app,b);assert state(b)['actors'][miner]['place']=='smithy'
-                assert business('smithy') in {n.node_id for n,_ in b.network.walk(miner,strength=2)}
-                assert business('mine') not in {n.node_id for n,_ in b.network.walk(miner,strength=2)}
-                assert active_agent.get() is None
-            finally:b.close()
-            b=Backend(folder);app=Application(b,WorldPort(),dict(rootNetwork='small_town'))
-            try:
-                app.bind_session('root-session');assert state(b)['tick']==1
-                assert b.network.nodes[miner].read_memory()['content']=='我的私人经历'
-                begin(app);tool(app,miner,business('smithy'),'repair',item='pickaxe');finish(app,b)
-                assert state(b)['actors'][miner]['inventory']['pickaxe']==5
-                assert state(b)['actors'][miner]['coins']==6
-            finally:b.close()
-        """)
-
-    def test_family_due_hospital_child_next_round_idempotent(self):
-        self.case("""
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);app=Application(b,WorldPort(),dict(rootNetwork='small_town'));app.bind_session('root-session')
-            lin,yue='world/npc/lin','world/npc/yue'
-            try:
-                # Reach the registry using real adjacent movement tools.
-                for destination in ['tavern','civil_registry']:
-                    begin(app);move(app,lin,destination);move(app,yue,destination);finish(app,b)
-                begin(app);tool(app,lin,business('civil_registry'),'marry',partner=yue);finish(app,b)
-                assert state(b)['actors'][lin]['spouse'] is None
-                begin(app);tool(app,lin,business('civil_registry'),'marry',partner=yue);tool(app,yue,business('civil_registry'),'marry',partner=lin);finish(app,b)
-                assert state(b)['actors'][lin]['spouse']==yue
-                for destination in ['tavern','home1']:
-                    begin(app);move(app,lin,destination);move(app,yue,destination);finish(app,b)
-                begin(app);tool(app,lin,business('home1'),'plan_family',partner=yue);tool(app,yue,business('home1'),'plan_family',partner=lin)
-                created_tick=state(b)['tick'];finish(app,b)
-                pregnancy=next(iter(state(b)['pregnancies'].values()));assert pregnancy['due_tick']==created_tick+10
-                begin(app);move(app,yue,'hospital');finish(app,b)
-                begin(app);tool(app,yue,business('hospital'),'birth');finish(app,b)
-                assert len(state(b)['actors'])==6 and not state(b)['results'][yue]['ok']
-                while state(b)['tick']<created_tick+10:begin(app);finish(app,b)
-                begin(app);tool(app,yue,business('hospital'),'birth');result=finish(app,b)
-                child=result['newborns'][0];assert child not in state(b)['barrier']['participants']
-                assert child in app.states and len(state(b)['actors'])==7
-                assert state(b)['actors'][child]['parents']==sorted([lin,yue])
-                assert '私人经历' not in b.network.nodes[child].read_memory()['content']
-                assert app.invoke('root','world_round',dict(action='settle'))==result
-                begin(app);assert child in state(b)['barrier']['participants']
-                finish(app,b);assert len(state(b)['actors'])==7
-            finally:b.close()
-            b=Backend(folder);app=Application(b,WorldPort(),dict(rootNetwork='small_town'))
-            try:
-                app.bind_session('root-session');assert child in app.states
-                assert b.network.nodes[child].expose==['talk','give']
-                begin(app)
-                try:tool(app,child,business('hospital'),'birth')
-                except PermissionError:pass
-                else:raise AssertionError('Child allowed adult service')
-                finish(app,b);assert len(state(b)['actors'])==7
-            finally:b.close()
-        """)
-
-    def test_parallel_runs_budgets_failure_and_expiration(self):
-        self.case("""
-        import time,threading
-        class ParallelPort(WorldPort):
-            def __init__(self):super().__init__();self.live=0;self.peak=0;self.lock=threading.Lock()
-            def __call__(self,name,p):
-                if name=='cancel-agent' and p['actor'].endswith('/miner'):raise RuntimeError('already disconnected')
-                if name=='run':
-                    actor=p['actor']
-                    with self.lock:self.live+=1;self.peak=max(self.peak,self.live)
-                    try:
-                        time.sleep(.08)
-                        app.event(actor,'agent/pre-step',{});app.event(actor,'agent/request',{})
-                        if actor.endswith('/miner'):raise RuntimeError('simulated model failure')
-                        app.invoke(actor,'world_submit',{})
-                        return dict(session_id=self.agents[actor]['session_id'],messages=[])
-                    finally:
-                        with self.lock:self.live-=1
-                result=super().__call__(name,p)
-                if name=='create':self.agents[p['actor']]['session_id']=p['binding']['session_id']
-                return result
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);port=ParallelPort();app=Application(b,port,dict(rootNetwork='small_town',worldMaxRequests=2));app.bind_session('root-session')
-            try:
-                result=app.invoke('root','world_round',dict(action='run'))
-                assert port.peak>1 and state(b)['tick']==1
-                assert result['settlement']['unavailable']==['world/npc/miner']
-                begin(app);state(b)['barrier']['deadline']=time.time()-1
-                app.invoke('root','world_round',dict(action='settle'));assert state(b)['tick']==2
-                begin(app)
-                plugin=app.plugins['capabilities/world_runtime'];actor='world/npc/miner'
-                plugin.turns[actor]=dict(active=True,tick=2,count=2,limit=2)
-                try:app.event(actor,'agent/request',{})
-                except RuntimeError:pass
-                else:raise AssertionError('Request budget bypassed')
-                app.invoke('root','world_round',dict(action='cancel'))
-            finally:b.close()
-        """)
-
-    def test_production_trade_atomic_failure_and_checkpoint_mid_round(self):
-        self.case("""
-        with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);app=Application(b,WorldPort(),dict(rootNetwork='small_town'));app.bind_session('root-session')
-            actor='world/npc/woodcutter'
-            begin(app);tool(app,actor,business('forest'),'chop');app.invoke(actor,'world_submit',{});b.close()
-            b=Backend(folder);app=Application(b,WorldPort(),dict(rootNetwork='small_town'));app.bind_session('root-session')
-            try:
-                assert actor in state(b)['barrier']['submitted'];finish(app,b)
+                actor='world/npc/woodcutter';port.actions[actor]=(business('forest'),'chop',{})
+                result=app.invoke('root','world_run_npc',dict(target=actor));report=result['pulse']['reports'][0]
+                assert report['returned'] and report['status']=='completed'
+                assert report['layers']==[['world/time'],[actor],['world/pulse']]
+                assert [d['strength'] for d in report['deliveries']]==[2,1,0]
+                assert port.calls==[actor]
                 assert state(b)['actors'][actor]['inventory']['wood']==2
-                begin(app);move(app,actor,'shop');finish(app,b)
-                begin(app);tool(app,actor,business('shop'),'trade',side='sell',item='wood',quantity=2);finish(app,b)
-                assert state(b)['actors'][actor]['coins']==10
-                begin(app);tool(app,actor,business('shop'),'trade',side='buy',item='ore',quantity=10)
-                before=state(b)['actors'][actor]['coins'];stock=state(b)['shop']['ore']['stock'];finish(app,b)
-                assert not state(b)['results'][actor]['ok']
-                assert state(b)['actors'][actor]['coins']==before and state(b)['shop']['ore']['stock']==stock
-            finally:b.close()
+                assert state(b)['actors'][actor]['inventory']['axe']==2
+                assert state(b)['round']['outcomes'][actor]['status']=='completed'
+                assert not state(b)['round']['active']
+                assert '第1天-早' in ' '.join(port.tails[0]['texts'])
+                assert 'world_submit' not in port.tools[actor] and 'write_resident_text' not in port.tools[actor]
+                assert not b.network.nodes['world/time'].expose
+                assert not app.plugins['capabilities/text'].targets[actor]
+                assert [e.target_node_id for e in b.network.nodes[actor].read_interfaces if e.metadata.visibility=='private']==['world/time']
+                assert all(not e.metadata.channels for n in b.network.nodes.values() if getattr(n,'kind',None)=='address' for e in n.write_interfaces)
+                assert all(d['node_id'] not in [address('forest'),business('forest')] for d in report['deliveries'])
+                second=app.invoke('root','world_run_npc',dict(target=actor))
+                assert '第1天-午' in ' '.join(port.tails[1]['texts'])
+                assert second['pulse']['reports'][0]['signal']['signal_id']!=report['signal']['signal_id']
+            finally:stop(app,b)
+        """)
+
+    def test_business_range_readonly_clock_and_location_move(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                actor='world/npc/miner';reachable={n.node_id for n,_ in b.network.walk(actor,strength=2)}
+                assert business('mine') in reachable and address('smithy') in reachable
+                assert business('smithy') not in reachable
+                assert app.invoke(actor,'node_tools',dict(target='world/time',direction='write'))=='该节点并未有向你开放的工具'
+                port.actions[actor]=(address('smithy'),'move_here',{})
+                app.invoke('root','world_run_npc',dict(target=actor));assert state(b)['actors'][actor]['place']=='smithy'
+                port.actions[actor]=(business('smithy'),'repair',dict(item='pickaxe'))
+                app.invoke('root','world_run_npc',dict(target=actor))
+                assert state(b)['actors'][actor]['inventory']['pickaxe']==5
+                assert state(b)['actors'][actor]['coins']==6
+                assert business('mine') not in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
+            finally:stop(app,b)
+        """)
+
+    def test_error_is_not_normal_completion_and_siblings_continue(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                actor='world/npc/woodcutter';port.failure='world/npc/miner';port.actions[actor]=(business('forest'),'chop',{})
+                result=app.invoke('root','world_round',{})
+                assert result['pulse']['reports'][0]['status']=='partial'
+                assert result['pulse']['reports'][0]['returned']
+                assert result['settlement']['unavailable']==['world/npc/miner']
+                assert state(b)['actors'][actor]['inventory']['wood']==2
+                assert set(port.calls)==set(state(b)['actors'])
+                assert state(b)['round']['outcomes']['world/npc/miner']['status']=='unavailable'
+            finally:stop(app,b)
+        """)
+
+    def test_restore_uses_resident_time_and_rebinds_pulse_handlers(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            actor='world/npc/woodcutter'
+            try:
+                port.actions[actor]=(business('forest'),'chop',{})
+                app.invoke('root','world_run_npc',dict(target=actor))
+            finally:stop(app,b)
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                assert b.network.nodes['world/pulse'].state['sequence']==1
+                assert b.network.nodes['world/time']._read_key('content').items[0]['content']=='第1天-早'
+                result=app.invoke('root','world_run_npc',dict(target=actor))
+                assert result['pulse']['reports'][0]['returned']
+                assert b.network.nodes['world/pulse'].state['sequence']==2
+                assert '第1天-午' in ' '.join(port.tails[0]['texts'])
+            finally:stop(app,b)
+        """)
+
+    def test_birth_waits_for_next_pulse_and_has_private_clock_link(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                actor='world/npc/yue';lin='world/npc/lin'
+                # Fixture establishes the already-agreed due pregnancy; production uses place tools.
+                w=state(b);w['actors'][actor]['place']='hospital';w['pregnancies']['fixture']=dict(parents=[lin,actor],carrier=actor,due_tick=0,child=None)
+                from datanet.world.state import presence
+                presence(b,w);b.dispatch('save',{})
+                port.actions[actor]=(business('hospital'),'birth',{})
+                result=app.invoke('root','world_run_npc',dict(target=actor));child=result['settlement']['newborns'][0]
+                assert child not in port.calls and child in app.states
+                assert any(e.target_node_id=='world/time' and e.metadata.visibility=='private' for e in b.network.nodes[child].read_interfaces)
+                port.actions={};port.calls=[]
+                app.invoke('root','world_round',{})
+                assert child in port.calls and len(state(b)['actors'])==7
+            finally:stop(app,b)
         """)
 
 if __name__=='__main__':unittest.main()

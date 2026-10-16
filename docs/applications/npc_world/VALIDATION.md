@@ -1,4 +1,43 @@
-# NPC小世界验证 · 2026-10-16
+# NPC小世界验证 · 核心脉冲接线
+
+## 当前版本：2026-10-16
+
+链路为 `world/pulse → world/time → world/npc/woodcutter → world/pulse`。使用网络v4、公有 `world.tick` 信号边、NPC私有只读时间边、地图局部强度2业务权限。每次入口操作发一轮；NPC正常结束时框架自动冻结计划，无提交工具。
+
+### 离线与原生循环
+
+- `python -m unittest test_npc_world -v`：5项通过。覆盖真实图工具、地点范围、只读时间、自然完成与回环、下一时刻文本、异常分支不算完成、其他居民继续、检查点恢复、出生儿童下一轮加入。
+- `python -m unittest test_core_signals -v`：19项通过。覆盖分频道、广度分层、同层并行、等待/非等待、强度、权限、回环、失败、预算、恢复和有限脉冲。
+- `tests/native_npc_pulse_test.cjs`：真实已安装Harness服务、原生AgentLoop、工具传输和Python后端，模型替换为Mock。3次请求完成发现/砍树/自然结束；每次都先获得“第1天-早”；异常 `turn/end(error)` 不算就绪，不沿失败分支返回。未调用模型API。
+
+补充运行旧 `test_component_resolution`：3项通过、2项失败。CSV测试的类型列表未包含已加入核心的pulse；project_root预设仍为旧网络格式。这两项不属于本次NPC迁移，未修改原应用或旧测试。上述NPC5项、核心19项和原生Mock结果独立通过。
+
+### 付费单NPC端到端
+
+DeepSeek Harness 0.2.0-rc.2；deepseek-account / deepseek-flash，高思考、输出上限4096。独立工作区，`worldAllowFullRun=false`；NPC最多8次请求/90秒，总时限180秒。操作入口只调用一次 `world_run_npc`，不协助居民处理工具。
+
+| 验收项 | 实际结果 |
+|---|---|
+| 信号执行顺序 | 时间文本 → 伐木工 → 脉冲源 |
+| 时间文本 | 4次NPC请求尾部均为“第1天-早” |
+| 地点业务 | 在树林发现并调用 `chop`，随后写私人记忆并自然结束 |
+| 就绪 | 原生 `turn/end.reason.kind=completed`，无需提交工具 |
+| 脉冲 | `status=completed`，`returned=true`，源节点在NPC结束之后收到返回 |
+| 结算 | 木材2、斧头耐久2，推进到tick1，活动已关闭 |
+| 模型请求 | NPC4次，入口2次，其余5位居民均0次 |
+| 时间 | 脉冲链路约7.17秒；监控确认空闲约24.46秒 |
+| Token | 未命中输入5793，命中输入13440，输出935；合计20168 |
+
+本地证据：`build/npc-pulse-minimal-20261016/evidence.json`、`checkpoint-evidence.json`、`client-records.json`、`verify.py`。逐项断言了工具调用 → 原生正常结束 → 脉冲返回的时间顺序，以及其他居民零模型调用。证据目录不入Git，不含认证材料。
+
+测试准备时发现隔离客户端仍加载旧版Python核心，已同步该测试副本后再启动；失败的会话创建没有模型调用。监控清理限定为登记的测试session ID。没有关闭用户自己的客户端，没有运行完整世界的真实Agent。
+
+本次应用改动只涉及NPC组件和共享执行器完成判定。核心信号/PulseNode复用上一个提交；Harness适配层补充正常结束校验。第一、第二应用仍未迁移，旧记录不代表它们已兼容v4。
+
+## 历史：脉冲迁移前的验证
+
+以下对应旧版手工提交流程，仅保留历史结果，不能作为当前版本入口操作指南。
+
 
 ## 本地最小验证
 
