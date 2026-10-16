@@ -177,3 +177,25 @@ world_resident 工具箱移除 node_list、node_tools、node_invoke；保留 wor
 ```
 
 node_read 保留给成人家庭知识等 reference_only 资料；其工具描述未改。
+
+## 自动保持在上下文中的小镇地图（2026-10-16）
+
+来源：extensions/npc_world/network_presets/small_town/MAP.md；kind=context，居民和儿童共用。新增原文如下：
+
+```text
+# 小镇地图
+
+道路均可双向通行。
+
+| 地点 | 相邻地点 |
+|---|---|
+| 民政局 | 酒馆 |
+| 酒馆 | 民政局、居民楼1、居民楼2、铁匠铺、商店 |
+| 居民楼1 | 酒馆、医院 |
+| 居民楼2 | 酒馆、医院 |
+| 铁匠铺 | 酒馆、矿坑 |
+| 商店 | 酒馆、树林 |
+| 矿坑 | 铁匠铺 |
+| 树林 | 商店 |
+| 医院 | 居民楼1、居民楼2 |
+```

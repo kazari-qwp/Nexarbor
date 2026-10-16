@@ -59,7 +59,7 @@ class WorldTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
-                assert len(b.network.nodes)==48 and not port.calls
+                assert len(b.network.nodes)==49 and not port.calls
                 assert not any('start' in k or 'settle' in k for k in b.network.nodes)
                 assert 'world_init' not in b.components.routes and 'world_settle' not in b.components.routes
                 assert 'npc_world' not in b.extension_state
@@ -321,6 +321,7 @@ class WorldTests(unittest.TestCase):
                 app.plugins['capabilities/context_assembly'].assemble(child)
                 assert any('你住在居民楼1。' in section['text'] for section in app.view(child)['sections'])
                 assert any('# 小镇常识（只读）' in section['text'] for section in app.view(child)['sections'])
+                assert any(who==child and '# 小镇地图' in text for (who,doc),text in port.docs.items())
             finally:stop(app,b)
         """)
 
@@ -331,7 +332,7 @@ class WorldTests(unittest.TestCase):
             actor='world/npc/woodcutter'
             try:
                 stable=app.state(actor)['prompt'];matcher=app.plugins['capabilities/context_assembly']
-                first=matcher.assemble(actor);assert len(first['sources'][0]['loaded'])==3
+                first=matcher.assemble(actor);assert len(first['sources'][0]['loaded'])==4
                 system='\\n'.join(section['text'] for section in app.view(actor)['sections'])
                 assert system.count('# 小镇常识（只读）')==1
                 assert '本世界的居民不需要睡觉' in system
@@ -341,6 +342,11 @@ class WorldTests(unittest.TestCase):
                 else:raise AssertionError('redundant common read grant remains')
                 family=app.invoke(actor,'node_read',dict(target='world/knowledge/life/family',request=dict(method='key',key='content')))
                 assert '结婚需' in family['items'][0]['content']
+                assert not matcher.assemble(actor)['sources'][0]['loaded']
+                key=next(key for key,text in port.docs.items() if key[0]==actor and '# 小镇地图' in text)
+                assert '矿坑 | 铁匠铺' in port.docs[key]
+                port.docs.pop(key) # Simulate a document removed by native compaction.
+                assert matcher.assemble(actor)['sources'][0]['loaded']==['world-map']
                 assert not matcher.assemble(actor)['sources'][0]['loaded']
                 saved=b.modules.unmount(actor+'/context','context.sources')
                 assert not matcher.assemble(actor)['sources']

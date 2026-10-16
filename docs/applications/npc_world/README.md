@@ -75,3 +75,5 @@ NPC 的三步响应为 collect_information → assemble_tools → run_agent。�
 NPC 工具箱已移除 node_list/node_tools/node_invoke；移动、业务和交谈只使用装配后的直接入口。world_look、world_messages、node_read 和私人记忆工具保留，知识正文与交谈仍可按需读取。其他应用的网络访问工具不受影响。
 
 世界常识已作为 context.sources 的 system_prompt 来源自动加载（居民与出生模板一致），正文沿用 COMMON.md。只有上下文子节点保留到 world/common 的私有读取连接，NPC 无需读取它；world_look 不再返回常识查询引用。node_read 保留给仍按需披露的成人家庭知识。
+
+完整小镇地图为共享只读文本 world/map，由居民和儿童上下文节点的 world-map 来源以 context 通道加载。沿用原生文档加载标记，连续请求不重复注入，文档缺失时再补回；不需要 NPC 查询地图，也不改变移动/业务权限。初始道路表见 network_presets/small_town/MAP.md。
