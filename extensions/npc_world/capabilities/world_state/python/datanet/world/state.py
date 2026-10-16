@@ -4,6 +4,7 @@ from datanet.core.interface import Interface
 from datanet.components.nodes.text_file_node.text_file_node import TextFileNode
 from datanet.core.pulse_node import PulseNode
 from datanet.world.nodes import WorldNode,Resident
+from datanet.world import profiles
 
 
 SLOTS=('早上','中午','下午','傍晚','午夜')
@@ -37,6 +38,7 @@ def presence(b,w):
         edge(b,actor,'world/common',('read',))
         n.read_interfaces.append(Interface('world/time',{'threshold':1,'visibility':'private'}))
         n.write_interfaces.append(Interface('world/pulse',{'threshold':1,'channels':['world.tick']}))
+    profiles.sync(b,w)
 
 def create_resident(b,actor,a):
     if actor not in b.network.nodes:
@@ -48,7 +50,9 @@ def create_resident(b,actor,a):
 
 def initialize(b,p):
     if p.get('actor')!='root':raise PermissionError('Only the world operator initializes the map')
-    if state(b):return dict(existing=True,clock=clock(state(b)['tick']))
+    if state(b):
+        b.network.nodes['world/common'].write('content',p['common'])
+        return dict(existing=True,clock=clock(state(b)['tick']))
     config=deepcopy(p['config'])
     w=dict(tick=0,config=config,actors={},round={},intents={},results={},events=[],pregnancies={},families=[],
            shop=deepcopy(config['shop']),smith_stock=deepcopy(config['smith_stock']),last_settled=None)
@@ -61,7 +65,7 @@ def initialize(b,p):
     common=TextFileNode('world/common','世界常识','text',path,description='小镇公开规则，只读。');common.expose=['read'];b.network.add_node(common)
     for spec in config['npcs']:
         actor='world/npc/'+spec['id']
-        a={**deepcopy(spec),'coins':spec.get('coins',8),'stamina':5,'inventory':deepcopy(spec.get('inventory',{})),'spouse':None,'children':[],'born_tick':-1,'inbox':[]}
+        a={**deepcopy(spec),'gender':spec.get('gender','unspecified'),'coins':spec.get('coins',8),'stamina':5,'inventory':deepcopy(spec.get('inventory',{})),'spouse':None,'children':[],'born_tick':-1,'inbox':[]}
         w['actors'][actor]=a;create_resident(b,actor,a)
     b.network.add_node(PulseNode('world/pulse','世界脉冲',channels=['world.tick'],strength=3,signal_options={'failure_policy':'continue','max_hops':3,'node_timeout_seconds':120}))
     time_node=TextFileNode('world/time','时间','text',b.directory/'world'/'time.md',delivery='resident')
@@ -78,11 +82,11 @@ def look(b,p):
     neighbors=[y if x==place else x for x,y in w['config']['roads'] if place in (x,y)]
     names={x['id']:x['name'] for x in w['config']['places']}
     due=[dict(id=k,due=clock(v['due_tick']),ready=w['tick']>=v['due_tick']) for k,v in w['pregnancies'].items() if v['carrier']==p['actor'] and not v.get('child')]
-    return dict(clock=clock(w['tick']),self={k:deepcopy(a[k]) for k in ('name','role','coins','stamina','inventory','spouse','children')},
+    return dict(clock=clock(w['tick']),self={k:deepcopy(a[k]) for k in ('name','gender','role','coins','stamina','inventory','spouse','children')},
                 location=dict(id=address(place),name=names[place],service=business(place)),
                 neighbors=[dict(id=address(x),name=names[x]) for x in neighbors],
                 people=[dict(id=k,name=v['name']) for k,v in w['actors'].items() if k!=p['actor'] and v['place']==place],
-                common='world/common',pregnancies=due,last_result=deepcopy(w['results'].get(p['actor'])),
+                common='world/common',knowledge=profiles.references(b,w,p['actor']),pregnancies=due,last_result=deepcopy(w['results'].get(p['actor'])),
                 pending_action=deepcopy(w['intents'].get(p['actor'])),finished=p['actor'] in w['round'].get('outcomes',{}))
 
 def messages(b,p):
@@ -127,10 +131,15 @@ def complete(b,p):
     r['outcomes'][target]=outcome
     return deepcopy(outcome)
 
+def configure_knowledge(b,p):
+    if p.get('actor')!='root':raise PermissionError('Only the operator may configure identity knowledge')
+    return profiles.configure(b,state(b),p['profiles'])
+
+
 def observe(b,p):
     if p.get('actor')!='root':raise PermissionError('Operator view is private')
     return deepcopy(state(b))
 
 def register(s):
-    for name,fn,mutation in [('init',initialize,True),('look',look,False),('messages',messages,True),('prepare_pulse',prepare,True),('open_pulse',open_pulse,True),('complete_pulse_actor',complete,True),('observe',observe,False)]:
+    for name,fn,mutation in [('init',initialize,True),('configure_knowledge',configure_knowledge,True),('look',look,False),('messages',messages,True),('prepare_pulse',prepare,True),('open_pulse',open_pulse,True),('complete_pulse_actor',complete,True),('observe',observe,False)]:
         s.rpc('world_'+name,fn,mutation=mutation)

@@ -46,3 +46,7 @@
 > 这是行动计划；本次活动结束时自动确定，随后统一结算。
 
 共享执行器的非正常结束诊断（由框架返回，非角色提示词）：`Host did not confirm normal Agent completion`；Harness无本次结束事件时报 `AGENT_EXECUTION_INCOMPLETE: No turn completion was recorded`，非正常结束时报 `AGENT_EXECUTION_NOT_COMPLETED: <kind> <error.message>`。
+
+## 分层身份知识更新
+
+职业和孕期说明已从通用文档分离。全部新增原文、逐文件链接与匹配说明见[分层身份知识审阅](LAYERED_KNOWLEDGE_REVIEW.md)。本轮工具描述未改。

@@ -34,6 +34,8 @@ const base=productRoot;
    assert.ok(!options.tools.some(t=>(t.function?.name??t.name)==='world_submit'));
    const texts=options.messages.flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).join('\n');
    assert.ok(texts.includes('第1天-早'),'time text must be admitted before the first NPC request');
+   assert.ok(texts.includes('你是一位伐木工') && texts.includes('你是一位男性居民'));
+   assert.ok(!texts.includes('你目前正在怀孕') && !texts.includes('预产时刻'));
    const calls=options.messages.filter(m=>m.role==='assistant').flatMap(m=>m.content.filter(b=>b.type==='tool-call'));
    const last=calls.at(-1)?.name;
    const call=!last?{name:'node_tools',arguments:{target:'world/service/forest',direction:'write'}}:last==='node_tools'?{name:'node_invoke',arguments:{target:'world/service/forest',tool:'chop',arguments:{},direction:'write'}}:null;

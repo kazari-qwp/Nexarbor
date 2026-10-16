@@ -4,6 +4,7 @@ import json
 from threading import Lock,Thread
 from datanet.core.application import Component
 from datanet.world.state import state,clock
+from datanet.world import profiles
 
 class Plugin(Component):
     def install(self):
@@ -18,16 +19,21 @@ class Plugin(Component):
         if self.r.config.get('rootNetwork')!='small_town':return
         owner='network_presets/small_town'
         self.r.rpc('world_init',actor='root',config=self.r.resource(owner,'town.json',True),common=self.r.resource(owner,'COMMON.md'))
+        catalog=self.r.resource('nodes/resident_knowledge','profiles.json',True)
+        self.r.rpc('world_configure_knowledge',actor='root',profiles=[dict(p,content=self.r.resource('nodes/resident_knowledge',p['file'])) for p in catalog])
         self.r.rpc('bind_agent',target='root',session_id=e['session_id'],kind='root',manager_id=None,creator_node_id=None)
         e['view']=self.r.bind('root',e['session_id'],'world_operator',self.r.resolve(['world_operator']),self.r.resource(owner,'prompt.md'))
         self.mount()
 
     def mount(self):
         for actor,a in list(state(self.r.backend)['actors'].items()):
-            if actor in self.r.states:continue
             owner='nodes/npc_child' if a['role']=='child' else 'nodes/npc_resident'
             prompt=self.r.resource(owner,'prompt.md')+'\n你的名字：'+a['name']+'。你的初始打算：'+a['goal']
             if a.get('background'):prompt+='\n'+a['background']
+            prompt+='\n\n'+profiles.prompt(self.r.backend,state(self.r.backend),actor)
+            if actor in self.r.states:
+                if self.r.state(actor)['prompt']!=prompt:self.r.plugins['capabilities/agent_runtime'].update_prompt('root',actor,prompt)
+                continue
             old=self.r.backend.agents.get(actor)
             self.r.plugins['capabilities/agent_runtime'].create(actor,prompt,'root',2,['world_resident'],'npc_child' if a['role']=='child' else 'npc_resident',binding=old,resume=old is not None)
             self.r.rpc('agent_progress',target=actor,kind='world_npc')

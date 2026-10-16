@@ -143,7 +143,7 @@ def apply(w,actor,intent,actions,handled):
         child='world/npc/child-'+pid
         name='小芽'+str(len(w['pregnancies']))
         parents=pregnancy['parents'];background='你的父母是'+ '、'.join(w['actors'][x]['name'] for x in parents)+'。你刚在医院出生，已经能说话。'
-        w['actors'][child]=dict(id=child.rsplit('/',1)[-1],name=name,place='hospital',role='child',goal='认识家人和小镇，在安全场所休息、交流。',background=background,parents=parents,coins=0,stamina=5,inventory={},spouse=None,children=[],born_tick=w['tick'],inbox=[])
+        w['actors'][child]=dict(id=child.rsplit('/',1)[-1],name=name,place='hospital',role='child',gender='unspecified',goal='认识家人和小镇，在安全场所休息、交流。',background=background,parents=parents,coins=0,stamina=5,inventory={},spouse=None,children=[],born_tick=w['tick'],inbox=[])
         pregnancy['child']=child
         for parent in parents:w['actors'][parent]['children'].append(child)
         return '孩子已出生：'+child+'；下一时刻加入。'

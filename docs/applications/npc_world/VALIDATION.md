@@ -6,13 +6,17 @@
 
 ### 离线与原生循环
 
-- `python -m unittest test_npc_world -v`：5项通过。覆盖真实图工具、地点范围、只读时间、自然完成与回环、下一时刻文本、异常分支不算完成、其他居民继续、检查点恢复、出生儿童下一轮加入。
+- `python -m unittest test_npc_world -v`：当前7项通过。原5项脉冲/业务场景继续通过，新增身份知识私有权限及生命周期场景：男性/女性/职业分别匹配、性别与孕育能力独立、同职业共享文本、强度100也不越过他人的私有知识边、移动保留职业、孕期/父母身份变化、恢复及提示未变不更新。
 - `python -m unittest test_core_signals -v`：19项通过。覆盖分频道、广度分层、同层并行、等待/非等待、强度、权限、回环、失败、预算、恢复和有限脉冲。
-- `tests/native_npc_pulse_test.cjs`：真实已安装Harness服务、原生AgentLoop、工具传输和Python后端，模型替换为Mock。3次请求完成发现/砍树/自然结束；每次都先获得“第1天-早”；异常 `turn/end(error)` 不算就绪，不沿失败分支返回。未调用模型API。
+- `tests/native_npc_pulse_test.cjs`：真实已安装Harness服务、原生AgentLoop、工具传输和Python后端，模型替换为Mock。3次请求完成发现/砍树/自然结束；每次都先获得“第1天-早”；异常 `turn/end(error)` 不算就绪，不沿失败分支返回。同时确认实际NPC模型请求包含男性/伐木工描述、不含无关孕期说明。未调用模型API。
 
 补充运行旧 `test_component_resolution`：3项通过、2项失败。CSV测试的类型列表未包含已加入核心的pulse；project_root预设仍为旧网络格式。这两项不属于本次NPC迁移，未修改原应用或旧测试。上述NPC5项、核心19项和原生Mock结果独立通过。
 
-### 付费单NPC端到端
+本次分层身份更新没有改核心或Harness适配层，也没有新增Agent工具。复用普通文本、私有读边和既有原生系统提示更新；职业及状态内容来自纯配置/文档组件。原文与地址见[LAYERED_KNOWLEDGE_REVIEW](LAYERED_KNOWLEDGE_REVIEW.md)。
+
+### 此前的付费单NPC端到端
+
+以下付费验证发生在分层身份更新之前；分层更新使用上述本地与原生Mock验证，没有再调用付费API。
 
 DeepSeek Harness 0.2.0-rc.2；deepseek-account / deepseek-flash，高思考、输出上限4096。独立工作区，`worldAllowFullRun=false`；NPC最多8次请求/90秒，总时限180秒。操作入口只调用一次 `world_run_npc`，不协助居民处理工具。
 
