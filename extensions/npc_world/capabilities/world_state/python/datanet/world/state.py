@@ -14,6 +14,19 @@ def clock(tick):return dict(tick=tick,day=tick//5+1,slot=SLOTS[tick%5])
 
 def state(b):return b.extension_state.get('npc_world')
 
+def home_of(w,actor):return next((place for place,members in w['housing'].items() if actor in members),None)
+
+def may_rest(w,actor,place):return actor in w['housing'].get(place,[])
+
+def place_metadata(b,node_id):
+    w=state(b);node=b.network.nodes.get(node_id)
+    if not w or not isinstance(node,WorldNode):return {}
+    value=dict(place_id=node.place)
+    if node.place in w['housing']:
+        value['residents']=[dict(node_id=actor,name=w['actors'][actor]['name']) for actor in w['housing'][node.place]]
+    if node.place=='smithy':value['materials']=deepcopy(w['smith_stock'])
+    return value
+
 def require(b,actor):
     w=state(b)
     if not w or actor not in w['actors']:raise PermissionError('Not a world resident')
@@ -59,6 +72,11 @@ def initialize(b,p):
     config=deepcopy(p['config'])
     w=dict(tick=0,config=config,actors={},round={},intents={},results={},events=[],pregnancies={},families=[],
            shop=deepcopy(config['shop']),smith_stock=deepcopy(config['smith_stock']),last_settled=None)
+    w['housing']={place:['world/npc/'+person for person in members] for place,members in config['households'].items()}
+    residents=[person for members in w['housing'].values() for person in members]
+    valid={'world/npc/'+person['id'] for person in config['npcs']}
+    if len(residents)!=len(set(residents)) or not set(residents)<=valid:raise ValueError('Invalid or duplicate household residents')
+    if any(place not in {'home1','home2'} for place in w['housing']):raise ValueError('Households require residential places')
     for place in config['places']:
         b.network.add_node(WorldNode(address(place['id']),place['name'],place=place['id'],kind='address',description=place['name']+'入口'))
         b.network.add_node(WorldNode(business(place['id']),place['name']+'服务',place=place['id'],kind='business',description='本场所业务'))
@@ -152,6 +170,7 @@ def install_metadata(b):
     if 'capabilities/node_metadata' in b.components.enabled:
         from datanet.abilities.node_metadata.services import register_provider
         register_provider(b,'npc',lambda actor:profiles.base_attributes(state(b),actor) if state(b) and actor in state(b)['actors'] else {})
+        register_provider(b,'place',lambda node_id:place_metadata(b,node_id),public=True)
 
 
 def register(s):

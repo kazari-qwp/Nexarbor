@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 from datanet.core.access_budget import active_agent,current_access
 from datanet.world.nodes import WorldNode,Resident
-from datanet.world.state import state,require,address,business,clock,presence,create_resident
+from datanet.world.state import state,require,address,business,clock,presence,create_resident,home_of,may_rest
 
 TOOLS=json.loads((Path(__file__).resolve().parents[3]/'tools.json').read_text(encoding='utf-8'))
 ADULT={'marry','plan_family','repair','trade','mine','chop','birth','drink','give'}
@@ -49,6 +49,7 @@ def invoke(b,node,name,args):
         return info
     active(w,actor)
     if a['role']=='child' and name in ADULT:raise PermissionError('Children may move, talk and rest')
+    if name=='rest' and not may_rest(w,actor,node.place):raise PermissionError('只能在自己登记居住的居民楼休息。')
     if name=='talk':
         own=[e for e in w['events'] if e.get('tick')==w['tick'] and e.get('actor')==actor and e.get('type')=='talk']
         if len(own)>=3:raise ValueError('At most three conversations per time slot')
@@ -105,7 +106,9 @@ def apply(w,actor,intent,actions,handled):
             message='生育计划已登记，预产：'+str(clock(w['tick']+10))
         handled.add(partner);w['results'][partner]=dict(ok=True,message=message,tick=w['tick'])
         return message
-    if kind=='rest':a['stamina']=min(5,a['stamina']+3);return '休息后体力恢复。'
+    if kind=='rest':
+        if not may_rest(w,actor,a['place']):raise ValueError('只能在自己登记居住的居民楼休息。')
+        a['stamina']=min(5,a['stamina']+3);return '休息后体力恢复。'
     if kind=='drink':take(a,'coins',1);a['stamina']=min(5,a['stamina']+1);return '饮料花费1金币，恢复1体力。'
     if kind in ('mine','chop'):
         tool,resource=('pickaxe','ore') if kind=='mine' else ('axe','wood')
@@ -144,6 +147,8 @@ def apply(w,actor,intent,actions,handled):
         name='小芽'+str(len(w['pregnancies']))
         parents=pregnancy['parents'];background='你的父母是'+ '、'.join(w['actors'][x]['name'] for x in parents)+'。你刚在医院出生，已经能说话。'
         w['actors'][child]=dict(id=child.rsplit('/',1)[-1],name=name,place='hospital',role='child',gender='unspecified',goal='认识家人和小镇，在安全场所休息、交流。',background=background,parents=parents,coins=0,stamina=5,inventory={},spouse=None,children=[],born_tick=w['tick'],inbox=[])
+        home=home_of(w,pregnancy['carrier']) or next((home_of(w,parent) for parent in parents if home_of(w,parent)),None)
+        if home:w['housing'][home].append(child)
         pregnancy['child']=child
         for parent in parents:w['actors'][parent]['children'].append(child)
         return '孩子已出生：'+child+'；下一时刻加入。'

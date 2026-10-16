@@ -3,7 +3,7 @@ import asyncio
 import json
 from threading import Lock,Thread
 from datanet.core.application import Component
-from datanet.world.state import state,clock
+from datanet.world.state import state,clock,home_of
 from datanet.world import profiles
 from datanet.core.json_values import freeze
 
@@ -34,6 +34,10 @@ class Plugin(Component):
             owner='nodes/npc_child' if a['role']=='child' else 'nodes/npc_resident'
             file='personality.md' if a['role']=='child' else 'personalities/'+actor.rsplit('/',1)[-1]+'.md'
             sources.append(dict(id='personality',kind='system_prompt',source=dict(type='resource',component=owner,file=file)))
+            if a['role']=='child':
+                home=home_of(state(self.r.backend),actor)
+                residence='你住在'+next(x['name'] for x in state(self.r.backend)['config']['places'] if x['id']==home)+'。' if home else '你目前没有登记住处。'
+                sources.append(dict(id='residence',kind='system_prompt',source=dict(type='text',text=residence)))
             for spec in state(self.r.backend).get('knowledge_catalog',[]):
                 sources.append(dict(id=spec['node_id'],name=spec['name'],kind='context',when=spec['when'],reference_only=spec['delivery']=='query',source=dict(type='node',target=spec['node_id'])))
             assembler.configure(node_id,sources)

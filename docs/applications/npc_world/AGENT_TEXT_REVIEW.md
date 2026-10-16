@@ -1,3 +1,5 @@
+最新住所、休息权限及场所元数据文案见[本轮完整原文](HOUSING_REVIEW.md)。
+
 当前新增文案以[四类输入与人格审阅](CONTEXT_ASSEMBLY_REVIEW.md)为准。下列历次记录中，旧match_prompts工具已删除，旧常驻文本尾部机制已被装配器替代。
 
 # 本次 Agent 文档与工具描述原文

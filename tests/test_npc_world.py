@@ -76,6 +76,8 @@ class WorldTests(unittest.TestCase):
                 app.invoke('root','world_run_npc',dict(target=actor))
                 assert state(b)['actors'][actor]['inventory']['pickaxe']==5
                 assert state(b)['actors'][actor]['coins']==6
+                assert b.network.get_metadata(address('smithy'))['extensions']['place']['materials']=={'wood':7,'ore':7}
+                assert b.network.get_metadata(business('smithy'))['extensions']['place']['materials']=={'wood':7,'ore':7}
                 assert business('mine') not in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
             finally:stop(app,b)
         """)
@@ -129,6 +131,9 @@ class WorldTests(unittest.TestCase):
                 port.actions[actor]=(business('hospital'),'birth',{})
                 result=app.invoke('root','world_run_npc',dict(target=actor));child=result['settlement']['newborns'][0]
                 assert child not in port.calls and child in app.states
+                assert child in state(b)['housing']['home1']
+                assert child in [entry['node_id'] for entry in b.network.get_metadata(address('home1'))['extensions']['place']['residents']]
+                assert any('你住在居民楼1。' in section['text'] for section in (app.plugins['capabilities/context_assembly'].assemble(child),app.view(child))[1]['sections'])
                 assert any(e.target_node_id==child+'/context' and e.metadata.visibility=='private' for e in b.network.nodes[child].read_interfaces)
                 port.actions={};port.calls=[]
                 app.invoke('root','world_round',{})
@@ -249,6 +254,81 @@ class WorldTests(unittest.TestCase):
                 current=app.rpc('context_assembly_get',target=actor,node_id=actor+'/context')['current']['metadata']
                 assert current['extensions']['npc']['temperament']=='cautious' and current['extensions']['npc']['role']=='miner'
                 assert not hasattr(b.network.nodes[actor],'temperament') and 'temperament' not in state(b)['actors'][actor]
+            finally:stop(app,b)
+        """)
+
+    def test_household_metadata_is_public_live_and_persistent(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                expected={'home1':{'world/npc/lin','world/npc/yue'},'home2':{'world/npc/woodcutter','world/npc/miner','world/npc/smith'}}
+                for home,members in expected.items():
+                    for target in (address(home),business(home)):
+                        values=b.network.get_metadata(target)['extensions']['place']['residents']
+                        assert {entry['node_id'] for entry in values}==members
+                        assert 'world/npc/wanderer' not in {entry['node_id'] for entry in values}
+                # This is registered residency, even while residents are elsewhere.
+                assert state(b)['actors']['world/npc/miner']['place']=='mine'
+                from datanet.world.state import presence
+                state(b)['actors']['world/npc/miner']['place']='home1';presence(b,state(b))
+                nodes=app.invoke('world/npc/miner','node_list',{})['items']
+                home=next(n for n in nodes if n['node_id']==address('home1'))
+                assert {v['name'] for v in home['extensions']['place']['residents']}=={'林舟','月宁'}
+                assert not hasattr(b.network.nodes[address('home1')],'residents')
+                assert b.network.get_metadata(address('smithy'))['extensions']['place']['materials']=={'wood':8,'ore':8}
+                b.dispatch('save',{})
+            finally:stop(app,b)
+            b=Backend(folder)
+            try:
+                assert {v['node_id'] for v in b.network.get_metadata(address('home2'))['extensions']['place']['residents']}==expected['home2']
+                assert b.network.get_metadata(business('smithy'))['extensions']['place']['materials']=={'wood':8,'ore':8}
+            finally:b.close()
+        """)
+
+    def test_rest_requires_own_home_but_visit_and_passage_remain_allowed(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            from datanet.world.state import presence,may_rest
+            actor='world/npc/miner';w=state(b)
+            try:
+                w['actors'][actor]['place']='tavern';w['actors'][actor]['stamina']=1;presence(b,w)
+                port.actions[actor]=(address('home1'),'move_here',{})
+                result=app.invoke('root','world_run_npc',dict(target=actor));assert state(b)['actors'][actor]['place']=='home1'
+                b.dispatch('world_prepare_pulse',dict(actor='root',targets=[actor]));b.dispatch('world_open_pulse',dict(actor='root',signal_id='rest-permission'))
+                app.invoke(actor,'node_tools',dict(target=business('home1'),direction='write'))
+                try:app.invoke(actor,'node_invoke',dict(target=business('home1'),tool='rest',direction='write',arguments={}))
+                except PermissionError as error:assert '自己登记居住' in str(error)
+                else:raise AssertionError('Visitor rested in another household')
+                assert actor not in state(b)['intents'] and state(b)['actors'][actor]['stamina']==1
+                app.invoke(actor,'node_tools',dict(target=address('hospital'),direction='write'))
+                app.invoke(actor,'node_invoke',dict(target=address('hospital'),tool='move_here',direction='write',arguments={}))
+                assert state(b)['intents'][actor]['destination']=='hospital'
+                assert not may_rest(state(b),'world/npc/wanderer','home1') and not may_rest(state(b),'world/npc/wanderer','home2')
+                assert 'rest' not in b.network.nodes[business('hospital')].expose
+            finally:stop(app,b)
+        """)
+
+    def test_own_home_rest_is_checked_again_at_settlement(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            from datanet.world.state import presence
+            actor='world/npc/miner'
+            try:
+                w=state(b);w['actors'][actor]['place']='home2';w['actors'][actor]['stamina']=1;presence(b,w)
+                port.actions[actor]=(business('home2'),'rest',{})
+                result=app.invoke('root','world_run_npc',dict(target=actor))
+                assert result['settlement']['results'][actor]['ok'] and state(b)['actors'][actor]['stamina']==4
+                b.dispatch('world_prepare_pulse',dict(actor='root',targets=[actor]));b.dispatch('world_open_pulse',dict(actor='root',signal_id='rest-recheck'))
+                app.invoke(actor,'node_tools',dict(target=business('home2'),direction='write'))
+                app.invoke(actor,'node_invoke',dict(target=business('home2'),tool='rest',direction='write',arguments={}))
+                state(b)['housing']['home2'].remove(actor)
+                b.dispatch('world_complete_pulse_actor',dict(actor='root',target=actor,signal_id='rest-recheck',status='completed'))
+                result=b.dispatch('world_settle',dict(actor='root'))
+                assert not result['results'][actor]['ok'] and state(b)['actors'][actor]['stamina']==4
+                assert actor not in [v['node_id'] for v in b.network.get_metadata(business('home2'))['extensions']['place']['residents']]
             finally:stop(app,b)
         """)
 
