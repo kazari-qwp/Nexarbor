@@ -111,6 +111,26 @@ class JournalTests(unittest.TestCase):
             with self.assertRaises(ValueError):b.dispatch('persistence_checkpoint',args)
             b.close()
 
+    def test_full_request_is_durable_until_consistent_point_and_does_not_duplicate_cursors(self):
+        with tempfile.TemporaryDirectory() as folder:
+            s=Checkpoints(Path(folder));s.commit({'n':0})
+            contexts={'agent':{'session':'native','seq':7}}
+            first=s.mark(contexts,reuse=True)
+            s.commit({'n':1},force_snapshot=True)
+            self.assertTrue(s.stats()['full_snapshot_requested']);s.close()
+            s=Checkpoints(Path(folder));self.assertTrue(s.stats()['full_snapshot_requested'])
+            s.commit({'n':2}) # Late internal changes before native tool results become durable.
+            with self.assertRaises(RuntimeError):s.mark(contexts,expected_commit=1,reuse=True)
+            self.assertTrue(s.stats()['full_snapshot_requested'])
+            point=s.mark(contexts,expected_commit=s.head,reuse=True)
+            self.assertEqual(point['kind'],'full');self.assertEqual(s.read(point['commit_id']),{'n':2})
+            self.assertFalse(s.stats()['full_snapshot_requested']);self.assertEqual(s.stats()['executor_cursor_count'],1)
+            self.assertEqual(s.mark(contexts,reuse=True)['id'],point['id'])
+            # A full request with no changes can reuse a confirmed full point.
+            s.commit({'n':2},force_snapshot=True)
+            self.assertEqual(s.mark(contexts,reuse=True)['id'],point['id'])
+            self.assertFalse(s.stats()['full_snapshot_requested']);s.close()
+
     def test_legacy_database_is_explicitly_rejected_and_lock_released(self):
         with tempfile.TemporaryDirectory() as folder:
             file=Path(folder)/'checkpoints.sqlite3';db=sqlite3.connect(file);db.execute('CREATE TABLE checkpoints(id INTEGER PRIMARY KEY,document TEXT)');db.commit();db.close()

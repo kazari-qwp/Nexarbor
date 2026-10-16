@@ -50,11 +50,11 @@
           "channels": [
             "world.tick"
           ],
-          "strength": 3,
+          "strength": 4,
           "content": null,
           "signal_options": {
             "failure_policy": "continue",
-            "max_hops": 3,
+            "max_hops": 4,
             "node_timeout_seconds": 120
           },
           "state": {
@@ -88,6 +88,51 @@
         "execution": null,
         "inputs": null,
         "modules": {}
+      },
+      {
+        "type": "node",
+        "node_id": "world/savepoint",
+        "name": "五轮存档点",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "read_interfaces": [],
+          "write_interfaces": [
+            {
+              "target_node_id": "world/pulse",
+              "metadata": {
+                "visibility": "public",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "world.tick"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "modules": {
+          "checkpoint.counter": {
+            "config": {
+              "channels": [
+                "world.tick"
+              ],
+              "interval": 5
+            },
+            "state": {
+              "count": 0
+            }
+          }
+        }
       },
       {
         "type": "text_file",
@@ -2272,7 +2317,6 @@
                   }
                 },
                 "common": "world/common",
-                "pulse": "world/pulse",
                 "channels": [
                   "world.tick"
                 ],
@@ -2287,7 +2331,8 @@
                       "attributes": {}
                     }
                   }
-                ]
+                ],
+                "signal_return": "world/savepoint"
               }
             },
             "state": {}
@@ -2357,7 +2402,7 @@
               }
             },
             {
-              "target_node_id": "world/pulse",
+              "target_node_id": "world/savepoint",
               "metadata": {
                 "visibility": "public",
                 "threshold": 1,
@@ -2862,7 +2907,7 @@
               }
             },
             {
-              "target_node_id": "world/pulse",
+              "target_node_id": "world/savepoint",
               "metadata": {
                 "visibility": "public",
                 "threshold": 1,
@@ -3368,7 +3413,7 @@
               }
             },
             {
-              "target_node_id": "world/pulse",
+              "target_node_id": "world/savepoint",
               "metadata": {
                 "visibility": "public",
                 "threshold": 1,
@@ -3874,7 +3919,7 @@
               }
             },
             {
-              "target_node_id": "world/pulse",
+              "target_node_id": "world/savepoint",
               "metadata": {
                 "visibility": "public",
                 "threshold": 1,
@@ -4380,7 +4425,7 @@
               }
             },
             {
-              "target_node_id": "world/pulse",
+              "target_node_id": "world/savepoint",
               "metadata": {
                 "visibility": "public",
                 "threshold": 1,
@@ -4884,7 +4929,7 @@
               }
             },
             {
-              "target_node_id": "world/pulse",
+              "target_node_id": "world/savepoint",
               "metadata": {
                 "visibility": "public",
                 "threshold": 1,

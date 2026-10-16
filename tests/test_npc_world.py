@@ -54,7 +54,7 @@ class WorldTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
-                assert len(b.network.nodes)==47 and not port.calls
+                assert len(b.network.nodes)==48 and not port.calls
                 assert not any('start' in k or 'settle' in k for k in b.network.nodes)
                 assert 'world_init' not in b.components.routes and 'world_settle' not in b.components.routes
                 assert 'npc_world' not in b.extension_state
@@ -81,13 +81,70 @@ class WorldTests(unittest.TestCase):
                 port.during=during
                 result=app.invoke('root','world_run_npc',dict(target=actor));report=result['pulse']['reports'][0]
                 assert report['returned'] and report['status']=='completed'
-                assert report['layers']==[['world/time'],[actor],['world/pulse']]
+                assert report['layers']==[['world/time'],[actor],['world/savepoint'],['world/pulse']]
                 assert instance(b,actor,'agent.signal').state['status']=='completed'
                 assert 'settlement' not in result and '第1天-早' in ' '.join(port.tails[0]['texts'])
                 assert 'world_submit' not in port.tools[actor] and not b.network.nodes['world/time'].expose
                 port.actions={};port.during=None
                 app.invoke('root','world_run_npc',dict(target=actor))
                 assert '第1天-午' in ' '.join(port.tails[1]['texts'])
+            finally:stop(app,b)
+        """)
+
+    def test_five_signal_savepoint_fanin_restart_and_duplicate(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            actor='world/npc/miner'
+            try:
+                for _ in range(4):app.invoke('root','world_run_npc',dict(target=actor))
+                assert instance(b,'world/savepoint','checkpoint.counter').state['count']==4
+                assert not b.store.stats()['full_snapshot_requested']
+            finally:stop(app,b)
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                before=b.store.stats()['full_snapshot_count']
+                result=instance(b,'root','scene.operator').run([actor,'world/npc/woodcutter'],30)
+                report=result['pulse']['reports'][0]
+                assert report['returned'] and report['layers'][2]==['world/savepoint']
+                counter=instance(b,'world/savepoint','checkpoint.counter')
+                assert counter.state['count']==5 and b.store.stats()['full_snapshot_requested']
+                assert b.store.stats()['full_snapshot_count']>before
+                duplicate=b.dispatch('node_savepoint_arrive',dict(target='world/savepoint',signal_id=counter.state['last_signal']))
+                assert duplicate==dict(count=5,reused=True)
+                info=b.dispatch('persistence_info',{})
+                point=b.dispatch('persistence_checkpoint',dict(expected_commit=info['commit_id'],bindings=info['bindings'],contexts={k:dict(session_id=v) for k,v in info['bindings'].items()}))
+                assert point['kind']=='full' and not b.store.stats()['full_snapshot_requested']
+                node=next(n for n in b.store.bundle(point['id'])['document']['network']['nodes'] if n['node_id']=='world/savepoint')
+                assert node['modules']['checkpoint.counter']['state']['count']==5
+                app.invoke('root','world_run_npc',dict(target=actor))
+                assert counter.state['count']==6 and not b.store.stats()['full_snapshot_requested']
+            finally:stop(app,b)
+        """)
+
+    def test_npc_map_access_returns_only_local_tools_and_view(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            actor='world/npc/miner'
+            try:
+                view=app.invoke(actor,'world_look',{})
+                assert view['location']==dict(id=address('mine'),name='矿坑',service=business('mine'))
+                assert view['neighbors']==[dict(id=address('smithy'),name='铁匠铺')]
+                tools=app.invoke(actor,'node_tools',dict(target=address('smithy'),direction='write'))
+                assert [x['name'] for x in tools['items']]==['move_here']
+                assert tools['items'][0]['parameters']['properties']=={}
+                try:app.invoke(actor,'node_tools',dict(target=business('smithy'),direction='write'))
+                except RuntimeError as e:assert json.loads(str(e))['status']=='forbidden'
+                else:raise AssertionError('remote business access allowed')
+                try:app.invoke(actor,'node_read',dict(target=address('smithy'),request=dict(method='key',key='content')))
+                except RuntimeError as e:assert json.loads(str(e))['status']=='unsupported'
+                else:raise AssertionError('address exposed content')
+                begin(actor);result=use(actor,address('smithy'),'move_here')
+                assert result['items'][0]['result']==dict(arrived=address('smithy'))
+                tools=app.invoke(actor,'node_tools',dict(target=business('smithy'),direction='write'))
+                assert 'repair' in [x['name'] for x in tools['items']]
+                assert dict(id='world/npc/smith',name=person(b,'world/npc/smith').state['name']) in app.invoke(actor,'world_look',{})['people']
             finally:stop(app,b)
         """)
 

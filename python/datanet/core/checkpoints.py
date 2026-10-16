@@ -73,6 +73,7 @@ class Checkpoints:
                     cursor=self.db.execute('INSERT INTO commits(parent_hash,state_hash,delta,operation_id) VALUES (?,?,?,?)',(self.head_hash,value_hash,canonical(changes),operation_id));seq=cursor.lastrowid
                 if seq and (not self.head or force_snapshot or (changes and seq%self.interval==0)):
                     self.db.execute('INSERT OR IGNORE INTO checkpoints VALUES (?,?,?)',(seq,canonical(document),value_hash))
+                if force_snapshot:self.db.execute("INSERT OR REPLACE INTO journal_meta VALUES ('full_snapshot_requested',?)",(str(seq),))
                 if operation_id:self.db.execute('DELETE FROM pending WHERE id=?',(operation_id,))
             self.head=seq;self.head_hash=value_hash;self.document=deepcopy(document)
             return seq
@@ -91,16 +92,22 @@ class Checkpoints:
             if not self.head:raise ValueError('No committed state')
             if self.pending():raise RuntimeError('Uncertain operations must be reconciled before publishing a recovery point')
             if expected_commit is not None and expected_commit!=self.head:raise RuntimeError('Network changed during executor cursor capture')
+            requested=self.db.execute("SELECT value FROM journal_meta WHERE key='full_snapshot_requested'").fetchone()
+            if requested:kind='full'
             refs={actor:checksum(value) for actor,value in contexts.items()}
             if reuse:
                 latest=self.db.execute('SELECT id FROM recovery_points ORDER BY rowid DESC LIMIT 1').fetchone()
                 if latest:
                     previous=self.point(latest[0])
-                    if previous['commit_id']==self.head and previous['contexts']==contexts and (kind!='full' or previous['kind']=='full'):return {**previous,'reused':True}
+                    if previous['commit_id']==self.head and previous['contexts']==contexts and (kind!='full' or previous['kind']=='full'):
+                        if requested:
+                            with self.db:self.db.execute("DELETE FROM journal_meta WHERE key='full_snapshot_requested'")
+                        return {**previous,'reused':True}
             point=uuid4().hex
             with self.db:
                 if kind=='full':self.db.execute('INSERT OR IGNORE INTO checkpoints VALUES (?,?,?)',(self.head,canonical(self.document),self.head_hash))
                 self.db.execute('INSERT INTO recovery_points(id,commit_id,kind,contexts) VALUES (?,?,?,?)',(point,self.head,kind,'{}'))
+                if requested:self.db.execute("DELETE FROM journal_meta WHERE key='full_snapshot_requested'")
                 for actor,value in contexts.items():
                     self.db.execute('INSERT OR IGNORE INTO executor_cursors VALUES (?,?)',(refs[actor],canonical(value)))
                     self.db.execute('INSERT INTO recovery_cursor_refs VALUES (?,?,?)',(point,actor,refs[actor]))
@@ -117,7 +124,7 @@ class Checkpoints:
     def points(self):
         with self.mutex:return [self.point(r[0]) for r in self.db.execute('SELECT id FROM recovery_points ORDER BY rowid')]
     def stats(self):
-        with self.mutex:return dict(commit_id=self.head,state_hash=self.head_hash,incremental_count=self.db.execute('SELECT COUNT(*) FROM commits').fetchone()[0],full_snapshot_count=self.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0],recovery_point_count=self.db.execute('SELECT COUNT(*) FROM recovery_points').fetchone()[0],snapshot_interval=self.interval,executor_cursor_count=self.db.execute('SELECT COUNT(*) FROM executor_cursors').fetchone()[0])
+        with self.mutex:return dict(commit_id=self.head,state_hash=self.head_hash,incremental_count=self.db.execute('SELECT COUNT(*) FROM commits').fetchone()[0],full_snapshot_count=self.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0],recovery_point_count=self.db.execute('SELECT COUNT(*) FROM recovery_points').fetchone()[0],snapshot_interval=self.interval,full_snapshot_requested=bool(self.db.execute("SELECT 1 FROM journal_meta WHERE key='full_snapshot_requested'").fetchone()),executor_cursor_count=self.db.execute('SELECT COUNT(*) FROM executor_cursors').fetchone()[0])
     def bundle(self,point_id):
         with self.mutex:
             point=self.point(point_id);document=self.read(point['commit_id'])

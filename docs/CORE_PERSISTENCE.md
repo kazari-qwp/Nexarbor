@@ -60,3 +60,9 @@ const recovered = await runtime.restorePoint(latest.id);
 - 真正强杀SQLite写入子进程：提交后恢复最新增量，事务中途恢复之前增量并保留uncertain。
 - 真正强杀正在等待Mock模型响应的Electron/Python测试进程树：新进程从磁盘恢复核心记忆、原生请求和排队输入；未结束turn用原生fork闭合，不续接半截推理。
 - 没有真实API调用，没有完整世界真实Agent运行，没有操作用户客户端。测试覆盖进程强退，不宣称覆盖断电或物理磁盘损坏。
+
+## 显式全量请求与信号计数存档点
+
+`save(full=true)` 在同一 SQLite 事务内写入全量核心快照和 `full_snapshot_requested` 标记。标记跨重启保留；后续 `persistence_checkpoint` 在验证核心版本和完整执行器位置后升级为 full，并在发布事务内清除标记。无变化时允许复用已经确认的全量点。原生工具未返回、日志变化或核心版本冲突时，不清除请求，不发布不一致恢复点。
+
+通用扩展 `capabilities/node_savepoint` 提供 `checkpoint.counter` 节点模块，按信号到达次数触发全量请求。小世界配置为每5次；正常增量提交不受影响。全量点包括网络、节点模块、文件、会话绑定及每个原生会话的日志位置；原生日志仍保持 append-only，并不重复复制。

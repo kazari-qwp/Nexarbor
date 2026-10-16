@@ -31,6 +31,12 @@ const base=productRoot;
   requests=[];fail=false;
   async resolveModel(provider,id){return {provider,id,name:id,toolUpdate:'addition-only',systemPromptUpdate:'in-history'};}
   async *stream(options){
+   if(this.checkpointMode){
+    const block=this.checkpointRequests++===0?{type:'tool-call',id:'full-save-tool',name:'world_observe',arguments:'{}'}:{type:'text',text:'Checkpoint tool complete.'};
+    yield {type:'block-start',index:0,blockType:block.type};
+    if(block.type==='text')yield {type:'text-delta',index:0,text:block.text};
+    yield {type:'block-end',index:0,block};yield {type:'finish',reason:{kind:'stop'}};return;
+   }
    this.requests.push(options);
    if(this.fail)throw new Error('simulated native Agent failure');
    assert.ok(!options.tools.some(t=>(t.function?.name??t.name)==='world_submit'));
@@ -57,7 +63,7 @@ const base=productRoot;
  await r.bridge.call('node_metadata_set',{actor:'root',target:'world/npc/woodcutter',namespace:'compatibility',values:{memory_style:'concise'}});
  const first=await exec('world_run_npc',{target:'world/npc/woodcutter'});
  const report=first.pulse.reports[0];assert.equal(report.returned,true);assert.equal(report.status,'completed');
- assert.deepEqual(JSON.parse(JSON.stringify(report.layers)),[['world/time'],['world/npc/woodcutter'],['world/pulse']]);
+ assert.deepEqual(JSON.parse(JSON.stringify(report.layers)),[['world/time'],['world/npc/woodcutter'],['world/savepoint'],['world/pulse']]);
  const worker=r.sessions.get('world/npc/woodcutter').handle.agent;
  assert.equal(worker.session.snapshotEvents().findLast(e=>e.type==='turn/end').data.reason.kind,'completed');
  const profileMessages=worker.session.deriveMessages().filter(m=>m.source?.kind==='datanet-instructions'&&m.content.some(b=>b.type==='text'&&(/\[提示文档：|\[按需知识\]|\[当前元数据：/).test(b.text)));
@@ -139,6 +145,30 @@ const base=productRoot;
    const bundle=await r.bridge.call('persistence_export',{point_id:changed.id});
    assert.ok(bundle.document.network.nodes.find(n=>n.node_id==='world/npc/woodcutter').connections.read_interfaces.some(e=>e.target_node_id==='world/place/shop'));
    console.log('PASS topology-only checkpoint: immediate movement edges saved while every native log position stayed unchanged');
+ }
+ if(durable){
+   // The actual native loop writes the open tool; never manufacture lifecycle events.
+   const originalCall=r.bridge.call.bind(r.bridge);let tested=false;
+   model.checkpointMode=true;model.checkpointRequests=0;
+   r.bridge.call=async(method,args,...rest)=>{
+    if(method==='application/invoke'&&args.actor==='root'&&args.name==='world_observe'){
+     for(let i=2;i<=5;i++)await originalCall('node_savepoint_arrive',{target:'world/savepoint',signal_id:'savepoint-fixture-'+i});
+     assert.equal((await originalCall('persistence_info')).full_snapshot_requested,true);
+     assert.equal(await r.checkpoints.checkpoint(),null,'open native tool must defer full publication');
+     assert.match(r.checkpoints.status().deferred,/awaiting durable result/);tested=true;
+    }
+    return originalCall(method,args,...rest);
+   };
+   try{
+    root.followup(llm.createUserMessage({source:{kind:'user'},content:[{type:'text',text:'Run the checkpoint fixture.'}]}));await root.whenIdle();
+   }finally{r.bridge.call=originalCall;model.checkpointMode=false;}
+   assert.equal(tested,true);assert.equal(model.checkpointRequests,2);
+   const full=await r.checkpoints.checkpoint();assert.ok(full);assert.equal(full.kind,'full');
+   assert.equal((await r.bridge.call('persistence_info')).full_snapshot_requested,false);
+   const bundle=await r.bridge.call('persistence_export',{point_id:full.id});
+   assert.equal(bundle.document.network.nodes.find(n=>n.node_id==='world/savepoint').modules['checkpoint.counter'].state.count,5);
+   await r.checkpoints.positions.read(full.contexts.root);
+   console.log('PASS fifth signal full checkpoint: open tool defers, durable result releases full point with all native cursors');
  }
  await controller.components.dispose();await host.fiber.dispose();clearInterval(keepAlive);
  console.log('PASS native Harness NPC pulse: channel response sequence, stable role and personality prompt, explicit context-node sources, independent history documents, resident clock, location tool, natural completion, return to source, native error rejected; no model API calls');
