@@ -10,7 +10,7 @@ from datanet.core.network import Network
 from datanet.core.management import can_manage
 from datanet.core.node import Node
 from datanet.core.node_creation import attach_node_creation_tools
-from datanet.core.serialization import save_network, load_network
+from datanet.core.serialization import save_network, load_network, network_document
 from datanet.core.tool_access import list_nodes, list_tools, invoke_tool, attach_discovery_tools
 from datanet.core.interface_management import attach_interface_management_tools
 from .checkpoints import Checkpoints
@@ -22,11 +22,11 @@ from datanet.core.packages.network import load_network_package
 
 class Backend:
 
-    def __init__(self, directory):
+    def __init__(self, directory, *, snapshot_interval=100):
         self._transaction_lock = RLock()
         self.directory = storage_path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
-        self.store = Checkpoints(self.directory)
+        self.store = Checkpoints(self.directory,snapshot_interval=snapshot_interval)
         self.agents = {}
         self.failed = False
         self.network = Network()
@@ -60,12 +60,7 @@ class Backend:
         self.store.close()
 
     def snapshot(self):
-        path = self.directory / 'checkpoint-network.tmp.json'
-        try:
-            save_network(self.network, path)
-            network = json.loads(path.read_text(encoding='utf-8'))
-        finally:
-            path.unlink(missing_ok=True)
+        network = network_document(self.network,self.directory)
         files = {}
         for node in self.network.nodes.values():
             for _, label, target in resource_paths(node):
@@ -174,7 +169,7 @@ class Backend:
                 self.failed = True
             raise
         try:
-            self.store.commit(self.snapshot(), operation_id)
+            self.store.commit(self.snapshot(), operation_id, force_snapshot=method=='save' and p.get('full',False))
         except Exception:
             self.failed = True
             raise
@@ -234,6 +229,24 @@ class Backend:
         return {'node_ids': ids, 'entry_points': report['entry_points'], 'parent_node_id': parent_id, 'nodes': nodes, 'interfaces': interfaces, 'attachment_interfaces': attachment}
 
     def _dispatch(self, method, p):
+        if method == 'persistence_info':
+            from .recovery import required_contexts
+            return {**self.store.stats(),'pending':self.store.pending(),'executor_restore_required':required_contexts(self.store)}
+        if method == 'persistence_points':return self.store.points()
+        if method == 'persistence_mark':
+            contexts=p.get('contexts',{})
+            required={node for node,binding in self.agents.items() if binding.get('session_id')}
+            if set(contexts)!=required:raise ValueError('Executor cursors must cover exactly all bound Agents')
+            return self.store.mark(contexts,p.get('kind','incremental'),p.get('expected_commit'))
+        if method == 'persistence_export':return self.store.bundle(p['point_id'])
+        if method == 'persistence_restore':
+            from .recovery import restore_bundle
+            return restore_bundle(self.store.bundle(p['point_id']),p['directory'])
+        if method == 'persistence_executor_restored':
+            from .recovery import acknowledge_executors
+            return acknowledge_executors(self,p['sessions'])
+        if method == 'persistence_reconcile':
+            self.store.reconcile(p['operation_id'],p['reason']);return {'ok':True}
         if method == 'recovery_info':
             return {'node_count': len(self.network.nodes), 'agents': self.agents, 'management': {key: node.management_parent_id for key, node in self.network.nodes.items()}, 'unassigned_management_nodes': [key for key, node in self.network.nodes.items() if key != self.root.node_id and node.management_parent_id is None], 'pending_operations': self.store.pending(), 'checkpoint_count': self.store.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0], **self.components.status(self)}
         if method in self.components.routes:

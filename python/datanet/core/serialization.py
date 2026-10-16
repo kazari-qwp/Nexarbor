@@ -40,9 +40,9 @@ def _path_string(path, base):
     except ValueError:
         return path.as_posix()
 
-def save_network(network: Network, path: str | Path) -> None:
-    """保存结构；CSV/SQLite 只记录路径，ValueNode 保存其 JSON 值。"""
-    path = Path(path).resolve()
+def network_document(network: Network, base: str | Path) -> dict:
+    """Materialize the validated graph without writing an intermediate full file."""
+    path = Path(base).resolve() / 'network.json'
     if not getattr(network, 'archived_entries', None):
         validate_management(network)
     entries = []
@@ -75,6 +75,11 @@ def save_network(network: Network, path: str | Path) -> None:
         entries.extend(network.archived_entries())
     document = {'version': 5, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
     _build(document, path.parent)
+    return document
+
+def save_network(network: Network, path: str | Path) -> None:
+    path = Path(path).resolve()
+    document = network_document(network, path.parent)
     content = json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + '\n'
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None

@@ -61,6 +61,8 @@ class Application:
             plugin.install()
 
     def bind_session(self, session_id):
+        from .recovery import required_contexts
+        if required_contexts(self.backend.store):raise RuntimeError('Executor contexts must be restored to their saved positions before mounting Agents')
         payload = {'session_id': session_id, 'view': None}
         for owner, handler in self.listeners['session/root']:
             if owner in self.enabled:
