@@ -5,6 +5,7 @@ from threading import Lock,Thread
 from datanet.core.application import Component
 from datanet.world.state import state,clock
 from datanet.world import profiles
+from datanet.core.json_values import freeze
 
 class Plugin(Component):
     def install(self):
@@ -14,6 +15,7 @@ class Plugin(Component):
         self.on('agent/pre-step',self.pre_step)
         self.on('agent/request',self.request)
         self.on('context/tail',self.tail)
+        self.on('node/metadata-changed',self.metadata_changed)
 
     def root(self,e):
         if self.r.config.get('rootNetwork')!='small_town':return
@@ -26,17 +28,19 @@ class Plugin(Component):
         self.mount()
 
     def mount(self):
+        matcher=self.r.plugins['capabilities/prompt_matching']
         for actor,a in list(state(self.r.backend)['actors'].items()):
+            matcher.bind(actor,scope='npc.identity',
+                         documents=lambda t=actor:profiles.documents(self.r.backend,state(self.r.backend),t))
+            if actor in self.r.states:continue
             owner='nodes/npc_child' if a['role']=='child' else 'nodes/npc_resident'
-            prompt=self.r.resource(owner,'prompt.md')+'\n你的名字：'+a['name']+'。你的初始打算：'+a['goal']
-            if a.get('background'):prompt+='\n'+a['background']
-            prompt+='\n\n'+profiles.prompt(self.r.backend,state(self.r.backend),actor)
-            if actor in self.r.states:
-                if self.r.state(actor)['prompt']!=prompt:self.r.plugins['capabilities/agent_runtime'].update_prompt('root',actor,prompt)
-                continue
+            prompt=self.r.resource(owner,'prompt.md')
             old=self.r.backend.agents.get(actor)
             self.r.plugins['capabilities/agent_runtime'].create(actor,prompt,'root',2,['world_resident'],'npc_child' if a['role']=='child' else 'npc_resident',binding=old,resume=old is not None)
             self.r.rpc('agent_progress',target=actor,kind='world_npc')
+
+    def metadata_changed(self,e):
+        if e['namespace']=='npc' and e['node_id'] in (state(self.r.backend) or {}).get('actors',{}):self.r.rpc('world_refresh_knowledge',actor='root')
 
     def guide(self,e):
         if e['actor']=='root' and e['name'].startswith('world_'):
@@ -85,14 +89,13 @@ class Plugin(Component):
         if self.loop:return
         self.loop=asyncio.new_event_loop();self.thread=Thread(target=self.loop.run_forever,name='npc-signals',daemon=True);self.thread.start()
 
-    def execute_npc(self,target,signal,execution_id,timeout_ms):
+    def execute_npc(self,target,signal,execution_id,timeout_ms,task):
         previous=getattr(self.r.local,'execution_id',None);self.r.local.execution_id=execution_id
         limit=min(10,max(1,int(self.r.config.get('worldMaxRequests',8))))
         self.turns[target]=dict(active=True,signal_id=signal.signal_id,count=0,limit=limit)
         try:
             self.resident_guide(target)
             observation=self.r.rpc('world_look',actor=target)
-            task=self.r.config.get('worldPulseTask','本时刻按自己的想法活动，处理完后正常结束。')
             text=task+'\n'+json.dumps(observation,ensure_ascii=False)
             result=self.r.plugins['capabilities/agent_runtime'].execute('root',target,text,kind='world_npc',timeout_ms=timeout_ms)
             if result['status']!='ok':raise RuntimeError('Resident execution did not complete normally')
@@ -104,30 +107,38 @@ class Plugin(Component):
         self.r.local.execution_id=execution_id
         self.r.rpc('world_prepare_pulse',actor='root',targets=targets)
         runtime=self.r.backend.signals;pulse=self.r.backend.network.nodes['world/pulse']
-        async def clock_handler(context):
-            return self.r.rpc('world_open_pulse',actor='root',signal_id=context.signal.signal_id)
-        runtime.bind('world/time',clock_handler)
-        async def npc_handler(context):
+        response=self.r.plugins['capabilities/signal_response']
+        config=self.r.resource('network_presets/small_town','responses.json',True)
+        def with_execution(function,*args,**kwargs):
+            previous=getattr(self.r.local,'execution_id',None);self.r.local.execution_id=execution_id
+            try:return function(*args,**kwargs)
+            finally:self.r.local.execution_id=previous
+        def update_time(context,signal_id):
+            return with_execution(self.r.rpc,'world_open_pulse',actor='root',signal_id=signal_id)
+        def match_prompts(context):
+            return with_execution(self.r.plugins['capabilities/prompt_matching'].match,context.delivery.node_id)
+        async def run_actor(context,task,timeout_ms):
             target=context.delivery.node_id;signal=context.signal
             previous=self.inflight.get(target)
             if previous and not previous.done():raise RuntimeError('Previous NPC execution is still stopping')
-            task=asyncio.create_task(asyncio.to_thread(self.execute_npc,target,signal,execution_id,min(90000,int(timeout_seconds*1000))))
-            self.inflight[target]=task
+            worker=asyncio.create_task(asyncio.to_thread(self.execute_npc,target,signal,execution_id,timeout_ms,task))
+            self.inflight[target]=worker
             def finished(job):
                 if self.inflight.get(target) is job:self.inflight.pop(target,None)
                 if not job.cancelled():job.exception()
-            task.add_done_callback(finished)
-            try:
-                result=await asyncio.shield(task)
-                outcome=self.r.rpc('world_complete_pulse_actor',actor='root',target=target,signal_id=signal.signal_id,status='completed')
-                return dict(**result,outcome=outcome)
-            except BaseException as error:
-                try:await asyncio.to_thread(self.r.host,'cancel-agent',actor=target)
-                except Exception:pass
-                self.r.rpc('world_complete_pulse_actor',actor='root',target=target,signal_id=signal.signal_id,status='unavailable',reason=str(error) or type(error).__name__)
-                raise
+            worker.add_done_callback(finished)
+            result=await asyncio.shield(worker)
+            outcome=self.r.rpc('world_complete_pulse_actor',actor='root',target=target,signal_id=signal.signal_id,status='completed')
+            return dict(**result,outcome=outcome)
+        async def failed(context,error):
+            target=context.delivery.node_id
+            try:await asyncio.to_thread(with_execution,self.r.host,'cancel-agent',actor=target)
+            except Exception:pass
+            self.r.rpc('world_complete_pulse_actor',actor='root',target=target,signal_id=context.signal.signal_id,status='unavailable',reason=str(error) or type(error).__name__)
+        response.bind('world/time',config['clock'],{'world_update_time':update_time})
         for target in targets:
-            runtime.bind(target,npc_handler,capabilities=lambda t=target:tuple(self.r.state(t)['grant']['framework']),access_strength=2)
+            response.bind(target,config['npc'],{'match_prompts':match_prompts,'world_run_actor':run_actor},access_strength=2,on_error=failed)
+        pulse.content=freeze(dict(task=self.r.config.get('worldPulseTask','本时刻按自己的想法活动，处理完后正常结束。'),timeout_ms=min(90000,int(timeout_seconds*1000))))
         settlement=None
         async def settle(source,report):
             nonlocal settlement

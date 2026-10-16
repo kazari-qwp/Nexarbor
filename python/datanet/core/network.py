@@ -6,6 +6,8 @@ from datanet.core.access_budget import current_access, access_context, active_ag
 class Network:
 
     def __init__(self):
+        from .metadata import MetadataRegistry
+        self.metadata_registry = MetadataRegistry()
         self.nodes = {}
         self.delegation_permissions = {}
         self.signal_runs = {}
@@ -24,8 +26,15 @@ class Network:
         if node.node_id in self.nodes:
             raise ValueError(f'节点编号重复：{node.node_id}')
         self.nodes[node.node_id] = node
+        node._metadata_registry = self.metadata_registry
         if hasattr(node, 'bind_network'):
             node.bind_network(self)
+
+    def get_metadata(self, node_id):return self.nodes[node_id].get_metadata()
+
+    def use_metadata_registry(self, registry):
+        self.metadata_registry = registry
+        for node in self.nodes.values():node._metadata_registry = registry
 
     def walk(self, node_id, *, direction='read', strength=0, scope='network'):
         for node, path, remaining in self.walk_states(node_id, direction=direction, strength=strength, scope=scope):

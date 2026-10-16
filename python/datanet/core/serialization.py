@@ -1,5 +1,5 @@
 from datanet.core.component_registry import codecs, codec_for_node
-'JSON v4：节点、连接、Agent 创建配置和显式委托许可。'
+'JSON v5：节点、连接、Agent 创建配置和显式委托许可。'
 import json
 import math
 import os
@@ -73,7 +73,7 @@ def save_network(network: Network, path: str | Path) -> None:
         entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding})
     if getattr(network, 'archived_entries', None):
         entries.extend(network.archived_entries())
-    document = {'version': 4, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
+    document = {'version': 5, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
     _build(document, path.parent)
     content = json.dumps(document, ensure_ascii=False, indent=2, allow_nan=False) + '\n'
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -92,7 +92,7 @@ def _fields(value, expected, label):
         raise ValueError(f"{label} 字段必须为：{', '.join(expected)}")
 
 def _build(document, base):
-    if not isinstance(document, dict) or type(document.get('version')) is not int or document['version'] != 4:
+    if not isinstance(document, dict) or type(document.get('version')) is not int or document['version'] != 5:
         raise ValueError('不支持的网络配置版本')
     _fields(document, ('version', 'nodes', 'delegations', 'signals'), '网络配置')
     if not isinstance(document['nodes'], list):

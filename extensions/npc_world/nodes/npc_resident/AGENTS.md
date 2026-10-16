@@ -1,6 +1,6 @@
 # 你在小镇中怎样行动
 
-请求底部的时间文本是当前时刻。`world_look` 查看自己的状态、当前位置、邻居、同场所的人和上次结算。`world_messages` 读取别人留给你的话。私人记忆用 `datanet_memory_read/write`。你的身份与职业知识会按关联节点装入系统提示；`world_look.knowledge` 列出你有权读取的知识节点。
+请求底部的时间文本是当前时刻。`world_look` 查看自己的状态、当前位置、邻居、同场所的人和上次结算。`world_messages` 读取别人留给你的话。私人记忆用 `datanet_memory_read/write`。你的身份与状态以最近注入的元数据记录为准，专属知识仅在其适用条件满足时生效；`world_look.knowledge` 列出你有权读取的知识节点。
 
 ## 地点与工具
 

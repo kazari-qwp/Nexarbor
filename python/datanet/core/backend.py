@@ -30,6 +30,7 @@ class Backend:
         self.agents = {}
         self.failed = False
         self.network = Network()
+        self.metadata_registry = self.network.metadata_registry
         from datanet.core.agent_node import AgentNode
         self.root = AgentNode('root', 'DataNet根节点', file_path=self.directory / 'root-memory.md')
         self.network.add_node(self.root)
@@ -79,6 +80,7 @@ class Backend:
             raise ValueError('Unsupported checkpoint version')
         self.extension_state = {k:v for k,v in document.items() if k not in {'version','network','agents','files','tool_names','tools'}}
         self.network = _build(document['network'], self.directory)
+        self.network.use_metadata_registry(self.metadata_registry)
         self.root = self.network.nodes['root']
         self.agents = document['agents']
         self._restore_agent_managers()
@@ -221,7 +223,7 @@ class Backend:
         interfaces = []
         for local_id, node_id in ids.items():
             node = self.network.nodes[node_id]
-            nodes.append({'local_id': local_id, 'node_id': node_id, 'type': type(node).__name__, 'name': node.name, 'description': node.description, 'data_kind': node.data_kind, 'divergence': node.divergence, 'management_parent_id': node.management_parent_id, 'exposed_tools': list(node.expose)})
+            nodes.append({'local_id': local_id, **node.get_metadata(), 'type': type(node).__name__, 'exposed_tools': list(node.expose)})
             for direction in ('read', 'write'):
                 for index, link in enumerate(getattr(node, direction + '_interfaces')):
                     interfaces.append({'source_node_id': node_id, 'direction': direction, 'interface_index': index, **asdict(link)})

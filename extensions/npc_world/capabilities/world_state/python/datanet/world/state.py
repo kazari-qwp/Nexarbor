@@ -103,7 +103,7 @@ def prepare(b,p):
     if w['round'].get('active'):raise RuntimeError('Previous pulse requires settlement or reconciliation')
     targets=p.get('targets',list(w['actors']))
     if not targets or len(targets)!=len(set(targets)) or any(t not in w['actors'] for t in targets):raise ValueError('Invalid pulse participants')
-    subscriptions(b,targets)
+    profiles.sync(b,w);subscriptions(b,targets)
     return dict(participants=targets)
 
 def open_pulse(b,p):
@@ -136,10 +136,22 @@ def configure_knowledge(b,p):
     return profiles.configure(b,state(b),p['profiles'])
 
 
+def refresh_knowledge(b,p):
+    if p.get('actor')!='root':raise PermissionError('Only the host may refresh identity knowledge')
+    profiles.sync(b,state(b));return dict(refreshed=True)
+
+
 def observe(b,p):
     if p.get('actor')!='root':raise PermissionError('Operator view is private')
     return deepcopy(state(b))
 
+def install_metadata(b):
+    if 'capabilities/node_metadata' in b.components.enabled:
+        from datanet.abilities.node_metadata.services import register_provider
+        register_provider(b,'npc',lambda actor:profiles.base_attributes(state(b),actor) if state(b) and actor in state(b)['actors'] else {})
+
+
 def register(s):
-    for name,fn,mutation in [('init',initialize,True),('configure_knowledge',configure_knowledge,True),('look',look,False),('messages',messages,True),('prepare_pulse',prepare,True),('open_pulse',open_pulse,True),('complete_pulse_actor',complete,True),('observe',observe,False)]:
+    s.graph_loaders.append(install_metadata)
+    for name,fn,mutation in [('init',initialize,True),('configure_knowledge',configure_knowledge,True),('refresh_knowledge',refresh_knowledge,True),('look',look,False),('messages',messages,True),('prepare_pulse',prepare,True),('open_pulse',open_pulse,True),('complete_pulse_actor',complete,True),('observe',observe,False)]:
         s.rpc('world_'+name,fn,mutation=mutation)

@@ -11,7 +11,7 @@ from datanet.core.node import Node
 from datanet.core.agent_node import AgentNode
 from datanet.core.text_node import TextFileNode
 from datanet.core.network import Network
-from datanet.core.signals import Signal,NodeFilter,PermissionRequirement
+from datanet.core.signals import Signal
 from datanet.core.pulse_node import PulseNode
 from datanet.core.signal_runtime import SignalRuntime
 from datanet.core.serialization import save_network,load_network,_build
@@ -21,8 +21,8 @@ from datanet.core.access_budget import active_agent
 def add(network,*ids):
     for id in ids:network.add_node(Node(id,id,None))
 
-def link(network,source,target,channels=('tick',),wait=True,**metadata):
-    edge=Interface(target,dict(channels=channels,wait_for_completion=wait,**metadata))
+def link(network,source,target,channels=('tick',),**metadata):
+    edge=Interface(target,dict(channels=channels,**metadata))
     network.nodes[source].write_interfaces.append(edge)
     return edge
 
@@ -32,7 +32,7 @@ class ValueTests(unittest.TestCase):
         self.assertEqual(edge.metadata.channels,('A','B'))
         self.assertEqual(Interface(**asdict(edge)),edge)
         with self.assertRaises(TypeError):edge.metadata.attributes['labels']='changed'
-        signal=Signal('origin',['A','A','B'],3,content={'items':[1,2]},activation={'types':['agent']})
+        signal=Signal('origin',['A','A','B'],3,content={'items':[1,2]})
         restored=Signal.from_dict(json.loads(json.dumps(signal.to_dict())))
         self.assertEqual(restored,signal)
         with self.assertRaises(TypeError):signal.content['items']=[]
@@ -50,14 +50,15 @@ class ValueTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'network.json';save_network(network,path)
             document=json.loads(path.read_text(encoding='utf-8'))
-            self.assertEqual(document['version'],4)
+            self.assertEqual(document['version'],5)
             self.assertEqual(set(document['nodes'][0]['connections']['write_interfaces'][0]),{'target_node_id','metadata'})
             restored=load_network(path)
             self.assertIsInstance(restored.nodes['pulse'],PulseNode)
             self.assertEqual(restored.nodes['pulse'].channels,('tick',))
             self.assertEqual(restored.nodes['pulse'].write_interfaces[0].metadata.attributes['purpose'],'clock')
-            document['version']=3
-            with self.assertRaises(ValueError):_build(document,Path(folder))
+            for old_version in [3,4]:
+                document['version']=old_version
+                with self.assertRaises(ValueError):_build(document,Path(folder))
 
     def test_core_interface_management_and_node_creation_use_metadata(self):
         from datanet.core.interface_management import attach_interface_management_tools
@@ -73,6 +74,15 @@ class ValueTests(unittest.TestCase):
             result=root.invoke_tool('create_child_node',child_id='pulse',node_spec={'type':'pulse','parameters':{'channels':['tick'],'strength':3}})
             self.assertEqual(result.status,'ok',result.errors)
             self.assertIsInstance(network.nodes['root/pulse'],PulseNode)
+
+    def test_metadata_without_optional_component_is_standard_and_extends_automatically(self):
+        n=Network();add(n,'plain')
+        node=n.nodes['plain'];base=node.standard_metadata()
+        self.assertEqual(node.get_metadata(),base);self.assertEqual(n.get_metadata('plain'),base)
+        n.metadata_registry.register('test',lambda id:{'example':{'x':1}})
+        self.assertEqual(node.describe(include_schema=False)['extensions'],{'example':{'x':1}})
+        self.assertEqual(n.get_metadata('plain')['name'],'plain')
+        n.metadata_registry.unregister('test');self.assertEqual(node.get_metadata(),base)
 
 class PropagationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):self.runtimes=[]
@@ -113,21 +123,16 @@ class PropagationTests(unittest.IsolatedAsyncioTestCase):
         sink=next(d for d in report['deliveries'] if d['node_id']=='sink')
         self.assertEqual(set(sink['parents']),{'a','b'});self.assertEqual(sink['strength'],1)
 
-    async def test_node_filter_relays_and_checks_real_target_permissions(self):
+    async def test_no_activation_filter_and_agent_without_response_is_a_relay(self):
         with tempfile.TemporaryDirectory() as folder:
-            n=Network();add(n,'source','relay','data');a=AgentNode('a','Agent',file_path=Path(folder)/'a.md');n.add_node(a)
-            link(n,'source','relay');link(n,'relay','a')
-            n.nodes['data'].register_tool('write',lambda **p:None,description='write',parameters={'type':'object'},read_only=False);n.nodes['data'].expose=['write']
-            r=self.runtime(n);seen=[]
+            n=Network();add(n,'s','sink');n.add_node(AgentNode('a','Agent',file_path=Path(folder)/'a.md'))
+            link(n,'s','a');link(n,'a','sink');r=self.runtime(n);seen=[]
             async def handler(c):seen.append(c.delivery.node_id)
-            r.bind('relay',handler);r.bind('a',handler,capabilities=['node_invoke'],access_strength=1)
-            f=NodeFilter(types=['agent'],required_tools=['node_invoke'],permissions=[PermissionRequirement('data','write','write')])
-            report=await r.propagate(Signal('source',['tick'],3,activation=f))
-            self.assertEqual(seen,[]);self.assertTrue(all(d['status']=='filtered' for d in report['deliveries']))
-            link(n,'a','data',channels=[])
-            await r.propagate(Signal('source',['tick'],3,activation=f));self.assertEqual(seen,['a'])
-            r.bind('a',handler,capabilities=[],access_strength=1)
-            await r.propagate(Signal('source',['tick'],3,activation=f));self.assertEqual(seen,['a'])
+            r.bind('sink',handler)
+            report=await r.propagate(Signal('s',['tick'],3))
+            self.assertEqual(seen,['sink']);self.assertEqual(report['deliveries'][0]['status'],'relay')
+            with self.assertRaises(TypeError):Signal('s',['tick'],3,activation={})
+            with self.assertRaises(TypeError):PulseNode('p','Pulse',activation={})
 
     async def test_sender_identity_strength_and_receiver_authority(self):
         n=Network();add(n,'source','target');link(n,'source','target');r=self.runtime(n)
@@ -169,17 +174,17 @@ class PropagationTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):await task
         self.assertEqual(n.signal_runs[signal.signal_id]['status'],'cancelled')
 
-    async def test_optional_notification_never_blocks_required_barrier(self):
-        n=Network();add(n,'s','optional','needed');link(n,'s','optional',wait=False);link(n,'s','needed')
-        r=self.runtime(n);started=asyncio.Event();release=asyncio.Event()
-        async def optional(c):started.set();await release.wait();return 'notified'
-        r.bind('optional',optional)
-        signal=Signal('s',['tick'],2)
-        report=await asyncio.wait_for(r.propagate(signal),.3)
-        self.assertEqual(report['status'],'completed');await started.wait()
-        self.assertEqual(next(d for d in report['deliveries'] if d['node_id']=='optional')['status'],'notified')
-        release.set();report=await r.drain_notifications(signal.signal_id)
-        self.assertEqual(next(d for d in report['deliveries'] if d['node_id']=='optional')['status'],'processed')
+    async def test_all_receivers_wait_and_old_nonwait_option_is_rejected(self):
+        n=Network();add(n,'s','a','sink');link(n,'s','a');link(n,'a','sink')
+        r=self.runtime(n);started=asyncio.Event();release=asyncio.Event();seen=[]
+        async def handler(c):
+            seen.append(c.delivery.node_id)
+            if c.delivery.node_id=='a':started.set();await release.wait()
+        r.bind('a',handler);r.bind('sink',handler)
+        job=asyncio.create_task(r.propagate(Signal('s',['tick'],3)))
+        await started.wait();self.assertFalse(job.done());self.assertEqual(seen,['a'])
+        release.set();report=await job;self.assertEqual(seen,['a','sink']);self.assertEqual(report['status'],'completed')
+        with self.assertRaises(TypeError):Interface('a',{'wait_for_completion':False})
 
     async def test_topology_frozen_and_new_signal_observes_updates(self):
         n=Network();add(n,'s','a','b');link(n,'s','a');r=self.runtime(n)
@@ -236,7 +241,7 @@ class PropagationTests(unittest.IsolatedAsyncioTestCase):
             n=Network();add(n,'s');n.add_node(AgentNode('a','Agent',file_path=Path(folder)/'a.md'));link(n,'s','a')
             registry=ExecutorRegistry(n);registry.register('test',Executor());registry.bind('a','test','session-a',max_signal_strength=2)
             r=self.runtime(n);registry.bind_signals(r,'a')
-            report=await r.propagate(Signal('s',['tick'],2,content='Collect the information you hold',activation={'types':['agent']}))
+            report=await r.propagate(Signal('s',['tick'],2,content='Collect the information you hold'))
             self.assertEqual(report['deliveries'][0]['status'],'processed')
             self.assertEqual(report['deliveries'][0]['value']['output'],'Collect the information you hold')
 

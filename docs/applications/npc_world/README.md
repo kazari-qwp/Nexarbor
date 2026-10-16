@@ -45,6 +45,9 @@ worldMaxRequests: 8
 | npc_world/world_runtime | 原生事件、轻量尾部、信号处理器与限额并行执行 | 应用能力 |
 | npc_resident / npc_child | 成人与儿童通用角色提示 | 配置与文档 |
 | resident_knowledge | 性别、职业、家庭及孕期知识的匹配条件与文本 | 纯配置与文档；复用普通文本节点 |
+| foundation/signal_response | 按频道执行节点的有序工具步骤 | 通用可选组件 |
+| foundation/prompt_matching | 按统一元数据和原生上下文标记补充独立文档 | 通用可选组件，与信号无依赖 |
+| foundation/node_metadata | 为任意节点提供分命名空间元数据 | 通用可选组件，不改核心节点字段 |
 | world_resident / world_operator | 居民与操作入口的授权工具列表 | 配置 |
 | small_town | 地图、道路、初始人物、库存与只读常识 | 配置与文档 |
 
@@ -60,7 +63,7 @@ worldMaxRequests: 8
 world/pulse --world.tick--> world/time --world.tick--> NPC --world.tick--> world/pulse
 ```
 
-这是强度3的公有写边环，每条边阈值1。核心按广度逐层执行：更新时间文本 → 并行运行订阅居民 → 返回源节点。NPC处理器等待原生Agent循环的正常 `turn/end(completed)`，再冻结行动并返回；没有手工提交工具。源节点收到返回信号后，本次运行统一结算。当前操作入口每次只发一轮，不自动连续运行。
+这是强度3的公有写边环，每条边阈值1。核心按广度逐层执行：更新时间文本 → 并行运行订阅居民 → 返回源节点。NPC的频道响应器按responses.json依次执行提示词匹配和Agent运行，等待原生Agent循环的正常 `turn/end(completed)`，再冻结行动并返回；没有手工提交工具。源节点收到返回信号后，本次运行统一结算。当前操作入口每次只发一轮，不自动连续运行。
 
 每个NPC另有一条私有只读边指向时间文本；复用常驻文本能力，在请求尾部读取最新的“第1天-早”等短文本。时间节点不暴露工具。地图道路与业务边没有 `world.tick` 频道，因此脉冲不会沿地图扩散。场所业务仍通过独立的强度2访问权限发现和调用，不消耗脉冲传播强度。
 
@@ -71,14 +74,16 @@ world/pulse --world.tick--> world/time --world.tick--> NPC --world.tick--> world
 共同生活规则保留在只读世界常识中。身份与专属知识由 `nodes/resident_knowledge/profiles.json` 配置匹配，内容是独立Markdown，实例化为普通只读文本节点。NPC以私有读边连接匹配的节点；同职业共享同一份职业文本，其他居民不能借它的在场连接继续读取这些私有边。地图移动保留职业知识，职业改变则重新匹配。
 
 - 性别描述：男性、女性、未设定三种短描述；不绑定性格或职业。
-- 职业描述和知识：普通居民、矿工、伐木工、铁匠、流浪者、儿童。匹配正文按授权连接装入系统提示词。
-- 成人家庭知识：只在系统提示列入口，按需使用既有 `node_read` 阅读。
+- 职业描述和知识：普通居民、矿工、伐木工、铁匠、流浪者、儿童。匹配正文按授权连接作为独立历史文档注入。
+- 成人家庭知识：只注入独立的查询入口，按需使用既有 `node_read` 阅读。
 - 孕育能力、当前怀孕、已为父母：分别按真实状态匹配。性别与孕育能力独立；仅当前孕者获得两天孕期和到院生产说明。出生结算后撤下当前孕期资料及提示片段，双方获得父母身份。
 - 私人经历：仍使用原Agent Markdown记忆和读写工具，不与共享职业文本混写。
 
-`world_look.knowledge` 列出当前获准知识节点。NPC不能修改这些节点。仅提示正文确实变化时复用 `agent_runtime.update_prompt`，由既有Harness原生提示更新机制处理；时间仍走请求尾部，角色知识不重复塞入每轮尾部。撤下当前提示不删除既有会话历史或私人记忆。
+`world_look.knowledge` 列出当前获准知识节点。NPC不能修改这些节点。身份、职业、状态和初始目标由节点元数据扩展器的npc提供器从已有业务状态读取，不新增核心Agent字段。附加自定义属性也可放在npc命名空间，但不能覆盖业务提供器维护的字段。所有读方通过核心get_metadata/describe统一取得标准字段和获准的extensions；未装扩展器就只有标准字段，不要求工具逐个适配。提示词匹配器按独立文档ID和版本哈希检查原生标记，首次/更新/压缩丢失后补载。角色系统提示保持稳定，时间仍走请求尾部。状态变化追加最新元数据及失配文档通知，不删除已有历史或私人记忆。
 
-增加一种身份知识通常只需新增Markdown并添加匹配配置；`when` 可以匹配角色字段，以及 `life_stage`、`pregnant`、`is_parent` 派生状态。没有新增Agent工具、核心节点类型或核心业务分支。六名初始居民在town.json显式配置性别；新生儿默认未设定。
+响应器配置见 `network_presets/small_town/responses.json`：时间节点匹配world.tick后调用更新时间工具，NPC匹配后依次调用match_prompts和world_run_actor。三个共享模块都不认识小镇业务，NPC只负责绑定提供器、工具和配置。
+
+增加一种身份知识通常只需新增Markdown并添加匹配配置；`when` 用JSON Pointer匹配统一元数据，例如 `/extensions/npc/role`、`/extensions/npc/life_stage`、`/extensions/npc/pregnant` 和 `/extensions/npc/is_parent`。没有新增Agent工具、核心节点类型或核心业务分支。六名初始居民在town.json显式配置性别；新生儿默认未设定。
 
 ## 初始地图
 

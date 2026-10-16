@@ -1,20 +1,27 @@
-"""Compose identity knowledge from configured, privately linked text nodes."""
+"""NPC metadata and privately linked knowledge sources for the independent matcher."""
 from copy import deepcopy
 import re
 from datanet.core.interface import Interface
+from datanet.core.metadata import lookup
 from datanet.components.nodes.text_file_node.text_file_node import TextFileNode
 
 
-def attributes(w,actor):
+def base_attributes(w,actor):
     a=w['actors'][actor]
-    return dict(a,gender=a.get('gender','unspecified'),can_gestate=a.get('can_gestate',False),
+    return dict(name=a['name'],initial_goal=a['goal'],background=a.get('background',''),role=a['role'],gender=a.get('gender','unspecified'),can_gestate=a.get('can_gestate',False),
                 life_stage='child' if a['role']=='child' else 'adult',is_parent=bool(a['children']),
                 pregnant=any(v['carrier']==actor and not v.get('child') for v in w['pregnancies'].values()))
 
 
+def attributes(b,w,actor):return b.network.get_metadata(actor)
+
+
 def matches(spec,values):
-    return all(values.get(key) in expected if isinstance(expected,list) else values.get(key)==expected
-               for key,expected in spec['when'].items())
+    for key,expected in spec['when'].items():
+        try:actual=lookup(values,key)
+        except (KeyError,IndexError):return False
+        if not (actual in expected if isinstance(expected,list) else actual==expected):return False
+    return True
 
 
 def configure(b,w,profiles):
@@ -22,7 +29,7 @@ def configure(b,w,profiles):
     for entry in profiles:
         spec=deepcopy(entry);key=spec['id']
         if not re.fullmatch(r'[a-z][a-z0-9_]*(/[a-z][a-z0-9_]*)*',key) or key in seen:raise ValueError('Invalid or duplicate knowledge profile ID')
-        if not isinstance(spec['when'],dict) or type(spec['system_prompt']) is not bool:raise ValueError('Invalid profile condition or delivery')
+        if not isinstance(spec['when'],dict) or spec['delivery'] not in ('instructions','query'):raise ValueError('Invalid profile condition or delivery')
         seen.add(key);node_id='world/knowledge/'+key
         node=b.network.nodes.get(node_id)
         if node is None:
@@ -38,7 +45,7 @@ def configure(b,w,profiles):
 
 def sync(b,w):
     for actor in w['actors']:
-        n=b.network.nodes[actor];values=attributes(w,actor)
+        n=b.network.nodes[actor];values=attributes(b,w,actor)
         n.read_interfaces=[e for e in n.read_interfaces if not e.metadata.attributes.get('resident_knowledge')]
         for spec in w.get('knowledge_catalog',[]):
             if matches(spec,values):
@@ -50,20 +57,14 @@ def linked(b,w,actor):
     ids={e.target_node_id for e in b.network.nodes[actor].read_interfaces
          if e.metadata.attributes.get('resident_knowledge') and e.allows(origin_node_id=actor,source_node_id=actor,strength=strength)
          and 'read' in b.network.nodes[e.target_node_id].expose}
-    values=attributes(w,actor)
+    values=attributes(b,w,actor)
     return [spec for spec in w.get('knowledge_catalog',[]) if spec['node_id'] in ids and matches(spec,values)]
 
 
 def references(b,w,actor):
-    return [dict(node_id=p['node_id'],name=p['name'],system_prompt=p['system_prompt']) for p in linked(b,w,actor)]
+    return [dict(node_id=p['node_id'],name=p['name'],delivery=p['delivery']) for p in linked(b,w,actor)]
 
 
-def prompt(b,w,actor):
-    parts=[]
-    for spec in linked(b,w,actor):
-        label='['+spec['name']+'：'+spec['node_id']+']'
-        if spec['system_prompt']:
-            text=b.network.nodes[spec['node_id']]._read_key('content').items[0]['content']
-            parts.append(label+'\n'+text.strip())
-        else:parts.append('[按需知识] '+spec['name']+'：'+spec['node_id'])
-    return '\n\n'.join(parts)
+def documents(b,w,actor):
+    return [dict(id=p['node_id'],name=p['name'],when=p['when'],delivery=p['delivery'],
+                 text=b.network.nodes[p['node_id']]._read_key('content').items[0]['content']) for p in linked(b,w,actor)]

@@ -102,7 +102,7 @@ class ExecutorRegistry:
                 raise
             if result.status!='completed':raise RuntimeError(result.error or 'Agent signal processing failed: '+result.status)
             return asdict(result)
-        runtime.bind(node_id,handle,capabilities=lambda:self.bindings[node_id]['tools'],access_strength=lambda:self.bindings[node_id]['strength'])
+        runtime.bind(node_id,handle,access_strength=lambda:self.bindings[node_id]['strength'])
 
     def restore_bindings(self):
         for node in self.network.nodes.values():

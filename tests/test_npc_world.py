@@ -136,75 +136,117 @@ class WorldTests(unittest.TestCase):
         """)
 
 
+
     def test_identity_knowledge_private_links_and_profession_survives_moving(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
                 miner='world/npc/miner';wood='world/npc/woodcutter';yue='world/npc/yue'
-                prompt=app.state(miner)['prompt']
-                assert '你是一位男性居民' in prompt and '你是一位矿工' in prompt
-                assert '你是一位伐木工' not in prompt and '医院选择birth' not in prompt
-                assert '你是一位女性居民' in app.state(yue)['prompt'] and '你具备孕育能力' in app.state(yue)['prompt']
-                assert '你目前正在怀孕' not in app.state(yue)['prompt']
+                matcher=app.plugins['capabilities/prompt_matching'];plugin=app.plugins['capabilities/world_runtime']
+                stable=app.state(miner)['prompt'];assert '男性' not in stable and '矿工' not in stable
+                first=matcher.match(miner);assert len(first['scopes'][0]['loaded'])==3
+                text=' '.join(v for (actor,key),v in port.docs.items() if actor==miner)
+                assert '你是一位男性居民' in text and '你是一位矿工' in text
+                assert '你是一位伐木工' not in text and '医院选择birth' not in text
+                assert not matcher.match(miner)['scopes'][0]['loaded']
                 page='world/knowledge/profession/miner'
                 result=app.invoke(miner,'node_read',dict(target=page,request=dict(method='key',key='content')))
                 assert '获得2矿石' in json.dumps(result,ensure_ascii=False)
                 assert b.network.nodes[page].expose==['read']
-                reachable={n.node_id for n,_ in b.network.walk(wood,strength=100)}
-                assert page not in reachable
+                assert page not in {n.node_id for n,_ in b.network.walk(wood,strength=100)}
                 try:app.invoke(wood,'node_read',dict(target=page,request=dict(method='key',key='content')))
                 except RuntimeError as error:assert 'forbidden' in str(error)
                 else:raise AssertionError('another profession knowledge leaked')
-                assert not any(x['node_id']==page for x in app.invoke(wood,'world_look',{})['knowledge'])
-                port.views=[];app.plugins['capabilities/world_runtime'].mount();assert not port.views
+                port.views=[];plugin.mount();assert not port.views
                 port.actions[miner]=(address('smithy'),'move_here',{})
                 app.invoke('root','world_run_npc',dict(target=miner))
-                assert app.state(miner)['prompt']==prompt
+                assert app.state(miner)['prompt']==stable and not port.views
                 assert page in {n.node_id for n,_ in b.network.walk(miner,strength=2)}
                 assert not any(e.target_node_id==page for e in b.network.nodes[miner].write_interfaces)
                 assert not app.plugins['capabilities/text'].targets[miner]
                 from datanet.world.state import presence
-                state(b)['actors'][wood]['role']='miner';presence(b,state(b));app.plugins['capabilities/world_runtime'].mount()
-                assert '你是一位矿工' in app.state(wood)['prompt'] and '你是一位伐木工' not in app.state(wood)['prompt']
-                assert page in {n.node_id for n,_ in b.network.walk(wood,strength=2)}
+                state(b)['actors'][wood]['role']='miner';presence(b,state(b));plugin.mount()
+                assert page in matcher.match(wood)['scopes'][0]['matched']
+                assert b.network.nodes[wood].__dict__.get('gender') is None
             finally:stop(app,b)
         """)
 
-    def test_pregnancy_profiles_update_only_the_subject_and_restore(self):
+    def test_pregnancy_profiles_change_documents_without_changing_system_prompt(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             actor='world/npc/yue';lin='world/npc/lin';miner='world/npc/miner'
             try:
                 from datanet.world.state import presence
-                plugin=app.plugins['capabilities/world_runtime'];w=state(b)
-                # A woman without gestational capability does not inherit that profile from gender.
-                w['actors'][miner]['gender']='female';presence(b,w);plugin.mount()
-                assert '你是一位女性居民' in app.state(miner)['prompt']
-                assert '你具备孕育能力' not in app.state(miner)['prompt']
+                plugin=app.plugins['capabilities/world_runtime'];matcher=app.plugins['capabilities/prompt_matching'];w=state(b)
+                stable=app.state(actor)['prompt'];w['actors'][miner]['gender']='female';presence(b,w);plugin.mount()
+                selected=matcher.match(miner)['scopes'][0]['matched']
+                assert 'world/knowledge/gender/female' in selected and 'world/knowledge/life/gestation' not in selected
                 common=b.network.nodes['world/common']._read_key('content').items[0]['content']
-                assert '预产' not in common and '孕期' not in common
-                assert '预产' not in app.resource('nodes/npc_resident','AGENTS.md')
-                before=app.state(lin)['prompt']
-                w['actors'][actor]['place']='hospital'
-                w['pregnancies']['fixture']=dict(parents=[lin,actor],carrier=actor,due_tick=0,child=None)
+                assert '预产' not in common and '孕期' not in common and '预产' not in app.resource('nodes/npc_resident','AGENTS.md')
+                assert 'world/knowledge/life/pregnant' not in matcher.match(actor)['scopes'][0]['matched']
+                w['actors'][actor]['place']='hospital';w['pregnancies']['fixture']=dict(parents=[lin,actor],carrier=actor,due_tick=0,child=None)
                 presence(b,w);plugin.mount()
-                assert '你目前正在怀孕' in app.state(actor)['prompt'] and '医院选择birth' in app.state(actor)['prompt']
-                assert app.state(lin)['prompt']==before and '你目前正在怀孕' not in app.state(miner)['prompt']
+                assert 'world/knowledge/life/pregnant' in matcher.match(actor)['scopes'][0]['matched']
+                assert 'world/knowledge/life/pregnant' not in matcher.match(lin)['scopes'][0]['matched']
                 port.actions[actor]=(business('hospital'),'birth',{})
                 result=app.invoke('root','world_run_npc',dict(target=actor));child=result['settlement']['newborns'][0]
-                assert '你目前正在怀孕' not in app.state(actor)['prompt']
-                assert '你已经有孩子' in app.state(actor)['prompt'] and '你已经有孩子' in app.state(lin)['prompt']
-                assert 'world/knowledge/life/pregnant' not in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
-                assert '你是刚出生' in app.state(child)['prompt'] and '你的性别尚未设定' in app.state(child)['prompt']
-                assert '你具备孕育能力' not in app.state(child)['prompt']
+                selected=matcher.match(actor)['scopes'][0]['matched']
+                assert 'world/knowledge/life/pregnant' not in selected and 'world/knowledge/life/parent' in selected
+                latest=app.rpc('prompt_matching_get',actor=actor,scope='npc.identity')
+                assert latest['current']['metadata']['extensions']['npc']['pregnant'] is False and 'world/knowledge/life/pregnant' in latest['removed']
+                assert app.state(actor)['prompt']==stable
+                assert any('医院选择birth' in text for (owner,key),text in port.docs.items() if owner==actor)
+                assert 'world/knowledge/profession/child' in matcher.match(child)['scopes'][0]['matched']
                 b.dispatch('save',{})
             finally:stop(app,b)
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
-                assert '你已经有孩子' in app.state(actor)['prompt'] and '你目前正在怀孕' not in app.state(actor)['prompt']
-                assert 'world/knowledge/profession/miner' in {n.node_id for n,_ in b.network.walk(miner,strength=2)}
+                matched=app.plugins['capabilities/prompt_matching'].match(actor)['scopes'][0]['matched']
+                assert 'world/knowledge/life/parent' in matched and 'world/knowledge/life/pregnant' not in matched
+            finally:stop(app,b)
+        """)
+
+    def test_prompt_markers_versioning_and_compaction_independent_of_signals(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                actor='world/npc/miner';matcher=app.plugins['capabilities/prompt_matching'];page='world/knowledge/profession/miner'
+                stable=app.state(actor)['prompt'];first=matcher.match(actor);count=len(port.docs)
+                assert not port.calls and not matcher.match(actor)['scopes'][0]['loaded'] and len(port.docs)==count
+                removed=[key for key in port.docs if key[0]==actor and key[1].startswith('prompt:npc.identity:'+page+':')]
+                del port.docs[removed[0]]
+                assert matcher.match(actor)['scopes'][0]['loaded']==[page] and len(port.docs)==count
+                b.network.nodes[page].write('content','矿工知识新版：留意镐子耐久。')
+                assert matcher.match(actor)['scopes'][0]['loaded']==[page]
+                before=app.rpc('prompt_matching_get',actor=actor,scope='npc.identity')['revision']
+                from datanet.world.state import presence
+                state(b)['actors'][actor]['gender']='female';presence(b,state(b));matcher.match(actor)
+                state(b)['actors'][actor]['gender']='male';presence(b,state(b));back=matcher.match(actor)
+                assert not back['scopes'][0]['loaded']
+                assert app.rpc('prompt_matching_get',actor=actor,scope='npc.identity')['revision']==before+2
+                for key in list(port.docs):
+                    if key[0]==actor:del port.docs[key]
+                again=matcher.match(actor);assert len(again['scopes'][0]['loaded'])==3
+                assert app.state(actor)['prompt']==stable and not port.calls
+            finally:stop(app,b)
+        """)
+
+
+    def test_npc_uses_node_metadata_extender_without_adding_core_fields(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                actor='world/npc/miner';extra=app.plugins['capabilities/node_metadata'];matcher=app.plugins['capabilities/prompt_matching']
+                extra.set(actor,'npc',{'temperament':'cautious'})
+                values=b.network.get_metadata(actor)['extensions']['npc'];assert values['role']=='miner' and values['temperament']=='cautious'
+                matcher.match(actor)
+                current=app.rpc('prompt_matching_get',actor=actor,scope='npc.identity')['current']['metadata']
+                assert current['extensions']['npc']['temperament']=='cautious' and current['extensions']['npc']['role']=='miner'
+                assert not hasattr(b.network.nodes[actor],'temperament') and 'temperament' not in state(b)['actors'][actor]
             finally:stop(app,b)
         """)
 

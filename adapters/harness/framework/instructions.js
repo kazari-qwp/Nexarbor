@@ -21,7 +21,11 @@ export class InstructionHistory {
       this.prune(ac);
     });
   }
-  has(ac,id){return this.states.get(ac)?.loaded.has(id)??false;}
+  has(ac,id){
+    const state=this.states.get(ac),record=state?.loaded.get(id);if(!record)return false;
+    if(record.pending||state.agent.session.deriveMessages().some(m=>m.id===record.message.id))return true;
+    state.loaded.delete(id);return false;
+  }
   load(ac,id,text){
     const state=this.states.get(ac);if(!state)throw new Error('Instruction history is not mounted');
     const digest=createHash('sha256').update(text).digest('hex');

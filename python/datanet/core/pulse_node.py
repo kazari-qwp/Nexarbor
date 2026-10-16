@@ -4,22 +4,21 @@ import inspect
 import time
 from copy import deepcopy
 from .node import Node
-from .signals import Signal,NodeFilter
+from .signals import Signal
 from .json_values import freeze,thaw,names
 from .interface import validate_strength
 
 class PulseNode(Node):
     signal_type='pulse'
 
-    def __init__(self,node_id,name,data_kind=None,*,channels=('pulse',),strength=3,content=None,activation=None,signal_options=None,state=None,description=''):
+    def __init__(self,node_id,name,data_kind=None,*,channels=('pulse',),strength=3,content=None,signal_options=None,state=None,description=''):
         super().__init__(node_id,name,'pulse',description=description)
         self.channels=names(channels,'channels',allow_empty=False)
         self.strength=validate_strength(strength);self.content=freeze(content)
-        self.activation=NodeFilter(**activation) if isinstance(activation,dict) else activation or NodeFilter()
         self.signal_options=freeze(signal_options or {})
         allowed={'direction','failure_policy','max_hops','max_deliveries','timeout_seconds','node_timeout_seconds'}
         if set(self.signal_options)-allowed:raise ValueError('Invalid pulse signal option')
-        Signal(node_id,self.channels,strength,content=self.content,activation=self.activation,**thaw(self.signal_options))
+        Signal(node_id,self.channels,strength,content=self.content,**thaw(self.signal_options))
         self.state=deepcopy(state) if state is not None else dict(sequence=0,phase='idle',active_signal=None,last_signal=None,last_status=None)
         self._running=False
         self._validate_state()
@@ -57,7 +56,7 @@ class PulseNode(Node):
                     break
                 options=thaw(self.signal_options)
                 options['timeout_seconds']=min(options.get('timeout_seconds',180),left)
-                signal=Signal(self.node_id,self.channels,self.strength,content=self.content,activation=self.activation,
+                signal=Signal(self.node_id,self.channels,self.strength,content=self.content,
                               kind='pulse',close_loop=True,parent_id=self.state['last_signal'],sequence=self.state['sequence']+1,**options)
                 runtime._authorize(signal)
                 self.state.pop('error',None)

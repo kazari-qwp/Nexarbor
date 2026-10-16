@@ -1,0 +1,45 @@
+{
+  "clock": [
+    {
+      "id": "update-time",
+      "channels": [
+        "world.tick"
+      ],
+      "steps": [
+        {
+          "tool": "world_update_time",
+          "arguments": {
+            "signal_id": {
+              "$ref": "/signal/signal_id"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "npc": [
+    {
+      "id": "live-this-moment",
+      "channels": [
+        "world.tick"
+      ],
+      "steps": [
+        {
+          "tool": "match_prompts",
+          "arguments": {}
+        },
+        {
+          "tool": "world_run_actor",
+          "arguments": {
+            "task": {
+              "$ref": "/signal/content/task"
+            },
+            "timeout_ms": {
+              "$ref": "/signal/content/timeout_ms"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

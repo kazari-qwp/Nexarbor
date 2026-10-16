@@ -78,8 +78,15 @@ class Node:
     def schema(self) -> dict | None:
         return self.get_schema()
 
+    def standard_metadata(self) -> dict:
+        return {'node_id': self.node_id, 'management_parent_id': self.management_parent_id, 'name': self.name, 'node_type': self.signal_type, 'data_kind': self.data_kind, 'description': self.description, 'divergence': self.divergence, 'has_agent': self.agent is not None}
+
+    def get_metadata(self) -> dict:
+        registry = getattr(self, '_metadata_registry', None)
+        return registry.read(self) if registry else self.standard_metadata()
+
     def describe(self, *, include_schema: bool=True) -> dict:
-        result = {'node_id': self.node_id, 'management_parent_id': self.management_parent_id, 'name': self.name, 'data_kind': self.data_kind, 'description': self.description, 'divergence': self.divergence, 'has_agent': self.agent is not None}
+        result = self.get_metadata()
         if include_schema:
             try:
                 result['schema'] = self.get_schema()

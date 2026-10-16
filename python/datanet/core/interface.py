@@ -21,14 +21,12 @@ class InterfaceMetadata:
     threshold:int=0
     multiplier:float=1
     channels:tuple=()
-    wait_for_completion:bool=True
     attributes:dict=field(default_factory=dict)
 
     def __post_init__(self):
         if self.visibility not in ('public','private'):raise ValueError('visibility 必须为 public 或 private')
         if type(self.threshold) is not int or self.threshold<0:raise ValueError('连接门槛必须为非负整数')
         validate_strength(self.multiplier)
-        if type(self.wait_for_completion) is not bool:raise ValueError('wait_for_completion must be boolean')
         if not isinstance(self.attributes,dict):raise ValueError('attributes must be a JSON object')
         object.__setattr__(self,'channels',names(self.channels,'channels'))
         object.__setattr__(self,'attributes',freeze(self.attributes))
@@ -63,7 +61,6 @@ def metadata_schema():
             'threshold':{'type':'integer','minimum':0,'default':0},
             'multiplier':{'type':'number','minimum':0,'default':1},
             'channels':{'type':'array','items':{'type':'string','minLength':1},'uniqueItems':True,'default':[]},
-            'wait_for_completion':{'type':'boolean','default':True},
             'attributes':{'type':'object'},
         },
         'additionalProperties':False,

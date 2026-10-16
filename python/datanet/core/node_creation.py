@@ -84,7 +84,7 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
                 entry = {'type': spec['type'], 'node_id': node_id, 'name': spec.get('name', child_id), 'data_kind': spec.get('data_kind'), 'description': spec.get('description', ''), 'divergence': spec.get('divergence', -1), 'parameters': spec['parameters'], 'connections': {'read_interfaces': [], 'write_interfaces': []}, 'agent': None, 'toolboxes': spec.get('toolboxes', []), 'expose': spec.get('expose', [])}
                 folder = storage_dir / uuid4().hex
                 folder.mkdir(parents=True)
-                fragment = _build({'version': 4, 'signals': {}, 'nodes': [entry], 'delegations': []}, folder)
+                fragment = _build({'version': 5, 'signals': {}, 'nodes': [entry], 'delegations': []}, folder)
                 child = fragment.nodes[node_id]
                 from datanet.core.node_toolboxes import validate_exposure
                 validate_exposure(child)

@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import {InstructionHistory} from '../adapters/harness/framework/instructions.js';
+let projected=[],id=0;
+const handlers=new Map(),ac={on:(name,fn)=>handlers.set(name,fn)};
+const agent={session:{id:'marker-test',deriveMessages:()=>projected}};
+const history=new InstructionHistory(value=>({...value,id:'message-'+(++id)}));history.bind(ac,agent);
+assert.equal(history.load(ac,'doc:1','first version'),true);
+assert.equal(history.has(ac,'doc:1'),true);assert.equal(history.load(ac,'doc:1','first version'),false);
+const enter=()=>handlers.get('agent/pre-step')({},async()=>({kind:'enter',messages:[]}));
+let decision=await enter();projected.push(...decision.messages);assert.equal(projected.length,1);
+assert.equal(history.has(ac,'doc:1'),true);
+// Projection removed the document; has() must not trust an old in-memory loaded flag.
+projected=[];assert.equal(history.has(ac,'doc:1'),false);
+assert.equal(history.load(ac,'doc:1','first version'),true);
+await handlers.get('agent/pre-step')({},async()=>({kind:'stop'}));assert.equal(history.has(ac,'doc:1'),true);
+decision=await enter();projected.push(...decision.messages);
+const resumedHandlers=new Map(),resumed={on:(name,fn)=>resumedHandlers.set(name,fn)};
+const restored=new InstructionHistory(value=>({...value,id:'message-'+(++id)}));restored.bind(resumed,agent);
+assert.equal(restored.has(resumed,'doc:1'),true);assert.equal(restored.load(resumed,'doc:1','first version'),false);
+projected=[];resumedHandlers.get('session/event')(agent.session,{type:'compaction/end',data:{}});
+assert.equal(restored.has(resumed,'doc:1'),false);
+assert.equal(restored.load(resumed,'doc:1','second version'),true);
+console.log('PASS history markers: pending admission, retained documents, lost projection, cold bind, compaction pruning, version reload');

@@ -178,6 +178,7 @@ class NetworkPackage:
             raise ValueError(f'节点编号冲突：{sorted(collisions)}')
         self._materialize(fragment, storage_dir)
         network.nodes.update(fragment.nodes)
+        network.use_metadata_registry(network.metadata_registry)
         network.delegation_permissions.update(fragment.delegation_permissions)
         try:
             self._install(network, report, registry)

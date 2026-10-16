@@ -63,8 +63,8 @@ def ensure_nodes():
     from datanet.core.json_values import thaw
     from dataclasses import asdict
     register_node(NodeCodec('pulse',PulseNode,
-        lambda n,b:dict(channels=list(n.channels),strength=n.strength,content=thaw(n.content),activation=thaw(asdict(n.activation)),signal_options=thaw(n.signal_options),state=n.state),
-        lambda c,p,b:PulseNode(*c,**p),parameter_fields=['channels','strength','content','activation','signal_options','state'],
+        lambda n,b:dict(channels=list(n.channels),strength=n.strength,content=thaw(n.content),signal_options=thaw(n.signal_options),state=n.state),
+        lambda c,p,b:PulseNode(*c,**p),parameter_fields=['channels','strength','content','signal_options','state'],
         description='脉冲节点：按频道发出有限轮次信号，闭环返回并完成本轮处理后继续下一轮。',
         local_read=False,local_write=False,local_schema=False))
     catalog, order = mount_paths()

@@ -1,118 +1,93 @@
-# 核心信号与脉冲节点
+# 核心信号、频道响应器与脉冲节点
 
-2026-10-16：直接升级核心，网络格式为 **v4**。不接受v3网络文件或旧版Interface构造参数。第一、第二应用保持原样；NPC应用已接入脉冲→常驻时间文本→居民→脉冲的闭环，见NPC应用验证记录。旧应用的验证记录对应此前提交，不能作为新核心的兼容性结论。
+当前网络格式为 **v5**。旧v3/v4网络和检查点直接拒绝，不做兼容转换。第一、第二应用尚未迁移；当前验证覆盖新核心、共享组件与NPC最小链路。
 
-## 接口结构
+## 核心只负责传播
+
+`Signal` 是不可变JSON值，携带来源、频道集合、内容、强度、方向、编号、父编号、序号、闭环标记、失败策略及执行预算。已删除 `NodeFilter`、`PermissionRequirement` 和 `activation`。
 
 ```python
-Interface('receiver', metadata={
-    'visibility': 'public',
-    'threshold': 1,
-    'multiplier': 1,
-    'channels': ['world.tick', 'request.collect'],
-    'wait_for_completion': True,
-    'attributes': {'example.purpose': 'schedule'},
+signal = Signal('source', ['world.tick', 'notice'], 3,
+                content={'task': '按当前目标活动'},
+                close_loop=True, failure_policy='continue')
+```
+
+接口使用统一元数据：
+
+```python
+Interface('target', metadata={
+    'visibility': 'public', 'threshold': 1, 'multiplier': 1,
+    'channels': ['world.tick'], 'attributes': {'purpose': 'time'}
 })
 ```
 
-接口只有目标和不可变元数据。公私、门槛、倍率、频道及等待策略都在metadata中；attributes容纳组件的额外JSON属性。所有字段有结构/类型校验，未知内置字段报错。元数据不能修改已有实例，需要创建替代接口。
+信号只能沿公有且频道有交集的接口传播，频道集合全程保持原样；强度按倍率及目标散度计算，不能低于0。私有数据访问仍遵守既有图权限，与信号传播分开。`wait_for_completion`及后台通知API已移除。
 
-- 信号和接口频道均为去重集合，名称由组件声明，不是核心枚举。
-- 频道有任意交集即可通过，**信号频道原样保留**。携带A、B的信号可以先过A接口，再过B接口。
-- 信号只沿所选方向上的公有连接传播。私有连接仍按原规则服务所属节点的数据访问，不参与信号传播。
-- 空接口频道不承载信号；空信号频道拒绝创建。不存在隐式通配符。
-- 倍率、门槛和目标散度共同决定剩余强度。信号不投递到剩余强度为负的节点；0强度仍可被接收，能否继续由下一条边和目标散度决定。
+同一层的节点并行处理，每个节点等待自己的处理完成；整层完成后才能进入下一层。同一节点在一份信号中只处理一次，汇聚取最大强度而不相加。没有绑定处理器的节点直接中继，包括Agent节点；是否执行Agent由响应器决定。
 
-## 信号对象
+`SignalRuntime.bind(node_id, async_handler, access_strength=...)` 是底层宿主接入接口，不负责业务匹配。接收者使用自己的宿主授权执行，不能借发信者权限。节点处理有互斥、期限和错误回执；`failure_policy='stop'` 停止后续层，`continue` 只让成功/中继分支继续。失败不能当作成功就绪。
+
+## 节点信号响应器
+
+`capabilities/signal_response` 是可选共享组件，配置保存在扩展状态，不增加核心节点字段。响应器由频道集合及有序工具步骤组成。到达节点后频道有交集就响应；同节点多个命中响应器按配置顺序执行。没有命中的响应器不执行工具，节点仍可中继。
+
+```json
+{
+  "id": "live-this-moment",
+  "channels": ["world.tick"],
+  "steps": [
+    {"tool": "match_prompts", "arguments": {}},
+    {"tool": "run_agent", "arguments": {"task": {"$ref": "/signal/content/task"}}}
+  ]
+}
+```
+
+工具由宿主按节点显式绑定，不根据来信任意选择或扩大权限。参数支持JSON字面值和JSON Pointer引用：`/signal/...`、`/delivery/...`、`/steps/0/value/...`、`/responders/0/...`。没有eval、代码插值或任意函数查找。工具返回后才进入下一步；步骤失败停止当前节点后续步骤，并交由信号失败策略处理。同步工具在线程执行；超时后线程尚未结束时拒绝该节点重入。
+
+装配示例：
 
 ```python
-from datanet.core.signals import Signal, NodeFilter, PermissionRequirement
-signal = Signal(
-    origin='requester',
-    channels=['request.collect'],
-    strength=3,
-    content={'request': '收集你掌握的信息', 'target': 'shared/report'},
-    activation=NodeFilter(
-        types=['agent'],
-        required_tools=['node_invoke'],
-        permissions=[PermissionRequirement('shared/report', 'write', 'write')],
-    ),
-    max_hops=8,
-    max_deliveries=100,
-    timeout_seconds=120,
-    node_timeout_seconds=60,
-)
+responses = app.plugins['capabilities/signal_response']
+responses.bind(node_id, rules, {'match_prompts': match, 'run_agent': run}, access_strength=2)
 ```
 
-Signal为不可变JSON值，含唯一编号、真实来源、频道、内容、激活条件、方向、强度、失败策略和执行预算。NodeFilter的各组条件之间为AND；types和node_ids组内为OR；required_tools及permissions要求全部满足。节点类型支持核心类型类别和已注册codec类型ID。过滤未命中不调用处理器，但仍可中继信号。
+异步工具接受 `(context, **arguments)` 并await；普通函数在线程调用，同样接受context。普通节点也可使用，无需Agent。配置可随Backend检查点保存，恢复后由宿主重新绑定可执行工具；不会自动重放中断的步骤。
 
-工具集合由宿主绑定提供，可用函数动态读取当前授权。目标权限默认通过接收者自己的访问预算检查图可达和目标公开工具方向，也可以由宿主提供更细的permission_checker。筛选只决定是否激活，实际工具执行继续接受原有权限检查。信号既不能伪造发起者，也不能通过频道或节点条件扩大工具授权。
+## 提示词匹配器独立于信号
 
-## 广度执行
+`capabilities/prompt_matching` 不导入信号模块。元数据统一通过核心 `Network.get_metadata` 读取，装配时只绑定文档来源；可以从响应器调用，也可单独调用。它通过已有 `load-document/document-present` 通道工作，不修改角色系统提示词。
+
+文档以ID、正文/条件/投放方式的版本哈希作为标记。已有且仍在上下文中的文档不重复注入；首次、内容变更、压缩后标记消失时补充。`instructions`投放正文，`query`只提供文本节点入口。当前元数据或匹配集合变化时追加一条简短最新记录；版本号区分A→B→A，不能因旧A记录仍在就跳过新的状态通知。
+
+匹配器保存的是当前适用集合及修订号，不是“已经加载”的永久标记。真正是否加载以原生会话投影或待入队文档为准；上下文标记丢失后重新加载。旧文本不从历史抹除，文档带条件，最新元数据记录说明当前条件与失配项。同一文档以最近注入版本为准。条件支持标准字段名或JSON Pointer，例如`/extensions/npc/role`；读取方不需要知道元数据扩展器是否存在。
+
+## 节点元数据扩展器
+
+`capabilities/node_metadata` 对普通、文本及Agent节点都适用。扩展字段按节点ID/命名空间保存在扩展检查点；不增加核心Node/Agent字段。`core`命名空间保留，不能覆盖。宿主可注册计算提供器读取业务状态，避免复制两份易失配的状态；附加字段不能覆盖提供器字段。
 
 ```python
-runtime = network.signals
-async def process(context):
-    # context.signal：原始信号；context.delivery：本次路径、强度、层级和父节点。
-    # context.receipt_id：signal_id + node_id，可用作业务幂等键。
-    return {'processed': context.signal.signal_id}
-
-runtime.bind('receiver', process, capabilities=['node_invoke'], access_strength=2)
-report = await network.propagate(signal)
+metadata = app.plugins['capabilities/node_metadata']
+metadata.set(node_id, 'custom', {'department': 'finance'})
+metadata.register('runtime', lambda node_id: {'online': True})
+network.get_metadata(node_id)  # 标准核心字段 + 可选extensions
+network.nodes[node_id].get_metadata()  # 同一个统一入口
+network.nodes[node_id].describe()  # 节点列表等现有操作也自动合并
 ```
 
-每一层并行执行，收齐本层需要完成的处理后，再沿其接口计算下一层。普通无处理器节点可以中继；匹配激活条件的Agent必须绑定宿主处理器，否则记录失败，不假装已经工作。处理器必须是异步函数或返回可等待对象，实际接收者身份和自身授权预算进入上下文，之后恢复原上下文。
+核心MetadataRegistry负责统一读取：未装扩展器时只返回标准字段，装配后自动并入extensions。标准字段不能被扩展命名空间覆盖。Backend启动时注册扩展，无需先创建Application/Agent；恢复和拼图挂载继续使用同一读取入口。节点列表复用describe，因此不需要逐工具增加适配代码。
 
-同一个信号每个节点只处理一次。多条路径汇聚时合并父节点，采用**最强输入而非求和**，避免多人回源放大强度。同层多路到达只调用一次处理器。每次信号开始冻结节点集合、接口和散度；中途变更拓扑从下一信号开始生效。
+扩展命名空间默认只供节点自身、根与宿主读取，可通过注册提供器的public参数声明公开，统一读取仍遵守此可见性，避免把私人身份状态随节点列表泄露给其他节点。
 
-`wait_for_completion=False` 是终端通知订阅：后台投递、不阻挡主传播屏障，**不承担后续信号中继**。需要“先处理、再转发”的连接必须设True。后台通知可以显式调用 `drain_notifications(signal_id)` 等待，或 `cancel_notifications(signal_id)` 取消；宿主结束前调用 `await runtime.close()` 清理。失败策略只针对需要完成的分支，通知失败仍记入相应回执。
+NPC用`npc`命名空间提供性别、职业、孕期等字段。匹配器不导入元数据扩展器，只读统一核心接口。三个共享组件均可单独装配，没有NPC依赖，也没有相互强制依赖。
 
-`failure_policy='stop'` 在本层失败/超时后停止后续传播；`continue` 让成功分支继续，最终结果标为partial。超时、取消、跳数和投递数均有记录。Asyncio取消是协作式的，不能强杀任意Python代码；处理器和宿主外部工具必须遵守取消契约。
+## PulseNode与持久化
 
-## Agent处理完成即就绪
+核心PulseNode是有限闭环信号源，不认识时间、NPC或工具。`await pulse.run(runtime, cycles=2, timeout_seconds=180, cycle_complete=settle)`在本轮回源且整层结束后执行结算，再发下一份新信号。默认1轮；序号递增，parent_id关联上一份。回源仅记录returned，不再次执行源处理器或沿旧信号循环。
 
-核心提供 `ExecutorRegistry.bind_signals(runtime, node_id)`，把已装配的执行器接到信号处理器。正常执行完成就是本节点完成，无需模型调用ready或submit工具。
+失败、未回源、超时、预算耗尽停止续发；只有显式allow_partial才接受部分完成。完整网络和信号记录可保存恢复；Backend自动接入检查点。相同signal_id相同内容不重放，不同内容拒绝。旧详情可压缩，去重身份保留。处理中恢复标为interrupted，需要宿主核实副作用再reconcile，不能保证跨外部系统exactly-once。
 
-同步执行器通过线程运行并使用原有取消接口；如果取消请求返回后旧线程仍未结束，该Agent会阻止启动新的信号任务，直到旧线程真正退出。框架不把“已请求取消”当成“执行已经停止”。Harness可通过 `runtime.bind` 接入自己的原生异步run/whenIdle回调；本轮未修改其适配层或应用装配。
+## 最小验证
 
-## 核心PulseNode
+核心20项、共享组件6项、NPC9项通过；另有原生Harness+Mock和历史文档标记测试。没有付费调用，也没有运行全世界真实Agent。第一、第二应用未迁移，不以旧应用结果宣称兼容v5。
 
-```python
-pulse = PulseNode('pulse', 'Clock source', channels=['world.tick'], strength=3)
-network.add_node(pulse)
-
-# 预先装配 pulse -> clock -> agents -> pulse 的同频道公有接口。
-async def settle(pulse, report):
-    # 通用轮次结束钩子，业务在组件中结算，完成后才允许下一次发出。
-    pass
-
-result = await pulse.run(network.signals, cycles=2,
-                         timeout_seconds=180, cycle_complete=settle)
-```
-
-PulseNode是核心第四种节点类型，与node、text_file、agent并列。没有内置模型可调用工具，不认识NPC、日期、家庭或地图。
-
-脉冲源发出新Signal；允许同一信号一次返回源头。回源只记录闭环，不再次处理源、不再沿旧信号继续循环。整个必需传播完成且闭环成功后，先执行cycle_complete，再以新编号和新的visited发下一次；新信号保留parent_id和递增sequence。发射强度采用脉冲源明确配置的新预算，不从回源汇聚中创造预算。
-
-默认只运行1轮，必须提供有限的cycles和总时限。没有回源、必需分支失败、超时或预算耗尽会停止续发。partial结果只有显式allow_partial=True才允许继续。新增节点在下一轮拓扑快照中进入。
-
-## 保存、恢复与去重
-
-纯Network可用save_network/load_network保存配置和执行记录。`backend.signals` 自动接入现有检查点，在信号开始、层完成和脉冲阶段边界保存状态；长时间等待处理不持有图事务锁。
-
-相同signal_id及相同内容返回已有结果，不重复处理；相同编号不同内容拒绝。只压缩旧记录详情，不删除去重身份；压缩后的结果带compacted标记。历史详情默认保留最近100份，其余保留信号身份与状态，因此去重索引仍会随独立信号数量增长。
-
-回调、线程、原生会话句柄不序列化。运行中信号和脉冲恢复后标为interrupted，拒绝自动重放；宿主需先核实副作用。PulseNode.reconcile(reason) 是宿主明确记录已核实状态后，允许新一轮的入口；不是继续执行旧信号。回调内部的业务事务、外部写入和模型请求无法仅靠信号日志实现跨系统exactly-once，组件可使用receipt_id做幂等。
-
-## 本轮验证
-
-```powershell
-$env:PYTHONPATH="$PWD/python;$PWD/tests"
-$env:DATANET_COMPONENT_ROOT="$PWD/extensions/.none"
-.venv/Scripts/python.exe -m unittest test_core_signals -v
-.venv/Scripts/python.exe scripts/demo_core_pulse.py
-```
-
-19项新核心测试及1项现有纯核心装配测试通过；纯核心示例执行2轮：两个Agent第一轮都读到第1天-早，第二轮都读到第1天-午，且每轮完成汇聚后才开始下一轮；保存恢复后脉冲序号为2。全部离线，无付费API、无真实NPC全世界运行。旧应用兼容性测试未作为本轮目标。
-
-Agent可见的新增节点描述原文：**脉冲节点：按频道发出有限轮次信号，闭环返回并完成本轮处理后继续下一轮。** 原有Agent提示词和应用指南未修改。
+新增工具描述原文：`按自己的身份元数据补充尚未加载的提示文档。` NPC响应器内部调用该工具，不默认暴露给NPC模型。
