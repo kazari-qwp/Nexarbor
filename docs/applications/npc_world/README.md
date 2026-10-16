@@ -10,7 +10,7 @@
 
 信号网络为 `脉冲 → 时间文本 → 居民 → 存档点 → 脉冲`。`world.tick` 与道路的业务访问分开。核心广度优先按层等待；时间文本的 `clock.text` 模块在新信号到来时推进五时刻时钟。`agent.signal` 通过现有信号响应器依次收集信息、装配工具、执行原生 Agent 循环（执行前复用现有上下文装配），正常结束就记录完成并继续传播，无提交/就绪工具。
 
-每次操作只发一轮。居民默认最多8次请求、90秒，整个操作最多180秒。失败分支不继续传播，其他居民继续；已经成功的业务不会因 Agent 后续失败被撤销。中断脉冲保留进度，需要核对后恢复，不能盲目重放。
+每次操作只发一轮。居民默认最多16次请求、90秒，整个操作最多180秒。失败分支不继续传播，其他居民继续；已经成功的业务不会因 Agent 后续失败被撤销。中断脉冲保留进度，需要核对后恢复，不能盲目重放。
 
 存档点是普通节点装配通用 `checkpoint.counter` 模块。同一信号多路汇入只计一次，每5次到达显式保存核心全量快照，并持久化全量恢复点请求。适配层等所有工具结果落盘后，关联所有 Agent 的原生日志位置，发布全量一致恢复点；期间增量保存继续工作。计数器随网络一起恢复，不承担业务结算。
 
@@ -20,7 +20,7 @@
 
 结婚与家庭登记将双方同意保存到对应业务节点，第二份同一时刻的有效同意到达后立即办理。孕期10时刻，到期在医院调用出生工具创建独立儿童 Agent 和上下文节点、私人记忆，登记父母及住所；下一次脉冲才加入。
 
-自己的居民楼才允许休息。住所名单属于 `world.household.state.residents`；修理材料属于 `world.repair.state.materials`。元数据扩展器提供实时只读映射，不另存副本。性别、职业、目标、资金、位置等属于居民模块状态，核心 AgentNode 没有 NPC 字段。
+自己的居民楼才允许休息。住所名单属于 `world.household.state.residents`；修理材料属于 `world.repair.state.materials`。元数据扩展器提供实时只读映射，不另存副本。性别、职业、资金、位置等属于居民模块状态，核心 AgentNode 没有 NPC 字段。
 
 ## 功能拆分
 
@@ -56,7 +56,7 @@
 
 入口导出 `Nexarbor/npc-world`，适配代码位于 `extensions/npc_world/capabilities/scene_operator/entry.js`。
 
-`world_observe` 只观察，`world_run_npc(target)` 只运行指定居民一个时刻。测试配置 `worldAllowFullRun:false` 禁止完整运行。没有启动全世界真实 Agent 付费测试。
+`world_observe` 只观察，`world_run_npc(target)` 只运行指定居民一个时刻。测试配置 `worldAllowFullRun:false` 禁止完整运行。单人最小测试之外，2026-10-16 已获授权进行一个游戏日的六居民真实模型测试，见验证记录。
 
 当前最小化测试见 [VALIDATION.md](VALIDATION.md)，Agent 文案原文见 [NODE_MODULE_REVIEW.md](NODE_MODULE_REVIEW.md)，通用装配接口见 [NODE_MODULES.md](../../NODE_MODULES.md)。旧自定义场所/居民节点、旧 world_* 初始化/结算 RPC 已删除，没有保留兼容入口；旧存档需另行转换，当前未实现转换器。
 
@@ -77,3 +77,11 @@ NPC 工具箱已移除 node_list/node_tools/node_invoke；移动、业务和交�
 世界常识已作为 context.sources 的 system_prompt 来源自动加载（居民与出生模板一致），正文沿用 COMMON.md。只有上下文子节点保留到 world/common 的私有读取连接，NPC 无需读取它；world_look 不再返回常识查询引用。node_read 保留给仍按需披露的成人家庭知识。
 
 完整小镇地图为共享只读文本 world/map，由居民和儿童上下文节点的 world-map 来源以 context 通道加载。沿用原生文档加载标记，连续请求不重复注入，文档缺失时再补回；不需要 NPC 查询地图，也不改变移动/业务权限。初始道路表见 network_presets/small_town/MAP.md。
+
+## 开场输入与概率事件
+
+六名居民的短期处境通过通用 input.opening 模块进入首次执行输入，不进入永久人格和元数据。儿童使用同一模块接收出生处境。地图保持在 context 通道，世界常识及人格的 system 通道不变。
+
+地址和业务节点按配置装配 probability.events；采集、修理、交易、休息、饮料、登记、出生、到达等成功行动可返回局部见闻。每项概率独立固定，有限次数为实例共享的成功上限，null 无限；上限耗尽不重分配概率。矿坑黄金是实际物品奖励，树林影子只是个人观察。失败行动不抽取，失败效果回滚整次行动；计数与结果随核心存档恢复，不产生额外模型唤醒。
+
+完整新增文案及配置见 [OPENING_EVENTS_REVIEW.md](OPENING_EVENTS_REVIEW.md)。

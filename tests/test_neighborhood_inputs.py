@@ -46,7 +46,7 @@ class NeighborhoodTests(unittest.TestCase):
                 assert '铁匠铺' in app.state(actor)['dynamic'][move]['description']
                 begin(actor)
                 result=app.invoke(actor,move,{})
-                assert result['items'][0]['result']==dict(arrived=address('smithy'),tick_finished=True)
+                value=result['items'][0]['result'];assert value['arrived']==address('smithy') and value['destination']=='铁匠铺' and value['tick_finished']
                 assert len(port.conclusions)==1 and assembler.aliases==aliases
                 assert '本地：名称：矿坑' in '\n'.join(app.input_tail(actor))
                 old=next(k for k,v in aliases.items() if v['tool']=='mine')

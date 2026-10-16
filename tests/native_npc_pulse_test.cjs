@@ -64,6 +64,8 @@ const base=productRoot;
    for(const name of ['node_read','world_messages','datanet_memory_read','datanet_memory_write'])assert.ok(options.tools.some(t=>(t.function?.name??t.name)===name));
    const texts=options.messages.flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).join('\n');
    assert.ok(texts.includes('第1天-早'),'time text must be admitted before the first NPC request');
+   assert.equal(texts.split('[初始处境]').length-1,1,'opening is ordinary input, delivered once across steps');
+   assert.ok(texts.includes('砍树出售木材'),'opening motivation reaches the first real native request');
    assert.ok(texts.includes('你是一位伐木工') && texts.includes('你是一位男性居民'));
    const system=options.messages.filter(m=>m.role==='system').flatMap(m=>m.content.filter(b=>b.type==='text').map(b=>b.text)).join('\n');
    assert.equal(system.split('# 小镇常识（只读）').length-1,1);

@@ -1,3 +1,5 @@
+本次新增的首次输入和事件文本全文见 [OPENING_EVENTS_REVIEW.md](OPENING_EVENTS_REVIEW.md)。下列已有指南、描述及系统提示保持原样。
+
 # 本轮 Agent 文案原文
 
 本页为当前有效内容；旧审阅记录仅保留历史。人格、男女/职业等其余资料未改。通用 Agent 基础提示未改。

@@ -83,6 +83,19 @@ def action(b,p):
     existing=set(b.network.nodes)
     try:
         value=module.apply(p['actor'],p['name'],p['arguments'])
+        events=b.modules.instances.get((p['target'],'probability.events'))
+        if events and events.active and (not events.owner or events.owner in b.components.enabled) and p['name']!='local_info' and 'waiting_for' not in value:
+            a=person(b,p['actor']).state
+            serial=a.setdefault('successful_actions',0)+1
+            action_id=str(tick(b))+':'+p['actor']+':'+str(serial)
+            def effects(items):
+                for effect in items:
+                    if set(effect)!={'item','quantity'} or not isinstance(effect['item'],str) or type(effect['quantity']) is not int or effect['quantity']<1:raise ValueError('Reward requires item and positive integer quantity')
+                    add(a,effect['item'],effect['quantity'])
+                return items
+            observations=events.draw(action_id,p['name'],effects)
+            a['successful_actions']=serial
+            if observations:value={**value,'events':observations}
         if p['name'] not in ('talk','local_info'):
             a=person(b,p['actor']).state;a['action_tick']=tick(b);a['last_result']=dict(ok=True,tool=p['name'],value=deepcopy(value),tick=tick(b))
         return value
@@ -99,7 +112,7 @@ def metadata(b,node):
     if 'world.resident' not in b.network.nodes[node].modules:return {}
     a=person(b,node).state
     pregnant=any(v['carrier']==node and not v.get('child') for m in b.modules.find('world.family') for v in m.state['pregnancies'].values())
-    return dict(name=a['name'],initial_goal=a['goal'],background=a.get('background',''),role=a['role'],gender=a.get('gender','unspecified'),can_gestate=a.get('can_gestate',False),life_stage='child' if a['role']=='child' else 'adult',is_parent=bool(a['children']),pregnant=pregnant)
+    return dict(name=a['name'],background=a.get('background',''),role=a['role'],gender=a.get('gender','unspecified'),can_gestate=a.get('can_gestate',False),life_stage='child' if a['role']=='child' else 'adult',is_parent=bool(a['children']),pregnant=pregnant)
 
 def place_metadata(b,node):
     n=b.network.nodes[node];address=node if 'world.address' in n.modules else next((v['config']['address'] for v in n.modules.values() if 'address' in v['config']),None)

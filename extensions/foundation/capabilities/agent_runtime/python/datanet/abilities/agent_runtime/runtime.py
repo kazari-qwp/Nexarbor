@@ -112,6 +112,7 @@ class Plugin(Component):
                 diagnostics.start(target)
             boundary = r.state(target).pop('pending_task_boundary', '')
             event=dict(id=uuid4().hex,text=(boundary + '\n' if boundary else '') + task,delivery='followup')
+            r.emit('agent/execution-input',actor=target,input_event=event)
             r.rpc('agent_inputs_update',target=target,source='core:execution',patch=dict(inputs=[event]))
             response = r.host('run', actor=target, text=event['text'], input_source='core:execution', input_event=event, timeout_ms=timeout_ms or r.config.get('turnTimeoutMs', 180000))
             if response.get('completion') != 'completed':

@@ -139,4 +139,7 @@
 | `toolboxes/world_operator` | `extensions/npc_world/toolboxes/world_operator` | `capabilities/scene_operator` |
 | `toolboxes/world_resident` | `extensions/npc_world/toolboxes/world_resident` | `capabilities/scene_operator`, `toolboxes/network_access` |
 
-共 130 个唯一组件。
+| `capabilities/opening_input` | `extensions/foundation/capabilities/opening_input` | `capabilities/agent_runtime` |
+| `capabilities/probability_events` | `extensions/foundation/capabilities/probability_events` |  |
+
+共 132 个唯一组件。

@@ -152,7 +152,7 @@ class WorldTests(unittest.TestCase):
                 except RuntimeError as e:assert json.loads(str(e))['status']=='unsupported'
                 else:raise AssertionError('address exposed text')
                 begin(actor);result=use(actor,address('smithy'),'move_here')
-                assert result['items'][0]['result']==dict(arrived=address('smithy'),tick_finished=True)
+                value=result['items'][0]['result'];assert value['arrived']==address('smithy') and value['destination']=='铁匠铺' and value['tick_finished']
                 begin(actor,'next-slot');assembly.assemble()
                 assert any(v['tool']=='repair' for v in assembly.aliases.values())
                 assert dict(id='world/npc/smith',name=person(b,'world/npc/smith').state['name']) in app.invoke(actor,'world_look',{})['people']
