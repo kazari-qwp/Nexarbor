@@ -1,57 +1,62 @@
-# 核心增量日志、全量快照与统一恢复点
+# 核心日志与 Harness 一致增量恢复点
 
-核心持久化协议不依赖Harness，不作为网络节点或应用扩展。当前是核心阶段：执行器凭据可存储、标记、导出和交接；Harness原生日志位置的真实采集与按位置分叉仍需后续适配层实现，不能据此宣称已经完成Harness上下文一键回档。
+核心仍不依赖 Harness。核心事务日志保存网络、节点模块状态、登记文件、绑定与队列；适配层通过不透明游标把原生会话日志位置关联到同一恢复点。外部进程、网络服务及未登记文件的副作用不回滚。
 
-## 状态写入
+## 两个独立变化来源
 
-checkpoints.sqlite3使用SQLite WAL和synchronous=FULL。首次提交保存完整状态；后续保存确定的JSON状态差异（set/remove/append/truncate），按提交序号和前后SHA-256校验链连接。恢复只重放状态值，不重新执行工具、模型、交易或其他副作用。未变化的状态不新增提交；操作完成仍清除对应pending记录。
+| 核心状态 | 原生上下文日志 | 行为 |
+|---|---|---|
+| 无变化 | 无变化 | 复用同一个恢复点 |
+| 有变化（包括拓扑） | 无变化 | 新恢复点，引用原会话位置 |
+| 无变化 | 有变化 | 新恢复点，关联原核心提交；只新增变化的游标 |
+| 有变化 | 有变化 | 新恢复点，同时更新对应引用 |
 
-默认每100个提交生成全量快照，可通过Backend(directory,snapshot_interval=...)设置；显式save(full=True)或创建full恢复点也生成全量。增量恢复选择不晚于目标提交的最近快照，再重放到目标；已保留的恢复点与日志不自动清除。当前没有做历史保留策略，避免错误删除恢复点依赖。
+核心提交通过单向通知触发适配层，原生 session/event 也独立触发。25毫秒合并突发事件，不轮询、不按模型token写档。每个原生会话缓存已处理事件数和前缀哈希；日志没变不重新刷盘，追加部分才更新哈希。游标按内容哈希保存在 executor_cursors，恢复点用 recovery_cursor_refs 引用，未变游标不重复存储。
 
-不再每次提交写临时全量network JSON文件。当前仍在内存中汇总状态并比较差异，优化的是持久化写入及历史大小，不声称已实现各业务字段的自动写跟踪。核心登记文件仍按已有资源清单保存，外部资料与原生日志不自动打包。
+## 一致性边界
 
-操作前写pending日志，成功提交状态与清除pending在同一SQLite事务；中断或异常留下的uncertain操作不自动重跑。恢复点遇到不确定操作拒绝发布，宿主核对后可带理由reconcile。
+SQLite WAL、synchronous=FULL、确定状态差异与SHA-256校验链保持不变。首次/每100次提交/显式full保存全量；恢复最近全量后重放状态差异，不执行工具或模型。
 
-旧的仅全量检查点数据库明确拒绝，不在此轮迁移，测试使用新目录。网络JSON仍沿用当前v5；这里升级的是数据库持久化格式v2。
+底层事务提交和已发布的一致恢复点有所区别。工具产生业务效果但原生日志还没有结果时，适配层暂缓发布；旧恢复点继续有效。所有会话前缀能够对应时，适配层先刷盘、核对会话绑定，再用 expected_commit 在核心锁内发布。捕获期间核心版本/绑定/会话长度变化则拒绝这一轮，等后续事件再捕获。核心锁内不等待 Harness 反向RPC。
 
-## 统一恢复点
+进程被强杀而未完成的操作留下 uncertain，不自动重放，也不发布新恢复点。已捕获并返回的普通异常则把当时内部状态与操作结束一起提交，不误留永久uncertain；这不承诺撤销外部影响。快照提交失败会把Backend标记为失败，要求重启。
 
-```python
-info=backend.dispatch('persistence_info',{})
-point=backend.dispatch('persistence_mark',{
-  'kind':'incremental',  # 或full
-  'expected_commit':info['commit_id'],
-  'contexts':{
-    'root':{'adapter':'example','session':'session-id',
-            'position':{'seq':123,'generation':'log-generation'}}
-  }
-})
+Windows进程终止后的句柄释放可能稍滞后；核心锁等待和SQLite启动时的IOERR/BUSY/LOCKED重试均限2秒。校验损坏不重试、不静默回退成成功。
+
+## 原生会话位置
+
+Harness适配层保存会话ID、逻辑日志格式/头指纹、事件数量、完整前缀哈希、继承前缀长度和原生日志定位信息。使用事件位置而不是压缩文件字节偏移，因此可用于原生JSONL/zstd日志。
+
+日志未变化沿用旧游标；这不会阻止核心独立保存。已卸载到磁盘的会话沿用此前确认落盘且校验过的位置，不因为当前未挂载就卡住整个网络；未获得首次有效位置的新会话仍等待装配。上下文日志独立变化也可以建立新恢复点，即使核心提交编号相同。内存中的流式推理片段不算可恢复上下文。
+
+恢复时读取原生日志的指定前缀并重新校验，不读取最新尾部代替它。复用原生 buildForkSeed，保留请求头、压缩/替换记录、队列和系统提示等日志语义，并关闭当时尚未结束的step/turn。用原生持久化服务创建新会话分支，原日志完整保留。
+
+## 宿主接口
+
+适配运行时（不是Agent工具）提供：
+
+```js
+const runtime = controller.runtimes.get(rootAgent.id);
+const point = await runtime.checkpoints.checkpoint();
+// 不一致/正在装配时可能返回null，原因见 runtime.checkpoints.status()。
+const latest = await runtime.bridge.call('persistence_latest_point');
+const recovered = await runtime.restorePoint(latest.id);
+// recovered.root_session_id：可在Harness恢复的新根会话。
+// recovered.directory：新分支核心目录；原分支保持不动。
 ```
 
-contexts是按Agent节点ID索引的不透明JSON对象，核心不解析执行器日志格式。必须覆盖当前所有已绑定会话，纯核心无会话可传空对象。适配层应先在一致边界刷盘并提供真实位置，再用expected_commit发布；网络版本变化则拒绝，避免错配。恢复点编号独立于状态提交编号，因此网络没变但会话推进时仍可建立新点。恢复点与完整快照关联在同一数据库。
+默认新目录按新根会话ID放入同一storage下的networks目录，因此打开该恢复会话时使用对应网络。也可以向 restorePoint 传显式新/空目标目录；此时宿主需使用对应存储目录。恢复方法只准备磁盘分支与绑定，不自动启动模型或重放业务。
 
-```python
-backend.dispatch('persistence_points',{})
-bundle=backend.dispatch('persistence_export',{'point_id':point['id']})
-result=backend.dispatch('persistence_restore',{
-  'point_id':point['id'],'directory':'E:/new-empty-recovery-directory'
-})
-```
+核心RPC保留 persistence_mark/export/restore/executor_restored；新增 persistence_checkpoint（必须校验expected_commit和全部会话绑定）、persistence_latest_point。纯核心用户可继续用空contexts。恢复包包含核心状态和会话游标，不包含原生日志副本；原生日志必须仍在原生存储中，缺失/损坏会明确失败。
 
-恢复包包含核心完整状态、统一标记和校验和（覆盖状态及会话标记），不用原核心数据库即可恢复。会话标记仍依赖对应执行器原日志，导出包不是原生日志的副本。仅允许新/空目录，保留原分支，不覆盖运行中的网络。
+原生日志分支全部落盘后，适配层提交新会话ID回执，核心才解除执行器恢复门禁。该契约仍允许其他执行器提供自己的位置，核心不理解Harness格式。恢复只接受新/空目录，不覆盖正在运行的网络。
 
-有上下文的恢复先标记executor_restore pending，Application拒绝挂载Agent，防止自动恢复最新会话。适配层真正恢复/分叉每个保存位置后，回报新会话ID：
+正常启动仍读取当前分支；选择历史一致点回档通过 restorePoint 创建分支，不会擅自把用户当前会话退回旧点。
 
-```python
-branch.dispatch('persistence_executor_restored',{
-  'sessions':{'root':'restored-or-forked-session-id'}
-})
-```
+## 验证
 
-必须覆盖全部待恢复节点且会话ID唯一；相同回执可重试。核心先持久化新绑定，再确认就绪。该回执是可信适配层契约，核心不能自行验证外部执行器是否真的完成恢复。无会话的纯核心恢复可直接使用。
-
-## 最小验证
-
-36项通过：新增日志/恢复7项、原核心信号20项、四口输入4项、装配器5项。覆盖嵌套差异、数组增删、负零变化、无变化不增量、周期/显式全量、历史恢复、崩溃未提交、校验损坏、乐观提交版本、不透明会话位置、记忆恢复、原分支保留、上下文恢复门禁、回执幂等、旧格式拒绝和文件锁释放。未调用模型API。Harness原生真实位置的标记/回放测试尚未执行。
-
-额外回归：全新工作区的真实Harness服务+Mock模型单NPC回环通过，原生上下文、四口输入及正常回源仍工作。这不代表已实现原生日志位置回档。
+- 48项核心/模块/上下文及崩溃测试通过；另跑NPC9项回归。
+- 真实安装的Harness服务、原生JSONL持久化和Mock模型验证七会话捕获、无变化复用、核心变化与上下文变化分别独立保存、真实移动连接变化/原生位置不变、旧前缀分叉与新核心目录绑定。
+- 真正强杀SQLite写入子进程：提交后恢复最新增量，事务中途恢复之前增量并保留uncertain。
+- 真正强杀正在等待Mock模型响应的Electron/Python测试进程树：新进程从磁盘恢复核心记忆、原生请求和排队输入；未结束turn用原生fork闭合，不续接半截推理。
+- 没有真实API调用，没有完整世界真实Agent运行，没有操作用户客户端。测试覆盖进程强退，不宣称覆盖断电或物理磁盘损坏。

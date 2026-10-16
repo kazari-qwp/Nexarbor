@@ -78,6 +78,39 @@ class JournalTests(unittest.TestCase):
             bundle['point']['contexts']['root']['seq']=999
             with self.assertRaises(ValueError):restore_bundle(bundle,base/'tampered')
             b.close()
+    def test_cursor_objects_and_unchanged_points_are_reused(self):
+        with tempfile.TemporaryDirectory() as folder:
+            s=Checkpoints(Path(folder));s.commit({'n':0});a={'a':{'session':'one','seq':2},'b':{'session':'two','seq':5}}
+            first=s.mark(a,reuse=True);self.assertEqual(s.mark(a,reuse=True)['id'],first['id'])
+            s.commit({'n':1});second=s.mark(a,reuse=True)
+            self.assertNotEqual(first['id'],second['id']);self.assertEqual(s.stats()['executor_cursor_count'],2)
+            a['a']['seq']=3;third=s.mark(a,reuse=True)
+            self.assertEqual(third['commit_id'],second['commit_id']);self.assertEqual(s.stats()['executor_cursor_count'],3)
+            self.assertEqual(s.point(first['id'])['contexts']['a']['seq'],2)
+            s.close();s=Checkpoints(Path(folder));self.assertEqual(s.point(third['id'])['contexts']['a']['seq'],3);s.close()
+
+    def test_caught_internal_failure_is_committed_not_left_uncertain(self):
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder)
+            def fail(backend,p):backend.extension_state['partial']=1;raise ValueError('known failure')
+            b.components.rpc('fixture_fail',fail,mutation=True)
+            with self.assertRaises(ValueError):b.dispatch('fixture_fail',{})
+            self.assertEqual(b.store.pending(),[]);self.assertEqual(b.store.latest()['partial'],1)
+            self.assertTrue(b.dispatch('persistence_checkpoint',dict(contexts={},bindings={},expected_commit=b.store.head)))
+            b.close()
+
+    def test_automatic_checkpoint_validates_core_version_and_bindings(self):
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);b.dispatch('bind_agent',dict(target='root',session_id='native',manager_id=None))
+            info=b.dispatch('persistence_info',{});args=dict(expected_commit=info['commit_id'],bindings=info['bindings'],contexts={'root':{'session':'native','seq':3}})
+            point=b.dispatch('persistence_checkpoint',args)
+            self.assertEqual(b.dispatch('persistence_checkpoint',args)['id'],point['id'])
+            b.dispatch('agent_progress',dict(target='root',status='ready'))
+            with self.assertRaises(RuntimeError):b.dispatch('persistence_checkpoint',args)
+            args['expected_commit']=b.store.head;args['bindings']={'root':'wrong'}
+            with self.assertRaises(ValueError):b.dispatch('persistence_checkpoint',args)
+            b.close()
+
     def test_legacy_database_is_explicitly_rejected_and_lock_released(self):
         with tempfile.TemporaryDirectory() as folder:
             file=Path(folder)/'checkpoints.sqlite3';db=sqlite3.connect(file);db.execute('CREATE TABLE checkpoints(id INTEGER PRIMARY KEY,document TEXT)');db.commit();db.close()

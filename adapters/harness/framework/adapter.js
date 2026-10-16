@@ -1,3 +1,4 @@
+import {NativeCheckpoints} from './checkpoints.js';
 import {ComponentExtensions} from './extensions.js';
 // Native Harness handles and transport conversion; application policy lives in Python.
 import path from 'node:path';
@@ -62,7 +63,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
   await prepareWindowsWorkspace(workspace);
   const native=new Map(),scopes=new WeakMap(),executions=new Map(),sessions=new Map();
   const history=new InstructionHistory(createUserMessage),permissions=new ToolPermissions(createUserMessage);
-  let bridge;
+  let bridge,checkpoints;
   const call=(method,params={},timeout)=>bridge.call(method,params,timeout);
   const agentFor=actor=>{const value=native.get(actor);if(!value)throw new Error('Agent is not mounted: '+actor);return value;};
   const extensionRoot=path.resolve(config.extensionRoot??path.join(root,'extensions','.none'));
@@ -73,10 +74,11 @@ async function createRuntime(ctx,config,rootAgent,owned){
       entry.sections.add(section.owner+':'+section.name);
       entry.agent.ctx.systemPrompt.section({name:section.name,order:section.order,interpolate:false,text:()=>entry.view.sections?.find(s=>s.owner===section.owner&&s.name===section.name)?.text??''});
     }
-    entry.view=view;
+    entry.view=view;entry.resolveReady?.(true);
   }
   async function event(actor,name,payload={}){
     if(bridge?.closed)return native.get(actor)?.view??{};
+    const mounted=native.get(actor);if(mounted&&!await mounted.ready)throw new Error('Agent mount was disposed before completion');
     const result=await call('application/event',{actor,name,payload:plain(payload)},0);
     const entry=native.get(actor);if(entry)render(result,entry);
     return result;
@@ -84,7 +86,10 @@ async function createRuntime(ctx,config,rootAgent,owned){
   function attach(actor,agent){
     owned.add(agent.ctx);
     const entry={actor,agent,view:{},sections:new Set(),tools:new Map(),inputEvents:new Set(),pendingApprovals:trackApprovals(agent)};native.set(actor,entry);scopes.set(agent.ctx,actor);
+    entry.ready=new Promise(resolve=>{entry.resolveReady=resolve;});
+    agent.ctx.effect(()=>()=>entry.resolveReady(false),'datanet.mount-ready');
     history.bind(agent.ctx,agent);permissions.state(agent.ctx);
+    agent.ctx.on('session/event',(session)=>{if(session===agent.session)checkpoints?.schedule();});
     agent.ctx.systemPrompt.section({name:'datanet:role',order:90,interpolate:false,text:()=>entry.view.prompt??''});
     const own=payload=>!payload?.agent||payload.agent===agent;
     installWindowsTerminal(agent.ctx,agent,workspace);
@@ -192,6 +197,8 @@ async function createRuntime(ctx,config,rootAgent,owned){
   bridge=new Bridge(config.backend??(useSource?source:path.join(root,'adapters/harness/runtime/backend/datanet-backend.exe')),directory,config.backendArgs??(useSource?[path.join(root,'adapters/harness/backend/server.py')]:[]),{
     DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:extensionRoot,DATANET_COMPONENT_PROFILE:JSON.stringify(config.components??{}),...(config.componentSelection?{DATANET_COMPONENT_SELECTION:JSON.stringify(config.componentSelection)}:{}),PYTHONDONTWRITEBYTECODE:'1'
   },host);
+  checkpoints=new NativeCheckpoints(ctx,native,call);
+  bridge.notifications.add(()=>checkpoints.schedule());
   try{await call('ping');extensions.configure(await call('application/catalog'));await call('application/start',{config},0);}catch(error){await bridge.close();throw error;}
   {
     const entry=attach('root',rootAgent);
@@ -199,6 +206,17 @@ async function createRuntime(ctx,config,rootAgent,owned){
     const official=await applyCapabilities(rootAgent.ctx,rootAgent,view.grant.official,ctx,undefined,permissions);
     await call('agent_progress',{target:'root',officialPreset:official.officialPreset});
   }
-  const components={disable:async id=>{const result=await call('application/disable',{component:id},0);for(const entry of native.values())render(await call('application/view',{actor:entry.actor}),entry);return result;},dispose:async()=>{for(const {handle} of sessions.values())await handle.dispose();}};
-  return {bridge,components,sessions,scopes,instructionHistory:history,get rootAgent(){return rootAgent;},workspace,directory};
+  checkpoints.ready=true;checkpoints.schedule();
+  const components={disable:async id=>{const result=await call('application/disable',{component:id},0);for(const entry of native.values())render(await call('application/view',{actor:entry.actor}),entry);return result;},dispose:async()=>{await checkpoints.stop();for(const {handle} of sessions.values())await handle.dispose();}};
+  async function restorePoint(pointId,destination){
+    const bundle=await call('persistence_export',{point_id:pointId});
+    const restored={};
+    // Preserve both source graph and source sessions. Forks are durable before core receipt.
+    for(const [actor,cursor] of Object.entries(bundle.point.contexts))restored[actor]=await checkpoints.positions.fork(cursor);
+    if(!restored.root)throw new Error('A Harness recovery point must contain the root session');
+    const target=destination??networkDirectory(base,restored.root);
+    const result=await call('persistence_restore',{point_id:pointId,directory:target,sessions:restored},0);
+    return {...result,root_session_id:restored.root,sessions:restored};
+  }
+  return {bridge,components,sessions,scopes,checkpoints,restorePoint,instructionHistory:history,get rootAgent(){return rootAgent;},workspace,directory};
 }

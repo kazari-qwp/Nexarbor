@@ -20,7 +20,9 @@ const base=productRoot;
  const loop=await get(pathToFileURL(base+'/adapters/harness/runtime/agent-loop/lib/index.js').href);await loop.link(link);await loop.evaluate();
  const host=new Context(),temp=await fs.mkdtemp(path.join(testRoot,'creation-'));
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']]){await host.plugin(native(name)[service]??native(name).default);}
- host.provide('sessionTitle',{rename(){}});host.sessions.flush=async()=>{};
+ host.provide('sessionTitle',{rename(){}});
+ const durable=process.env.DATANET_DURABLE_TEST==='1';
+ if(durable)await host.plugin(native('dsh-session-persistence-jsonl').default,{root:path.join(temp,'native-logs')});else host.sessions.flush=async()=>{};
  await host.plugin(loop.namespace.default,{agents:[]});
 
  const controller=await entry.namespace.apply(host,{workspace:temp,storage:path.join(temp,'.datanet'),backend:process.env.DATANET_TEST_PYTHON??base+'/.venv/Scripts/python.exe',backendArgs:[base+'/adapters/harness/backend/server.py'],worldAllowFullRun:false,worldMaxRequests:8,agentMaxTokens:4096});
@@ -76,6 +78,35 @@ const base=productRoot;
  assert.equal(model.requests.length,3);assert.ok(!host.tools.schemas(worker).some(t=>t.name==='world_submit'));
  const tails=worker.session.snapshotEvents().filter(e=>e.type==='datanet/request-tail');assert.ok(tails.length>=3);
  assert.ok(tails.every(e=>JSON.stringify(e.data.messages).includes('第1天-早')));
+ if(durable){
+   const point=await r.checkpoints.checkpoint();assert.ok(point,r.checkpoints.status().deferred??r.checkpoints.status().error);
+   await assert.rejects(()=>r.checkpoints.positions.read({...point.contexts.root,prefix_hash:'corrupt'}),/checksum mismatch/);
+   await assert.rejects(()=>r.checkpoints.positions.read({...point.contexts.root,event_count:999999}),/shorter/);
+   const checkpointModule=await get(pathToFileURL(base+'/adapters/harness/framework/checkpoints.js').href);
+   const detached=new checkpointModule.namespace.NativeCheckpoints(host,new Map([['root',{agent:root}]]),(method,args)=>r.bridge.call(method,args));
+   const sleeping=await detached.checkpoint();assert.equal(sleeping.id,point.id,'unmounted residents reuse their verified durable positions');await detached.stop();
+   const same=await r.checkpoints.checkpoint();assert.equal(same.id,point.id,'unchanged state and logs reuse the point');
+   const before=await r.bridge.call('persistence_info');
+   await r.bridge.call('agent_progress',{target:'root',checkpoint_test:1});
+   const coreOnly=await r.checkpoints.checkpoint();assert.notEqual(coreOnly.id,point.id);
+   assert.deepEqual(coreOnly.contexts,point.contexts,'core-only change reuses every log position');
+   assert.equal((await r.bridge.call('persistence_info')).executor_cursor_count,before.executor_cursor_count,'no duplicate cursor object');
+   worker.session.append('user/message',llm.createUserMessage({source:{kind:'user'},content:[{type:'text',text:'AFTER_SAVED_POINT'}]}),{surfaceOp:'append'});
+   const logOnly=await r.checkpoints.checkpoint();assert.equal(logOnly.commit_id,coreOnly.commit_id,'context-only changes are saved without a core change');assert.ok(logOnly.contexts['world/npc/woodcutter'].event_count>point.contexts['world/npc/woodcutter'].event_count);
+   assert.equal((await r.bridge.call('persistence_info')).executor_cursor_count,before.executor_cursor_count+1);
+   const recovered=await r.restorePoint(point.id,path.join(temp,'recovered-network'));
+   assert.equal(recovered.executor_restore.status,'complete');
+   assert.notEqual(recovered.root_session_id,root.id);
+   const child=await host.sessionPersistence.open(recovered.sessions['world/npc/woodcutter'],'read');
+   try{
+     const read=await child.read();
+     assert.equal(child.inheritedEventCount,point.contexts['world/npc/woodcutter'].event_count);
+     assert.ok(!JSON.stringify(read.events).includes('AFTER_SAVED_POINT'));
+     assert.ok(JSON.stringify(read.events).includes('node_invoke'));
+   }finally{await child.close();}
+   assert.ok((await host.sessionPersistence.stat(worker.id)),'original source log remains');
+   console.log('PASS durable native checkpoints: disk-backed 7 sessions, unchanged/core-only cursor reuse, log-only update, exact prefix fork and independent core recovery');
+ }
  // A non-assembler host producer can feed actual files into all four native input surfaces.
  const directFile=path.join(temp,'direct-input.md');await fs.writeFile(directFile,'External document smoke test.');
  const directPatch={system_prompt:{file:directFile},context:[{id:'direct-guide',text:{file:directFile}}],inputs:[{id:'direct-event',text:{file:directFile},delivery:'followup'}],tail:[{file:directFile}]};
@@ -97,6 +128,18 @@ const base=productRoot;
  const after=await exec('world_observe',{});
  assert.equal(after.activities['world/npc/woodcutter'].status,'unavailable');
  assert.equal(after.actors['world/npc/woodcutter'].inventory.wood,2);
+ if(durable){
+   const original=await r.checkpoints.checkpoint();assert.ok(original);
+   await r.bridge.call('node_clock_advance',{target:'world/time',signal_id:'host-topology-test'});
+   await r.bridge.call('node_activity_start',{target:'world/npc/woodcutter',signal_id:'host-topology-test'});
+   await r.bridge.call('scene_action',{actor:'world/npc/woodcutter',target:'world/place/shop',module:'world.address',name:'move_here',arguments:{}});
+   await r.bridge.call('node_activity_end',{target:'world/npc/woodcutter',signal_id:'host-topology-test',status:'completed'});
+   const changed=await r.checkpoints.checkpoint();assert.ok(changed);assert.notEqual(changed.commit_id,original.commit_id);
+   assert.deepEqual(changed.contexts,original.contexts,'real topology edits do not duplicate unchanged native positions');
+   const bundle=await r.bridge.call('persistence_export',{point_id:changed.id});
+   assert.ok(bundle.document.network.nodes.find(n=>n.node_id==='world/npc/woodcutter').connections.read_interfaces.some(e=>e.target_node_id==='world/place/shop'));
+   console.log('PASS topology-only checkpoint: immediate movement edges saved while every native log position stayed unchanged');
+ }
  await controller.components.dispose();await host.fiber.dispose();clearInterval(keepAlive);
  console.log('PASS native Harness NPC pulse: channel response sequence, stable role and personality prompt, explicit context-node sources, independent history documents, resident clock, location tool, natural completion, return to source, native error rejected; no model API calls');
 })().catch(error=>{console.error(error);process.exit(1)});

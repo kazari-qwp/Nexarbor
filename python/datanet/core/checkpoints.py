@@ -1,18 +1,31 @@
 """Incremental state journal, periodic snapshots and executor-neutral recovery points."""
-import json,sqlite3
+import json,sqlite3,time
 from copy import deepcopy
 from threading import RLock
 from uuid import uuid4
 from filelock import FileLock
 from .state_journal import canonical,checksum,diff,apply
 
+def open_database(file):
+    # Windows process termination may briefly leave WAL/SHM handles pending cleanup.
+    deadline=time.monotonic()+2
+    while True:
+        db=sqlite3.connect(file,check_same_thread=False)
+        try:
+            db.execute('PRAGMA journal_mode=WAL');db.execute('PRAGMA synchronous=FULL')
+            return db
+        except sqlite3.OperationalError as error:
+            db.close()
+            code=getattr(error,'sqlite_errorcode',0)&255
+            if code not in (sqlite3.SQLITE_IOERR,sqlite3.SQLITE_BUSY,sqlite3.SQLITE_LOCKED) or time.monotonic()>=deadline:raise
+            time.sleep(.05)
+
 class Checkpoints:
     def __init__(self,directory,snapshot_interval=100):
         if type(snapshot_interval) is not int or snapshot_interval<1:raise ValueError('Snapshot interval must be a positive integer')
-        self.mutex=RLock();self.interval=snapshot_interval;self.lock=FileLock(str(directory/'runtime.lock'));self.lock.acquire(timeout=0)
+        self.mutex=RLock();self.interval=snapshot_interval;self.lock=FileLock(str(directory/'runtime.lock'));self.lock.acquire(timeout=2)
         try:
-            self.db=sqlite3.connect(directory/'checkpoints.sqlite3',check_same_thread=False)
-            self.db.execute('PRAGMA journal_mode=WAL');self.db.execute('PRAGMA synchronous=FULL')
+            self.db=open_database(directory/'checkpoints.sqlite3')
             tables={r[0] for r in self.db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
             if 'checkpoints' in tables and 'journal_meta' not in tables:raise ValueError('Legacy checkpoint database is not supported; use an isolated new workspace')
             self.db.executescript("""
@@ -20,6 +33,8 @@ class Checkpoints:
                 CREATE TABLE IF NOT EXISTS commits(id INTEGER PRIMARY KEY AUTOINCREMENT,parent_hash TEXT NOT NULL,state_hash TEXT NOT NULL,delta TEXT NOT NULL,operation_id TEXT);
                 CREATE TABLE IF NOT EXISTS checkpoints(id INTEGER PRIMARY KEY,document TEXT NOT NULL,state_hash TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS pending(id TEXT PRIMARY KEY,method TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS executor_cursors(id TEXT PRIMARY KEY,value TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS recovery_cursor_refs(point_id TEXT NOT NULL,actor TEXT NOT NULL,cursor_id TEXT NOT NULL,PRIMARY KEY(point_id,actor));
                 CREATE TABLE IF NOT EXISTS recovery_points(id TEXT PRIMARY KEY,commit_id INTEGER NOT NULL,kind TEXT NOT NULL,contexts TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
             """)
             version=self.db.execute("SELECT value FROM journal_meta WHERE key='version'").fetchone()
@@ -68,7 +83,7 @@ class Checkpoints:
         with self.mutex,self.db:
             if not self.db.execute('SELECT 1 FROM pending WHERE id=?',(operation_id,)).fetchone():raise KeyError(operation_id)
             self.db.execute('INSERT OR REPLACE INTO journal_meta VALUES (?,?)',('reconciled:'+operation_id,reason));self.db.execute('DELETE FROM pending WHERE id=?',(operation_id,))
-    def mark(self,contexts,kind='incremental',expected_commit=None):
+    def mark(self,contexts,kind='incremental',expected_commit=None,*,reuse=False):
         if kind not in ('incremental','full'):raise ValueError('Invalid recovery point kind')
         if not isinstance(contexts,dict) or any(not isinstance(k,str) or not isinstance(v,dict) for k,v in contexts.items()):raise ValueError('Executor recovery cursors must be objects keyed by node ID')
         canonical(contexts)
@@ -76,20 +91,33 @@ class Checkpoints:
             if not self.head:raise ValueError('No committed state')
             if self.pending():raise RuntimeError('Uncertain operations must be reconciled before publishing a recovery point')
             if expected_commit is not None and expected_commit!=self.head:raise RuntimeError('Network changed during executor cursor capture')
+            refs={actor:checksum(value) for actor,value in contexts.items()}
+            if reuse:
+                latest=self.db.execute('SELECT id FROM recovery_points ORDER BY rowid DESC LIMIT 1').fetchone()
+                if latest:
+                    previous=self.point(latest[0])
+                    if previous['commit_id']==self.head and previous['contexts']==contexts and (kind!='full' or previous['kind']=='full'):return {**previous,'reused':True}
             point=uuid4().hex
             with self.db:
                 if kind=='full':self.db.execute('INSERT OR IGNORE INTO checkpoints VALUES (?,?,?)',(self.head,canonical(self.document),self.head_hash))
-                self.db.execute('INSERT INTO recovery_points(id,commit_id,kind,contexts) VALUES (?,?,?,?)',(point,self.head,kind,canonical(contexts)))
+                self.db.execute('INSERT INTO recovery_points(id,commit_id,kind,contexts) VALUES (?,?,?,?)',(point,self.head,kind,'{}'))
+                for actor,value in contexts.items():
+                    self.db.execute('INSERT OR IGNORE INTO executor_cursors VALUES (?,?)',(refs[actor],canonical(value)))
+                    self.db.execute('INSERT INTO recovery_cursor_refs VALUES (?,?,?)',(point,actor,refs[actor]))
             return self.point(point)
     def point(self,point_id):
         with self.mutex:
             row=self.db.execute('SELECT id,commit_id,kind,contexts,created_at FROM recovery_points WHERE id=?',(point_id,)).fetchone()
             if not row:raise KeyError('Unknown recovery point')
-            return dict(id=row[0],commit_id=row[1],kind=row[2],contexts=json.loads(row[3]),created_at=row[4])
+            contexts=json.loads(row[3])
+            for actor,cursor_id,value in self.db.execute('SELECT r.actor,r.cursor_id,c.value FROM recovery_cursor_refs r LEFT JOIN executor_cursors c ON c.id=r.cursor_id WHERE r.point_id=?',(point_id,)):
+                if value is None or checksum(json.loads(value))!=cursor_id:raise ValueError('Executor cursor checksum mismatch')
+                contexts[actor]=json.loads(value)
+            return dict(id=row[0],commit_id=row[1],kind=row[2],contexts=contexts,created_at=row[4])
     def points(self):
         with self.mutex:return [self.point(r[0]) for r in self.db.execute('SELECT id FROM recovery_points ORDER BY rowid')]
     def stats(self):
-        with self.mutex:return dict(commit_id=self.head,state_hash=self.head_hash,incremental_count=self.db.execute('SELECT COUNT(*) FROM commits').fetchone()[0],full_snapshot_count=self.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0],recovery_point_count=self.db.execute('SELECT COUNT(*) FROM recovery_points').fetchone()[0],snapshot_interval=self.interval)
+        with self.mutex:return dict(commit_id=self.head,state_hash=self.head_hash,incremental_count=self.db.execute('SELECT COUNT(*) FROM commits').fetchone()[0],full_snapshot_count=self.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0],recovery_point_count=self.db.execute('SELECT COUNT(*) FROM recovery_points').fetchone()[0],snapshot_interval=self.interval,executor_cursor_count=self.db.execute('SELECT COUNT(*) FROM executor_cursors').fetchone()[0])
     def bundle(self,point_id):
         with self.mutex:
             point=self.point(point_id);document=self.read(point['commit_id'])

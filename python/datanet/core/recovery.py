@@ -12,7 +12,7 @@ def validate_bundle(bundle):
     if set(bundle['point']['contexts'])!=required:raise ValueError('Recovery cursors must cover exactly the bound Agents')
     return bundle
 
-def restore_bundle(bundle,directory):
+def restore_bundle(bundle,directory,*,sessions=None):
     validate_bundle(bundle);directory=Path(directory).resolve()
     if directory.exists() and any(directory.iterdir()):raise ValueError('Recovery requires a new or empty directory; live state is never overwritten')
     directory.mkdir(parents=True,exist_ok=True)
@@ -22,6 +22,9 @@ def restore_bundle(bundle,directory):
         backend.restore(bundle['document']);backend.store.commit(backend.snapshot(),force_snapshot=True)
         record=dict(point=bundle['point'],status='pending' if bundle['point']['contexts'] else 'complete')
         with backend.store.db:backend.store.db.execute('INSERT OR REPLACE INTO journal_meta VALUES (?,?)',('executor_restore',canonical(record)))
+        if sessions is not None:
+            acknowledge_executors(backend,sessions)
+            record['status']='complete';record['sessions']=sessions
         return dict(directory=str(directory),commit_id=backend.store.head,executor_restore=record)
     finally:backend.close()
 

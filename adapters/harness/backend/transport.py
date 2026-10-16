@@ -14,6 +14,7 @@ class Transport:
         self.application_lock = RLock()
         self.workers = ThreadPoolExecutor(max_workers=64, thread_name_prefix='datanet-rpc')
         self.application = None
+        backend.commit_observer=lambda commit_id:self.write(dict(notification='core/committed',commit_id=commit_id))
 
     def write(self, value):
         def encode(item):

@@ -29,6 +29,7 @@ class Backend:
         self.store = Checkpoints(self.directory,snapshot_interval=snapshot_interval)
         self.agents = {}
         self.failed = False
+        self.commit_observer = None
         self.network = Network()
         self.metadata_registry = self.network.metadata_registry
         from datanet.core.agent_node import AgentNode
@@ -169,12 +170,14 @@ class Backend:
             result = self._dispatch(method, p)
         except Exception:
             try:
-                self.store.commit(self.snapshot())
+                commit_id=self.store.commit(self.snapshot(),operation_id)
+                if self.commit_observer:self.commit_observer(commit_id)
             except Exception:
                 self.failed = True
             raise
         try:
-            self.store.commit(self.snapshot(), operation_id, force_snapshot=method=='save' and p.get('full',False))
+            commit_id=self.store.commit(self.snapshot(), operation_id, force_snapshot=method=='save' and p.get('full',False))
+            if self.commit_observer:self.commit_observer(commit_id)
         except Exception:
             self.failed = True
             raise
@@ -242,8 +245,17 @@ class Backend:
             return {'loaded':True}
         if method == 'persistence_info':
             from .recovery import required_contexts
-            return {**self.store.stats(),'pending':self.store.pending(),'executor_restore_required':required_contexts(self.store)}
+            return {**self.store.stats(),'pending':self.store.pending(),'executor_restore_required':required_contexts(self.store),'bindings':{node:binding['session_id'] for node,binding in self.agents.items() if binding.get('session_id')}}
         if method == 'persistence_points':return self.store.points()
+        if method == 'persistence_checkpoint':
+            contexts=p.get('contexts',{})
+            bindings={node:binding['session_id'] for node,binding in self.agents.items() if binding.get('session_id')}
+            if p.get('bindings')!=bindings or set(contexts)!=set(bindings):raise ValueError('Executor bindings changed during cursor capture')
+            if type(p.get('expected_commit')) is not int:raise ValueError('Checkpoint requires an expected core commit')
+            return self.store.mark(contexts,p.get('kind','incremental'),p['expected_commit'],reuse=True)
+        if method == 'persistence_latest_point':
+            row=self.store.db.execute('SELECT id FROM recovery_points ORDER BY rowid DESC LIMIT 1').fetchone()
+            return self.store.point(row[0]) if row else None
         if method == 'persistence_mark':
             contexts=p.get('contexts',{})
             required={node for node,binding in self.agents.items() if binding.get('session_id')}
@@ -252,7 +264,7 @@ class Backend:
         if method == 'persistence_export':return self.store.bundle(p['point_id'])
         if method == 'persistence_restore':
             from .recovery import restore_bundle
-            return restore_bundle(self.store.bundle(p['point_id']),p['directory'])
+            return restore_bundle(self.store.bundle(p['point_id']),p['directory'],sessions=p.get('sessions'))
         if method == 'persistence_executor_restored':
             from .recovery import acknowledge_executors
             return acknowledge_executors(self,p['sessions'])

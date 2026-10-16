@@ -57,4 +57,4 @@
 
 当前最小化测试见 [VALIDATION.md](VALIDATION.md)，Agent 文案原文见 [NODE_MODULE_REVIEW.md](NODE_MODULE_REVIEW.md)，通用装配接口见 [NODE_MODULES.md](../../NODE_MODULES.md)。旧自定义场所/居民节点、旧 world_* 初始化/结算 RPC 已删除，没有保留兼容入口；旧存档需另行转换，当前未实现转换器。
 
-核心增量日志已纳入所有模块状态和文本。原生 Harness 上下文游标捕获与历史前缀恢复仍是独立待办，不能把核心图恢复称为已完成原生会话回滚。
+核心增量日志已纳入所有模块状态和文本，并由Harness适配层关联原生日志位置。支持按一致恢复点创建核心与会话的新分支，原分支保留；见 [持久化说明](../../CORE_PERSISTENCE.md)。不回滚外部副作用，不续接半截推理。

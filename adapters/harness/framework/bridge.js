@@ -4,12 +4,13 @@ export class Bridge {
   constructor(executable, directory, args=[], environment={}, host=null) {
     this.host=host;
     this.closed=false;
-    this.pending=new Map(); this.next=0;
+    this.pending=new Map(); this.next=0; this.notifications=new Set();
     this.process=spawn(executable,[...args,directory],{windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONIOENCODING:'utf-8',PYTHONUTF8:'1',...environment}});
     this.stderr=''; this.process.stderr.on('data',b=>{this.stderr=(this.stderr+b).slice(-8000)});
     this.process.stdin.on('error',e=>this.fail(e));
     createInterface({input:this.process.stdout}).on('line',line=>{
       let value; try{value=JSON.parse(line)}catch{return}
+      if(value.notification){for(const fn of this.notifications)fn(value);return;}
       if(value.host_id){
         Promise.resolve().then(()=>this.host(value.method,value.params)).then(
           result=>{if(!this.closed)this.process.stdin.write(JSON.stringify({host_id:value.host_id,result:result??null})+'\n');},
