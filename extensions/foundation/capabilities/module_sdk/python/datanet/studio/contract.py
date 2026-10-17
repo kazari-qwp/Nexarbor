@@ -1,0 +1,85 @@
+"""Versioned development contract layered on the existing NodeModule API."""
+import importlib.util
+import json
+import re
+import sys
+from hashlib import sha256
+from copy import deepcopy
+from pathlib import Path
+from jsonschema import Draft202012Validator
+from datanet.core.node_modules import NodeModule
+from datanet.core.json_values import names
+
+SCHEMA={'type':'object','required':['format','id','version','entry','node_types','requires','config_schema','state_schema','tools','signals'],
+ 'additionalProperties':False,'properties':{
+ 'format':{'const':'nexarbor-module/v1'},'id':{'type':'string','pattern':r'^[a-z][a-z0-9_.-]+$'},
+ 'version':{'type':'string','pattern':r'^\d+\.\d+\.\d+$'},'entry':{'const':'module.py:Module'},
+ 'node_types':{'type':'array','minItems':1,'uniqueItems':True,'items':{'enum':['node','text_file','agent','pulse']}},
+ 'requires':{'type':'array','uniqueItems':True,'items':{'type':'string'}},
+ 'config_schema':{'type':'object'},'state_schema':{'type':'object'},
+ 'tools':{'type':'array','items':{'type':'object','additionalProperties':False,'required':['name','description','parameters','channels'],
+   'properties':{'name':{'type':'string','pattern':r'^[a-z][a-z0-9_]*$'},'description':{'type':'string'},'parameters':{'type':'object'},
+      'channels':{'oneOf':[{'type':'array','items':{'type':'string','minLength':1}},{'type':'object','required':['config'],'additionalProperties':False,'properties':{'config':{'type':'string'}}}]}}}},
+ 'signals':{'type':'array','items':{'type':'string','minLength':1}},
+ 'operations':{'type':'array','items':{'type':'object','required':['name','parameters'],'additionalProperties':False,'properties':{'name':{'type':'string','pattern':r'^[a-z][a-z0-9_]*$'},'parameters':{'type':'object'}}}}
+}}
+
+def manifest(folder):
+    result=json.loads((Path(folder)/'module.json').read_text(encoding='utf-8'))
+    Draft202012Validator(SCHEMA).validate(result)
+    for key in ['config_schema','state_schema']:Draft202012Validator.check_schema(result[key])
+    if len({t['name'] for t in result['tools']})!=len(result['tools']):raise ValueError('Duplicate tool names')
+    for tool in result['tools']:
+        Draft202012Validator.check_schema(tool['parameters'])
+        if tool['parameters'].get('type')!='object':raise ValueError('Tool parameters must be an object')
+    operations=result.get('operations',[])
+    if len({o['name'] for o in operations})!=len(operations):raise ValueError('Duplicate operations')
+    for operation in operations:Draft202012Validator.check_schema(operation['parameters'])
+    return result
+
+class StudioModule(NodeModule):
+    """Subclass setup(), declared tool methods, and optionally on_signal(context)."""
+    def setup(self):pass
+    def on_signal(self,context):return None
+    def tool_description(self,name,default):return default
+    def invoke_operation(self,name,arguments):
+        spec=next((s for s in self.manifest.get('operations',[]) if s['name']==name),None)
+        if spec is None:raise ValueError('Module operation is not declared: '+name)
+        Draft202012Validator(spec['parameters']).validate(arguments)
+        value=getattr(self,name)(**arguments)
+        if hasattr(value,'__await__'):
+            async def checked():
+                result=await value;Draft202012Validator(self.manifest['state_schema']).validate(self.state);return result
+            return checked()
+        Draft202012Validator(self.manifest['state_schema']).validate(self.state)
+        return value
+    def install(self):
+        if self.node.signal_type not in self.manifest['node_types']:raise ValueError('Module does not support this node type')
+        Draft202012Validator(self.manifest['config_schema']).validate(self.config)
+        self.setup()
+        Draft202012Validator(self.manifest['state_schema']).validate(self.state)
+        for tool in self.manifest['tools']:
+            channels=tool['channels']
+            if isinstance(channels,dict):channels=self.config[channels['config']]
+            channels=names(channels,'tool channels')
+            function=getattr(self,tool['name'])
+            def checked(_function=function,**arguments):
+                value=_function(**arguments)
+                Draft202012Validator(self.manifest['state_schema']).validate(self.state)
+                return value
+            self.tool(tool['name'],checked,description=self.tool_description(tool['name'],tool['description']),parameters=tool['parameters'],access_channels=channels)
+
+def factory(folder):
+    folder=Path(folder).resolve();specification=manifest(folder)
+    source=(folder/'module.py').resolve()
+    if not source.is_relative_to(folder):raise ValueError('Module entry escapes its directory')
+    key='nexarbor_user_'+re.sub(r'\W','_',specification['id'])+'_'+sha256(str(folder).encode()).hexdigest()[:16]
+    spec=importlib.util.spec_from_file_location(key,source,submodule_search_locations=[str(folder)])
+    module=importlib.util.module_from_spec(spec);sys.modules[key]=module
+    try:spec.loader.exec_module(module)
+    except BaseException:sys.modules.pop(key,None);raise
+    cls=getattr(module,'Module',None)
+    if not isinstance(cls,type) or not issubclass(cls,StudioModule):raise TypeError('Module must extend StudioModule')
+    def create(backend,node,config,state):
+        result=cls(backend,node,config,state);result.manifest=deepcopy(specification);return result
+    return specification,create

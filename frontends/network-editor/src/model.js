@@ -26,7 +26,7 @@ export function layoutNodes(document,saved={}){
   return document.network.nodes.map(node=>{
     const kind=nodeKind(node);
     if(kind==='文本'){positions[node.node_id]={x:(documentIndex%5)*270,y:(documentRow+Math.floor(documentIndex/5))*115};documentIndex++;}
-    return {id:node.node_id,type:'network',width:92,height:92,position:saved[node.node_id]??positions[node.node_id],data:{node,kind}};
+    return {id:node.node_id,type:'network',width:92,height:92,measured:{width:92,height:92},position:saved[node.node_id]??positions[node.node_id],data:{node,kind}};
   });
 }
 export function removeNode(document,id){

@@ -4,6 +4,10 @@ from contextlib import contextmanager
 current_access = ContextVar('current_network_access', default=None)
 active_agent = ContextVar('active_network_agent', default=None)
 
+def current_agent_id():
+    principal=active_agent.get()
+    return principal[1] if principal is not None else None
+
 @contextmanager
 def access_context(network, node_id, strength, path, *, channels=None):
     previous = current_access.get()

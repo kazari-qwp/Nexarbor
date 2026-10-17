@@ -61,8 +61,12 @@ class Backend:
         return runtime
 
     def close(self):
-        self.modules.clear()
-        self.store.close()
+        try:
+            self.modules.clear()
+        finally:
+            try:
+                for close in reversed(self.components.finalizers):close(self)
+            finally:self.store.close()
 
     def snapshot(self):
         network = network_document(self.network,self.directory)

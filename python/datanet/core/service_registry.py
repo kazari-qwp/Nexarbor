@@ -26,6 +26,7 @@ class ComponentServices:
         self.snapshotters = []
         self.restorers = []
         self.node_restorers = []
+        self.finalizers = []
         self.root_packages = {}
         self.network_handlers = {}
         for key in self.order:

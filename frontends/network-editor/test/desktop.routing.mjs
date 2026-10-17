@@ -15,12 +15,16 @@ try{
  const checkPaths=()=>page.locator('.react-flow__edge-path').evaluateAll(paths=>paths.map(p=>({length:p.getTotalLength(),d:p.getAttribute('d')})));
  for(const r of await checkPaths())expect(r.length).toBeLessThan(2000);
  await page.mouse.move(270,135);await page.screenshot({path:path.join(run,'01-routed-after-drag.png')});
- await page.locator('.react-flow__pane').click({position:{x:10,y:10}});await page.locator('[data-id="world/time"]').click({modifiers:['Shift']});await expect(page.getByRole('button',{name:/整理选中/})).toContainText('1');
+ await page.locator('.react-flow__controls-fitview').click();await page.waitForTimeout(400);await page.locator('.react-flow__pane').click({position:{x:10,y:10}});await page.locator('[data-id="world/time"]').click({modifiers:['Shift']});await expect(page.getByRole('button',{name:/整理选中/})).toContainText('1');
  const before=await snapshot();await page.getByRole('button',{name:'优化连线',exact:true}).click();await expect(page.locator('[data-routing="avoiding"]')).toHaveCount(6);const after=await snapshot();expect(after.nodes).toEqual(before.nodes);
  for(const id of ['world/npc/alice|0','world/npc/bob|0','world/savepoint|0'])expect(after.paths[id]).toBe(before.paths[id]);
  await page.getByRole('button',{name:'全选可见',exact:true}).click();await page.getByRole('button',{name:/整理选中/}).click();await expect(page.getByRole('status')).toContainText('已整理 5');await page.waitForTimeout(450);await expect(page.locator('[data-routing="avoiding"]')).toHaveCount(6);
  await page.screenshot({path:path.join(run,'02-arranged.png')});
  const bad=await page.locator('.react-flow__edge-path').evaluateAll(paths=>paths.flatMap(p=>{const commands=p.getAttribute('d').match(/[MLQ][^MLQ]*/g)??[];let a;const bad=[];const axis=(x,y)=>Math.abs(x.x-y.x)<.02||Math.abs(x.y-y.y)<.02;for(const c of commands){const v=c.slice(1).trim().split(/[ ,]+/).map(Number),b={x:v.at(-2),y:v.at(-1)};if(a&&c[0]==='L'&&!axis(a,b))bad.push(c);if(a&&c[0]==='Q'){const q={x:v[0],y:v[1]};if(!axis(a,q)||!axis(q,b))bad.push(c);}a=b;}return bad;}));expect(bad).toEqual([]);expect(errors).toEqual([]);
- await fs.writeFile(path.join(run,'desktop-routing-verification.json'),JSON.stringify({passed:true,orthogonal:true,noStalePreviewAfterDrag:true,filterPreservesRoutes:true,scopedOptimizationPreservesOtherEdges:true,boundedPaths:true,modelCalls:0,errors},null,2));
+ await page.evaluate(()=>{window.dragSamples=[];window.sampleDrag=true;const sample=()=>{if(!window.sampleDrag)return;window.dragSamples.push(document.querySelectorAll('.react-flow__edge-path').length);requestAnimationFrame(sample);};requestAnimationFrame(sample);});
+ const fast=await page.locator('[data-id="world/time"]').boundingBox();await page.mouse.move(fast.x+fast.width/2,fast.y+fast.height/2);await page.mouse.down();
+ for(let i=0;i<30;i++)await page.mouse.move(420+(i%2)*300,220+(i%3)*100);
+ await page.mouse.up();await page.waitForTimeout(150);const samples=await page.evaluate(()=>{window.sampleDrag=false;return window.dragSamples;});expect(Math.min(...samples)).toBe(6);
+ await fs.writeFile(path.join(run,'desktop-routing-verification.json'),JSON.stringify({passed:true,orthogonal:true,noStalePreviewAfterDrag:true,filterPreservesRoutes:true,scopedOptimizationPreservesOtherEdges:true,boundedPaths:true,rapidDragMinEdges:Math.min(...samples),rapidDragFrames:samples.length,modelCalls:0,errors},null,2));
  console.log('PASS desktop visual fixture: bounded orthogonal routes, continuous drag, stable filters and scoped optimization');
 }finally{await client.close();await fixture.close();}

@@ -1,7 +1,8 @@
 """沿频道授权的接口发现并调用节点工具；起点由所属节点固定。"""
 from copy import deepcopy
 from datanet.core.node import NodeResult
-from datanet.core.access_budget import access_context, current_access
+from datanet.core.access_budget import access_context, current_access, active_agent
+from types import SimpleNamespace
 
 def reachable(network,node_id,scope='network',strength=0,channels=()):
     yield from network.walk(node_id,scope=scope,strength=strength,channels=channels)
@@ -64,7 +65,10 @@ def invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope='networ
     for target,path,remaining in network.walk_states(node_id,scope=scope,strength=strength,channels=channels):
         if target.node_id!=target_node_id:continue
         validate_arguments(arguments,definition['parameters'])
-        with access_context(network,target_node_id,remaining,path,channels=channels):result=node.invoke_tool(tool_name,**arguments)
+        identity=active_agent.set(active_agent.get() or (SimpleNamespace(max_signal_strength=strength),node_id))
+        try:
+            with access_context(network,target_node_id,remaining,path,channels=channels):result=node.invoke_tool(tool_name,**arguments)
+        finally:active_agent.reset(identity)
         source={'node_id':target_node_id,'tool_name':tool_name,'retrieval_path':path.copy(),'remaining_strength':remaining,'access_channels':list(channels)}
         if isinstance(result,NodeResult):
             result=deepcopy(result);result.sources=[{**s,'tool_name':tool_name,'tool_path':path.copy()} for s in result.sources];result.sources.append(source);return result
