@@ -220,6 +220,18 @@
                 ],
                 "attributes": {}
               }
+            },
+            {
+              "target_node_id": "world/npc/miner2",
+              "metadata": {
+                "visibility": "public",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "world.tick"
+                ],
+                "attributes": {}
+              }
             }
           ]
         },
@@ -952,6 +964,15 @@
                   "probability": 0.4,
                   "max_occurrences": 3,
                   "text": "你刚进酒馆，就听见一桌客人在讨论树林里的奇怪影子，谁也说不清是什么。"
+                },
+                {
+                  "id": "duck_mayor",
+                  "actions": [
+                    "move_here"
+                  ],
+                  "probability": 0.65,
+                  "max_occurrences": 3,
+                  "text": "酒馆里一个人认真声称，一只穿红袜子的鸭子昨晚宣布自己当选了井盖镇长，还要求所有汤勺向它缴纳过路费。"
                 }
               ]
             },
@@ -1003,6 +1024,15 @@
                   "probability": 0.6,
                   "max_occurrences": 3,
                   "text": "旁边的客人说昨晚树林里有怪影，但他也只是听别人说的。"
+                },
+                {
+                  "id": "moon_rental",
+                  "actions": [
+                    "drink"
+                  ],
+                  "probability": 0.65,
+                  "max_occurrences": 2,
+                  "text": "邻桌摊开一份手写租约，说他把昨晚的月亮租给了一条鲤鱼，押金是一桶不许流动的水。"
                 }
               ]
             },
@@ -1349,6 +1379,15 @@
                   "probability": 0.4,
                   "max_occurrences": 3,
                   "text": "居民楼2门边多了一张写着邻里互助的小纸条。"
+                },
+                {
+                  "id": "staircase_leave",
+                  "actions": [
+                    "move_here"
+                  ],
+                  "probability": 0.55,
+                  "max_occurrences": 2,
+                  "text": "居民楼2的楼梯扶手上挂着请假条：楼梯申请明天横着上班，理由是站了太多年，腿麻。"
                 }
               ]
             },
@@ -1389,7 +1428,8 @@
               "residents": [
                 "world/npc/woodcutter",
                 "world/npc/miner",
-                "world/npc/smith"
+                "world/npc/smith",
+                "world/npc/miner2"
               ]
             }
           },
@@ -1555,6 +1595,15 @@
                   "probability": 0.4,
                   "max_occurrences": 3,
                   "text": "铁砧叮当作响，门边堆着等待处理的旧工具。"
+                },
+                {
+                  "id": "anvil_dream",
+                  "actions": [
+                    "move_here"
+                  ],
+                  "probability": 0.55,
+                  "max_occurrences": 2,
+                  "text": "铁匠铺门边留着一张便条：铁砧昨夜梦见自己是面包，醒来坚决要求涂果酱。署名是一个画得很潦草的锤子。"
                 }
               ]
             },
@@ -1729,6 +1778,15 @@
                   "probability": 0.4,
                   "max_occurrences": 3,
                   "text": "商店门口挂出一块新招牌：欢迎带木材和矿石来交易。"
+                },
+                {
+                  "id": "shadow_sale",
+                  "actions": [
+                    "move_here"
+                  ],
+                  "probability": 0.55,
+                  "max_occurrences": 2,
+                  "text": "商店橱窗贴着一张皱巴巴的手写广告：二手影子半价出售，九成新，偶尔比主人先回家。"
                 }
               ]
             },
@@ -1846,6 +1904,18 @@
                   "world_presence": true
                 }
               }
+            },
+            {
+              "target_node_id": "world/npc/miner2",
+              "metadata": {
+                "visibility": "public",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {
+                  "world_presence": true
+                }
+              }
             }
           ],
           "write_interfaces": [
@@ -1871,6 +1941,18 @@
             },
             {
               "target_node_id": "world/npc/miner",
+              "metadata": {
+                "visibility": "public",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {
+                  "world_presence": true
+                }
+              }
+            },
+            {
+              "target_node_id": "world/npc/miner2",
               "metadata": {
                 "visibility": "public",
                 "threshold": 1,
@@ -1918,6 +2000,15 @@
                   "probability": 0.4,
                   "max_occurrences": 3,
                   "text": "矿坑入口的风带出凉意，远处偶尔传来金属碰撞声。"
+                },
+                {
+                  "id": "helmet_vote",
+                  "actions": [
+                    "move_here"
+                  ],
+                  "probability": 0.55,
+                  "max_occurrences": 2,
+                  "text": "矿坑门口有顶空头盔正随风点头，旁边的小牌子写着：代理矿长，正在竞选下任月亮。"
                 }
               ]
             },
@@ -1986,6 +2077,15 @@
                   "probability": 0.4,
                   "max_occurrences": null,
                   "text": "矿坑深处传来两声闷响，像是有人敲击岩壁。"
+                },
+                {
+                  "id": "mountain_salary",
+                  "actions": [
+                    "mine"
+                  ],
+                  "probability": 0.65,
+                  "max_occurrences": 2,
+                  "text": "你从矿石裂缝里抽出一张盖着土豆印章的欠条，上面写着：欠整座山三个月工资，收款人请勿翻身。"
                 }
               ]
             },
@@ -2169,6 +2269,15 @@
                   "probability": 0.25,
                   "max_occurrences": null,
                   "text": "一只鸟叼走了你脚边的细枝，朝商店方向飞去。"
+                },
+                {
+                  "id": "tree_complaint",
+                  "actions": [
+                    "chop"
+                  ],
+                  "probability": 0.65,
+                  "max_occurrences": 2,
+                  "text": "刚劈开的树皮背面贴着一张投诉单：隔壁那棵树凌晨三点练习打鸣，已连续失眠四百年。落款是一块石头。"
                 }
               ]
             },
@@ -4611,6 +4720,16 @@
                 "channels": [],
                 "attributes": {}
               }
+            },
+            {
+              "target_node_id": "world/npc/miner2/context",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
             }
           ],
           "write_interfaces": [
@@ -6297,6 +6416,582 @@
             "state": {}
           }
         }
+      },
+      {
+        "type": "agent",
+        "node_id": "world/npc/miner2",
+        "name": "陆鸣",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "world/memories/miner2.md",
+          "creation_options": {
+            "identity": "world/npc/miner2"
+          }
+        },
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "world/place/mine",
+              "metadata": {
+                "visibility": "public",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {
+                  "world_presence": true
+                }
+              }
+            },
+            {
+              "target_node_id": "world/npc/miner2/context",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
+            }
+          ],
+          "write_interfaces": [
+            {
+              "target_node_id": "world/place/mine",
+              "metadata": {
+                "visibility": "public",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {
+                  "world_presence": true
+                }
+              }
+            },
+            {
+              "target_node_id": "world/savepoint",
+              "metadata": {
+                "visibility": "public",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "world.tick"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": {},
+        "modules": {
+          "world.resident": {
+            "config": {},
+            "state": {
+              "id": "miner2",
+              "name": "陆鸣",
+              "place": "world/place/mine",
+              "role": "miner",
+              "inventory": {
+                "pickaxe": 0
+              },
+              "gender": "male",
+              "coins": 8,
+              "stamina": 5,
+              "spouse": null,
+              "children": [],
+              "inbox": [],
+              "action_tick": null
+            }
+          },
+          "world.knowledge": {
+            "config": {
+              "context": "world/npc/miner2/context",
+              "profiles": [
+                {
+                  "id": "gender/male",
+                  "name": "男性身份",
+                  "when": {
+                    "/extensions/npc/gender": "male"
+                  },
+                  "file": "gender/male.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/gender/male"
+                },
+                {
+                  "id": "gender/female",
+                  "name": "女性身份",
+                  "when": {
+                    "/extensions/npc/gender": "female"
+                  },
+                  "file": "gender/female.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/gender/female"
+                },
+                {
+                  "id": "gender/unspecified",
+                  "name": "未设定性别",
+                  "when": {
+                    "/extensions/npc/gender": "unspecified"
+                  },
+                  "file": "gender/unspecified.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/gender/unspecified"
+                },
+                {
+                  "id": "profession/resident",
+                  "name": "普通居民知识",
+                  "when": {
+                    "/extensions/npc/role": "resident"
+                  },
+                  "file": "profession/resident.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/profession/resident"
+                },
+                {
+                  "id": "profession/miner",
+                  "name": "矿工知识",
+                  "when": {
+                    "/extensions/npc/role": "miner"
+                  },
+                  "file": "profession/miner.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/profession/miner"
+                },
+                {
+                  "id": "profession/woodcutter",
+                  "name": "伐木工知识",
+                  "when": {
+                    "/extensions/npc/role": "woodcutter"
+                  },
+                  "file": "profession/woodcutter.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/profession/woodcutter"
+                },
+                {
+                  "id": "profession/smith",
+                  "name": "铁匠知识",
+                  "when": {
+                    "/extensions/npc/role": "smith"
+                  },
+                  "file": "profession/smith.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/profession/smith"
+                },
+                {
+                  "id": "profession/wanderer",
+                  "name": "流浪者知识",
+                  "when": {
+                    "/extensions/npc/role": "wanderer"
+                  },
+                  "file": "profession/wanderer.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/profession/wanderer"
+                },
+                {
+                  "id": "profession/child",
+                  "name": "儿童生活知识",
+                  "when": {
+                    "/extensions/npc/role": "child"
+                  },
+                  "file": "profession/child.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/profession/child"
+                },
+                {
+                  "id": "life/family",
+                  "name": "成人家庭知识",
+                  "when": {
+                    "/extensions/npc/life_stage": "adult"
+                  },
+                  "file": "life/family.md",
+                  "delivery": "query",
+                  "node_id": "world/knowledge/life/family"
+                },
+                {
+                  "id": "life/gestation",
+                  "name": "孕育身份",
+                  "when": {
+                    "/extensions/npc/can_gestate": true
+                  },
+                  "file": "life/gestation.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/life/gestation"
+                },
+                {
+                  "id": "life/pregnant",
+                  "name": "当前孕期知识",
+                  "when": {
+                    "/extensions/npc/pregnant": true
+                  },
+                  "file": "life/pregnant.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/life/pregnant"
+                },
+                {
+                  "id": "life/parent",
+                  "name": "父母身份",
+                  "when": {
+                    "/extensions/npc/is_parent": true
+                  },
+                  "file": "life/parent.md",
+                  "delivery": "instructions",
+                  "node_id": "world/knowledge/life/parent"
+                }
+              ]
+            },
+            "state": {}
+          },
+          "agent.session": {
+            "config": {
+              "prompt": {
+                "component": "nodes/npc_resident",
+                "file": "prompt.md"
+              },
+              "manager": "root",
+              "strength": 2,
+              "toolboxes": [
+                "world_resident"
+              ],
+              "role": "npc_resident"
+            },
+            "state": {}
+          },
+          "agent.signal": {
+            "config": {
+              "channels": [
+                "world.tick"
+              ],
+              "strength": 2,
+              "max_requests": 16,
+              "kind": "world_npc",
+              "guide": {
+                "component": "nodes/npc_resident",
+                "file": "AGENTS.md"
+              },
+              "prepare": [
+                {
+                  "step": "collect_information",
+                  "module": "information.collector",
+                  "method": "collect"
+                },
+                {
+                  "step": "assemble_tools",
+                  "module": "tools.assembly",
+                  "method": "assemble"
+                }
+              ]
+            },
+            "state": {
+              "status": "idle",
+              "requests": 0,
+              "signal_id": null
+            }
+          },
+          "information.provider": {
+            "config": {
+              "fields": {
+                "姓名": "/name",
+                "性别": "/extensions/npc/gender"
+              }
+            },
+            "state": {}
+          },
+          "information.collector": {
+            "config": {
+              "strength": 2
+            },
+            "state": {}
+          },
+          "tools.assembly": {
+            "config": {
+              "strength": 2,
+              "filters": {
+                "move_here": {
+                  "hops": [
+                    2
+                  ]
+                }
+              }
+            },
+            "state": {}
+          },
+          "input.opening": {
+            "config": {
+              "text": "[初始处境]\n你的镐子也坏了，眼下不能挖矿。你想先把镇上修理、交易和休息的门路摸清楚，找个聊得来的同行，顺便攒钱换一把称手的镐子。具体先做什么由你决定。"
+            },
+            "state": {}
+          }
+        }
+      },
+      {
+        "type": "node",
+        "node_id": "world/npc/miner2/context",
+        "name": "陆鸣的上下文",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "read_interfaces": [
+            {
+              "target_node_id": "world/time",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "world/common",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "world/map",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
+            }
+          ],
+          "write_interfaces": []
+        },
+        "agent": null,
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "modules": {
+          "context.sources": {
+            "config": {
+              "actors": [
+                "world/npc/miner2"
+              ],
+              "sources": [
+                {
+                  "id": "clock",
+                  "kind": "tail",
+                  "source": {
+                    "type": "node",
+                    "target": "world/time"
+                  }
+                },
+                {
+                  "id": "personality",
+                  "kind": "system_prompt",
+                  "source": {
+                    "type": "resource",
+                    "component": "nodes/npc_resident",
+                    "file": "personalities/miner2.md"
+                  }
+                },
+                {
+                  "id": "world/knowledge/gender/male",
+                  "name": "男性身份",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/gender": "male"
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/gender/male"
+                  }
+                },
+                {
+                  "id": "world/knowledge/gender/female",
+                  "name": "女性身份",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/gender": "female"
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/gender/female"
+                  }
+                },
+                {
+                  "id": "world/knowledge/gender/unspecified",
+                  "name": "未设定性别",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/gender": "unspecified"
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/gender/unspecified"
+                  }
+                },
+                {
+                  "id": "world/knowledge/profession/resident",
+                  "name": "普通居民知识",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/role": "resident"
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/profession/resident"
+                  }
+                },
+                {
+                  "id": "world/knowledge/profession/miner",
+                  "name": "矿工知识",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/role": "miner"
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/profession/miner"
+                  }
+                },
+                {
+                  "id": "world/knowledge/profession/woodcutter",
+                  "name": "伐木工知识",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/role": "woodcutter"
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/profession/woodcutter"
+                  }
+                },
+                {
+                  "id": "world/knowledge/profession/smith",
+                  "name": "铁匠知识",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/role": "smith"
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/profession/smith"
+                  }
+                },
+                {
+                  "id": "world/knowledge/profession/wanderer",
+                  "name": "流浪者知识",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/role": "wanderer"
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/profession/wanderer"
+                  }
+                },
+                {
+                  "id": "world/knowledge/profession/child",
+                  "name": "儿童生活知识",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/role": "child"
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/profession/child"
+                  }
+                },
+                {
+                  "id": "world/knowledge/life/family",
+                  "name": "成人家庭知识",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/life_stage": "adult"
+                  },
+                  "reference_only": true,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/life/family"
+                  }
+                },
+                {
+                  "id": "world/knowledge/life/gestation",
+                  "name": "孕育身份",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/can_gestate": true
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/life/gestation"
+                  }
+                },
+                {
+                  "id": "world/knowledge/life/pregnant",
+                  "name": "当前孕期知识",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/pregnant": true
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/life/pregnant"
+                  }
+                },
+                {
+                  "id": "world/knowledge/life/parent",
+                  "name": "父母身份",
+                  "kind": "context",
+                  "when": {
+                    "/extensions/npc/is_parent": true
+                  },
+                  "reference_only": false,
+                  "source": {
+                    "type": "node",
+                    "target": "world/knowledge/life/parent"
+                  }
+                },
+                {
+                  "id": "world-common",
+                  "kind": "system_prompt",
+                  "source": {
+                    "type": "node",
+                    "target": "world/common"
+                  }
+                },
+                {
+                  "id": "world-map",
+                  "name": "小镇地图",
+                  "kind": "context",
+                  "source": {
+                    "type": "node",
+                    "target": "world/map"
+                  }
+                }
+              ]
+            },
+            "state": {}
+          }
+        }
       }
     ],
     "delegations": [],
@@ -6310,7 +7005,8 @@
     "world/memories/woodcutter.md": "# 阿森的私人记忆\n",
     "world/memories/miner.md": "# 石岩的私人记忆\n",
     "world/memories/smith.md": "# 老锤的私人记忆\n",
-    "world/memories/wanderer.md": "# 小路的私人记忆\n"
+    "world/memories/wanderer.md": "# 小路的私人记忆\n",
+    "world/memories/miner2.md": "# 陆鸣的私人记忆\n"
   },
   "tool_names": {},
   "tools": {}

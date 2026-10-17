@@ -101,11 +101,11 @@ The application reuses pandas, SQLite, LlamaIndex, and MkDocs through the same c
 
 ## Application 3: Dynamic NPC worlds
 
-An optional extension implements a town with nine locations and six independent NPCs. Movement changes presence edges, which determine nearby people, local services, and adjacent movement tools through the existing access graph. Business rules stay outside the core.
+An optional extension implements a town with nine locations and seven independent NPCs. Movement changes presence edges, which determine nearby people, local services, and adjacent movement tools through the existing access graph. Business rules stay outside the core.
 
-Each game day has five slots. NPCs choose actions in parallel and submit before one shared settlement. Read-only common knowledge, private Markdown memories, bounded execution, checkpoints, trade, work, marriage and a fictional two-day pregnancy are supported. Birth creates a real child Agent with independent memory, joining the next slot.
+Each game day has five slots. NPCs act in parallel; signal propagation waits for the layer to finish, while successful business actions take effect immediately. Read-only common knowledge, private Markdown memories, bounded execution, checkpoints, trade, work, marriage and a fictional two-day pregnancy are supported. Birth creates a real child Agent with independent memory, joining the next slot.
 
-Mocked lifecycle tests and a paid single-NPC Harness test have passed. A complete world with real Agents was deliberately not run. See the [NPC application guide](docs/applications/npc_world/README.md).
+A paid childbirth smoke test passed, followed by a four-day run with seven real NPCs: all 20 slots completed, with 138 of 140 activities finishing normally and two reaching the request budget. See the [test report](docs/applications/npc_world/FOUR_DAY_TEST_20261017.md). See the [NPC application guide](docs/applications/npc_world/README.md).
 
 ## Quick start
 

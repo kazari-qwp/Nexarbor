@@ -59,7 +59,7 @@ class WorldTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
             try:
-                assert len(b.network.nodes)==49 and not port.calls
+                assert len(b.network.nodes)==51 and not port.calls
                 assert not any('start' in k or 'settle' in k for k in b.network.nodes)
                 assert 'world_init' not in b.components.routes and 'world_settle' not in b.components.routes
                 assert 'npc_world' not in b.extension_state
@@ -70,6 +70,22 @@ class WorldTests(unittest.TestCase):
                 assert set(app.states)=={'root',*residents(b)}
                 doc=json.loads((ROOT/'extensions/npc_world/network_presets/small_town/network.json').read_text(encoding='utf-8'))
                 assert len(doc['network']['nodes'])==len(b.network.nodes)
+            finally:stop(app,b)
+        """)
+
+    def test_second_miner_reuses_modules_and_has_independent_identity(self):
+        self.case("""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            try:
+                old='world/npc/miner';new='world/npc/miner2'
+                a=person(b,old).state;c=person(b,new).state
+                assert {k:v for k,v in a.items() if k not in ('id','name')}=={k:v for k,v in c.items() if k not in ('id','name')}
+                assert set(b.network.nodes[old].modules)==set(b.network.nodes[new].modules)
+                assert b.network.nodes[old].file_path!=b.network.nodes[new].file_path
+                assert new in instance(b,business('home2'),'world.household').state['residents']
+                assert instance(b,new,'input.opening').config!=instance(b,old,'input.opening').config
+                assert new in [e.target_node_id for e in b.network.nodes[address('mine')].read_interfaces]
             finally:stop(app,b)
         """)
 
@@ -263,7 +279,7 @@ class WorldTests(unittest.TestCase):
                 assert person(b,actor).state['action_tick'] is None
                 presence(b,actor,address('home2'));use(actor,business('home2'),'rest')
                 assert person(b,actor).state['stamina']==4
-                for home,count in [('home1',2),('home2',3)]:
+                for home,count in [('home1',2),('home2',4)]:
                     assert len(b.network.get_metadata(address(home))['extensions']['place']['residents'])==count
                 assert 'rest' not in b.network.nodes[business('hospital')].tools
             finally:stop(app,b)
@@ -306,7 +322,7 @@ class WorldTests(unittest.TestCase):
                 try:use(yue,business('hospital'),'birth')
                 except ValueError:pass
                 else:raise AssertionError('early birth')
-                assert len(residents(b))==6
+                assert len(residents(b))==7
                 pregnancy=next(iter(instance(b,business('home1'),'world.family').state['pregnancies'].values()))
                 clock(b).state['tick']=pregnancy['due_tick'];begin(yue,'due')
                 use(yue,business('hospital'),'birth');child=pregnancy['child']
@@ -317,7 +333,7 @@ class WorldTests(unittest.TestCase):
                 app.event(yue,'context/prepare',{})
                 assert 'world/knowledge/life/pregnant' not in app.plugins['capabilities/context_assembly'].assemble(yue)['sources'][0]['matched']
                 app.invoke('root','world_run_npc',dict(target=child))
-                assert port.calls==[child] and len(residents(b))==7
+                assert port.calls==[child] and len(residents(b))==8
                 app.plugins['capabilities/context_assembly'].assemble(child)
                 assert any('你住在居民楼1。' in section['text'] for section in app.view(child)['sections'])
                 assert any('# 小镇常识（只读）' in section['text'] for section in app.view(child)['sections'])
