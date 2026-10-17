@@ -10,6 +10,8 @@
 
 组件没有新增 Agent 调用工具；编辑、运行、恢复与聊天接口属于可信宿主，不通过模型工具授予。
 
+后续补充的Harness会话栏按钮与测试插件安装修复只面向使用者，没有增加或修改Agent提示词、工具描述或指南。
+
 ## 自建小镇地图
 
 生成器：`extensions/editor/capabilities/network_editor/python/datanet/editor/documents.py` 中 `refresh_map`。标题和表头固定，其余内容由使用者建立的场所及道路生成。本次最小测试的完整内容：

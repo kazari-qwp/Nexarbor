@@ -23,11 +23,25 @@ def call(meta,method,args):
 def install_viewer(profile,manifest):
     """Mount a test-only SDK cache warmer; do not rewrite logs or fabricate events."""
     package=profile/'viewer-extension';package.mkdir(parents=True,exist_ok=True)
-    files={package/'package.json':json.dumps(dict(name='nexarbor-test-session-list',version='1.0.0',type='module',main='index.js',dsh=dict(bundle=dict(patch='./cordis.patch.yml'))),indent=2),
+    product=Path(__file__).resolve().parents[1]
+    connections=sorted((Path(manifest['workspace'])/'.datanet/networks').glob('*/editor-connection.json'),key=lambda p:p.stat().st_mtime,reverse=True)
+    config=dict(sessions=[s['session_id'] for s in manifest['sessions']])
+    if connections:config.update(editor=dict(enabled=True),editorConnection=str(connections[0]))
+    metadata=dict(name='nexarbor-test-session-list',version='1.0.0',type='module',main='index.js',exports={'.':'./index.js','./client':'./client.js'},dsh=dict(bundle=dict(patch='./cordis.patch.yml')))
+    if connections:metadata['dsh']['client']=dict(platform='web',inject=['@deepseek-ai/dsh-client-ui-conversation'])
+    files={package/'package.json':json.dumps(metadata,indent=2),
            package/'index.js':(Path(__file__).resolve().parents[1]/'tests/native_test_viewer.js').read_text(encoding='utf-8')}
-    files[package/'cordis.patch.yml']=json.dumps([dict(insert=[dict(id='nexarbor-test-session-list',name='nexarbor-test-session-list',config=dict(sessions=[s['session_id'] for s in manifest['sessions']]))])],indent=2)
+    files[package/'editor-launcher.js']=(product/'adapters/harness/framework/editor-launcher.js').read_text(encoding='utf-8')
+    files[package/'client.js']=(product/'adapters/harness/framework/editor-client.js').read_text(encoding='utf-8').replace('id: "datanet-harness"','id: "nexarbor-test-session-list"',1)
+    files[package/'cordis.patch.yml']=json.dumps([dict(insert=[dict(id='nexarbor-test-session-list',name='nexarbor-test-session-list',config=config)])],indent=2)
     for path,text in files.items():
         if not path.exists() or path.read_text(encoding='utf-8')!=text:path.write_text(text,encoding='utf-8')
+    # Declaring a file: dependency alone does not install it. Materialize this
+    # self-contained test package locally; no registry access or build scripts.
+    installed=profile/'node_modules/nexarbor-test-session-list';installed.mkdir(parents=True,exist_ok=True)
+    for path,text in files.items():
+        target=installed/path.name
+        if not target.exists() or target.read_text(encoding='utf-8')!=text:target.write_text(text,encoding='utf-8')
     descriptor=profile/'package.json';data=json.loads(descriptor.read_text(encoding='utf-8'))
     desired='file:'+package.as_posix()
     if data.setdefault('dependencies',{}).get('nexarbor-test-session-list')!=desired:
@@ -36,7 +50,7 @@ def install_viewer(profile,manifest):
     if 'nexarbor-test-session-list' not in bundles:
         bundles.append('nexarbor-test-session-list');descriptor.write_text(json.dumps(data,indent=2),encoding='utf-8')
     path=profile/'cordis.patch.yml';patch=yaml.safe_load(path.read_text(encoding='utf-8'))
-    entry=dict(id='nexarbor-test-session-list',name='nexarbor-test-session-list',config=dict(sessions=[s['session_id'] for s in manifest['sessions']]))
+    entry=dict(id='nexarbor-test-session-list',name='nexarbor-test-session-list',config=config)
     updated=[row for row in patch if row['id']!='nexarbor-test-session-list']+[entry]
     if updated!=patch:path.write_text(json.dumps(updated,ensure_ascii=False,indent=2),encoding='utf-8')
 
@@ -83,6 +97,9 @@ def main():
     verify(meta,manifest,run,rows)
 
 def verify(meta,manifest,run,rows):
+    plugins=call(meta,'pluginManager/listPlugins',{})
+    viewer=next((p for p in plugins if p['moduleName']=='nexarbor-test-session-list'),None)
+    if not viewer or viewer.get('fiberPhase')!='active':raise AssertionError('Test session viewer plugin did not load: '+json.dumps(viewer,ensure_ascii=False))
     # Cold native listings use cached projection hints. Read the official projection
     # endpoint to populate them without activating any model or changing its log.
     for entry in manifest['sessions']:
@@ -96,10 +113,11 @@ def verify(meta,manifest,run,rows):
         # A cold stock listing may omit projection hints. The authoritative
         # projections endpoint above has independently verified the durable title.
         title_cached=entry['title'] in json.dumps(row.get('projections',{}),ensure_ascii=False)
+        if not title_cached:raise AssertionError('Native sidebar title is not ready for '+entry['actor'])
         page=call(meta,'session/page',{'request':dict(address=dict(kind='session',sessionId=entry['session_id']),throughSeq=entry['events']-1,maxMessages=5)})
         if not page['records']:raise AssertionError('No readable history for '+entry['actor'])
         checks.append(dict(actor=entry['actor'],session_id=entry['session_id'],title=entry['title'],visible=True,history_read=True,title_cached=title_cached))
-    audit=dict(passed=True,sessions=checks,count=len(checks),authority=meta['authority'],model_requests=0)
+    audit=dict(passed=True,viewer_plugin_active=True,sessions=checks,count=len(checks),authority=meta['authority'],model_requests=0)
     (run/'sidebar-verification.json').write_text(json.dumps(audit,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps(dict(passed=True,visible_sessions=len(checks),run=str(run)),ensure_ascii=False))
 

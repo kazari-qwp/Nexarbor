@@ -19,6 +19,7 @@ import {installWindowsPythonCompat} from './windows-python.js';
 import {prepareWindowsWorkspace} from './windows-workspace.js';
 import {installWindowsTerminal} from './windows-terminal.js';
 import {startEditorServer} from './editor-server.js';
+import {registerEditorLauncher} from './editor-launcher.js';
 
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof Error?String(item.message):typeof item==='function'?undefined:item));
@@ -26,6 +27,13 @@ const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof 
 export async function createAdapter(ctx,config={}){
   installWindowsPythonCompat(ctx);
   const runtimes=new Map(),starting=new Map(),closing=new Map(),owned=new WeakSet();
+  if(config.editor?.enabled)registerEditorLauncher(ctx,async sessionId=>{
+    if(starting.has(sessionId))await starting.get(sessionId);
+    for(const [rootId,runtime] of runtimes){
+      if(rootId===sessionId||[...runtime.sessions.values()].some(entry=>entry.handle.agent.id===sessionId))return {url:runtime.editor.url};
+    }
+    throw new Error('此会话尚未连接工作台，请在编辑器工作区打开根会话');
+  });
   ctx.on('agent/created',async({agent})=>{
     const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
     const workspace=path.resolve(config.workspace??path.join(root,'workspace'));

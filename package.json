@@ -19,6 +19,10 @@
     "scripts/open_network_editor.py"
   ],
   "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": ["@deepseek-ai/dsh-client-ui-conversation"]
+    },
     "bundle": {
       "patch": "./cordis.patch.yml"
     }
@@ -36,6 +40,7 @@
     "@deepseek-ai/dsh-util-values": ">=0.2.0-rc.2 <0.3.0-0"
   },
   "exports": {
+    "./client": "./adapters/harness/framework/editor-client.js",
     ".": "./index.js",
     "./agent-loop": "./adapters/harness/runtime/agent-loop/entry.js",
     "./agent-loop/invariant": "./adapters/harness/runtime/agent-loop/lib/invariant.js",

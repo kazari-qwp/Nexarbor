@@ -1,7 +1,10 @@
 // Test-client presentation only. Native logs and Agent lifecycles are untouched.
 import {setTimeout as delay} from 'node:timers/promises';
+import {readFile} from 'node:fs/promises';
+import {registerEditorLauncher} from './editor-launcher.js';
 export const inject=['sessionPersistence','sessionProjectionCache','sessionTitle'];
 export async function apply(ctx,config){
+  if(config.editorConnection)registerEditorLauncher(ctx,async()=>JSON.parse(await readFile(config.editorConnection,'utf8')));
   const headers=[];
   for(const id of config.sessions){
     const handle=await ctx.sessionPersistence.open(id,'read');

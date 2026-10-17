@@ -10,7 +10,11 @@
 
 Harness 插件入口为 `datanet-harness/network-editor`，配置参考仓库根目录 `network-editor.patch.yml`。保留既有 Harness 模型与自定义 Agent 循环配置，在新的工作区使用编辑器入口；同一工作区不要同时装配两个 Nexarbor 应用入口。编辑器组件集合在 `extensions/editor/extension.json` 声明，复用 NPC 与 foundation 组件。
 
-在配置的编辑器工作区打开一个根会话后，宿主会写入 `<storage>/networks/<会话编号十六进制>/editor-connection.json`。打开当前工作台：
+在配置的编辑器工作区启动一份根会话后，选择根或其任意居民会话，点击会话顶部的“网络工作台”即可打开对应的本地页面。入口复用官方 `conversation.session.header.actions` 插槽，经 Harness 原生认证获取工作台地址，不发送模型消息或推进世界。当前通过新页面打开，不是内嵌画布。没有连接到工作台的会话会给出提示；其他应用未启用工作台时不显示入口。
+
+![Harness会话栏的工作台入口](images/harness-editor-launcher.png)
+
+宿主也会写入 `<storage>/networks/<会话编号十六进制>/editor-connection.json`。命令行仍可用于直接打开当前工作台：
 
 ```powershell
 python scripts/open_network_editor.py --storage E:/DataNet-模块化成品/editor-workspace/.datanet
@@ -82,4 +86,4 @@ npm test
 
 浏览器验收脚本为 `frontends/network-editor/test/browser.acceptance.mjs`，参数是该次测试目录；使用独立无头 Edge。测试从空草稿开始，通过界面建立两个场所、两个居民和道路，验证并行执行、移动、交谈、行动额度、真实对话读写与恢复工作台。
 
-本次结果见[验证记录](NETWORK_EDITOR_TEST_20261017.md)，Agent 可见内容见[文本核对](NETWORK_EDITOR_TEXT_REVIEW_20261017.md)。原版 Harness 的测试客户端能够列出全部会话并读取真实历史；冷启动侧栏的可选标题缓存可能尚未生成，初始显示“未命名”。工作台自己的会话列表直接显示节点名称及对应会话。
+本次结果见[验证记录](NETWORK_EDITOR_TEST_20261017.md)，Agent 可见内容见[文本核对](NETWORK_EDITOR_TEXT_REVIEW_20261017.md)。原版 Harness 的测试客户端能够列出全部会话并读取真实历史；测试启动脚本会实际安装会话展示辅助插件，校验其加载状态及全部标题。工作台自己的会话列表直接显示节点名称及对应会话。
