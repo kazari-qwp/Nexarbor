@@ -22,7 +22,7 @@ from datanet.core.packages.network import load_network_package
 
 class Backend:
 
-    def __init__(self, directory, *, snapshot_interval=100):
+    def __init__(self, directory, *, snapshot_interval=100,initial_document=None):
         self._transaction_lock = RLock()
         self.directory = storage_path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
@@ -44,8 +44,10 @@ class Backend:
             previous = self.store.latest()
             if previous is not None:
                 self.restore(previous)
-            self.components.graph_loaded(self)
+            elif initial_document is not None:
+                self.load_initial_document(initial_document)
             if previous is None:self.modules.restore()
+            self.components.graph_loaded(self)
             self.attach_creation()
             attach_interface_management_tools(self.network, self.root, scope='descendants')
             if previous is None:
@@ -53,6 +55,19 @@ class Backend:
         except Exception:
             self.store.close()
             raise
+
+    def load_initial_document(self,document):
+        """Load a declarative initial graph only into a new, empty backend."""
+        if set(self.network.nodes)!={'root'} or self.store.latest() is not None:raise ValueError('Initial config requires an empty backend')
+        candidate=_build(document['network'],self.directory)
+        if 'root' not in candidate.nodes:raise ValueError('Initial config requires root')
+        files=[]
+        for name,text in document.get('files',{}).items():
+            target=(self.directory/name).resolve()
+            if not target.is_relative_to(self.directory) or not isinstance(text,str):raise ValueError('Initial documents must stay in backend directory')
+            files.append((target,text))
+        self.network=candidate;candidate.use_metadata_registry(self.metadata_registry);self.root=candidate.nodes['root']
+        for target,text in files:target.parent.mkdir(parents=True,exist_ok=True);target.write_text(text,encoding='utf-8')
 
     @property
     def signals(self):

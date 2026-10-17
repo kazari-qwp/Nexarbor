@@ -23,6 +23,8 @@ def b64(value):return base64.urlsafe_b64encode(value).decode().rstrip('=')
 class HarnessRemote:
     def __init__(self,studio):
         self.studio=studio;self.authority=None;self.home=None;self.jobs={};self.closed=False
+        self.sessions_file=studio.root/'maker-sessions.json'
+        self.sessions=json.loads(self.sessions_file.read_text(encoding='utf-8')) if self.sessions_file.exists() else {}
     def status(self,p=None):
         return dict(connected=bool(self.authority),authority=self.authority,jobs=[dict(j) for j in self.jobs.values()])
     def rpc(self,method,args,timeout=8):
@@ -51,6 +53,8 @@ class HarnessRemote:
             for record in sorted(records,key=lambda path:path.stat().st_mtime,reverse=True):
                 try:
                     meta=json.loads(record.read_text(encoding='utf-8'))
+                    credentials=yaml.safe_load((Path(meta['home'])/'.credentials.yaml').read_text(encoding='utf-8'))
+                    if not any(not name.startswith('client-connection/') for name in credentials.get('records',{})):continue
                     return self.connect(dict(home=meta['home'],authority=meta['authority']))
                 except (OSError,ValueError,KeyError,RuntimeError):continue
         home=Path(p.get('home') or Path.home()/'.dsh').resolve()
@@ -81,7 +85,8 @@ class HarnessRemote:
     def read(self,p):
         job=self.jobs[p['task']]
         baseline=self.rpc('session/projections',{'request':{'sessionId':job['session_id']}})
-        job['usage']=baseline.get('values',{}).get('tokenUsage',{})
+        job['usage_cumulative']=baseline.get('values',{}).get('tokenUsage',{})
+        job['usage']={key:max(0,value-job.get('usage_baseline',{}).get(key,0)) for key,value in job['usage_cumulative'].items() if isinstance(value,(int,float))}
         page=self.rpc('session/page',{'request':dict(address={'kind':'session','sessionId':job['session_id']},throughSeq=baseline['asOfSeq'],maxMessages=100)})
         events=[item['event'] for item in page['records'] if item.get('type')=='event']
         messages=[]
@@ -100,15 +105,27 @@ class HarnessRemote:
         if type(seconds) is not int or not 10<=seconds<=600:raise ValueError('Agent time limit must be 10–600 seconds')
         requirement=p.get('requirement','').strip()
         if not requirement or len(requirement)>16000:raise ValueError('Describe the requested change (maximum 16000 characters)')
-        session=self.rpc('session/create',{'request':dict(cwd=str(folder),agentPreset='standard')})['sessionId']
+        prefix=hashlib.sha256(((folder/'AGENTS.md').read_text(encoding='utf-8')+(folder/'MODULE_GUIDE.md').read_text(encoding='utf-8')).encode()).hexdigest()
+        source=p.get('fork_session') or p.get('resume_session')
+        after=-1;usage_baseline={}
+        if source:
+            record=self.sessions.get(source)
+            if not record or record['workspace']!=p['id'] or record['prefix']!=prefix:raise ValueError('Session prefix or work copy changed; start a new session')
+            session=self.rpc('session/fork',{'request':{'sessionId':source}})['sessionId'] if p.get('fork_session') else source
+            projection=self.rpc('session/projections',{'request':{'sessionId':session}})
+            after=projection['asOfSeq'];usage_baseline=projection.get('values',{}).get('tokenUsage',{})
+        else:session=self.rpc('session/create',{'request':dict(cwd=str(folder),agentPreset='standard')})['sessionId']
+        self.sessions[session]=dict(workspace=p['id'],prefix=prefix)
+        self.sessions_file.write_text(json.dumps(self.sessions,ensure_ascii=False),encoding='utf-8')
+        if p.get('model'):self.rpc('session/selectModel',{'request':dict(sessionId=session,**p['model'])})
         self.rpc('session/rename',{'request':dict(sessionId=session,title='组件制作 · '+folder.name)})
-        prompt=(folder/'AGENTS.md').read_text(encoding='utf-8')+'\n\n用户需求：\n'+requirement
+        prompt=((folder/'AGENTS.md').read_text(encoding='utf-8')+'\n\n' if not source else '')+'用户需求：\n'+requirement
         if p.get('validation'):
             validation=self.studio.job({'job':p['validation']})
             if validation['workspace']!=p['id']:raise ValueError('Validation belongs to another work copy')
             prompt+='\n\n宿主验证日志（供你修正，不允许修改宿主检查）：\n'+validation['log'][-18000:]
         id=uuid4().hex
-        job=dict(id=id,workspace=p['id'],session_id=session,status='running',phase='coding',deadline=time.time()+seconds,after=-1,repairs=0)
+        job=dict(id=id,workspace=p['id'],session_id=session,status='running',phase='coding',deadline=time.time()+seconds,after=after,repairs=0,source_session=source,usage_baseline=usage_baseline)
         self.jobs[id]=job
         self.rpc('session/prompt',{'request':dict(requestId='studio-'+id,sessionId=session,mode='queue',content=[dict(type='text',text=prompt)],clientTimeZone='Asia/Shanghai')})
         def watch():

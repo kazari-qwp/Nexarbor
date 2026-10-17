@@ -1,0 +1,85 @@
+// Optional, bounded native Agent executor. Only core-declared tools are registered.
+const fs=require('node:fs/promises'),path=require('node:path'),readline=require('node:readline'),crypto=require('node:crypto');
+const callbacks=new Map(),agents=new Map();let next=0,host,native,config,history,permissions,createUserMessage,checkpoints;
+const keepAlive=setInterval(()=>{},1000),write=value=>process.stdout.write(JSON.stringify(value)+'\n');
+const rpc=(method,params)=>new Promise((resolve,reject)=>{const host_id=String(++next);callbacks.set(host_id,{resolve,reject});write({host_id,method,params});});
+const plain=value=>JSON.parse(JSON.stringify(value));
+const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
+let requestCount=0,started=Date.now(),closed=false;
+async function init(p){
+ config=p;const loader=await require('./loader.cjs')();native=loader.native;
+ const {Context}=native('cordis');host=new Context();
+ for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry'],['dsh-skill','SkillRegistry']])await host.plugin(native(name)[service]??native(name).default);
+ await host.plugin(native('dsh-session-title').SessionTitleService,{fallbackMaxWords:12,fallbackMaxBytes:120,maxTitleBytes:256});
+ const optionsFile=path.join(p.directory,'native-model.json');let options={};try{options=JSON.parse(await fs.readFile(optionsFile,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
+ await host.plugin(native('dsh-session-persistence-jsonl').default,{root:options.native_logs??path.join(p.directory,'native-logs')});
+ await host.plugin((await loader.load(p.root+'/adapters/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
+ const nativeRoot=path.join(process.env.LOCALAPPDATA,'Programs/DeepSeek Harness/resources/app.asar/dsh/node_modules');
+ const record=require(path.join(nativeRoot,'yaml')).parse(await fs.readFile(p.credentials,'utf8')).records['deepseek-account-platform/default'];
+ if(record?.kind!=='grant'||new URL(record.payload.issuer).origin!=='https://platform.deepseek.com')throw Error('Configure a supported DeepSeek account grant in Harness');
+ config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:16000,contextWindow:500000,...options.model};config.maxRequests=options.max_requests??240;config.maxSeconds=options.max_seconds??1200;
+ const deepseek=native('dsh-llm-deepseek'),models=JSON.parse(await fs.readFile(p.root+'/in-history.patch.yml','utf8')).find(r=>r.id==='llm-deepseek-account').config.models;
+ const connection=deepseek.resolveAdapterOptions({models,maxTokens:config.model.maxTokens,retryPolicy:{mode:'normal',maxRetries:0},streamIdleTimeoutMs:60000});
+ const adapter=new deepseek.DeepSeekAdapter({options:()=>connection,resolveAuth:async c=>{if(new URL(c.baseURL).origin!=='https://api.deepseek.com')throw Error('Unexpected model endpoint');return {headers:{'x-dsh-auth-token':record.payload.token}};},resolveUserId:()=> 'nexarbor-component-studio',prepareExtensions:async()=>({fields:{},accept:async()=>{}})});
+ host.llm.registerAdapter(['deepseek-account'],adapter);
+ const original=globalThis.fetch;globalThis.fetch=async(url,args)=>{if(new URL(url).origin!=='https://api.deepseek.com')throw Error('Unexpected request endpoint');if(++requestCount>config.maxRequests||Date.now()-started>config.maxSeconds*1000)throw Error('Native execution paid test budget reached');return original(url,args);};
+ createUserMessage=native('dsh-llm').createUserMessage;
+ const instructions=await loader.load(p.root+'/adapters/harness/framework/instructions.js'),tools=await loader.load(p.root+'/adapters/harness/framework/tool-permissions.js');history=new instructions.InstructionHistory(createUserMessage);permissions=new tools.ToolPermissions(createUserMessage);
+ checkpoints=new (await loader.load(p.root+'/adapters/harness/framework/checkpoints.js')).NativeCheckpoints(host,agents,rpc);checkpoints.ready=true;
+ return {ready:true,model:config.model,limits:{requests:config.maxRequests,seconds:config.maxSeconds}};
+}
+async function refresh(entry){
+ const view=await rpc('executor_prepare',{actor:entry.actor});entry.view=view;
+ const desired=new Set(view.tools.map(t=>t.name));
+ for(const [name,dispose] of entry.tools)if(!desired.has(name)){dispose();entry.tools.delete(name);}
+ for(const definition of view.tools){
+  const signature=JSON.stringify(definition);if(entry.definitions.get(definition.name)===signature&&entry.tools.has(definition.name))continue;
+  entry.tools.get(definition.name)?.();entry.definitions.set(definition.name,signature);
+  entry.tools.set(definition.name,permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:(_a,value)=>[{type:'text',text:JSON.stringify(value)}]},execute:args=>rpc('executor_invoke',{actor:entry.actor,name:definition.name,arguments:args})}));
+ }
+ for(const doc of view.context)history.load(entry.agent.ctx,doc.id,doc.text);
+ const retained=new Set([...entry.agent.session.deriveMessages(),...entry.agent.inbox.nextStep,...entry.agent.inbox.nextTurn].map(m=>m.id));
+ for(const event of view.inputs){
+  const id=crypto.createHash('sha256').update(entry.actor+'\0'+event.source+'\0'+event.id).digest('hex');
+  if(!retained.has(id))entry.agent.steer({...user(event.text,{kind:'nexarbor-input',source:event.source,event:event.id}),id});
+ }
+ if(view.inputs.length)await rpc('executor_ack',{actor:entry.actor,events:view.inputs.map(e=>({source:e.source,id:e.id}))});
+ return view;
+}
+async function agentFor(p){
+ if(agents.has(p.actor))return agents.get(p.actor);
+ const scope=crypto.createHash('sha256').update(config.directory+'\0'+p.actor).digest('hex').slice(0,24),id=p.session_id||'nexarbor-'+scope;
+ let agent;
+ try{agent=(await host.agentLoop.resume(host,{resumeSessionId:id,agentOptions:config.model})).agent;}
+ catch(error){if(!/not found|ENOENT|does not exist/i.test(String(error)))throw error;agent=await host.agentLoop.create(native('dsh-session').SessionId(id),config.model,{cwd:config.directory});}
+ const entry={actor:p.actor,agent,tools:new Map(),definitions:new Map(),view:{},steps:0,maxSteps:12};agents.set(p.actor,entry);
+ host.sessionTitle.rename(agent.session,'小镇组件实测 · '+p.name);
+ history.bind(agent.ctx,agent);permissions.bind(agent.ctx,agent);
+ agent.ctx.on('session/event',(session)=>{if(session===agent.session)checkpoints.schedule();});
+ agent.ctx.systemPrompt.section({name:'nexarbor:assembled',order:90,interpolate:false,text:()=>entry.view.system_prompt??''});
+ agent.ctx.on('agent/prepare-context',()=>refresh(entry));
+ agent.ctx.on('agent/request-tail',async(_p,next)=>[...await next(),...(entry.view.tail??[]).map(text=>({role:'user',content:[{type:'text',text}]}))]);
+ agent.ctx.on('agent/request',async(_p,next)=>{if(++entry.steps>entry.maxSteps)throw Error('Agent step budget reached');return next();});
+ await rpc('executor_bind',{actor:p.actor,session_id:agent.id});checkpoints.schedule();
+ return entry;
+}
+async function run(p){
+ const entry=await agentFor(p);if(entry.running)throw Error('Agent already running');entry.running=true;entry.steps=0;entry.maxSteps=p.max_steps;
+ const before=entry.agent.session.seq;let expired=false;const timer=setTimeout(()=>{expired=true;entry.agent.cancel('user');},p.timeout_seconds*1000);
+ try{
+  await refresh(entry);entry.agent.followup(user(p.message||'请处理当前请求。'));await entry.agent.whenIdle();
+  const ending=entry.agent.session.snapshotEvents(before).findLast(e=>e.type==='turn/end');
+  const status=!expired&&ending?.data.reason.kind==='completed'?'completed':expired?'timeout':'failed';
+  await host.sessions.flush(entry.agent.session);
+  await checkpoints.checkpoint();
+  const messages=entry.agent.session.deriveMessages();
+  await fs.writeFile(path.join(config.directory,'native-sessions.json'),JSON.stringify([...agents.values()].map(e=>({actor:e.actor,session_id:e.agent.id,title:host.sessionTitle.get(e.agent.session).title,events:e.agent.session.seq})),null,2));
+  return {status,session_id:entry.agent.id,steps:entry.steps,output:messages.filter(m=>m.role==='assistant').at(-1)?.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')??'',error:status==='completed'?null:JSON.stringify(ending?.data.reason),requests:requestCount};
+ }finally{clearTimeout(timer);entry.running=false;await host.sessions.flush(entry.agent.session);}
+}
+async function close(){if(closed)return;closed=true;for(const e of agents.values())e.agent.cancel('user');await checkpoints?.stop();await host?.fiber.dispose();clearInterval(keepAlive);}
+readline.createInterface({input:process.stdin}).on('line',line=>{
+ let value;try{value=JSON.parse(line);}catch{return;}
+ if(value.host_id){const p=callbacks.get(value.host_id);if(p){callbacks.delete(value.host_id);value.error?p.reject(Error(value.error)):p.resolve(value.result);}return;}
+ Promise.resolve().then(()=>value.method==='init'?init(value.params):value.method==='agent-run'?run(value.params):value.method==='agent-read'?agentFor(value.params).then(e=>({session_id:e.agent.id,status:e.running?'running':'idle',messages:e.agent.session.deriveMessages()})):value.method==='agent-cancel'?(agents.get(value.params.actor)?.agent.cancel('user'),{ok:true}):Promise.reject(Error('Unknown native operation'))).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:String(error.stack??error)}));
+}).on('close',()=>close().finally(()=>process.exit()));

@@ -1,5 +1,6 @@
 """Native session protocol regression, no model or external service calls."""
 import json
+import hashlib
 from pathlib import Path
 import sys
 import tempfile
@@ -17,6 +18,7 @@ class NativeSessionTests(unittest.TestCase):
         base=ROOT/'build/studio-tests';base.mkdir(parents=True,exist_ok=True)
         self.temp=tempfile.TemporaryDirectory(dir=base);self.folder=Path(self.temp.name)
         (self.folder/'AGENTS.md').write_text('Use file tools, then return for host validation.',encoding='utf-8')
+        (self.folder/'MODULE_GUIDE.md').write_text('Module contract',encoding='utf-8')
         self.checks=0;self.cancelled=[]
         def validate(p):
             self.checks+=1
@@ -63,5 +65,29 @@ class NativeSessionTests(unittest.TestCase):
         (self.folder/'.credentials.yaml').write_text('{}',encoding='utf-8')
         with self.assertRaisesRegex(ValueError,'loopback'):
             self.remote.connect({'authority':'example.com:1234','home':str(self.folder)})
+    def test_fork_preserves_prefix_and_reports_only_new_usage(self):
+        prefix=hashlib.sha256(((self.folder/'AGENTS.md').read_text()+(self.folder/'MODULE_GUIDE.md').read_text()).encode()).hexdigest()
+        self.remote.sessions['source']=dict(workspace='work',prefix=prefix)
+        calls=[];reads=0
+        def rpc(method,args,timeout=8):
+            nonlocal reads
+            calls.append((method,args))
+            if method=='session/fork':return {'sessionId':'forked'}
+            if method=='session/projections':
+                reads+=1;return dict(asOfSeq=40+reads,values={'tokenUsage':{'outputTokens':100 if reads==1 else 123}})
+            if method=='session/page':return {'records':[]}
+            return {}
+        self.remote.rpc=rpc
+        with patch('remote.threading.Thread.start'):
+            task=self.remote.start(dict(id='work',requirement='Fix the first tick',fork_session='source'))
+        result=self.remote.read({'task':task['id']})
+        self.assertEqual(result['usage']['outputTokens'],23)
+        self.assertEqual(result['usage_cumulative']['outputTokens'],123)
+        self.assertEqual(result['source_session'],'source')
+        self.assertIn(('session/fork',{'request':{'sessionId':'source'}}),calls)
+        self.remote.cancel({'task':task['id']})
+        (self.folder/'MODULE_GUIDE.md').write_text('changed contract',encoding='utf-8')
+        with self.assertRaisesRegex(ValueError,'prefix'):
+            self.remote.start(dict(id='work',requirement='Try again',fork_session='source'))
 
 if __name__=='__main__':unittest.main()

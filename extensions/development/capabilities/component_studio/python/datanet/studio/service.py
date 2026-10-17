@@ -48,6 +48,14 @@ class Studio:
         self.backend=backend;self.root=backend.directory/'studio';self.root.mkdir(exist_ok=True)
         self.work=self.root/'work';self.work.mkdir(exist_ok=True)
         self.library=read_json(self.root/'library.json',{})
+        for name,source in getattr(backend.components,'standard_modules',{}).items():
+            if name in self.library:continue
+            files=sources(source['folder']);fingerprint=digest(files);spec=source['manifest']
+            destination=self.root/'releases'/name/spec['version']/fingerprint
+            for file,content in files.items():
+                path=destination/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
+            self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}))
+        write_json(self.root/'library.json',self.library)
         self.jobs={};self.processes={};self.pool=ThreadPoolExecutor(max_workers=2)
         self.lock=threading.RLock();self.running=False;self.loop=asyncio.new_event_loop();self.bindings={}
         self._load_releases()
@@ -213,46 +221,27 @@ class Studio:
         if self.running:raise ValueError('Wait until the signal completes')
         self.backend.modules.unmount(p['node'],p['module']);self._bind();return self.state()
     def _bind(self):
-        runtime=self.backend.network.signals
-        for node,previous in self.bindings.values():previous.unbind(node)
-        self.bindings={}
-        for node in self.backend.network.nodes:
-            modules=[m for (owner,_),m in self.backend.modules.instances.items() if owner==node]
-            if not modules:continue
-            async def receive(context,modules=modules):
-                results=[]
-                for module in modules:
-                    if set(module.manifest['signals']).intersection(context.signal.channels):
-                        result=module.on_signal(context)
-                        if hasattr(result,'__await__'):result=await result
-                        Draft202012Validator(module.manifest['state_schema']).validate(module.state)
-                        results.append(result)
-                return results
-            runtime.bind(node,receive)
-            self.bindings[node]=(node,runtime)
+        from .sdk_services import bind_modules
+        bind_modules(self.backend)
     def town(self,p):
         if self.running:raise ValueError('Signal is active')
         if any(id.startswith('town/') for id in self.backend.network.nodes):return self.state()
-        network=self.backend.network
-        for node in [PulseNode('town/pulse','世界脉冲',channels=['world.tick'],strength=4),
-                     TextFileNode('town/time','时间','text',self.backend.directory/'time.md'),Node('town/square','广场',None),
-                     Node('town/smith','铁匠铺',None),Node('town/save','五轮存档点',None),
-                     AgentNode('town/miner','矿工阿石',file_path=self.backend.directory/'miner.md'),
-                     AgentNode('town/woodcutter','伐木工阿林',file_path=self.backend.directory/'woodcutter.md')]:network.add_node(node)
-        for source,target,channels in [('town/pulse','town/time',['world.tick']),('town/time','town/miner',['world.tick']),('town/time','town/woodcutter',['world.tick']),('town/miner','town/save',['world.tick']),('town/woodcutter','town/save',['world.tick']),('town/save','town/pulse',['world.tick']),('town/miner','town/square',['town.local']),('town/woodcutter','town/square',['town.local']),('town/square','town/smith',['town.local'])]:network.nodes[source].connect(target,channels=channels)
+        document=read_json(RESOURCE/'presets/module_test.json',{})
+        self.apply(dict(document=document,base_commit=self.backend.store.head,layout={}))
         return self.state()
     def pulse(self,p):
         if self.running:raise ValueError('Signal is active')
         self.running=True
         try:
             runtime=self.backend.network.signals
+            runtime.checkpoint=lambda:self.backend.dispatch('save',{})
             report=self.loop.run_until_complete(self.backend.network.nodes[p.get('pulse','town/pulse')].run(runtime,cycles=p.get('cycles',1),timeout_seconds=p.get('timeout_seconds',30)))
             return dict(report=report,state=self.state())
         finally:self.running=False
     def state(self,p=None):
         document=network_document(self.backend.network,self.backend.directory)
         files={str(n.file_path.relative_to(self.backend.directory)):n.file_path.read_text(encoding='utf-8') if n.file_path.exists() else '' for n in self.backend.network.nodes.values() if hasattr(n,'file_path') and n.file_path.is_relative_to(self.backend.directory)}
-        return dict(mode='组件开发 · Harness后端',live=dict(document=dict(network=document,files=files),commit=self.backend.store.head,sessions={}),draft=read_json(self.root/'draft.json',None),
+        return dict(mode='组件开发 · Harness后端',live=dict(document=dict(network=document,files=files),commit=self.backend.store.head,sessions={id:dict(name=self.backend.network.nodes[id].name,**value) for id,value in self.backend.agents.items() if id in self.backend.network.nodes}),draft=read_json(self.root/'draft.json',None),
                     job=dict(status='running' if self.running else 'idle',completed=0,requested=0),studio=True)
     def draft(self,p):
         previous=read_json(self.root/'draft.json',{'version':0})

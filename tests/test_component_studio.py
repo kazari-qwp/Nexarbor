@@ -108,3 +108,17 @@ class StudioTests(unittest.TestCase):
         spec=json.loads(w['files']['module.json']);spec['requires']=['missing.module']
         self.save(w,'module.json',json.dumps(spec));self.assertEqual(self.check(w)['status'],'passed')
         with self.assertRaisesRegex(ValueError,'dependencies'):self.studio.publish({'id':w['id']})
+    def test_initial_network_is_config_only_and_existing_save_wins(self):
+        self.studio.town({});document=self.studio.state()['live']['document']
+        document['files']['time.md']='initial time'
+        with tempfile.TemporaryDirectory(dir=ROOT/'build/studio-tests') as folder:
+            app=Backend(folder,initial_document=document)
+            try:
+                self.assertIn('town/time',app.network.nodes)
+                self.assertEqual((app.directory/'time.md').read_text(encoding='utf-8'),'initial time')
+                app.network.nodes['town/square'].name='saved square';app.dispatch('save',{})
+                with self.assertRaises(ValueError):app.load_initial_document(document)
+            finally:app.close()
+            restored=Backend(folder,initial_document=document)
+            try:self.assertEqual(restored.network.nodes['town/square'].name,'saved square')
+            finally:restored.close()

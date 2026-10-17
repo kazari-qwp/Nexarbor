@@ -31,10 +31,14 @@ tests/test_*.py 使用 unittest 编写业务测试。工作室另外持有固定
 
 工具内可信调用者：from datanet.core.access_budget import current_agent_id；current_agent_id()取得发起Agent节点ID。不要把调用者身份作为模型可填写参数。工具调用的可达性与频道由核心检查，但业务前提与行动消耗由组件自行检查。tool_description(name,default)可根据实例config生成工具描述；不要修改共享清单。
 
-常用核心对象：backend.network.nodes是ID到Node的字典；Node.connect(target,channels=[...],threshold=1,multiplier=1)建立有向连接；node.interfaces列表中的edge有target_node_id和metadata.channels。backend.modules.mount(node_id,module_id,config,state,bind=False)装配实例；新建节点后调用backend.studio._bind()重建通用信号绑定（不会执行任何业务）。不得通过无关频道授予移动/工具/信号权限。
+常用核心对象：backend.network.nodes是ID到Node的字典；Node.connect(target,channels=[...],threshold=1,multiplier=1)建立有向连接；node.interfaces列表中的edge有target_node_id和metadata.channels。backend.modules.mount(node_id,module_id,config,state,bind=False)装配实例；新建节点后调用backend.modules.refresh()重建通用信号绑定（不会执行任何业务）。不得通过无关频道授予移动/工具/信号权限。
 
 持久状态写self.state（JSON对象），配置写self.config。self.node.inputs.update(source,{system_prompt:文本,context:[{id:文本,text:文本}],inputs:[{id:唯一ID,text:文本}],tail:[文本]})设置Agent四路输入，四个字段都可只更新一部分。memory_read/memory_write是核心Agent节点自己的私有工具。backend.dispatch('save',{'full':True})请求全量存档。
 
 Node/AgentNode/TextFileNode/PulseNode分别从datanet.core.node/agent_node/text_node/pulse_node导入。普通节点构造Node(id,name,None)；AgentNode(id,name,file_path=backend.directory/'相对记忆路径.md')；文本节点TextFileNode(id,name,'text',backend.directory/'相对路径.md')。新节点用backend.network.add_node(node)注册。模块卸载时应移除自己注册的元数据provider等监听。
+
+原生Agent执行端口：await backend.execute_agent(node_id,message='')，可在async on_signal中等待其正常结束。节点execution配置为{"executor":"harness","strength":2,"max_steps":12,"timeout_seconds":90,"prepare":[{"module":"某模块ID","operation":"某个同步操作","arguments":{}}]}。prepare操作会在每次模型请求前调用（默认本节点，也可reference.node指定），适合刷新四路输入。宿主自动装配核心私有记忆工具与当前强度可达的公开工具，动态检查权限，不需组件手工注册模型工具或实现模型循环。节点inputs里放人格、常识、地图和现场资料，宿主按四路原生通道更新。
+
+多个实体状态需要一起变更时，可以使用 with backend.modules.transaction(节点ID1,节点ID2,...):，异常时会恢复这些节点所有模块的原有state；省略节点ID表示全部模块。该事务只保护模块状态，不能回滚文件、外部I/O、新建节点或接口操作。只包住短暂的同步修改，不能跨await等待模型。先验证业务前提，再扣行动值及转移资源。
 
 依赖接线完整后的应用测试由装配者另行运行。组件自己的tests必须覆盖主要成功、失败、状态恢复与重复调用场景；不要修改宿主验收，不需要为不存在的旧接口写兼容层。README必须列明config、operations、tools、signals和返回结果，装配者只看文档和配置就能接线。

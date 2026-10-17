@@ -1,0 +1,303 @@
+{
+  "network": {
+    "version": 7,
+    "signals": {},
+    "nodes": [
+      {
+        "type": "agent",
+        "node_id": "root",
+        "name": "DataNet根节点",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "root-memory.md",
+          "creation_options": {}
+        },
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": {}
+      },
+      {
+        "type": "pulse",
+        "node_id": "town/pulse",
+        "name": "世界脉冲",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "pulse",
+        "parameters": {
+          "channels": [
+            "world.tick"
+          ],
+          "strength": 4,
+          "content": null,
+          "signal_options": {},
+          "state": {
+            "sequence": 0,
+            "phase": "idle",
+            "active_signal": null,
+            "last_signal": null,
+            "last_status": null
+          }
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "town/time",
+              "metadata": {
+                "threshold": 0,
+                "multiplier": 1,
+                "channels": [
+                  "world.tick"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "text_file",
+        "node_id": "town/time",
+        "name": "时间",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "text",
+        "parameters": {
+          "file_path": "time.md",
+          "max_chars": null,
+          "tool_channels": {
+            "read": [],
+            "write": [],
+            "get_schema": []
+          }
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "town/miner",
+              "metadata": {
+                "threshold": 0,
+                "multiplier": 1,
+                "channels": [
+                  "world.tick"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "town/woodcutter",
+              "metadata": {
+                "threshold": 0,
+                "multiplier": 1,
+                "channels": [
+                  "world.tick"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "town/square",
+        "name": "广场",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "town/smith",
+              "metadata": {
+                "threshold": 0,
+                "multiplier": 1,
+                "channels": [
+                  "town.local"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "town/smith",
+        "name": "铁匠铺",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "town/save",
+        "name": "五轮存档点",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "town/pulse",
+              "metadata": {
+                "threshold": 0,
+                "multiplier": 1,
+                "channels": [
+                  "world.tick"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "agent",
+        "node_id": "town/miner",
+        "name": "矿工阿石",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "miner.md",
+          "creation_options": {}
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "town/save",
+              "metadata": {
+                "threshold": 0,
+                "multiplier": 1,
+                "channels": [
+                  "world.tick"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "town/square",
+              "metadata": {
+                "threshold": 0,
+                "multiplier": 1,
+                "channels": [
+                  "town.local"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": {}
+      },
+      {
+        "type": "agent",
+        "node_id": "town/woodcutter",
+        "name": "伐木工阿林",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "woodcutter.md",
+          "creation_options": {}
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "town/save",
+              "metadata": {
+                "threshold": 0,
+                "multiplier": 1,
+                "channels": [
+                  "world.tick"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "town/square",
+              "metadata": {
+                "threshold": 0,
+                "multiplier": 1,
+                "channels": [
+                  "town.local"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": {}
+      }
+    ],
+    "delegations": []
+  },
+  "files": {
+    "root-memory.md": "",
+    "time.md": "",
+    "miner.md": "",
+    "woodcutter.md": ""
+  }
+}

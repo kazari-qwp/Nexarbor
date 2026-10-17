@@ -25,7 +25,8 @@ def main():
     node=TextFileNode('subject','Subject','text',folder/'test-output.txt') if kind=='text_file' else AgentNode('subject','Subject',file_path=folder/'memory.md') if kind=='agent' else PulseNode('subject','Subject',channels=['world.tick'],strength=3) if kind=='pulse' else Node('subject','Subject',None)
     network=Network();network.add_node(node)
     saves=[]
-    backend=SimpleNamespace(network=network,dispatch=lambda *a,**k:saves.append((a,k)) or {'saved':True})
+    async def execute_agent(*args,**kwargs):return dict(status='completed',session_id='contract-check',steps=0,output='')
+    backend=SimpleNamespace(network=network,metadata_registry=network.metadata_registry,directory=folder,execute_agent=execute_agent,dispatch=lambda *a,**k:saves.append((a,k)) or {'saved':True})
     instance=create(backend,node,defaults['config'],{});instance.install()
     assert set(node.tool_definitions)==set(t['name'] for t in spec['tools'])|({'read','write'} if kind=='text_file' else set())
     for tool in spec['tools']:
