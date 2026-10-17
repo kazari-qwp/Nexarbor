@@ -8,4 +8,4 @@
 
 Skill 授予的能力可以恢复到新会话，但正文在再次 load/read 时才加载。角色职责、权限和当前运行状态继续由各自机制提供。文档不作为权限来源。
 
-工具首次开放由 Harness 的 addition-only 路由添加定义。停用时保留定义，由框架关闭执行权限；恢复时重新开放权限，状态通知追加到历史尾部。当前公共 API 和客户端账户路线均拒绝 tool_removal，运行配置保持 addition-only。具体见 [工具权限](TOOL_PERMISSIONS.md)。
+工具首次开放由 Harness 的 addition-only 路由添加定义。停用时在当前声明系列保留定义，由框架立即关闭执行权限；压缩成功后清理已停用且不再被保留历史引用的定义。恢复时重新开放权限，已回收的定义重新注册，状态通知追加到历史尾部。当前公共 API 和客户端账户路线均拒绝 tool_removal，运行配置保持 addition-only。具体见 [工具权限](TOOL_PERMISSIONS.md)。

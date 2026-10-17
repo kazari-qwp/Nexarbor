@@ -88,7 +88,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
     const entry={actor,agent,view:{},sections:new Set(),tools:new Map(),inputEvents:new Set(),pendingApprovals:trackApprovals(agent)};native.set(actor,entry);scopes.set(agent.ctx,actor);
     entry.ready=new Promise(resolve=>{entry.resolveReady=resolve;});
     agent.ctx.effect(()=>()=>entry.resolveReady(false),'datanet.mount-ready');
-    history.bind(agent.ctx,agent);permissions.state(agent.ctx);
+    history.bind(agent.ctx,agent);permissions.bind(agent.ctx,agent);
     agent.ctx.on('session/event',(session)=>{if(session===agent.session)checkpoints?.schedule();});
     agent.ctx.systemPrompt.section({name:'datanet:role',order:90,interpolate:false,text:()=>entry.view.prompt??''});
     const own=payload=>!payload?.agent||payload.agent===agent;

@@ -44,3 +44,13 @@ addition-only 会过滤 removal；若直接删当前工具定义，投影的 too
 维持当前系列内新增与执行禁用；在成功压缩、建立新请求系列时，仅用仍授权工具重建清单，回收停用动态定义并重置 officialSeen/retained。执行 guard 仍保留。需补充部分压缩保留旧 tool-call/result 的情形、重新开放工具、同名 schema 更新、恢复/分支等测试；本次未改消息队列或卸载策略。
 
 证据与隔离脚本保存在 build/tool-update-investigation-20261017/{result.json,probe.cjs,run.py}，该目录被Git忽略；原始证据不包含鉴权头或凭据。当前SDK源码副本也保留在同目录供核对。
+
+## 后续实施（2026-10-17）
+
+已在 Harness 适配层接入成功的 compaction/end：回收已停用且不被当前 surface 的 tool-call 引用的动态定义，清理官方工具的 officialSeen 和 retained 白名单；当前授权和执行 guard 保持不变。部分压缩保留的调用及结果继续拥有声明，直到后续压缩移除它们。失败压缩不清理，跨 Agent 状态隔离，重新注册支持新定义且旧 disposer 不会误停用新注册。
+
+原生自动压缩发生在 agent/pre-step，而该位置的工具清单可能已经装配；溢出重试也会复用先前装配。AgentLoop 因此增加基于 surface.replaceGeneration 的重装配：只在 surface replacement 后重建系统提示和工具清单，普通请求维持原流程。核心网络、消息队列、Agent 提示词和工具描述未改。
+
+最小验证使用已安装 Harness SDK 的真实工具注册表、addition-only 投影、BasicCompactionEngine 事务、TokenMeter、请求重建 invariant 和 JSONL 磁盘恢复。摘要与模型输出使用确定性测试适配器，不调用付费 API。新增 tests/native_tool_compaction_test.cjs 覆盖成功/失败压缩、部分压缩、作用域隔离、重新授权、同名定义更新、自动压缩后首个请求、溢出重试，以及压缩后未写新请求头就关闭再恢复的情况。
+
+另通过原生权限、日志恢复、请求纠错和 NPC 脉冲最小集成测试。旧 multi_agent 的 modular_shared_runtime_test.cjs 未通过启动：其网络预设仍为旧序列化格式，Backend 构造时报告 network 字段应为 version/nodes/delegations/signals；这发生在 ping 和工具执行前，属于此前暂缓的应用兼容性问题。本次未扩大范围修改旧预设。

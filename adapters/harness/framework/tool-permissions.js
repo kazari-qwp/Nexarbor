@@ -7,7 +7,7 @@ export function isPermissionDenied(result){
     (result?.isError&&result.content?.some(b=>b.type==='text'&&(b.text.startsWith(marker)||b.text.startsWith('Error: '+marker))));
 }
 
-// Keep declarations stable; capability changes only affect execution and tail messages.
+// Keep declarations stable within a series; successful compaction reclaims revoked schemas.
 export class ToolPermissions {
   constructor(message){this.message=message;this.states=new WeakMap();}
   state(ac){
@@ -29,23 +29,51 @@ export class ToolPermissions {
     });
     return s;
   }
+  bind(ac,agent){
+    const s=this.state(ac);if(s.agent)return;
+    s.agent=agent;
+    ac.on('session/event',(session,event)=>{
+      if(session!==agent.session||event.type!=='compaction/end'||event.data?.error!==undefined)return;
+      this.rebase(ac);
+    });
+  }
+  onRebase(ac,callback){this.state(ac).rebaseOfficial=callback;}
+  rebase(ac){
+    const s=this.state(ac);if(!s.agent)return;
+    // A retained call/result still needs its declaration, but never its permission.
+    const referenced=new Set();
+    for(const message of s.agent.session.deriveMessages())for(const block of message.content??[]){
+      if(block.type==='tool-call')referenced.add(block.name);
+    }
+    for(const [name,record] of s.tools){
+      if(referenced.has(name))continue;
+      if(!record.enabled){record.dispose();s.tools.delete(name);}
+      else if(record.definition!==record.registered){record.dispose();this.install(ac,record);}
+    }
+    s.officialSeen=new Set([...s.officialSeen].filter(name=>s.official.has(name)||referenced.has(name)));
+    s.rebaseOfficial?.([...s.officialSeen]);
+  }
+  install(ac,record){
+    const definition=record.definition;
+    record.dispose=ac.tools.register({...definition,execute:(args,exec)=>{
+      if(!record.enabled)throw permissionError(definition.name);
+      return record.execute(args,exec);
+    }});
+    record.registered=definition;
+  }
   notify(ac,name,enabled){this.state(ac).notices.push(`${name} ${enabled?'已恢复，可以调用。':'已停用，当前不能调用。'}`);}
   register(ac,definition){
     const s=this.state(ac);let record=s.tools.get(definition.name);
     if(!record){
-      record={enabled:true,execute:definition.execute,lease:0};s.tools.set(definition.name,record);
-      ac.tools.register({...definition,execute:(args,exec)=>{
-        // Also protects direct dispatchers that do not provide an Agent identity.
-        if(!record.enabled)throw permissionError(definition.name);
-        return record.execute(args,exec);
-      }});
+      record={enabled:true,execute:definition.execute,definition,lease:0};s.tools.set(definition.name,record);
+      this.install(ac,record);
     }else{
-      record.execute=definition.execute;
+      record.execute=definition.execute;record.definition=definition;
       if(!record.enabled){record.enabled=true;this.notify(ac,definition.name,true);}
     }
     const lease=++record.lease;
     return ()=>{
-      if(record.lease!==lease||!record.enabled)return;
+      if(s.tools.get(definition.name)!==record||record.lease!==lease||!record.enabled)return;
       record.enabled=false;this.notify(ac,definition.name,false);
     };
   }

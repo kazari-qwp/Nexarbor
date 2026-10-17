@@ -26,6 +26,14 @@ export function updateCapabilityTools(ac, agent, profile, host, permissions) {
     const dispose = ac.tools.restrict({ allow });
     permissions?.official(ac, profile.tools);
     toolRestrictions.set(ac, { tools, retained, allow, dispose });
+    permissions?.onRebase(ac, names => {
+      const current=toolRestrictions.get(ac);if(!current)return;
+      const restrictable=host.tools.view(agent).restrictableNames;
+      const allow=names.filter(name=>restrictable.has(name));
+      const dispose=ac.tools.restrict({allow});
+      current.dispose();
+      toolRestrictions.set(ac,{...current,retained:names,allow,dispose});
+    });
     return { tools, unavailableTools: profile.tools.filter(x => !known.has(x)) };
   } catch (error) {
     if (previous) toolRestrictions.set(ac, { tools: previous.tools, retained: previous.retained, allow: previous.allow, dispose: ac.tools.restrict({ allow: previous.allow }) });

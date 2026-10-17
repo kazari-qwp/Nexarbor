@@ -907,6 +907,7 @@ var ReactLoopAgent = class {
 		const claimed = this.inbox.claim(target, position.turn);
 		await this.dispatch.serial("agent/prepare-context", {...position, signal});
 		signal.throwIfAborted();
+		const assemblySurfaceGeneration = this.session.surface.replaceGeneration;
 		const assembled = await this.loopCtx.systemPrompt.assemble(assembleContextFor(this, signal));
 		const assembly = {...assembled, tools: await this.dispatch.waterfall("agent/tool-schemas", {...position, signal}, () => Promise.resolve(assembled.tools))};
 		signal.throwIfAborted();
@@ -924,7 +925,8 @@ var ReactLoopAgent = class {
 		if (decision.kind === "reject") return decision;
 		return {
 			...decision,
-			assembly
+			assembly,
+			assemblySurfaceGeneration
 		};
 	}
 	/** Whether the assembled tool schemas differ from the logged request header's. */
@@ -1047,10 +1049,19 @@ var ReactLoopAgent = class {
 		if (this.phase.kind !== "running") throw new Error(`agent "${this.id}": step outside running phase`);
 		const { turn, step, abort: { signal } } = this.phase;
 		signal.throwIfAborted();
-		const { assembly } = decision;
-		const renderedPrompt = renderPrompt(assembly);
+		let { assembly, assemblySurfaceGeneration } = decision;
+		let renderedPrompt = renderPrompt(assembly);
 		let firstAttempt = true;
 		while (true) {
+			// Compaction may run after pre-step assembly, or during overflow recovery.
+			// Reassemble before the next request so it uses the new surface's capabilities.
+			if (assemblySurfaceGeneration !== this.session.surface.replaceGeneration) {
+				assemblySurfaceGeneration = this.session.surface.replaceGeneration;
+				const assembled = await this.loopCtx.systemPrompt.assemble(assembleContextFor(this, signal));
+				assembly = {...assembled, tools: await this.dispatch.waterfall("agent/tool-schemas", {turn, step, signal}, () => Promise.resolve(assembled.tools))};
+				renderedPrompt = renderPrompt(assembly);
+				signal.throwIfAborted();
+			}
 			const { config, preparedCall } = await this.prepareRequest(turn, step, signal);
 			const startsRequestSeries = firstAttempt && decision.startsRequestSeries === true;
 			const commits = this.systemPrompt.project(renderedPrompt, {
