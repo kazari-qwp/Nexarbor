@@ -42,7 +42,7 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
 
     def connection(target, value):
         if value is None:
-            value = {'metadata': {'visibility':'private','channels':['access.read','access.write']}}
+            value = {'metadata': {'channels':[]}}
         if not isinstance(value, dict) or set(value) != {'metadata'}:
             raise ValueError('接口必须包含 metadata 对象')
         return Interface(target_node_id=target, **value)
@@ -84,7 +84,7 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
                 entry = {'type': spec['type'], 'node_id': node_id, 'name': spec.get('name', child_id), 'data_kind': spec.get('data_kind'), 'description': spec.get('description', ''), 'divergence': spec.get('divergence', -1), 'parameters': spec['parameters'], 'connections': {'interfaces': []}, 'agent': None, 'toolboxes': spec.get('toolboxes', []), 'expose': spec.get('expose', [])}
                 folder = storage_dir / uuid4().hex
                 folder.mkdir(parents=True)
-                fragment = _build({'version': 6, 'signals': {}, 'nodes': [entry], 'delegations': []}, folder)
+                fragment = _build({'version': 7, 'signals': {}, 'nodes': [entry], 'delegations': []}, folder)
                 child = fragment.nodes[node_id]
                 from datanet.core.node_toolboxes import validate_exposure
                 validate_exposure(child)
@@ -181,6 +181,6 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
                 return NodeResult(status='forbidden' if isinstance(error, PermissionError) else 'error', errors=[str(error)])
     owner.register_agent_tool('list_node_presets', catalog, description='列出获准使用的节点预设、自定义开关及参数字段。', parameters={'type': 'object', 'properties': {}, 'additionalProperties': False})
     interface_schema = {'type': 'object', 'properties': {'metadata': metadata_schema()}, 'required': ['metadata'], 'additionalProperties': False}
-    owner.register_agent_tool('create_child_node', create_child_node, description='在管理范围内的父节点下面创建子节点，不创建Agent。先查看 list_node_presets。默认父节点为自己，默认私有连接并开放access.read/access.write频道。', parameters={'type': 'object', 'properties': {'child_id': {'type': 'string'}, 'parent_node_id': {'type': 'string', 'description': '省略表示自己；按管理归属和工具箱scope授权，不要求普通连接可达。'}, 'node_spec': {'type': 'object', 'description': '{preset:id} 或 {type,parameters,name?,data_kind?,description?,divergence?,toolboxes?,expose?}'}, 'interface':interface_schema}, 'required': ['child_id', 'node_spec'], 'additionalProperties': False})
+    owner.register_agent_tool('create_child_node', create_child_node, description='在管理范围内的父节点下面创建子节点，不创建Agent。先查看 list_node_presets。默认父节点为自己，默认建立空频道连接，远程访问须显式配置频道。', parameters={'type': 'object', 'properties': {'child_id': {'type': 'string'}, 'parent_node_id': {'type': 'string', 'description': '省略表示自己；按管理归属和工具箱scope授权，不要求普通连接可达。'}, 'node_spec': {'type': 'object', 'description': '{preset:id} 或 {type,parameters,name?,data_kind?,description?,divergence?,toolboxes?,expose?}'}, 'interface':interface_schema}, 'required': ['child_id', 'node_spec'], 'additionalProperties': False})
     owner.register_agent_tool('create_network', create_network, description='使用登记网络预设搭建子网络；需要children或descendants范围。with_agents=true可按预设同时装配Agent，但必须拥有create_agent且配置获准。默认仅建节点；失败撤销本次创建。', parameters={'type': 'object', 'properties': {'preset': {'type': 'string'}, 'instance_id': {'type': 'string'}, 'entry_point': {'type': 'string'}, 'parent_node_id': {'type': 'string'}, 'with_agents': {'type': 'boolean', 'description': '默认false；true按网络预设装配所有Agent，需要创建Agent授权，提示词独立复制。'}, 'interface':deepcopy(interface_schema)}, 'required': ['preset', 'instance_id', 'entry_point'], 'additionalProperties': False})
     return {name: deepcopy(owner.agent_tool_definitions[name]) for name in ('list_node_presets', 'create_child_node', 'create_network')}

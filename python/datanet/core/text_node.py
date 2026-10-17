@@ -9,15 +9,18 @@ from datanet.core.write_support import validate_write
 class TextFileNode(Node):
     signal_type = 'text_file'
 
-    def __init__(self, node_id, name, data_kind, file_path, *, description='', max_chars=None):
+    def __init__(self, node_id, name, data_kind, file_path, *, description='', max_chars=None, tool_channels=None):
         super().__init__(node_id, name, data_kind, description=description)
         if max_chars is not None and (type(max_chars) is not int or max_chars < 1):
             raise ValueError('max_chars 必须为正整数')
+        from .json_values import names
+        if tool_channels is not None and (not isinstance(tool_channels,dict) or set(tool_channels)-{'read','write','get_schema'}):raise ValueError('Invalid text tool channel configuration')
+        self.tool_channels={name:list(names((tool_channels or {}).get(name,()),'tool_channels')) for name in ('read','write','get_schema')}
         self.max_chars = max_chars
         self.file_path = Path(file_path).resolve()
         self._lock = RLock()
-        self.register_tool('read', self.read, description='读取本节点绑定的UTF-8文件，主键为content', parameters={'type': 'object', 'properties': {'request': {'type': 'object', 'properties': {'method': {'const': 'key'}, 'key': {'const': 'content'}}, 'required': ['method', 'key'], 'additionalProperties': False}}, 'required': ['request'], 'additionalProperties': False}, read_only=True)
-        self.register_tool('write', self.write, description='创建、替换或追加本节点文本；主键content；写前保留上一版.bak；append原样追加不补换行', parameters={'type': 'object', 'properties': {'key': {'const': 'content'}, 'value': {'type': 'string'}, 'mode': {'enum': ['insert', 'update', 'upsert', 'append']}}, 'required': ['key', 'value'], 'additionalProperties': False}, read_only=False)
+        self.register_tool('read', self.read, description='读取本节点绑定的UTF-8文件，主键为content', parameters={'type': 'object', 'properties': {'request': {'type': 'object', 'properties': {'method': {'const': 'key'}, 'key': {'const': 'content'}}, 'required': ['method', 'key'], 'additionalProperties': False}}, 'required': ['request'], 'additionalProperties': False}, access_channels=self.tool_channels['read'])
+        self.register_tool('write', self.write, description='创建、替换或追加本节点文本；主键content；写前保留上一版.bak；append原样追加不补换行', parameters={'type': 'object', 'properties': {'key': {'const': 'content'}, 'value': {'type': 'string'}, 'mode': {'enum': ['insert', 'update', 'upsert', 'append']}}, 'required': ['key', 'value'], 'additionalProperties': False}, access_channels=self.tool_channels['write'])
     @property
     def backup_path(self):
         return self.file_path.with_name(self.file_path.name + '.bak')

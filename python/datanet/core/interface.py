@@ -17,14 +17,12 @@ def validate_strength(value):
 
 @dataclass(frozen=True)
 class InterfaceMetadata:
-    visibility:str='public'
     threshold:int=0
     multiplier:float=1
     channels:tuple=()
     attributes:dict=field(default_factory=dict)
 
     def __post_init__(self):
-        if self.visibility not in ('public','private'):raise ValueError('visibility 必须为 public 或 private')
         if type(self.threshold) is not int or self.threshold<0:raise ValueError('连接门槛必须为非负整数')
         validate_strength(self.multiplier)
         if not isinstance(self.attributes,dict):raise ValueError('attributes must be a JSON object')
@@ -41,15 +39,15 @@ class Interface:
         if isinstance(self.metadata,dict):object.__setattr__(self,'metadata',InterfaceMetadata(**self.metadata))
         if not isinstance(self.metadata,InterfaceMetadata):raise TypeError('metadata must be InterfaceMetadata or an object')
 
-    def allows(self,*,origin_node_id,source_node_id,strength,channels):
+    def allows(self,*,strength,channels):
         validate_signal(strength)
         m=self.metadata
-        return strength>=m.threshold and bool(set(channels).intersection(m.channels)) and (m.visibility=='public' or origin_node_id==source_node_id)
+        return strength>=m.threshold and bool(set(channels).intersection(m.channels))
 
     def carries(self,channels,*,strength):
         validate_signal(strength)
         m=self.metadata
-        return m.visibility=='public' and strength>=m.threshold and bool(set(channels).intersection(m.channels))
+        return strength>=m.threshold and bool(set(channels).intersection(m.channels))
 
 
 def metadata_schema():
@@ -57,7 +55,6 @@ def metadata_schema():
     return {
         'type':'object',
         'properties':{
-            'visibility':{'type':'string','enum':['public','private'],'default':'public'},
             'threshold':{'type':'integer','minimum':0,'default':0},
             'multiplier':{'type':'number','minimum':0,'default':1},
             'channels':{'type':'array','items':{'type':'string','minLength':1},'uniqueItems':True,'default':[]},

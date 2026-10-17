@@ -48,7 +48,7 @@ export function filterGraph(nodes,edges,{query='',kinds=null,channels=null,local
   const visible=nodes.filter(n=>(kinds===null||kinds.includes(n.data.kind))&&(!query||`${n.id} ${n.data.node.name}`.toLowerCase().includes(query.toLowerCase()))&&(!reached||reached.has(n.id))&&(!channelNodes||channelNodes.has(n.id)));
   const traversed=local?new Map():null;
   if(local)for(const item of Object.values(local.paths).flat())for(let i=1;i<item.path.length;i++){const pair=`${item.path[i-1]}|${item.path[i]}`,grants=traversed.get(pair)??new Set();for(const channel of item.channels)grants.add(channel);traversed.set(pair,grants);}
-  const ids=new Set(visible.map(n=>n.id));return {nodes:visible,edges:selectedEdges.filter(e=>ids.has(e.source)&&ids.has(e.target)&&(!traversed||((e.metadata.visibility!=='private'||e.source===local.actor)&&e.metadata.channels.some(c=>traversed.get(`${e.source}|${e.target}`)?.has(c)))))};
+  const ids=new Set(visible.map(n=>n.id));return {nodes:visible,edges:selectedEdges.filter(e=>ids.has(e.source)&&ids.has(e.target)&&(!traversed||(e.metadata.channels.some(c=>traversed.get(`${e.source}|${e.target}`)?.has(c)))))};
 }
 
 // Newly visible items rise above existing ones, including re-enabled filters.
@@ -57,4 +57,10 @@ export function stackVisible(previous,nodes,edges){
  for(const [kind,items] of [['edges',edges],['nodes',nodes]])for(const item of items)
   next[kind][item.id]=previous?.[kind]?.[item.id]??++next.serial;
  return next;
+}
+
+export function channelColor(channels){
+ let hash=0;
+ for(const c of [...channels].sort().join('|'))hash=(hash*31+c.charCodeAt(0))>>>0;
+ return channels.length?`hsl(${hash%360} 38% 65%)`:'#8193a5';
 }

@@ -6,7 +6,7 @@ test('filters never invent reach or mutate actual graph',()=>{
  const nodes=layoutNodes(document),edges=edgesOf(document);assert.equal(edges.length,2);
  assert.equal(filterGraph(nodes,edges,{channels:['tick']}).edges.length,1);
  assert.equal(filterGraph(nodes,edges,{kinds:['文本']}).nodes[0].id,'b');
- const local={actor:'root',paths:{read:[],write:[]}};
+ const local={actor:'root',paths:{catalog:[]}};
  assert.equal(filterGraph(nodes,edges,{local}).nodes.length,1);
  assert.equal(document.network.nodes[0].connections.interfaces.length,1);
 });
@@ -34,9 +34,9 @@ test('new nodes and re-enabled filters rise above existing nodes and edges',()=>
  assert.equal(c.nodes.a,a.nodes.a);assert.ok(c.edges.ab>a.nodes.b);assert.ok(c.nodes.b>c.edges.ab);assert.ok(c.nodes.c>c.nodes.b);
 });
 
-test('local view distinguishes parallel channels and cannot show an intermediarys private edge',()=>{
+test('local view distinguishes channels without special channel names',()=>{
  const nodes=['root','b','c'].map(id=>({id,data:{kind:'节点',node:{name:id}}}));
- const edges=[['read','root','b','access.read','public'],['tick','root','b','world.tick','public'],['private','b','c','access.read','private'],['public','b','c','access.read','public']].map(([id,source,target,channel,visibility])=>({id,source,target,metadata:{channels:[channel],visibility}}));
- const local={actor:'root',paths:{group:[{id:'b',path:['root','b'],channels:['access.read']},{id:'c',path:['root','b','c'],channels:['access.read']}]}};
- assert.deepEqual(filterGraph(nodes,edges,{local}).edges.map(e=>e.id),['read','public']);
+ const edges=[['catalog','root','b','catalog'],['tick','root','b','world.tick'],['private','b','c','private'],['public','b','c','public']].map(([id,source,target,channel])=>({id,source,target,metadata:{channels:[channel]}}));
+ const local={actor:'root',paths:{group:[{id:'b',path:['root','b'],channels:['catalog','private','public']},{id:'c',path:['root','b','c'],channels:['catalog','private','public']}]}};
+ assert.deepEqual(filterGraph(nodes,edges,{local}).edges.map(e=>e.id),['catalog','private','public']);
 });

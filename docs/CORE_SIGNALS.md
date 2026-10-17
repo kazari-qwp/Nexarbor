@@ -1,6 +1,6 @@
 # 核心信号、频道响应器与脉冲节点
 
-当前网络格式为 **v6**，连接统一保存为 `connections.interfaces`。旧v3/v4/v5网络和检查点直接拒绝。三个应用的源码预设均已同步；访问授权见[频道与工具访问](CHANNEL_ACCESS.md)。
+当前核心网络格式为 **v7**，连接统一保存为 `connections.interfaces`。旧格式网络和检查点直接拒绝；读写、公私分类已从核心移除。旧组件和三个应用暂未迁移，下述扩展机制的实现记录对应此前版本；本轮验证只覆盖新核心与画布。访问授权见[频道与工具访问](CHANNEL_ACCESS.md)。
 
 ## 核心只负责传播
 
@@ -16,12 +16,12 @@ signal = Signal('source', ['world.tick', 'notice'], 3,
 
 ```python
 Interface('target', metadata={
-    'visibility': 'public', 'threshold': 1, 'multiplier': 1,
+    'threshold': 1, 'multiplier': 1,
     'channels': ['world.tick'], 'attributes': {'purpose': 'time'}
 })
 ```
 
-信号只能沿公有且频道有交集的接口传播，频道集合全程保持原样；强度按倍率及目标散度计算，不能低于0。私有数据访问仍遵守既有图权限，与信号传播分开。`wait_for_completion`及后台通知API已移除。
+信号沿频道有交集且满足门槛的接口传播，频道集合全程保持原样；强度按倍率及目标散度计算，不能低于0。没有公私接口特殊判断。工具访问另按工具声明及开放清单校验，不能借信号扩大权限。`wait_for_completion`及后台通知API已移除。
 
 同一层的节点并行处理，每个节点等待自己的处理完成；整层完成后才能进入下一层。同一节点在一份信号中只处理一次，汇聚取最大强度而不相加。没有绑定处理器的节点直接中继，包括Agent节点；是否执行Agent由响应器决定。
 
@@ -64,4 +64,4 @@ NPC用`npc`命名空间提供性别、职业、孕期等字段。装配器不导
 
 ## 最小验证
 
-核心信号、四类输入、共享响应器、独立装配器及NPC最小回环已验证，原生Harness使用Mock模型。当前记录见[NPC验证](applications/npc_world/VALIDATION.md)。本次执行图改造仅做本地与原生Mock测试，没有新增付费世界运行。旧匹配工具已移除，没有新增Agent可见工具描述。
+当前 v7 的频道、信号、四类输入与持久化测试见[本轮验证](ROUTING_CHANNELS_V7_TEST_20261017.md)，未运行旧应用或付费模型。此前共享响应器、装配器及NPC最小回环的记录见[NPC验证](applications/npc_world/VALIDATION.md)，不代表旧应用已兼容 v7。

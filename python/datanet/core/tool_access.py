@@ -1,14 +1,13 @@
 """沿频道授权的接口发现并调用节点工具；起点由所属节点固定。"""
-from collections import deque
 from copy import deepcopy
 from datanet.core.node import NodeResult
 from datanet.core.access_budget import access_context, current_access
 
-def reachable(network,node_id,scope='network',strength=0,channels=('access.read','access.write')):
+def reachable(network,node_id,scope='network',strength=0,channels=()):
     yield from network.walk(node_id,scope=scope,strength=strength,channels=channels)
 
-def list_nodes(network,node_id,scope='network',strength=0,channels=('access.read','access.write')):
-    return NodeResult(items=[{**node.describe(include_schema=False),'read_only_tool_count':sum(d['read_only'] for name,d in node.tool_definitions.items() if name in node.tools and name in node.expose),'retrieval_path':path} for node,path in reachable(network,node_id,scope,strength,channels)])
+def list_nodes(network,node_id,scope='network',strength=0,channels=()):
+    return NodeResult(items=[{**node.describe(include_schema=False),'exposed_tool_count':sum(name in node.tools and name in node.expose for name in node.tool_definitions),'retrieval_path':path} for node,path in reachable(network,node_id,scope,strength,channels)])
 
 def list_tools(network,node_id,target_node_id,scope='network',strength=0):
     target=network.nodes.get(target_node_id)
@@ -77,7 +76,7 @@ def discovery_definitions():
     strength={'type':'number','minimum':0,'description':'访问强度，受所属Agent授权上限约束；嵌套继承剩余额度。'}
     result=[]
     for name,description,properties,required in (
-        ('list_nodes','列出沿指定频道可达的节点概况；不授予工具调用权限。',{'channels':{'type':'array','items':{'type':'string'},'description':'默认access.read与access.write；仅控制概况查询。'}},[]),
+        ('list_nodes','列出沿指定频道可达的节点概况；不授予工具调用权限。',{'channels':{'type':'array','items':{'type':'string'},'description':'本次概况查询的频道；省略时仅查询自身，不授予工具调用权限。'}},[]),
         ('list_tools','发现一个节点向你开放的工具及参数；框架按各工具声明的频道检查权限。',{'target_node_id':{'type':'string'}},['target_node_id']),
         ('invoke_tool','调用已发现的节点工具；访问频道由工具声明决定，无需填写。',{'target_node_id':{'type':'string'},'tool_name':{'type':'string'},'arguments':{'type':'object'}},['target_node_id','tool_name','arguments'])):
         result.append({'type':'function','function':{'name':name,'description':description,'parameters':{'type':'object','properties':{**properties,'scope':deepcopy(scope),'strength':deepcopy(strength)},'required':required,'additionalProperties':False}}})
@@ -92,5 +91,5 @@ def attach_discovery_tools(network,owner):
     def invoke(target_node_id,tool_name,arguments,scope='network',strength=0):
         if (target_node_id,tool_name) not in discovered:return NodeResult(status='forbidden',errors=['请先通过list_tools发现目标工具'])
         return invoke_tool(network,owner.node_id,target_node_id,tool_name,arguments,scope,strength)
-    owner.tools.update({'list_nodes':lambda scope='network',strength=0,channels=('access.read','access.write'):list_nodes(network,owner.node_id,scope,strength,channels),'list_tools':discover,'invoke_tool':invoke})
+    owner.tools.update({'list_nodes':lambda scope='network',strength=0,channels=():list_nodes(network,owner.node_id,scope,strength,channels),'list_tools':discover,'invoke_tool':invoke})
     return discovery_definitions()

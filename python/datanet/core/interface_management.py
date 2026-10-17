@@ -6,16 +6,18 @@ from datanet.core.node import NodeResult
 from datanet.core.management import SCOPES, resolve_managed, can_manage
 from datanet.core.interface import Interface, metadata_schema
 
-def attach_interface_management_tools(network, owner, *, scope='self', actions=('list', 'add', 'update', 'remove'), allow_external_targets=False):
+def attach_interface_management_tools(network, owner, *, scope='self', actions=('list', 'add', 'update', 'remove'), allow_external_targets=False, channels=()):
     if network.nodes.get(owner.node_id) is not owner or scope not in SCOPES:
         raise ValueError('Invalid interface owner/scope')
     if not actions or set(actions) - {'list', 'add', 'update', 'remove'} or type(allow_external_targets) is not bool:
         raise ValueError('Invalid interface toolbox options')
+    from .json_values import names
+    channels=names(channels,'channels')
     lock = RLock()
-    permissions = {'scope': scope, 'actions': list(actions), 'allow_external_targets': allow_external_targets}
+    permissions = {'scope': scope, 'actions': list(actions), 'allow_external_targets': allow_external_targets, 'channels':list(channels)}
 
     def reachable(node_id, strength):
-        return next((node for node, _, _ in network.walk_states(owner.node_id, channels=('access.write',), strength=strength) if node.node_id == node_id), None)
+        return next((node for node, _, _ in network.walk_states(owner.node_id, channels=channels, strength=strength) if node.node_id == node_id), None)
 
     def resolve(node_id, strength):
         return resolve_managed(network, owner.node_id, node_id, scope)
@@ -42,7 +44,7 @@ def attach_interface_management_tools(network, owner, *, scope='self', actions=(
                     raise ValueError('Target node does not exist')
                 links = node.interfaces
                 if action == 'add':
-                    if not allow_external_targets and (not can_manage(network, owner.node_id, target_node_id, scope)) and (reachable(target_node_id, strength) is None) and (not any((node.node_id == target_node_id for node, _, _ in network.walk_states(owner.node_id, channels=('access.read',), strength=strength)))):
+                    if not allow_external_targets and (not can_manage(network, owner.node_id, target_node_id, scope)) and (reachable(target_node_id, strength) is None):
                         raise PermissionError('Target is outside granted connection range')
                     options = {} if interface is None else interface
                     if not isinstance(options, dict) or set(options) - {'metadata'}:

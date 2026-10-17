@@ -94,7 +94,7 @@ class Backend:
                 def inactive(*args,**kwargs):return NodeResult(status='forbidden',errors=['Node component is disabled'])
                 node.read=inactive;node.write=inactive
                 for name,definition in document.get('tools',{}).get(node.node_id,{}).items():
-                    node.register_tool(name,inactive,description=definition['description'],parameters=definition['parameters'],read_only=definition.get('read_only',False))
+                    node.register_tool(name,inactive,description=definition['description'],parameters=definition['parameters'],access_channels=definition['access_channels'])
                 for name in node.tools:node.tools[name]=inactive
         for name, content in document['files'].items():
             target = (self.directory / name).resolve()
@@ -165,7 +165,7 @@ class Backend:
             raise ValueError('direction 已移除；连接统一采用频道授权')
         if method in {'list_tools','invoke_tool'} and 'channels' in p:
             raise ValueError('工具访问频道由可信工具声明决定')
-        mutation = method in self.components.mutations or method in {'write', 'invoke_tool', 'save', 'bind_agent', 'agent_progress', 'agent_inputs_update', 'agent_inputs_ack', 'network_initialize'}
+        mutation = method in self.components.mutations or method in {'invoke_tool', 'save', 'bind_agent', 'agent_progress', 'agent_inputs_update', 'agent_inputs_ack', 'network_initialize'}
         if not mutation:
             return self._dispatch(method, p)
         operation_id = uuid4().hex
@@ -192,11 +192,10 @@ class Backend:
         options = {} if options is None else options
         attach_node_creation_tools(self.network, owner, storage_dir=self.directory / 'created', presets=self.components.node_presets, scope=options.get('scope', 'descendants'), allow_custom=options.get('allow_custom', False), network_presets=self.components.network_presets, toolkits=self.components.toolkits(self))
 
-    def reachable_structure(self,actor,channels=('access.read','access.write'),depth=2,max_depth=100,inspect_private=False):
+    def reachable_structure(self,actor,channels=(),depth=2,max_depth=100):
         from .json_values import names
         channels=names(channels,'channels')
         if type(depth) is not int or type(max_depth) is not int or max_depth<1 or not 0<=depth<=max_depth:raise ValueError('Invalid scan depth')
-        if type(inspect_private) is not bool:raise ValueError('Invalid topology grant')
         layer,reached,edges,level=[actor],{actor},{},0
         while layer and (depth==max_depth or level<depth):
             following=[]
@@ -204,7 +203,6 @@ class Backend:
                 targets=[]
                 for link in self.network.nodes[source].interfaces:
                     if not set(channels).intersection(link.metadata.channels):continue
-                    if link.metadata.visibility=='private' and source!=actor and not inspect_private:continue
                     target=link.target_node_id
                     if target not in self.network.nodes:continue
                     if target not in targets:targets.append(target)
@@ -292,31 +290,19 @@ class Backend:
                     return {'allowed': False}
                 if scope == 'children' and (not any((x.target_node_id == p['target'] for x in owner.interfaces))):
                     return {'allowed': False}
-            return {'allowed': any((node.node_id == p['target'] for node, _ in self.network.walk(owner.node_id, channels=('access.read',), strength=p['strength'])))}
+            return {'allowed': any((node.node_id == p['target'] for node, _ in self.network.walk(owner.node_id, channels=p.get('channels',()), strength=p['strength'])))}
         if method == 'check_access':
-            return {'allowed': any((node.node_id == p['target'] for node, _ in self.network.walk(p['actor'], channels=p.get('channels',('access.read','access.write')), strength=p.get('strength', 2))))}
+            return {'allowed': any((node.node_id == p['target'] for node, _ in self.network.walk(p['actor'], channels=p.get('channels',()), strength=p.get('strength', 2))))}
         if method == 'ping':
             return {'ok': True, 'core': 'datanet', 'nodes': len(self.network.nodes)}
         if method == 'network_structure':
-            return self.reachable_structure(p['actor'], p.get('channels',('access.read','access.write')), p.get('depth', 2), p.get('max_depth', 100), p.get('inspect_private', False))
+            return self.reachable_structure(p['actor'], p.get('channels',()), p.get('depth', 2), p.get('max_depth', 100))
         if method == 'list_nodes':
-            return list_nodes(self.network,p['actor'],strength=p.get('strength',2),channels=p.get('channels',('access.read','access.write')))
+            return list_nodes(self.network,p['actor'],strength=p.get('strength',2),channels=p.get('channels',()))
         if method == 'list_tools':
             return list_tools(self.network, p['actor'], p['target'], strength=p.get('strength', 2))
         if method == 'invoke_tool':
             return invoke_tool(self.network, p['actor'], p['target'], p['tool'], p.get('arguments', {}), strength=p.get('strength', 2))
-        if method == 'read':
-            if p.get('target'):
-                from datanet.core.access_budget import access_context
-                from datanet.core.node import NodeResult
-                for node, path, remaining in self.network.walk_states(p['actor'], strength=p.get('strength', 2), scope=p.get('scope', 'network')):
-                    if node.node_id == p['target']:
-                        with access_context(self.network,node.node_id,remaining,path,channels=('access.read',)):
-                            return node.read(p['request'])
-                return NodeResult(status='forbidden', errors=['Target is not readable from origin'])
-            return self.network.read(p['actor'], p.get('request', {'method': 'key', 'key': 'content'}), strength=p.get('strength', 2), scope=p.get('scope', 'network'))
-        if method == 'write':
-            return self.network.write(p['actor'], p['target'], p['key'], p['value'], strength=p.get('strength', 2), mode=p.get('mode', 'upsert'))
         if method == 'save':
             path = self.directory / 'network.json'
             save_network(self.network, path)

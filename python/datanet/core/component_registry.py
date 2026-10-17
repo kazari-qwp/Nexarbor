@@ -52,11 +52,11 @@ def ensure_nodes():
     register_node(NodeCodec('node', Node, lambda node, base: {}, lambda common, params, base: Node(*common), description='无本地数据的组织节点，用于连接节点和挂载工具。', local_read=False, local_schema=False))
     from datanet.core.text_node import TextFileNode
     def encode_text(node,base):
-        return {'file_path':os.path.relpath(node.file_path,base),'max_chars':node.max_chars}
+        return {'file_path':os.path.relpath(node.file_path,base),'max_chars':node.max_chars,'tool_channels':node.tool_channels}
     def decode_text(common,params,base):
-        if set(params)-{'file_path','max_chars'}:raise ValueError('Unsupported ordinary text parameter')
-        return TextFileNode(*common,base/params['file_path'],max_chars=params.get('max_chars'))
-    register_node(NodeCodec('text_file',TextFileNode,encode_text,decode_text,parameter_fields=['file_path','max_chars'],description='UTF-8 text file',resources=('file_path',)))
+        if set(params)-{'file_path','max_chars','tool_channels'}:raise ValueError('Unsupported ordinary text parameter')
+        return TextFileNode(*common,base/params['file_path'],max_chars=params.get('max_chars'),tool_channels=params.get('tool_channels'))
+    register_node(NodeCodec('text_file',TextFileNode,encode_text,decode_text,parameter_fields=['file_path','max_chars','tool_channels'],description='UTF-8 text file',resources=('file_path',)))
     from datanet.core.agent_node import AgentNode
     register_node(NodeCodec('agent',AgentNode,lambda node,base:{'file_path':os.path.relpath(node.file_path,base),'creation_options':node.creation_options},lambda common,p,base:AgentNode(*common,file_path=base/p['file_path'],creation_options=p.get('creation_options')),parameter_fields=['file_path','creation_options'],resources=('file_path',),local_read=False,local_write=False,local_schema=False))
     from datanet.core.pulse_node import PulseNode
@@ -101,7 +101,7 @@ def attach_local_tools(node):
     from datanet.core.read_request import request_schema
     from datanet.core.node import NodeResult
     if codec.local_read and 'read' not in node.tool_definitions:
-        node.register_tool('read', lambda request: node.read(request), description='读取本节点。key 按主键读取，filter 按条件查询，semantic 语义检索；不支持的方法返回 unsupported。', parameters={'type': 'object', 'properties': {'request': request_schema()}, 'required': ['request'], 'additionalProperties': False}, read_only=True)
+        node.register_tool('read', lambda request: node.read(request), description='读取本节点。key 按主键读取，filter 按条件查询，semantic 语义检索；不支持的方法返回 unsupported。', parameters={'type': 'object', 'properties': {'request': request_schema()}, 'required': ['request'], 'additionalProperties': False}, access_channels=())
     if codec.local_schema and 'get_schema' not in node.tool_definitions:
 
         def schema():
@@ -109,7 +109,7 @@ def attach_local_tools(node):
                 return node.get_schema()
             except (OSError, ValueError) as error:
                 return NodeResult(status='error', errors=[str(error)])
-        node.register_tool('get_schema', schema, description='查看本节点的字段、主键及类型结构，不读取记录值。', parameters={'type': 'object', 'properties': {}, 'additionalProperties': False}, read_only=True)
+        node.register_tool('get_schema', schema, description='查看本节点的字段、主键及类型结构，不读取记录值。', parameters={'type': 'object', 'properties': {}, 'additionalProperties': False}, access_channels=getattr(node,'tool_channels',{}).get('get_schema',()))
 
 def reference_parameters(type_id, parameters, ids):
     for label, mode in codecs()[type_id].references.items():
@@ -140,7 +140,7 @@ def toolboxes():
                 from datanet.core.node import NodeResult
                 for tool in set(node.expose) | set(node.tool_definitions):
                     old = node.tool_definitions.get(tool, {})
-                    node.register_tool(tool, lambda **args: NodeResult(status='forbidden', errors=['Component is disabled: ' + owner]), description='Component disabled', parameters=old.get('parameters', {'type':'object'}), read_only=old.get('read_only', tool not in {'write', 'delete'}))
+                    node.register_tool(tool, lambda **args: NodeResult(status='forbidden', errors=['Component is disabled: ' + owner]), description='Component disabled', parameters=old.get('parameters', {'type':'object'}), access_channels=old.get('access_channels',()))
             result[name] = install
     return result
 

@@ -1,11 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import ELK from 'elkjs/lib/elk.bundled.js';
-import {NODE_SIZE,planPorts,routingGraph} from '../src/routing.js';
+import {NODE_SIZE,routingGraph} from '../src/routing.js';
 import {sceneRouter} from '../src/route-session.js';
 import {arrangeGraph} from '../src/layout.js';
 const node=(id,x,y)=>({id,position:{x,y},measured:{width:NODE_SIZE,height:NODE_SIZE},data:{}});
-const edge=(id,source,target,direction='write',channels=[])=>({id,source,target,metadata:{channels:[...channels,'access.'+direction],visibility:'public'}});
+const edge=(id,source,target,channels=['links'])=>({id,source,target,metadata:{channels}});
 const points=route=>[route.sourcePoint,...route.bendPoints,route.targetPoint];
 function assertClear(routes,nodes,edges){
  for(const [id,route] of routes){const e=edges.find(e=>e.id===id),p=points(route);
@@ -14,20 +14,15 @@ function assertClear(routes,nodes,edges){
   }
  }
 }
-test('equal fanout shares a trunk; directions and access metadata keep separate ports',()=>{
- const nodes=[node('a',0,0),node('b',300,0),node('c',300,180)];
- const edges=[edge('ab','a','b'),edge('ac','a','c'),edge('ar','a','b','read'),edge('ba','b','a'),edge('tick','a','b','write',['tick'])];
- const original=structuredClone(edges),plan=planPorts(nodes,edges);
- assert.deepEqual(plan.get('ab').source,plan.get('ac').source);
- for(const id of ['ar','ba','tick'])assert.notDeepEqual(plan.get('ab').source,id==='ba'?plan.get(id).target:plan.get(id).source);
- assert.equal(planPorts([node('a',0,0),node('b',0,300)],[edges[0]]).get('ab').source.side,'bottom');
- assert.deepEqual(edges,original);
+test('router receives free endpoints rather than fixed center-based pins',()=>{
+ const graph=routingGraph([node('a',0,0),node('b',300,0)],[edge('ab','a','b')]);
+ assert.equal(graph.children[0].ports,undefined);assert.equal(graph.edges[0].sourcePort,undefined);
 });
-test('libavoid shares a real trunk, avoids an obstacle and updates a moved obstacle',async()=>{
+test('libavoid chooses valid endpoints, avoids an obstacle and updates a moved obstacle',async()=>{
  const nodes=[node('a',0,0),node('b',360,0),node('c',360,160),node('block',180,0)],edges=[edge('ab','a','b'),edge('ac','a','c')];
  const router=sceneRouter();try{
   const routes=await router.route(routingGraph(nodes,edges));assert.equal(routes.size,2);assertClear(routes,nodes,edges);
-  assert.deepEqual(points(routes.get('ab')).slice(0,2),points(routes.get('ac')).slice(0,2));
+  for(const route of routes.values())assert.ok(points(route).length<=8);
   nodes[3].position.y=-100;
   const moved=await router.route(routingGraph(nodes,edges));assertClear(moved,nodes,edges);assert.notDeepEqual(moved.get('ab'),routes.get('ab'));
  }finally{router.destroy();}
@@ -49,4 +44,16 @@ test('ELK reduces crossed node ordering and only returns selected positions, awa
  const fixed=node('fixed',0,0),partial=await arrangeGraph(nodes.slice(0,2),edges,new ELK(),[fixed]);
  assert.deepEqual(Object.keys(partial).sort(),['a','b']);
  for(const p of Object.values(partial))assert.ok(p.x+NODE_SIZE<=0||p.x>=NODE_SIZE||p.y+NODE_SIZE<=0||p.y>=NODE_SIZE);
+});
+
+test('five-node pulse loop has bounded lengths and bends without hand-built trunks',async()=>{
+ const nodes=[node('time',100,500),node('alice',490,670),node('bob',550,460),node('pulse',900,80),node('save',1000,215)];
+ const edges=[['pulse','time'],['time','alice'],['time','bob'],['alice','save'],['bob','save'],['save','pulse']].map(([a,b])=>edge(a+b,a,b));
+ const router=sceneRouter();try{
+  const routes=await router.route(routingGraph(nodes,edges));assertClear(routes,nodes,edges);
+  for(const [id,r] of routes){const p=points(r),length=p.slice(1).reduce((n,b,i)=>n+Math.abs(b.x-p[i].x)+Math.abs(b.y-p[i].y),0),direct=Math.abs(p[0].x-p.at(-1).x)+Math.abs(p[0].y-p.at(-1).y);
+   assert.ok(length<=direct*2+NODE_SIZE*2,`${id}: excessive detour ${length}/${direct}`);assert.ok(p.length<=8,`${id}: excessive bends`);
+   for(let i=2;i<p.length;i++){const a=p[i-2],b=p[i-1],c=p[i];assert.ok(!(a.x===b.x&&b.x===c.x&&(b.y-a.y)*(c.y-b.y)<0||a.y===b.y&&b.y===c.y&&(b.x-a.x)*(c.x-b.x)<0),id+': reverses on itself');}
+  }
+ }finally{router.destroy();}
 });

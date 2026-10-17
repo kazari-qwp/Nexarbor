@@ -1,7 +1,6 @@
-"""按频道、门槛与可见性访问；工具调用采用可信声明的频道。"""
-from datanet.core.node import NodeResult
+"""按频道交集与强度访问；工具调用采用可信声明的频道。"""
 from datanet.core.interface import validate_strength, validate_signal
-from datanet.core.access_budget import current_access, access_context, active_agent
+from datanet.core.access_budget import current_access, active_agent
 
 class Network:
 
@@ -36,11 +35,11 @@ class Network:
         self.metadata_registry = registry
         for node in self.nodes.values():node._metadata_registry = registry
 
-    def walk(self, node_id, *, channels=('access.read',), strength=0, scope='network'):
+    def walk(self, node_id, *, channels=(), strength=0, scope='network'):
         for node, path, remaining in self.walk_states(node_id, channels=channels, strength=strength, scope=scope):
             yield (node, path)
 
-    def walk_states(self, node_id, *, channels=('access.read',), strength=0, scope='network'):
+    def walk_states(self, node_id, *, channels=(), strength=0, scope='network'):
         validate_strength(strength)
         if scope not in ('local', 'network'):
             raise ValueError('scope 必须为 local 或 network')
@@ -83,7 +82,7 @@ class Network:
                 for interface in node.interfaces:
                     if interface.target_node_id in visited:
                         continue
-                    if not interface.allows(origin_node_id=node_id, source_node_id=current, strength=remaining,channels=channels):
+                    if not interface.allows(strength=remaining,channels=channels):
                         continue
                     target = self.nodes.get(interface.target_node_id)
                     if target is None:
@@ -99,61 +98,3 @@ class Network:
                 remaining = total + self.nodes[target_id].divergence
                 validate_signal(remaining)
                 if remaining>=0:layer.append((target_id,path,remaining))
-
-    def read(self, node_id, request, scope='network', data_kind=None, *, strength=0):
-        from datanet.core.read_request import validate_request
-        request = validate_request(request)
-        validate_strength(strength)
-        if scope not in ('local', 'network'):
-            raise ValueError('scope 必须为 local 或 network')
-        if not isinstance(node_id, str):
-            raise TypeError('起点编号必须为字符串')
-        if node_id not in self.nodes:
-            return NodeResult(status='error', errors=[f'节点不存在：{node_id}'])
-        result, successful, supported = (NodeResult(), False, False)
-        try:
-            for node, path, remaining in self.walk_states(node_id, strength=strength, scope=scope):
-                if data_kind is not None and node.data_kind != data_kind:
-                    continue
-                with access_context(self, node.node_id, remaining, path, channels=('access.read',)):
-                    local = node.read(request)
-                if local is None:
-                    continue
-                if local.status == 'unsupported':
-                    if scope == 'local':
-                        return local
-                    result.skipped.append({'node_id': node.node_id, 'reason': 'unsupported', 'retrieval_path': path.copy()})
-                else:
-                    supported = True
-                if local.status == 'ok':
-                    successful = True
-                elif local.status not in ('unsupported', 'not_found'):
-                    result.errors.extend(local.errors or [f'节点 {node.node_id} 读取失败：{local.status}'])
-                result.items.extend(local.items)
-                result.sources.extend(({**source, 'retrieval_path': path.copy(), 'remaining_strength': remaining} for source in local.sources))
-                result.skipped.extend(local.skipped)
-        except ValueError as error:
-            result.errors.append(str(error))
-        result.status = 'error' if result.errors else 'ok' if successful else 'unsupported' if result.skipped and (not supported) else 'not_found'
-        return result
-
-    def write(self, node_id, target_node_id, key, value, *, strength=0, mode='upsert', scope='network'):
-        from datanet.core.write_support import validate_write
-        validate_write(key, mode, allow_append=True)
-        validate_strength(strength)
-        if scope not in ('local', 'network'):
-            raise ValueError('scope 必须为 local 或 network')
-        if not isinstance(node_id, str) or not isinstance(target_node_id, str):
-            raise TypeError('起点和目标编号必须为字符串')
-        if node_id not in self.nodes or target_node_id not in self.nodes:
-            return NodeResult(status='error', errors=['起点或目标节点不存在'])
-        try:
-            for node, path, remaining in self.walk_states(node_id, channels=('access.write',), strength=strength, scope=scope):
-                if node.node_id == target_node_id:
-                    with access_context(self, node.node_id, remaining, path, channels=('access.write',)):
-                        result = node.write(key, value, mode=mode)
-                    result.sources = [{**source, 'write_path': path.copy()} for source in result.sources]
-                    return result
-        except ValueError as error:
-            return NodeResult(status='error', errors=[str(error)])
-        return NodeResult(status='forbidden', errors=['目标不在当前写入范围内'])

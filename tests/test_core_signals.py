@@ -28,7 +28,7 @@ def link(network,source,target,channels=('tick',),**metadata):
 
 class ValueTests(unittest.TestCase):
     def test_metadata_and_signal_roundtrip_are_immutable(self):
-        edge=Interface('target',dict(channels=['A','A','B'],attributes={'labels':['x']},visibility='private'))
+        edge=Interface('target',dict(channels=['A','A','B'],attributes={'labels':['x']}))
         self.assertEqual(edge.metadata.channels,('A','B'))
         self.assertEqual(Interface(**asdict(edge)),edge)
         with self.assertRaises(TypeError):edge.metadata.attributes['labels']='changed'
@@ -41,6 +41,7 @@ class ValueTests(unittest.TestCase):
             with self.assertRaises(ValueError):Signal('o',bad,3)
         with self.assertRaises(TypeError):Interface('x',threshold=1)
         with self.assertRaises(TypeError):Interface('x',{'unknown':True})
+        with self.assertRaises(TypeError):Interface('x',{'visibility':'private'})
         with self.assertRaises(ValueError):Interface('x',{'threshold':True})
         with self.assertRaises(ValueError):Signal('o',['x'],float('nan'))
 
@@ -50,13 +51,13 @@ class ValueTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'network.json';save_network(network,path)
             document=json.loads(path.read_text(encoding='utf-8'))
-            self.assertEqual(document['version'],6)
+            self.assertEqual(document['version'],7)
             self.assertEqual(set(document['nodes'][0]['connections']['interfaces'][0]),{'target_node_id','metadata'})
             restored=load_network(path)
             self.assertIsInstance(restored.nodes['pulse'],PulseNode)
             self.assertEqual(restored.nodes['pulse'].channels,('tick',))
             self.assertEqual(restored.nodes['pulse'].interfaces[0].metadata.attributes['purpose'],'clock')
-            for old_version in [3,4,5]:
+            for old_version in [3,4,5,6]:
                 document['version']=old_version
                 with self.assertRaises(ValueError):_build(document,Path(folder))
 
@@ -67,8 +68,8 @@ class ValueTests(unittest.TestCase):
         root=network.nodes['root'];attach_interface_management_tools(network,root,scope='descendants')
         result=root.invoke_tool('manage_interfaces', action='add', target_node_id='other', interface={'metadata': {'channels': ['tick'], 'threshold': 1}})
         self.assertEqual(result.status,'ok')
-        result=root.invoke_tool('manage_interfaces', action='update', target_node_id='other', changes={'metadata': {'visibility': 'private'}})
-        self.assertEqual(result.status,'ok');self.assertEqual(root.interfaces[0].metadata.visibility,'private')
+        result=root.invoke_tool('manage_interfaces', action='update', target_node_id='other', changes={'metadata': {'channels': ['changed']}})
+        self.assertEqual(result.status,'ok');self.assertEqual(root.interfaces[0].metadata.channels,('changed',))
         with tempfile.TemporaryDirectory() as folder:
             attach_node_creation_tools(network,root,storage_dir=folder,allow_custom=True)
             result=root.invoke_tool('create_child_node',child_id='pulse',node_spec={'type':'pulse','parameters':{'channels':['tick'],'strength':3}})
@@ -91,17 +92,17 @@ class PropagationTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         for r in self.runtimes:await r.close()
 
-    async def test_channels_or_remain_unchanged_and_private_is_blocked(self):
+    async def test_channels_or_remain_unchanged_and_domains_are_filtered(self):
         n=Network();add(n,'source','a','b','private','wrong')
         link(n,'source','a',channels=['A']);link(n,'a','b',channels=['B'])
-        link(n,'source','private',channels=['A'],visibility='private');link(n,'source','wrong',channels=['C'])
+        link(n,'source','private',channels=['private']);link(n,'source','wrong',channels=['C'])
         r=self.runtime(n);seen=[]
         async def handler(c):seen.append((c.delivery.node_id,c.signal.channels));return {'ok':True}
         for id in ['a','b','private','wrong']:r.bind(id,handler)
         report=await r.propagate(Signal('source',['A','B'],3))
         self.assertEqual(seen,[('a',('A','B')),('b',('A','B'))]);self.assertEqual(report['status'],'completed')
-        # Ordinary owner-private data access is still distinct from public signal routing.
-        self.assertIn('private',[node.node_id for node,_ in n.walk('source', channels=('A',), strength=3)])
+        self.assertNotIn('private',[node.node_id for node,_ in n.walk('source',channels=('A',),strength=3)])
+        self.assertIn('private',[node.node_id for node,_ in n.walk('source',channels=('private',),strength=3)])
 
     async def test_each_layer_parallel_but_next_waits_for_entire_layer(self):
         n=Network();add(n,'s','clock','a','b','sink')
