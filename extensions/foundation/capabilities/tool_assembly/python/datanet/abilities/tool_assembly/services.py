@@ -57,7 +57,12 @@ class Assembly(NodeModule):
                 if not node or not node_enabled(node):raise PermissionError('Assembled target is inactive')
                 live=list_tools(self.backend.network,actor,binding['target'],strength=strength,direction=binding['direction'])
                 found=next((spec for spec in live.items if spec['name']==binding['tool']),None)
-                if not found or not self.allowed(node,found['retrieval_path'],binding['tool']) or alias(node.node_id,binding['direction'],{k:v for k,v in found.items() if k not in ('node_id','retrieval_path','remaining_strength')},node.name)!=name:raise PermissionError('Assembled tool is no longer reachable or its definition changed')
+                if not found:
+                    # Applications may explain a denial, never grant access through this hook.
+                    failure=dict(actor=actor,target=binding['target'],tool=binding['tool'],message='Assembled tool is no longer reachable or its definition changed')
+                    self.r.emit('node/tool-unavailable',failure=failure)
+                    raise PermissionError(failure['message'])
+                if not self.allowed(node,found['retrieval_path'],binding['tool']) or alias(node.node_id,binding['direction'],{k:v for k,v in found.items() if k not in ('node_id','retrieval_path','remaining_strength')},node.name)!=name:raise PermissionError('Assembled tool is no longer reachable or its definition changed')
                 result=self.r.rpc('invoke_tool',actor=actor,target=binding['target'],tool=binding['tool'],arguments=args,direction=binding['direction'],strength=strength)
             self.r.emit('node/tool-invoked',actor=actor,target=binding['target'],tool=binding['tool'],direction=binding['direction'],result=result)
             return result

@@ -97,6 +97,66 @@ class NeighborhoodTests(unittest.TestCase):
             finally:stop(app,b)
         """)
 
+    def test_departure_feedback_is_witnessed_and_never_tracks_unseen_movement(self):
+        self.case(r"""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            actor='world/npc/miner';smith='world/npc/smith'
+            try:
+                presence(b,actor,address('smithy'));begin(actor)
+                assembler=instance(b,actor,'tools.assembly');assembler.assemble()
+                talk=next(k for k,v in assembler.aliases.items() if v['target']==smith and v['tool']=='talk')
+                # A rolled-back move must not leave a fictitious observation.
+                events=instance(b,address('tavern'),'probability.events');original=json.loads(json.dumps(events.config['events']))
+                events.config['events']=[dict(id='invalid',actions=['move_here'],probability=1,max_occurrences=1,text='bad',effects=[dict(item='gold',quantity=-1)])]
+                begin(smith)
+                try:use(smith,address('tavern'),'move_here')
+                except ValueError:pass
+                else:raise AssertionError('invalid reward did not roll back movement')
+                assert person(b,smith).state['place']==address('smithy')
+                assert smith not in person(b,actor).state.get('departures',{})
+                events.config['events']=original
+                use(smith,address('tavern'),'move_here')
+                def denied(expected):
+                    try:app.invoke(actor,talk,dict(content='hello'))
+                    except PermissionError as error:assert str(error)==expected,str(error)
+                    else:raise AssertionError('departure message bypassed denial')
+                    assert not person(b,smith).state['inbox'] and not person(b,actor).state.get('talk_count',0)
+                expected='老锤好像已经去了「酒馆」，已经不在这里了。'
+                denied(expected)
+                begin(smith,'unseen-next-slot');use(smith,address('home2'),'move_here')
+                denied(expected) # Witness does not learn the second destination.
+                assert person(b,actor).state['departures'][smith]['destination']==address('tavern')
+                b.dispatch('save',{})
+            finally:stop(app,b)
+            b=Backend(folder)
+            try:assert person(b,actor).state['departures'][smith]['destination']==address('tavern')
+            finally:b.close()
+        """)
+
+    def test_departure_feedback_without_sighting_and_unchanged_schema_denial(self):
+        self.case(r"""
+        with tempfile.TemporaryDirectory() as folder:
+            b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
+            actor='world/npc/miner';smith='world/npc/smith'
+            try:
+                presence(b,actor,address('smithy'));begin(actor)
+                assembler=instance(b,actor,'tools.assembly');assembler.assemble()
+                talk=next(k for k,v in assembler.aliases.items() if v['target']==smith and v['tool']=='talk')
+                # A schema change in the same room is not explained as a departure.
+                spec=b.network.nodes[smith].tool_definitions['talk'];spec['description']+=' updated'
+                try:app.invoke(actor,talk,dict(content='hello'))
+                except PermissionError as error:assert str(error)=='Assembled tool is no longer reachable or its definition changed'
+                else:raise AssertionError('schema denial bypassed')
+                # No observation is available: disclose no destination.
+                presence(b,smith,address('tavern'));person(b,actor).state.pop('departures',None)
+                try:app.invoke(actor,talk,dict(content='hello'))
+                except PermissionError as error:assert str(error)=='老锤已经不在这里了。'
+                else:raise AssertionError('no-sighting denial bypassed')
+                assert not person(b,smith).state['inbox']
+            finally:stop(app,b)
+        """)
+
     def test_restore_and_child_receive_components_without_initial_movement(self):
         self.case(r"""
         with tempfile.TemporaryDirectory() as folder:

@@ -20,7 +20,19 @@ class Resident(ActionModule):
         take(a,args['item'],args['quantity']);add(other,args['item'],args['quantity']);return dict(delivered=True)
     def bind(self,r):
         self.r=r
-        if not self.listeners:self.listen(r,'capabilities/resident_life','agent/pre-step',self.pre_step)
+        if not self.listeners:
+            self.listen(r,'capabilities/resident_life','agent/pre-step',self.pre_step)
+            self.listen(r,'capabilities/resident_life','node/tool-unavailable',self.unavailable)
+    def unavailable(self,e):
+        failure=e['failure']
+        if failure['target']!=self.node.node_id or failure['tool']!='talk':return
+        caller=self.backend.modules.instances.get((failure['actor'],'world.resident'))
+        if not caller or caller.state['place']==self.state['place']:return
+        seen=caller.state.get('departures',{}).get(self.node.node_id)
+        if seen and seen['origin']==caller.state['place']:
+            failure['message']=self.state['name']+'好像已经去了「'+seen['name']+'」，已经不在这里了。'
+        else:failure['message']=self.state['name']+'已经不在这里了。'
+
     def pre_step(self,e):
         if e['actor']!=self.node.node_id:return
         text='[小镇] 地点：'+self.state['place']+'。'

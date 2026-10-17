@@ -1,3 +1,5 @@
+最新交谈失败反馈原文见 [DEPARTURE_FEEDBACK.md](DEPARTURE_FEEDBACK.md)。
+
 本次新增的首次输入和事件文本全文见 [OPENING_EVENTS_REVIEW.md](OPENING_EVENTS_REVIEW.md)。下列已有指南、描述及系统提示保持原样。
 
 # 本轮 Agent 文案原文

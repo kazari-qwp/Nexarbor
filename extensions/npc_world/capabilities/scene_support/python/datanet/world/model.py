@@ -27,6 +27,15 @@ def require_caller(b,target):
 def presence(b,actor,destination):
     node=b.network.nodes[actor]
     old=location(b,actor)
+    if old!=destination:
+        # Only witnesses sharing the departure place learn this direction. Future
+        # unseen moves do not update their observation or expose live whereabouts.
+        for other,m in residents(b).items():
+            if other==actor:continue
+            if m.state['place']==old:
+                m.state.setdefault('departures',{})[actor]=dict(origin=old,destination=destination,name=b.network.nodes[destination].name,tick=tick(b))
+            elif m.state['place']==destination:
+                m.state.get('departures',{}).pop(actor,None)
     for source in (actor,):
         for direction in ('read','write'):
             edges=getattr(b.network.nodes[source],direction+'_interfaces')
