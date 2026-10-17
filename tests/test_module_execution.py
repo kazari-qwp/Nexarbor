@@ -142,6 +142,7 @@ class TownEventTests(unittest.TestCase):
             },rules=[dict(id='arrived',event='node/tool-invoked',channels=[],where={'/payload/actor':actor,'/payload/tool':'move_here'},graph='refresh')],graphs={
                 'refresh':dict(type='sequence',steps=[dict(type='parallel',steps=[step('info'),step('tools')]),step('context')])
             })
+            b.modules.unmount(actor,'event.trigger')
             b.modules.mount(actor,'event.trigger',config)
             try:
                 instance(b,actor,'information.collector').collect();instance(b,actor,'tools.assembly').assemble();begin(actor)
@@ -154,7 +155,7 @@ class TownEventTests(unittest.TestCase):
                 assert '本地：名称：铁匠铺' in '\n'.join(app.input_tail(actor))
                 assert '本地：名称：矿坑' not in '\n'.join(app.input_tail(actor))
                 assert any(v['tool']=='repair' for v in instance(b,actor,'tools.assembly').aliases.values())
-                assert not port.calls and len(port.conclusions)==1
+                assert not port.calls and not port.conclusions
                 assert actor in b.signals.bindings
             finally:stop(app,b)
         """)

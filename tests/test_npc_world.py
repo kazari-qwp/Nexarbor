@@ -168,14 +168,14 @@ class WorldTests(unittest.TestCase):
                 except RuntimeError as e:assert json.loads(str(e))['status']=='unsupported'
                 else:raise AssertionError('address exposed text')
                 begin(actor);result=use(actor,address('smithy'),'move_here')
-                value=result['items'][0]['result'];assert value['arrived']==address('smithy') and value['destination']=='铁匠铺' and value['tick_finished']
+                value=result['items'][0]['result'];assert value['arrived']==address('smithy') and value['destination']=='铁匠铺' and value['action_budget']['remaining']==7
                 begin(actor,'next-slot');assembly.assemble()
                 assert any(v['tool']=='repair' for v in assembly.aliases.values())
                 assert dict(id='world/npc/smith',name=person(b,'world/npc/smith').state['name']) in app.invoke(actor,'world_look',{})['people']
             finally:stop(app,b)
         """)
 
-    def test_move_changes_permissions_now_and_cannot_spend_two_actions(self):
+    def test_move_changes_permissions_and_can_repair_and_talk_in_same_tick(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
@@ -187,17 +187,12 @@ class WorldTests(unittest.TestCase):
                 assert business('smithy') in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
                 assert business('mine') not in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
                 assert 'world/npc/smith' in [e.target_node_id for e in b.network.nodes[address('smithy')].read_interfaces]
-                try:use(actor,business('smithy'),'repair',dict(item='pickaxe'))
-                except ValueError as e:assert 'Movement ended this time slot' in str(e)
-                else:raise AssertionError('second action accepted')
-                assert len(port.conclusions)==1
-                try:use(actor,'world/npc/smith','talk',dict(content='should not send'))
-                except ValueError as e:assert 'Movement ended this time slot' in str(e)
-                else:raise AssertionError('conversation after movement accepted')
-                assert not person(b,'world/npc/smith').state['inbox']
-                begin(actor,'next-tick');assert use(actor,business('smithy'),'local_info',read=True)
-                use(actor,'world/npc/smith','talk',dict(content='next tick'))
-                assert person(b,'world/npc/smith').state['inbox'][-1]['content']=='next tick'
+                repaired=use(actor,business('smithy'),'repair',dict(item='pickaxe'))
+                assert repaired['items'][0]['result']['action_budget']['remaining']==6
+                assert not port.conclusions
+                use(actor,'world/npc/smith','talk',dict(content='thanks after movement'))
+                assert person(b,'world/npc/smith').state['inbox'][-1]['content']=='thanks after movement'
+                assert app.invoke(actor,'world_look',{})['action_budget']['remaining']==5
             finally:stop(app,b)
         """)
 
@@ -213,8 +208,8 @@ class WorldTests(unittest.TestCase):
                 except ValueError:pass
                 else:raise AssertionError('invalid movement accepted')
                 assert not port.conclusions and person(b,actor).state['place']==address('mine')
-                assert person(b,actor).state['action_tick'] is None
-                use(actor,address('smithy'),'move_here');assert len(port.conclusions)==1
+                assert instance(b,actor,'action.budget').status(period=tick(b))['remaining']==10
+                use(actor,address('smithy'),'move_here');assert not port.conclusions
                 b.dispatch('node_activity_end',dict(target=actor,signal_id='fixture',status='completed'))
                 gate=Barrier(2,timeout=5)
                 port.during=lambda target:gate.wait()
@@ -236,7 +231,7 @@ class WorldTests(unittest.TestCase):
                 try:use(actor,business('smithy'),'repair',dict(item='pickaxe'))
                 except ValueError:pass
                 else:raise AssertionError('unfunded repair succeeded')
-                assert stock['materials']=={'wood':8,'ore':8} and a['inventory']['pickaxe']==0 and a['action_tick'] is None
+                assert stock['materials']=={'wood':8,'ore':8} and a['inventory']['pickaxe']==0 and instance(b,actor,'action.budget').status(period=tick(b))['remaining']==10
                 a['coins']=8;use(actor,business('smithy'),'repair',dict(item='pickaxe'))
                 assert a['coins']==6 and a['inventory']['pickaxe']==5
                 assert b.network.get_metadata(address('smithy'))['extensions']['place']['materials']=={'wood':7,'ore':7}
@@ -276,7 +271,7 @@ class WorldTests(unittest.TestCase):
                 try:use(actor,business('home1'),'rest')
                 except PermissionError as e:assert '自己登记居住' in str(e)
                 else:raise AssertionError('visitor rested')
-                assert person(b,actor).state['action_tick'] is None
+                assert instance(b,actor,'action.budget').status(period=tick(b))['remaining']==10
                 presence(b,actor,address('home2'));use(actor,business('home2'),'rest')
                 assert person(b,actor).state['stamina']==4
                 for home,count in [('home1',2),('home2',4)]:

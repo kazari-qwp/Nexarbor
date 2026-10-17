@@ -30,7 +30,7 @@ class NeighborhoodTests(unittest.TestCase):
             finally:stop(app,b)
         """)
 
-    def test_standalone_tool_assembly_direct_move_and_next_tick_refresh(self):
+    def test_standalone_tool_assembly_direct_move_and_immediate_refresh(self):
         self.case(r"""
         with tempfile.TemporaryDirectory() as folder:
             b=Backend(folder);port=WorldPort();app=Application(b,port,dict(rootNetwork='small_town'));app.bind_session('root-session')
@@ -46,9 +46,9 @@ class NeighborhoodTests(unittest.TestCase):
                 assert '铁匠铺' in app.state(actor)['dynamic'][move]['description']
                 begin(actor)
                 result=app.invoke(actor,move,{})
-                value=result['items'][0]['result'];assert value['arrived']==address('smithy') and value['destination']=='铁匠铺' and value['tick_finished']
-                assert len(port.conclusions)==1 and assembler.aliases==aliases
-                assert '本地：名称：矿坑' in '\n'.join(app.input_tail(actor))
+                value=result['items'][0]['result'];assert value['arrived']==address('smithy') and value['destination']=='铁匠铺' and value['action_budget']['remaining']==7
+                assert not port.conclusions and assembler.aliases!=aliases
+                assert '本地：名称：铁匠铺' in '\n'.join(app.input_tail(actor))
                 old=next(k for k,v in aliases.items() if v['tool']=='mine')
                 try:app.invoke(actor,old,{})
                 except PermissionError:pass

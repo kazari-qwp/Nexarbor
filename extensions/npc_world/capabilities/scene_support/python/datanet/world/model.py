@@ -75,13 +75,11 @@ class ActionModule(NodeModule):
     def check(self,actor,name):
         a=person(self.backend,actor).state
         if self.config.get('address') and a['place']!=self.config['address']:raise PermissionError('Service is outside your current place')
-        last=a.get('last_result') or {}
-        if last.get('tool')=='move_here' and last.get('tick')==tick(self.backend):raise ValueError('Movement ended this time slot; wait until the next time slot')
         if name=='local_info':return
         turn=instance(self.backend,actor,'agent.signal').state
         if turn.get('status')!='running' or turn.get('signal_id')!=clock(self.backend).state.get('signal_id'):raise ValueError('No active activity for this resident')
         if a['role']=='child' and name not in ('move_here','talk','rest'):raise PermissionError('Children may move, talk and rest')
-        if name!='talk' and a.get('action_tick')==tick(self.backend):raise ValueError('One primary action per time slot; the previous action already took effect')
+
 
 
 def action(b,p):
@@ -90,7 +88,9 @@ def action(b,p):
     saved={(n.node_id,k):deepcopy(spec['state']) for n in b.network.nodes.values() for k,spec in n.modules.items()}
     links={n.node_id:(list(n.read_interfaces),list(n.write_interfaces)) for n in b.network.nodes.values()}
     existing=set(b.network.nodes)
+    budget=instance(b,p['actor'],'action.budget')
     try:
+        budget.check(action=p['name'],period=tick(b))
         value=module.apply(p['actor'],p['name'],p['arguments'])
         events=b.modules.instances.get((p['target'],'probability.events'))
         if events and events.active and (not events.owner or events.owner in b.components.enabled) and p['name']!='local_info' and 'waiting_for' not in value:
@@ -105,8 +105,10 @@ def action(b,p):
             observations=events.draw(action_id,p['name'],effects)
             a['successful_actions']=serial
             if observations:value={**value,'events':observations}
-        if p['name'] not in ('talk','local_info'):
-            a=person(b,p['actor']).state;a['action_tick']=tick(b);a['last_result']=dict(ok=True,tool=p['name'],value=deepcopy(value),tick=tick(b))
+        receipt=budget.status(period=tick(b)) if p['name']=='local_info' else budget.charge(action=p['name'],period=tick(b))
+        value={**value,'action_budget':dict(cost=0,**receipt) if p['name']=='local_info' else receipt}
+        if p['name']!='local_info':
+            person(b,p['actor']).state['last_result']=dict(ok=True,tool=p['name'],value=deepcopy(value),tick=tick(b))
         return value
     except BaseException:
         for node,key in list(b.modules.instances):

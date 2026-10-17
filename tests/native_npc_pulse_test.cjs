@@ -1,4 +1,4 @@
-const keepAlive=setInterval(()=>{},1000);setTimeout(()=>{console.error('Test deadline');process.exit(1)},60000).unref();
+const keepAlive=setInterval(()=>{},1000);setTimeout(()=>{console.error('Test deadline');process.exit(1)},120000).unref();
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),vm=require('node:vm');
 const {pathToFileURL,fileURLToPath}=require('node:url');
 const nativeRoot=process.env.DATANET_NATIVE_MODULES??path.join(process.env.LOCALAPPDATA,'Programs','DeepSeek Harness','resources','app.asar','dsh','node_modules');
@@ -18,9 +18,11 @@ const base=productRoot;
  }
  const link=(spec,ref)=>get(spec,ref.identifier),entry=await get(pathToFileURL(base+'/extensions/npc_world/capabilities/scene_operator/entry.js').href);await entry.link(link);await entry.evaluate();
  const loop=await get(pathToFileURL(base+'/adapters/harness/runtime/agent-loop/lib/index.js').href);await loop.link(link);await loop.evaluate();
- const host=new Context(),temp=await fs.mkdtemp(path.join(testRoot,'creation-'));
+ const host=new Context(),temp=process.env.DATANET_TEST_OUTPUT?path.resolve(process.env.DATANET_TEST_OUTPUT):await fs.mkdtemp(path.join(testRoot,'creation-'));
+ await fs.mkdir(temp,{recursive:true});
+ if(process.env.DATANET_TEST_OUTPUT){try{await fs.access(path.join(temp,'sessions-manifest.json'));throw new Error('Refusing to overwrite an existing test run')}catch(error){if(error.code!=='ENOENT')throw error;}}
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']]){await host.plugin(native(name)[service]??native(name).default);}
- host.provide('sessionTitle',{rename(){}});
+ await host.plugin(native('dsh-session-title').SessionTitleService,{fallbackMaxWords:12,fallbackMaxBytes:120,maxTitleBytes:256});
  const durable=process.env.DATANET_DURABLE_TEST==='1';
  if(durable)await host.plugin(native('dsh-session-persistence-jsonl').default,{root:path.join(temp,'native-logs')});else host.sessions.flush=async()=>{};
  await host.plugin(loop.namespace.default,{agents:[]});
@@ -31,22 +33,36 @@ const base=productRoot;
   requests=[];fail=false;
   async resolveModel(provider,id){return {provider,id,name:id,toolUpdate:'addition-only',systemPromptUpdate:'in-history'};}
   async *stream(options){
+   if(this.catalogMode){
+    const block={type:'text',text:'本次会话列表检查结束。'};
+    yield {type:'block-start',index:0,blockType:block.type};yield {type:'text-delta',index:0,text:block.text};yield {type:'block-end',index:0,block};yield {type:'finish',reason:{kind:'stop'}};return;
+   }
    if(this.directMoveMode){
-    assert.equal(this.directMoveRequests++,0,'a direct move must finish without another request');
-    const tool=options.tools.find(t=>(t.function?.name??t.name).startsWith('near_move_here_')&&(t.function?.description??t.description).startsWith('商店：'));
-    assert.ok(tool,'neighbor destination must be directly available');
-    const block={type:'tool-call',id:'direct-move',name:tool.function?.name??tool.name,arguments:'{}'};
-    yield {type:'block-start',index:0,blockType:block.type};yield {type:'block-end',index:0,block};yield {type:'finish',reason:{kind:'stop'}};return;
+    const step=this.directMoveRequests++;
+    assert.ok(step<3,'move and trade must finish in three requests');
+    let block;
+    if(step===2)block={type:'text',text:'已到商店卖出木材，本时刻活动结束。'};
+    else {
+     const prefix=step===0?'near_move_here_':'near_trade_';
+     const tool=options.tools.find(t=>(t.function?.name??t.name).startsWith(prefix)&&(step!==0||(t.function?.description??t.description).startsWith('商店：')));
+     assert.ok(tool,'new place tools must be available after moving');
+     block={type:'tool-call',id:'direct-'+step,name:tool.function?.name??tool.name,arguments:JSON.stringify(step===0?{}:{side:'sell',item:'wood',quantity:1})};
+    }
+    yield {type:'block-start',index:0,blockType:block.type};
+    if(block.type==='text')yield {type:'text-delta',index:0,text:block.text};
+    yield {type:'block-end',index:0,block};yield {type:'finish',reason:{kind:'stop'}};return;
    }
    if(this.movementMode){
-    const move=options.tools.find(t=>(t.function?.name??t.name).startsWith('near_move_here_')&&(t.function?.description??t.description).startsWith('树林：'));
-    assert.ok(move);const name=move.function?.name??move.name;
-    const plans=[
-     [{name,arguments:{unexpected:true}}],
-     [{name,arguments:{}},{name,arguments:{}}]
-    ];
-    const step=this.movementRequests++;assert.ok(plans[step],'movement must conclude without another model request');
-    for(const [index,call] of plans[step].entries()){
+    const step=this.movementRequests++;assert.ok(step<4,'bad move, valid move, work and normal finish');
+    if(step===3){
+     const block={type:'text',text:'移动后砍树完成，本时刻活动结束。'};
+     yield {type:'block-start',index:0,blockType:block.type};yield {type:'text-delta',index:0,text:block.text};yield {type:'block-end',index:0,block};yield {type:'finish',reason:{kind:'stop'}};return;
+    }
+    const prefix=step===2?'near_chop_':'near_move_here_';
+    const tool=options.tools.find(t=>(t.function?.name??t.name).startsWith(prefix)&&(step===2||(t.function?.description??t.description).startsWith('树林：')));
+    assert.ok(tool,'movement must refresh local tools within the same tick');const name=tool.function?.name??tool.name;
+    const plans=step===0?[{name,arguments:{unexpected:true}}]:step===1?[{name,arguments:{}},{name,arguments:{}}]:[{name,arguments:{}}];
+    for(const [index,call] of plans.entries()){
      const block={type:'tool-call',id:'move-'+step+'-'+index,name:call.name,arguments:JSON.stringify(call.arguments)};
      yield {type:'block-start',index,blockType:block.type};yield {type:'block-end',index,block};
     }
@@ -207,34 +223,68 @@ const base=productRoot;
    model.movementMode=false;
    assert.equal(moved.pulse.reports[0].status,'completed');assert.equal(moved.pulse.reports[0].returned,true);
    assert.equal(moved.activities['world/npc/woodcutter'].status,'completed');
-   assert.equal(model.movementRequests,2,'bad arguments can be corrected; successful move ends inference');
+   assert.equal(model.movementRequests,4,'failed move can be corrected and work continues after moving');
    const events=worker.session.snapshotEvents(beforeMove);
    const results=events.filter(e=>e.type==='tool/result');
    const resultText=id=>JSON.stringify(results.find(e=>e.data.message.toolCallId===id)?.data.message);
    assert.match(resultText('move-0-0'),/additional|未声明|unexpected|参数|schema|valid/i);
-   assert.match(resultText('move-1-0'),/tick_finished/);
-   assert.match(resultText('move-1-1'),/no longer reachable/);
+   assert.match(resultText('move-1-0'),/action_budget/);
+   assert.match(resultText('move-2-0'),/action_budget/);
+   assert.match(resultText('move-1-1'),/no longer reachable|DATANET_TOOL_PERMISSION_DENIED/);
    assert.equal(events.findLast(e=>e.type==='turn/end').data.reason.kind,'completed');
    const state=await exec('world_observe',{target:'world/npc/woodcutter'});
    assert.equal(state.resident.place,'world/place/forest');
-   assert.ok(!state.resident.inbox.some(m=>m.content==='FORBIDDEN_AFTER_MOVE'));
+   assert.equal(state.resident.inventory.wood,4);
+   const budgetNode=(await r.bridge.call('persistence_export',{point_id:(await r.checkpoints.checkpoint()).id})).document.network.nodes.find(n=>n.node_id==='world/npc/woodcutter');
+   assert.equal(budgetNode.modules['action.budget'].state.spent,9);
    const point=await r.checkpoints.checkpoint();assert.ok(point);
    const saved=await r.checkpoints.positions.read(point.contexts['world/npc/woodcutter']);
-   assert.ok(saved.events.some(e=>e.type==='tool/result'&&JSON.stringify(e.data).includes('tick_finished')),'move result is durable before turn completion');
-   console.log('PASS movement: failed direct call corrected, success normally concludes, stale same-batch move rejected, native result durable, pulse returns');
+   assert.ok(saved.events.some(e=>e.type==='tool/result'&&JSON.stringify(e.data).includes('action_budget')),'budget receipt is durable before turn completion');
+   console.log('PASS movement: bad arguments corrected, stale batch entry rejected, movement then work share budget, normal finish and durable receipt');
  }
  if(durable){
    model.directMoveMode=true;model.directMoveRequests=0;
    const moved=await exec('world_run_npc',{target:'world/npc/woodcutter'});model.directMoveMode=false;
-   assert.equal(model.directMoveRequests,1);assert.equal(moved.pulse.reports[0].status,'completed');
+   assert.equal(model.directMoveRequests,3);assert.equal(moved.pulse.reports[0].status,'completed');
    assert.equal(moved.pulse.reports[0].returned,true);
-   const state=await exec('world_observe',{target:'world/npc/woodcutter'});assert.equal(state.resident.place,'world/place/shop');
+   const state=await exec('world_observe',{target:'world/npc/woodcutter'});assert.equal(state.resident.place,'world/place/shop');assert.equal(state.resident.inventory.wood,3);
    const steps=Object.values(moved.pulse.reports[0].deliveries[1].value.executions[0].results);
    assert.deepEqual(JSON.parse(JSON.stringify(steps.map(s=>s.operation))),['collect_information','assemble_tools','run_agent']);
    assert.ok(steps[0].value.items.some(x=>x.label==='本地'&&x.fields['名称']==='树林'));
    const point=await r.checkpoints.checkpoint();assert.ok(point);
    await r.checkpoints.positions.read(point.contexts['world/npc/woodcutter']);
-   console.log('PASS direct move: tick-start local information, assembled one-call destination, native normal completion, durable log');
+   console.log('PASS direct move: destination refresh supplies trade tool in same tick, sale succeeds, native normal completion and durable log');
+ }
+ if(durable){
+   // Genuine bounded Mock turns make every test session nonblank through the
+   // native lifecycle. Never fabricate turn/start events or edit session headers.
+   model.catalogMode=true;
+   const observed=await exec('world_observe',{});
+   const rows=[{actor:'root',session:root.session,name:'根节点'}];
+   host.sessionTitle.rename(root.session,'行动值最小测试（Mock） · 根节点');
+   for(const [actor,entry] of r.sessions){
+    const npc=entry.handle.agent,name=observed.actors[actor]?.name??actor;
+    host.sessionTitle.rename(npc.session,'行动值最小测试（Mock） · '+name);
+    const ended=await exec('world_run_npc',{target:actor});assert.equal(ended.pulse.reports[0].status,'completed');
+    rows.push({actor,session:npc.session,name});
+   }
+   root.followup(llm.createUserMessage({source:{kind:'user'},content:[{type:'text',text:'仅检查会话列表，回复一句确认即可。'}]}));await root.whenIdle();
+   for(const row of rows)await host.sessions.flush(row.session);
+   const point=await r.checkpoints.checkpoint();assert.ok(point);
+   const catalog=[];
+   for(const row of rows){
+    assert.notEqual(row.session.header.origin,'subagent','native sidebar excludes native subagent sessions');
+    assert.ok(row.session.snapshotEvents().some(e=>e.type==='turn/start'),'native sidebar excludes blank sessions');
+    const saved=await host.sessionPersistence.open(row.session.id,'read');
+    try{
+     const log=await saved.read();assert.ok(log.events.some(e=>e.type==='session/title'));
+     assert.ok(log.events.some(e=>e.type==='turn/start'));
+    }finally{await saved.close();}
+    catalog.push({actor:row.actor,session_id:row.session.id,name:row.name,origin:row.session.header.origin??null,events:row.session.seq,title:host.sessionTitle.get(row.session).title});
+   }
+   await fs.writeFile(path.join(temp,'sessions-manifest.json'),JSON.stringify({kind:'native-mock',workspace:temp,native_logs:path.join(temp,'native-logs'),root_session:root.id,point,sessions:catalog},null,2));
+   console.log('PASS sidebar: root and all '+r.sessions.size+' NPC sessions have durable titles, real Mock turns and visible native headers');
+   console.log('TEST_CLIENT_RUN '+temp);
  }
  await controller.components.dispose();await host.fiber.dispose();clearInterval(keepAlive);
  console.log('PASS native Harness NPC pulse: channel response sequence, stable role and personality prompt, explicit context-node sources, independent history documents, resident clock, location tool, natural completion, return to source, native error rejected; no model API calls');

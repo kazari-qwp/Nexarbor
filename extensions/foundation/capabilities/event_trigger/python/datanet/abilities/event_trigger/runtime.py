@@ -72,7 +72,7 @@ class Plugin(Component):
                     try:matches=all(resolve({'$ref':pointer},event)==value for pointer,value in rule['where'].items())
                     except (KeyError,IndexError,TypeError):matches=False
                     if not matches:continue
-                    result=await self.r.plugins['capabilities/module_execution'].execute(node,graphs[rule['graph']],grants,event,context)
+                    result=await self.r.plugins['capabilities/module_execution'].execute(node,graphs[rule['graph']],grants,event,context,lane=key)
                     completed.append(dict(id=rule['id'],graph=rule['graph'],**result))
             except BaseException as error:
                 if on_error:

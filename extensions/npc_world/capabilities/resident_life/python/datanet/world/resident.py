@@ -1,6 +1,7 @@
 from datanet.world.model import *
 from datanet.core.component_registry import resource_directory
 import json
+from uuid import uuid4
 TOOLS=json.loads((resource_directory(__file__).parents[2]/"tools.json").read_text(encoding="utf-8"))
 
 class Resident(ActionModule):
@@ -11,10 +12,7 @@ class Resident(ActionModule):
         b=self.backend;a=person(b,actor).state;other=self.state
         if a['place']!=other['place']:raise PermissionError('Not in the same place')
         if name=='talk':
-            if a.get('talk_tick')!=tick(b):a['talk_tick']=tick(b);a['talk_count']=0
-            if a.get('talk_count',0)>=3:raise ValueError('At most three conversations per time slot')
-            a['talk_count']+=1
-            other['inbox'].append(dict(id=f"{tick(b)}:{actor}:{a['talk_count']}",actor=actor,content=args['content'],tick=tick(b)))
+            other['inbox'].append(dict(id=uuid4().hex,actor=actor,content=args['content'],tick=tick(b)))
             other['inbox'][:]=other['inbox'][-100:]
             return dict(delivered=True,recipient=self.node.node_id,notice='交谈不会额外唤醒对方。')
         take(a,args['item'],args['quantity']);add(other,args['item'],args['quantity']);return dict(delivered=True)
@@ -35,14 +33,15 @@ class Resident(ActionModule):
 
     def pre_step(self,e):
         if e['actor']!=self.node.node_id:return
-        text='[小镇] 地点：'+self.state['place']+'。'
+        budget=instance(self.backend,self.node.node_id,'action.budget').status(period=tick(self.backend))
+        text='[小镇] 地点：'+self.state['place']+f"。行动值：{budget['remaining']}/{budget['capacity']}。"
         if any(not m.get('read') for m in self.state['inbox']):text+='有未读交谈。'
         self.r.update_inputs(e['actor'],'npc:status',tail=[text])
 
 def look(b,p):
     actor=p['actor'];m=person(b,actor);a=m.state;address=instance(b,a['place'],'world.address')
     adjacent=[e.target_node_id for e in address.node.read_interfaces if e.target_node_id in b.network.nodes and 'world.address' in b.network.nodes[e.target_node_id].modules]
-    return dict(clock=date(max(0,tick(b))),self={k:deepcopy(a[k]) for k in ('name','gender','role','coins','stamina','inventory','spouse','children')},
+    return dict(clock=date(max(0,tick(b))),action_budget=instance(b,actor,'action.budget').status(period=tick(b)),self={k:deepcopy(a[k]) for k in ('name','gender','role','coins','stamina','inventory','spouse','children')},
       location=dict(id=a['place'],name=address.node.name,service=address.config['service']),neighbors=[dict(id=k,name=b.network.nodes[k].name) for k in adjacent],
       people=[dict(id=k,name=v.state['name']) for k,v in residents(b).items() if k!=actor and v.state['place']==a['place']],
       pregnancies=[dict(id=k,due=date(v['due_tick']),ready=tick(b)>=v['due_tick']) for module in b.modules.find('world.family') for k,v in module.state['pregnancies'].items() if v['carrier']==actor and not v.get('child')],

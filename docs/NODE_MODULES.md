@@ -25,3 +25,5 @@
 目前 disk_network 的初始网络格式复用核心 checkpoint 文档；initialFiles 是目标相对路径到 `{component,file}` 的只读资源映射，仅首次初始化读取。恢复已有档不会覆盖业务数据。正在执行的 Agent/工具不应被宿主热卸载；先停止活动再调整结构。
 
 执行图相关模块：`event.trigger` 匹配事件并启动图；`modules.executor` 执行宿主授予的结构化模块计划。两者通过可选组件依赖官方 LangGraph 后端，配置与示例见 [事件执行图](EVENT_EXECUTION.md)。信号 Agent、时钟及存档计数器已迁移，不再依赖旧 signal_response。
+
+通用 `action.budget` 保存可信调用方指定周期内的容量和已用额度，操作成本由配置给出；不认识时钟、NPC 或具体工具。小镇将其接入已有业务事务，Agent 余额更新使用尾部块。

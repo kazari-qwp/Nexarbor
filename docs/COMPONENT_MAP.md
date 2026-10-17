@@ -4,6 +4,7 @@
 
 | 组件 ID | 唯一源码位置 | 直接依赖 |
 |---|---|---|
+| `capabilities/action_budget` | `extensions/foundation/capabilities/action_budget` |  |
 | `capabilities/agent_delegation` | `extensions/foundation/capabilities/agent_delegation` | `capabilities/agent_runtime` |
 | `capabilities/agent_identity` | `extensions/foundation/capabilities/agent_identity` |  |
 | `capabilities/agent_lifecycle` | `extensions/foundation/capabilities/agent_lifecycle` | `capabilities/tools_network_management`, `capabilities/agent_identity`, `capabilities/agent_runtime` |
@@ -61,7 +62,7 @@
 | `capabilities/response_recovery` | `extensions/foundation/capabilities/response_recovery` |  |
 | `capabilities/round_barrier` | `extensions/foundation/capabilities/round_barrier` |  |
 | `capabilities/scene_operator` | `extensions/npc_world/capabilities/scene_operator` | `capabilities/network_access`, `nodes/npc_resident`, `nodes/npc_child`, `nodes/resident_knowledge`, `capabilities/resident_life`, `capabilities/place_movement`, `capabilities/household`, `capabilities/resource_gathering`, `capabilities/shop_trade`, `capabilities/tool_repair`, `capabilities/refreshment`, `capabilities/place_information`, `capabilities/marriage_registry`, `capabilities/family_planning`, `capabilities/childbirth`, `capabilities/identity_knowledge`, `capabilities/disk_network`, `capabilities/node_context_sources`, `capabilities/node_agent_session`, `capabilities/node_signal_agent`, `capabilities/node_clock`, `capabilities/node_savepoint`, `capabilities/information_collector`, `capabilities/tool_assembly` |
-| `capabilities/scene_support` | `extensions/npc_world/capabilities/scene_support` | `capabilities/text`, `capabilities/node_metadata` |
+| `capabilities/scene_support` | `extensions/npc_world/capabilities/scene_support` | `capabilities/text`, `capabilities/node_metadata`, `capabilities/action_budget` |
 | `capabilities/scoped_workers` | `extensions/foundation/capabilities/scoped_workers` | `capabilities/agent_runtime`, `capabilities/task_documents`, `toolboxes/agent_messaging` |
 | `capabilities/shared_workspace` | `extensions/foundation/capabilities/shared_workspace` |  |
 | `capabilities/shop_trade` | `extensions/npc_world/capabilities/shop_trade` | `capabilities/scene_support` |
@@ -80,7 +81,7 @@
 | `network_presets/knowledge_base` | `extensions/knowledge_base/network_presets/knowledge_base` | `capabilities/knowledge_agents`, `toolboxes/knowledge_base` |
 | `network_presets/number_network` | `extensions/multi_agent/network_presets/number_network` | `capabilities/number_network`, `nodes/value` |
 | `network_presets/project_root` | `extensions/multi_agent/network_presets/project_root` | `capabilities/project_root` |
-| `network_presets/small_town` | `extensions/npc_world/network_presets/small_town` | `capabilities/scene_operator`, `toolboxes/world_operator`, `toolboxes/world_resident`, `capabilities/opening_input`, `capabilities/probability_events` |
+| `network_presets/small_town` | `extensions/npc_world/network_presets/small_town` | `capabilities/scene_operator`, `toolboxes/world_operator`, `toolboxes/world_resident`, `capabilities/opening_input`, `capabilities/probability_events`, `capabilities/action_budget`, `capabilities/event_trigger` |
 | `nodes/agent_cooperative_worker` | `extensions/multi_agent/nodes/agent_cooperative_worker` | `toolboxes/engineering` |
 | `nodes/agent_coordinator` | `extensions/multi_agent/nodes/agent_coordinator` | `toolboxes/discussion`, `toolboxes/network_management_skill`, `toolboxes/node_operations`, `toolboxes/topology_inspection`, `capabilities/agent_identity` |
 | `nodes/agent_discussion_leader` | `extensions/multi_agent/nodes/agent_discussion_leader` | `capabilities/agent_identity` |
@@ -143,4 +144,4 @@
 | `toolboxes/world_operator` | `extensions/npc_world/toolboxes/world_operator` | `capabilities/scene_operator` |
 | `toolboxes/world_resident` | `extensions/npc_world/toolboxes/world_resident` | `capabilities/scene_operator`, `toolboxes/network_access` |
 
-共 138 个唯一组件。
+共 139 个唯一组件。

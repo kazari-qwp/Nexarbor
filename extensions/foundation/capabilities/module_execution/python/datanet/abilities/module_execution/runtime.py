@@ -11,13 +11,14 @@ class Plugin(Component):
     def install(self):
         self.lock=RLock(); self.running=set(); self.workers={}
 
-    async def execute(self,node,graph,operations,event,context=None):
+    async def execute(self,node,graph,operations,event,context=None,*,lane='host'):
         if self.id not in self.r.enabled: raise PermissionError('Module executor is disabled')
         graph=validate(graph,operations)
         if any(not callable(fn) for fn in operations.values()): raise TypeError('Operation must be callable')
+        key=(node,lane)
         with self.lock:
-            if node in self.running or self.workers.get(node): raise RuntimeError('Previous module execution is still running or stopping')
-            self.running.add(node)
+            if key in self.running or self.workers.get(node): raise RuntimeError('Previous module execution is still running or stopping')
+            self.running.add(key)
         try:
             async def invoke(name,arguments):
                 if self.id not in self.r.enabled: raise PermissionError('Module executor is disabled')
@@ -42,4 +43,4 @@ class Plugin(Component):
             result=await compiled.ainvoke({'event':thaw(freeze(event)),'results':{}},{'recursion_limit':1024,'callbacks':[]})
             return dict(results=result['results'])
         finally:
-            with self.lock:self.running.discard(node)
+            with self.lock:self.running.discard(key)
