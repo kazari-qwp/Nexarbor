@@ -98,6 +98,8 @@ Python核心框架位于 `python/datanet/core/`。共享能力按组件放在 `e
 
 已完成生育最小真实验证及七居民四天实测：20时刻完成，138/140次活动正常结束，另2次达到执行预算上限。详见[实测报告](docs/applications/npc_world/FOUR_DAY_TEST_20261017.md)。参见[NPC小世界使用与组件说明](docs/applications/npc_world/README.md)。
 
+开发版新增[本地网络工作台](docs/NETWORK_EDITOR.md)：通过画布创建节点与道路、配置组件、资料和事件执行图，从空网络搭建小镇。单击 Agent 查看真实权限视角，双击进入原生会话。已完成两地点、两居民的原生 Harness Mock 验收及存档恢复；详见[验证记录](docs/NETWORK_EDITOR_TEST_20261017.md)。工作台尚未包含在 v0.4.0 安装包内。
+
 ## 快速开始
 
 ### 方式一：使用当前 Harness 应用

@@ -1,0 +1,99 @@
+{
+  "world.resident": {
+    "label": "居民身份与状态",
+    "schema": {
+      "title": "",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "stateSchema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "id": {
+          "title": "id",
+          "type": "string"
+        },
+        "name": {
+          "title": "名称",
+          "type": "string"
+        },
+        "place": {
+          "title": "当前场所",
+          "type": "string",
+          "format": "node-id"
+        },
+        "role": {
+          "title": "职业",
+          "type": "string"
+        },
+        "partner": {
+          "title": "partner",
+          "type": "string"
+        },
+        "gender": {
+          "title": "性别",
+          "type": "string"
+        },
+        "coins": {
+          "title": "金币",
+          "type": "integer"
+        },
+        "stamina": {
+          "title": "stamina",
+          "type": "integer"
+        },
+        "inventory": {
+          "title": "物品",
+          "type": "object",
+          "properties": {},
+          "additionalProperties": true
+        },
+        "spouse": {
+          "title": "spouse",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "children": {
+          "title": "children",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inbox": {
+          "title": "inbox",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "defaults": {
+      "config": {},
+      "state": {
+        "id": "lin",
+        "name": "林舟",
+        "place": "world/place/home1",
+        "role": "resident",
+        "partner": "yue",
+        "gender": "male",
+        "coins": 8,
+        "stamina": 5,
+        "inventory": {},
+        "spouse": null,
+        "children": [],
+        "inbox": []
+      }
+    }
+  }
+}

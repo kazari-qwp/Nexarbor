@@ -1,0 +1,52 @@
+{
+  "scene.operator": {
+    "label": "场景操作",
+    "schema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "pulse": {
+          "title": "脉冲节点",
+          "type": "string",
+          "format": "node-id"
+        },
+        "clock": {
+          "title": "时间节点",
+          "type": "string",
+          "format": "node-id"
+        },
+        "channels": {
+          "title": "频道",
+          "type": "array",
+          "items": {
+            "title": "",
+            "type": "string"
+          }
+        },
+        "task": {
+          "title": "task",
+          "type": "string",
+          "format": "textarea"
+        }
+      },
+      "additionalProperties": true
+    },
+    "stateSchema": {
+      "title": "",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "defaults": {
+      "config": {
+        "pulse": "world/pulse",
+        "clock": "world/time",
+        "channels": [
+          "world.tick"
+        ],
+        "task": "本时刻按自己的想法活动，处理完后正常结束。"
+      },
+      "state": {}
+    }
+  }
+}

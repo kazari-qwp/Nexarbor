@@ -1,0 +1,80 @@
+{
+  "agent.session": {
+    "label": "Agent 会话",
+    "schema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "prompt": {
+          "title": "基础提示词",
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "component": {
+                  "type": "string"
+                },
+                "file": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "component",
+                "file"
+              ]
+            }
+          ]
+        },
+        "manager": {
+          "title": "管理 Agent",
+          "type": "string",
+          "format": "node-id"
+        },
+        "strength": {
+          "title": "访问强度",
+          "type": "integer"
+        },
+        "toolboxes": {
+          "title": "工具箱",
+          "type": "array",
+          "items": {
+            "title": "",
+            "type": "string"
+          }
+        },
+        "role": {
+          "title": "职业",
+          "type": "string"
+        }
+      },
+      "additionalProperties": true,
+      "required": [
+        "prompt"
+      ]
+    },
+    "stateSchema": {
+      "title": "",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "defaults": {
+      "config": {
+        "prompt": {
+          "component": "nodes/npc_resident",
+          "file": "prompt.md"
+        },
+        "manager": "root",
+        "strength": 2,
+        "toolboxes": [
+          "world_resident"
+        ],
+        "role": "npc_resident"
+      },
+      "state": {}
+    }
+  }
+}

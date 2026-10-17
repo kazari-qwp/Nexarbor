@@ -1,12 +1,15 @@
 // Test-client presentation only. Native logs and Agent lifecycles are untouched.
 import {setTimeout as delay} from 'node:timers/promises';
-export const inject=['sessionQuery','sessionProjectionCache'];
+export const inject=['sessionPersistence','sessionProjectionCache','sessionTitle'];
 export async function apply(ctx,config){
   const headers=[];
   for(const id of config.sessions){
-    const source=await ctx.sessionQuery.readSession(id);
-    ctx.sessionProjectionCache.coldSnapshot(source.session,source.inheritedEventCount,source.events);
-    headers.push(source.session);
+    const handle=await ctx.sessionPersistence.open(id,'read');
+    try{
+      const source=await handle.read();
+      ctx.sessionProjectionCache.coldSnapshot(handle.header,handle.inheritedEventCount,source.events);
+      headers.push(handle.header);
+    }finally{await handle.close();}
   }
   for(let attempt=0;attempt<100;attempt++){
     if(headers.every(header=>ctx.sessionProjectionCache.cachedSnapshot(header)?.values.title))break;

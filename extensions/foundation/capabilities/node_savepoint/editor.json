@@ -1,0 +1,46 @@
+{
+  "checkpoint.counter": {
+    "label": "计数存档",
+    "schema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "channels": {
+          "title": "频道",
+          "type": "array",
+          "items": {
+            "title": "",
+            "type": "string"
+          }
+        },
+        "interval": {
+          "title": "interval",
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "stateSchema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "count": {
+          "title": "count",
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "defaults": {
+      "config": {
+        "channels": [
+          "world.tick"
+        ],
+        "interval": 5
+      },
+      "state": {
+        "count": 0
+      }
+    }
+  }
+}

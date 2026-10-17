@@ -59,6 +59,12 @@ class Transport:
         if app is None:
             raise RuntimeError('Application has not started')
         action = method.split('/', 1)[1]
+        if action == 'component':
+            # Trusted host extension surface; components own their operation tables.
+            plugin = app.plugins.get(p['component'])
+            if plugin is None or p['component'] not in app.enabled or not hasattr(plugin, 'host_request'):
+                raise PermissionError('Component has no host operation interface')
+            return plugin.host_request(p['operation'], p.get('params', {}))
         if action == 'root':
             return app.bind_session(p['session_id'])
         if action == 'invoke':

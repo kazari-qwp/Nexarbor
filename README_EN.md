@@ -107,6 +107,8 @@ Each game day has five slots. NPCs act in parallel; signal propagation waits for
 
 A paid childbirth smoke test passed, followed by a four-day run with seven real NPCs: all 20 slots completed, with 138 of 140 activities finishing normally and two reaching the request budget. See the [test report](docs/applications/npc_world/FOUR_DAY_TEST_20261017.md). See the [NPC application guide](docs/applications/npc_world/README.md).
 
+The development version adds a [local network workbench](docs/NETWORK_EDITOR.md) for building towns from an empty graph, configuring nodes, connections, components, documents and event execution graphs. Click an Agent to inspect its actual access scope; double-click to open its native conversation. A two-location, two-resident scenario passed native Harness Mock validation and checkpoint recovery; see the [verification report](docs/NETWORK_EDITOR_TEST_20261017.md). The workbench is not included in the v0.4.0 release package.
+
 ## Quick start
 
 ### Option 1: Use the Harness application

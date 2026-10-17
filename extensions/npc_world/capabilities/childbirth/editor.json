@@ -1,0 +1,1489 @@
+{
+  "world.birth": {
+    "label": "出生",
+    "schema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "address": {
+          "title": "场所节点",
+          "type": "string",
+          "format": "node-id"
+        },
+        "families": {
+          "title": "families",
+          "type": "array",
+          "items": {
+            "title": "",
+            "type": "string",
+            "format": "node-id"
+          }
+        },
+        "child_prefix": {
+          "title": "child_prefix",
+          "type": "string"
+        },
+        "child_template": {
+          "title": "child_template",
+          "type": "object",
+          "properties": {
+            "actor_modules": {
+              "title": "actor_modules",
+              "type": "object",
+              "properties": {
+                "world.resident": {
+                  "title": "world.resident",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "title": "id",
+                          "type": "string"
+                        },
+                        "name": {
+                          "title": "名称",
+                          "type": "string"
+                        },
+                        "place": {
+                          "title": "当前场所",
+                          "type": "string"
+                        },
+                        "role": {
+                          "title": "职业",
+                          "type": "string"
+                        },
+                        "gender": {
+                          "title": "性别",
+                          "type": "string"
+                        },
+                        "background": {
+                          "title": "background",
+                          "type": "string",
+                          "format": "textarea"
+                        },
+                        "parents": {
+                          "title": "parents",
+                          "type": "string"
+                        },
+                        "coins": {
+                          "title": "金币",
+                          "type": "integer"
+                        },
+                        "inventory": {
+                          "title": "物品",
+                          "type": "object",
+                          "properties": {},
+                          "additionalProperties": true
+                        },
+                        "stamina": {
+                          "title": "stamina",
+                          "type": "integer"
+                        },
+                        "spouse": {
+                          "title": "spouse",
+                          "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "object",
+                            "array",
+                            "null"
+                          ]
+                        },
+                        "children": {
+                          "title": "children",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "inbox": {
+                          "title": "inbox",
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "world.knowledge": {
+                  "title": "world.knowledge",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "context": {
+                          "title": "context",
+                          "type": "string"
+                        },
+                        "profiles": {
+                          "title": "profiles",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "title": "id",
+                                "type": "string"
+                              },
+                              "name": {
+                                "title": "名称",
+                                "type": "string"
+                              },
+                              "when": {
+                                "title": "匹配条件",
+                                "type": "object",
+                                "properties": {
+                                  "/extensions/npc/gender": {
+                                    "title": "/extensions/npc/gender",
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              "file": {
+                                "title": "组件内文件",
+                                "type": "string"
+                              },
+                              "delivery": {
+                                "title": "delivery",
+                                "type": "string"
+                              },
+                              "node_id": {
+                                "title": "node_id",
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "agent.session": {
+                  "title": "agent.session",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "prompt": {
+                          "title": "基础提示词",
+                          "type": "object",
+                          "properties": {
+                            "component": {
+                              "title": "组件",
+                              "type": "string"
+                            },
+                            "file": {
+                              "title": "组件内文件",
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": true
+                        },
+                        "manager": {
+                          "title": "管理 Agent",
+                          "type": "string",
+                          "format": "node-id"
+                        },
+                        "strength": {
+                          "title": "访问强度",
+                          "type": "integer"
+                        },
+                        "toolboxes": {
+                          "title": "工具箱",
+                          "type": "array",
+                          "items": {
+                            "title": "",
+                            "type": "string"
+                          }
+                        },
+                        "role": {
+                          "title": "职业",
+                          "type": "string"
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "agent.signal": {
+                  "title": "agent.signal",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "channels": {
+                          "title": "频道",
+                          "type": "array",
+                          "items": {
+                            "title": "",
+                            "type": "string"
+                          }
+                        },
+                        "strength": {
+                          "title": "访问强度",
+                          "type": "integer"
+                        },
+                        "max_requests": {
+                          "title": "最大模型调用数",
+                          "type": "integer"
+                        },
+                        "kind": {
+                          "title": "类型",
+                          "type": "string"
+                        },
+                        "guide": {
+                          "title": "guide",
+                          "type": "object",
+                          "properties": {
+                            "component": {
+                              "title": "组件",
+                              "type": "string"
+                            },
+                            "file": {
+                              "title": "组件内文件",
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": true
+                        },
+                        "prepare": {
+                          "title": "执行前准备",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "step": {
+                                "title": "step",
+                                "type": "string"
+                              },
+                              "module": {
+                                "title": "模块",
+                                "type": "string"
+                              },
+                              "method": {
+                                "title": "方法",
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {
+                        "status": {
+                          "title": "status",
+                          "type": "string"
+                        },
+                        "requests": {
+                          "title": "requests",
+                          "type": "integer"
+                        },
+                        "signal_id": {
+                          "title": "signal_id",
+                          "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "object",
+                            "array",
+                            "null"
+                          ]
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "information.provider": {
+                  "title": "information.provider",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "fields": {
+                          "title": "fields",
+                          "type": "object",
+                          "properties": {
+                            "姓名": {
+                              "title": "姓名",
+                              "type": "string"
+                            },
+                            "性别": {
+                              "title": "性别",
+                              "type": "string"
+                            }
+                          },
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "information.collector": {
+                  "title": "information.collector",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "strength": {
+                          "title": "访问强度",
+                          "type": "integer"
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "tools.assembly": {
+                  "title": "tools.assembly",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "strength": {
+                          "title": "访问强度",
+                          "type": "integer"
+                        },
+                        "filters": {
+                          "title": "filters",
+                          "type": "object",
+                          "properties": {
+                            "move_here": {
+                              "title": "move_here",
+                              "type": "object",
+                              "properties": {
+                                "hops": {
+                                  "title": "hops",
+                                  "type": "array",
+                                  "items": {
+                                    "title": "",
+                                    "type": "integer"
+                                  }
+                                }
+                              },
+                              "additionalProperties": true
+                            }
+                          },
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "input.opening": {
+                  "title": "input.opening",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "title": "文本",
+                          "type": "string",
+                          "format": "textarea"
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "action.budget": {
+                  "title": "action.budget",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "capacity": {
+                          "title": "每周期行动值",
+                          "type": "integer"
+                        },
+                        "default_cost": {
+                          "title": "默认操作成本",
+                          "type": "integer"
+                        },
+                        "costs": {
+                          "title": "操作成本",
+                          "type": "object",
+                          "properties": {
+                            "local_info": {
+                              "title": "local_info",
+                              "type": "integer"
+                            },
+                            "move_here": {
+                              "title": "move_here",
+                              "type": "integer"
+                            },
+                            "mine": {
+                              "title": "mine",
+                              "type": "integer"
+                            },
+                            "chop": {
+                              "title": "chop",
+                              "type": "integer"
+                            },
+                            "rest": {
+                              "title": "rest",
+                              "type": "integer"
+                            }
+                          },
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {
+                        "period": {
+                          "title": "period",
+                          "type": [
+                            "string",
+                            "number",
+                            "boolean",
+                            "object",
+                            "array",
+                            "null"
+                          ]
+                        },
+                        "spent": {
+                          "title": "spent",
+                          "type": "integer"
+                        }
+                      },
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                },
+                "event.trigger": {
+                  "title": "event.trigger",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "operations": {
+                          "title": "可调用模块方法",
+                          "type": "object",
+                          "properties": {
+                            "information": {
+                              "title": "information",
+                              "type": "object",
+                              "properties": {
+                                "module": {
+                                  "title": "模块",
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "title": "方法",
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": true
+                            },
+                            "tools": {
+                              "title": "tools",
+                              "type": "object",
+                              "properties": {
+                                "module": {
+                                  "title": "模块",
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "title": "方法",
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": true
+                            },
+                            "context": {
+                              "title": "context",
+                              "type": "object",
+                              "properties": {
+                                "module": {
+                                  "title": "模块",
+                                  "type": "string"
+                                },
+                                "method": {
+                                  "title": "方法",
+                                  "type": "string"
+                                }
+                              },
+                              "additionalProperties": true
+                            }
+                          },
+                          "additionalProperties": true
+                        },
+                        "rules": {
+                          "title": "事件规则",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "title": "id",
+                                "type": "string"
+                              },
+                              "event": {
+                                "title": "event",
+                                "type": "string"
+                              },
+                              "channels": {
+                                "title": "频道",
+                                "type": "array",
+                                "items": {
+                                  "type": "string"
+                                }
+                              },
+                              "where": {
+                                "title": "where",
+                                "type": "object",
+                                "properties": {
+                                  "/payload/actor": {
+                                    "title": "/payload/actor",
+                                    "type": "string"
+                                  },
+                                  "/payload/tool": {
+                                    "title": "/payload/tool",
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              "graph": {
+                                "title": "graph",
+                                "type": "string"
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        },
+                        "graphs": {
+                          "title": "执行图",
+                          "type": "object",
+                          "properties": {
+                            "refresh": {
+                              "title": "refresh",
+                              "type": "object",
+                              "properties": {
+                                "type": {
+                                  "title": "type",
+                                  "type": "string"
+                                },
+                                "steps": {
+                                  "title": "steps",
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "type": {
+                                        "title": "type",
+                                        "type": "string"
+                                      },
+                                      "steps": {
+                                        "title": "steps",
+                                        "type": "array",
+                                        "items": {
+                                          "type": "object",
+                                          "properties": {
+                                            "type": {
+                                              "title": "type",
+                                              "type": "string"
+                                            },
+                                            "id": {
+                                              "title": "id",
+                                              "type": "string"
+                                            },
+                                            "operation": {
+                                              "title": "operation",
+                                              "type": "string"
+                                            },
+                                            "arguments": {
+                                              "title": "arguments",
+                                              "type": "object",
+                                              "properties": {},
+                                              "additionalProperties": true
+                                            }
+                                          },
+                                          "additionalProperties": true
+                                        }
+                                      },
+                                      "id": {
+                                        "title": "id",
+                                        "type": "string"
+                                      },
+                                      "operation": {
+                                        "title": "operation",
+                                        "type": "string"
+                                      },
+                                      "arguments": {
+                                        "title": "arguments",
+                                        "type": "object",
+                                        "properties": {},
+                                        "additionalProperties": true
+                                      }
+                                    },
+                                    "additionalProperties": true
+                                  }
+                                }
+                              },
+                              "additionalProperties": true
+                            }
+                          },
+                          "additionalProperties": true
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "context_modules": {
+              "title": "context_modules",
+              "type": "object",
+              "properties": {
+                "context.sources": {
+                  "title": "context.sources",
+                  "type": "object",
+                  "properties": {
+                    "config": {
+                      "title": "config",
+                      "type": "object",
+                      "properties": {
+                        "actors": {
+                          "title": "接收 Agent",
+                          "type": "array",
+                          "items": {
+                            "title": "",
+                            "type": "string"
+                          }
+                        },
+                        "sources": {
+                          "title": "来源",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "title": "id",
+                                "type": "string"
+                              },
+                              "kind": {
+                                "title": "类型",
+                                "type": "string",
+                                "enum": [
+                                  "system_prompt",
+                                  "context",
+                                  "inputs",
+                                  "tail"
+                                ]
+                              },
+                              "source": {
+                                "title": "内容来源",
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "title": "type",
+                                    "type": "string"
+                                  },
+                                  "target": {
+                                    "title": "目标节点",
+                                    "type": "string",
+                                    "format": "node-id"
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              "name": {
+                                "title": "名称",
+                                "type": "string"
+                              },
+                              "when": {
+                                "title": "匹配条件",
+                                "type": "object",
+                                "properties": {
+                                  "/extensions/npc/gender": {
+                                    "title": "/extensions/npc/gender",
+                                    "type": "string"
+                                  }
+                                },
+                                "additionalProperties": true
+                              },
+                              "reference_only": {
+                                "title": "reference_only",
+                                "type": "boolean"
+                              }
+                            },
+                            "additionalProperties": true
+                          }
+                        }
+                      },
+                      "additionalProperties": true
+                    },
+                    "state": {
+                      "title": "状态",
+                      "type": "object",
+                      "properties": {},
+                      "additionalProperties": true
+                    }
+                  },
+                  "additionalProperties": true
+                }
+              },
+              "additionalProperties": true
+            },
+            "channels": {
+              "title": "频道",
+              "type": "array",
+              "items": {
+                "title": "",
+                "type": "string"
+              }
+            },
+            "context_reads": {
+              "title": "context_reads",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "target_node_id": {
+                    "title": "target_node_id",
+                    "type": "string",
+                    "format": "node-id"
+                  },
+                  "metadata": {
+                    "title": "metadata",
+                    "type": "object",
+                    "properties": {
+                      "visibility": {
+                        "title": "visibility",
+                        "type": "string"
+                      },
+                      "threshold": {
+                        "title": "threshold",
+                        "type": "integer"
+                      },
+                      "multiplier": {
+                        "title": "multiplier",
+                        "type": "integer"
+                      },
+                      "channels": {
+                        "title": "频道",
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "attributes": {
+                        "title": "attributes",
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                },
+                "additionalProperties": true
+              }
+            },
+            "signal_return": {
+              "title": "signal_return",
+              "type": "string",
+              "format": "node-id"
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "stateSchema": {
+      "title": "",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "defaults": {
+      "config": {
+        "address": "world/place/hospital",
+        "families": [
+          "world/service/home1",
+          "world/service/home2"
+        ],
+        "child_prefix": "world/npc/child-",
+        "child_template": {
+          "actor_modules": {
+            "world.resident": {
+              "config": {},
+              "state": {
+                "id": "{{actor}}",
+                "name": "{{name}}",
+                "place": "{{place}}",
+                "role": "child",
+                "gender": "unspecified",
+                "background": "{{background}}",
+                "parents": "{{parents}}",
+                "coins": 0,
+                "inventory": {},
+                "stamina": 5,
+                "spouse": null,
+                "children": [],
+                "inbox": []
+              }
+            },
+            "world.knowledge": {
+              "config": {
+                "context": "{{actor}}/context",
+                "profiles": [
+                  {
+                    "id": "gender/male",
+                    "name": "男性身份",
+                    "when": {
+                      "/extensions/npc/gender": "male"
+                    },
+                    "file": "gender/male.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/gender/male"
+                  },
+                  {
+                    "id": "gender/female",
+                    "name": "女性身份",
+                    "when": {
+                      "/extensions/npc/gender": "female"
+                    },
+                    "file": "gender/female.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/gender/female"
+                  },
+                  {
+                    "id": "gender/unspecified",
+                    "name": "未设定性别",
+                    "when": {
+                      "/extensions/npc/gender": "unspecified"
+                    },
+                    "file": "gender/unspecified.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/gender/unspecified"
+                  },
+                  {
+                    "id": "profession/resident",
+                    "name": "普通居民知识",
+                    "when": {
+                      "/extensions/npc/role": "resident"
+                    },
+                    "file": "profession/resident.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/profession/resident"
+                  },
+                  {
+                    "id": "profession/miner",
+                    "name": "矿工知识",
+                    "when": {
+                      "/extensions/npc/role": "miner"
+                    },
+                    "file": "profession/miner.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/profession/miner"
+                  },
+                  {
+                    "id": "profession/woodcutter",
+                    "name": "伐木工知识",
+                    "when": {
+                      "/extensions/npc/role": "woodcutter"
+                    },
+                    "file": "profession/woodcutter.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/profession/woodcutter"
+                  },
+                  {
+                    "id": "profession/smith",
+                    "name": "铁匠知识",
+                    "when": {
+                      "/extensions/npc/role": "smith"
+                    },
+                    "file": "profession/smith.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/profession/smith"
+                  },
+                  {
+                    "id": "profession/wanderer",
+                    "name": "流浪者知识",
+                    "when": {
+                      "/extensions/npc/role": "wanderer"
+                    },
+                    "file": "profession/wanderer.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/profession/wanderer"
+                  },
+                  {
+                    "id": "profession/child",
+                    "name": "儿童生活知识",
+                    "when": {
+                      "/extensions/npc/role": "child"
+                    },
+                    "file": "profession/child.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/profession/child"
+                  },
+                  {
+                    "id": "life/family",
+                    "name": "成人家庭知识",
+                    "when": {
+                      "/extensions/npc/life_stage": "adult"
+                    },
+                    "file": "life/family.md",
+                    "delivery": "query",
+                    "node_id": "world/knowledge/life/family"
+                  },
+                  {
+                    "id": "life/gestation",
+                    "name": "孕育身份",
+                    "when": {
+                      "/extensions/npc/can_gestate": true
+                    },
+                    "file": "life/gestation.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/life/gestation"
+                  },
+                  {
+                    "id": "life/pregnant",
+                    "name": "当前孕期知识",
+                    "when": {
+                      "/extensions/npc/pregnant": true
+                    },
+                    "file": "life/pregnant.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/life/pregnant"
+                  },
+                  {
+                    "id": "life/parent",
+                    "name": "父母身份",
+                    "when": {
+                      "/extensions/npc/is_parent": true
+                    },
+                    "file": "life/parent.md",
+                    "delivery": "instructions",
+                    "node_id": "world/knowledge/life/parent"
+                  }
+                ]
+              },
+              "state": {}
+            },
+            "agent.session": {
+              "config": {
+                "prompt": {
+                  "component": "nodes/npc_child",
+                  "file": "prompt.md"
+                },
+                "manager": "root",
+                "strength": 2,
+                "toolboxes": [
+                  "world_resident"
+                ],
+                "role": "npc_child"
+              },
+              "state": {}
+            },
+            "agent.signal": {
+              "config": {
+                "channels": [
+                  "world.tick"
+                ],
+                "strength": 2,
+                "max_requests": 16,
+                "kind": "world_npc",
+                "guide": {
+                  "component": "nodes/npc_resident",
+                  "file": "AGENTS.md"
+                },
+                "prepare": [
+                  {
+                    "step": "collect_information",
+                    "module": "information.collector",
+                    "method": "collect"
+                  },
+                  {
+                    "step": "assemble_tools",
+                    "module": "tools.assembly",
+                    "method": "assemble"
+                  }
+                ]
+              },
+              "state": {
+                "status": "idle",
+                "requests": 0,
+                "signal_id": null
+              }
+            },
+            "information.provider": {
+              "config": {
+                "fields": {
+                  "姓名": "/name",
+                  "性别": "/extensions/npc/gender"
+                }
+              },
+              "state": {}
+            },
+            "information.collector": {
+              "config": {
+                "strength": 2
+              },
+              "state": {}
+            },
+            "tools.assembly": {
+              "config": {
+                "strength": 2,
+                "filters": {
+                  "move_here": {
+                    "hops": [
+                      2
+                    ]
+                  }
+                }
+              },
+              "state": {}
+            },
+            "input.opening": {
+              "config": {
+                "text": "[初始处境]\n{{background}}"
+              },
+              "state": {}
+            },
+            "action.budget": {
+              "config": {
+                "capacity": 10,
+                "default_cost": 1,
+                "costs": {
+                  "local_info": 0,
+                  "move_here": 3,
+                  "mine": 6,
+                  "chop": 6,
+                  "rest": 6
+                }
+              },
+              "state": {
+                "period": null,
+                "spent": 0
+              }
+            },
+            "event.trigger": {
+              "config": {
+                "operations": {
+                  "information": {
+                    "module": "information.collector",
+                    "method": "collect"
+                  },
+                  "tools": {
+                    "module": "tools.assembly",
+                    "method": "assemble"
+                  },
+                  "context": {
+                    "module": "agent.signal",
+                    "method": "assemble"
+                  }
+                },
+                "rules": [
+                  {
+                    "id": "refresh-after-move",
+                    "event": "node/tool-invoked",
+                    "channels": [],
+                    "where": {
+                      "/payload/actor": "{{actor}}",
+                      "/payload/tool": "move_here"
+                    },
+                    "graph": "refresh"
+                  }
+                ],
+                "graphs": {
+                  "refresh": {
+                    "type": "sequence",
+                    "steps": [
+                      {
+                        "type": "parallel",
+                        "steps": [
+                          {
+                            "type": "call",
+                            "id": "information",
+                            "operation": "information",
+                            "arguments": {}
+                          },
+                          {
+                            "type": "call",
+                            "id": "tools",
+                            "operation": "tools",
+                            "arguments": {}
+                          }
+                        ]
+                      },
+                      {
+                        "type": "call",
+                        "id": "context",
+                        "operation": "context",
+                        "arguments": {}
+                      }
+                    ]
+                  }
+                }
+              },
+              "state": {}
+            }
+          },
+          "context_modules": {
+            "context.sources": {
+              "config": {
+                "actors": [
+                  "{{actor}}"
+                ],
+                "sources": [
+                  {
+                    "id": "clock",
+                    "kind": "tail",
+                    "source": {
+                      "type": "node",
+                      "target": "world/time"
+                    }
+                  },
+                  {
+                    "id": "personality",
+                    "kind": "system_prompt",
+                    "source": {
+                      "type": "resource",
+                      "component": "nodes/npc_child",
+                      "file": "personality.md"
+                    }
+                  },
+                  {
+                    "id": "residence",
+                    "kind": "system_prompt",
+                    "source": {
+                      "type": "text",
+                      "text": "{{home_text}}"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/gender/male",
+                    "name": "男性身份",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/gender": "male"
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/gender/male"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/gender/female",
+                    "name": "女性身份",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/gender": "female"
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/gender/female"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/gender/unspecified",
+                    "name": "未设定性别",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/gender": "unspecified"
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/gender/unspecified"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/profession/resident",
+                    "name": "普通居民知识",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/role": "resident"
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/profession/resident"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/profession/miner",
+                    "name": "矿工知识",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/role": "miner"
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/profession/miner"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/profession/woodcutter",
+                    "name": "伐木工知识",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/role": "woodcutter"
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/profession/woodcutter"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/profession/smith",
+                    "name": "铁匠知识",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/role": "smith"
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/profession/smith"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/profession/wanderer",
+                    "name": "流浪者知识",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/role": "wanderer"
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/profession/wanderer"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/profession/child",
+                    "name": "儿童生活知识",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/role": "child"
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/profession/child"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/life/family",
+                    "name": "成人家庭知识",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/life_stage": "adult"
+                    },
+                    "reference_only": true,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/life/family"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/life/gestation",
+                    "name": "孕育身份",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/can_gestate": true
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/life/gestation"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/life/pregnant",
+                    "name": "当前孕期知识",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/pregnant": true
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/life/pregnant"
+                    }
+                  },
+                  {
+                    "id": "world/knowledge/life/parent",
+                    "name": "父母身份",
+                    "kind": "context",
+                    "when": {
+                      "/extensions/npc/is_parent": true
+                    },
+                    "reference_only": false,
+                    "source": {
+                      "type": "node",
+                      "target": "world/knowledge/life/parent"
+                    }
+                  },
+                  {
+                    "id": "world-common",
+                    "kind": "system_prompt",
+                    "source": {
+                      "type": "node",
+                      "target": "world/common"
+                    }
+                  },
+                  {
+                    "id": "world-map",
+                    "name": "小镇地图",
+                    "kind": "context",
+                    "source": {
+                      "type": "node",
+                      "target": "world/map"
+                    }
+                  }
+                ]
+              },
+              "state": {}
+            }
+          },
+          "channels": [
+            "world.tick"
+          ],
+          "context_reads": [
+            {
+              "target_node_id": "world/time",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "world/common",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "world/map",
+              "metadata": {
+                "visibility": "private",
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [],
+                "attributes": {}
+              }
+            }
+          ],
+          "signal_return": "world/savepoint"
+        }
+      },
+      "state": {}
+    }
+  }
+}

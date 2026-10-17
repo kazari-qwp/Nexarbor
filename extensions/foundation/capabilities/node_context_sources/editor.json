@@ -1,0 +1,299 @@
+{
+  "context.sources": {
+    "label": "上下文来源",
+    "schema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "actors": {
+          "title": "接收 Agent",
+          "type": "array",
+          "items": {
+            "title": "",
+            "type": "string",
+            "format": "node-id"
+          }
+        },
+        "sources": {
+          "title": "来源",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "title": "id",
+                "type": "string"
+              },
+              "kind": {
+                "title": "类型",
+                "type": "string",
+                "enum": [
+                  "system_prompt",
+                  "context",
+                  "inputs",
+                  "tail"
+                ]
+              },
+              "source": {
+                "title": "内容来源",
+                "type": "object",
+                "properties": {
+                  "type": {
+                    "title": "type",
+                    "type": "string"
+                  },
+                  "target": {
+                    "title": "目标节点",
+                    "type": "string",
+                    "format": "node-id"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "name": {
+                "title": "名称",
+                "type": "string"
+              },
+              "when": {
+                "title": "匹配条件",
+                "type": "object",
+                "properties": {
+                  "/extensions/npc/gender": {
+                    "title": "/extensions/npc/gender",
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "reference_only": {
+                "title": "reference_only",
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": true
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "stateSchema": {
+      "title": "",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "defaults": {
+      "config": {
+        "actors": [
+          "world/npc/lin"
+        ],
+        "sources": [
+          {
+            "id": "clock",
+            "kind": "tail",
+            "source": {
+              "type": "node",
+              "target": "world/time"
+            }
+          },
+          {
+            "id": "personality",
+            "kind": "system_prompt",
+            "source": {
+              "type": "resource",
+              "component": "nodes/npc_resident",
+              "file": "personalities/lin.md"
+            }
+          },
+          {
+            "id": "world/knowledge/gender/male",
+            "name": "男性身份",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/gender": "male"
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/gender/male"
+            }
+          },
+          {
+            "id": "world/knowledge/gender/female",
+            "name": "女性身份",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/gender": "female"
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/gender/female"
+            }
+          },
+          {
+            "id": "world/knowledge/gender/unspecified",
+            "name": "未设定性别",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/gender": "unspecified"
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/gender/unspecified"
+            }
+          },
+          {
+            "id": "world/knowledge/profession/resident",
+            "name": "普通居民知识",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/role": "resident"
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/profession/resident"
+            }
+          },
+          {
+            "id": "world/knowledge/profession/miner",
+            "name": "矿工知识",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/role": "miner"
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/profession/miner"
+            }
+          },
+          {
+            "id": "world/knowledge/profession/woodcutter",
+            "name": "伐木工知识",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/role": "woodcutter"
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/profession/woodcutter"
+            }
+          },
+          {
+            "id": "world/knowledge/profession/smith",
+            "name": "铁匠知识",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/role": "smith"
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/profession/smith"
+            }
+          },
+          {
+            "id": "world/knowledge/profession/wanderer",
+            "name": "流浪者知识",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/role": "wanderer"
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/profession/wanderer"
+            }
+          },
+          {
+            "id": "world/knowledge/profession/child",
+            "name": "儿童生活知识",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/role": "child"
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/profession/child"
+            }
+          },
+          {
+            "id": "world/knowledge/life/family",
+            "name": "成人家庭知识",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/life_stage": "adult"
+            },
+            "reference_only": true,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/life/family"
+            }
+          },
+          {
+            "id": "world/knowledge/life/gestation",
+            "name": "孕育身份",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/can_gestate": true
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/life/gestation"
+            }
+          },
+          {
+            "id": "world/knowledge/life/pregnant",
+            "name": "当前孕期知识",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/pregnant": true
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/life/pregnant"
+            }
+          },
+          {
+            "id": "world/knowledge/life/parent",
+            "name": "父母身份",
+            "kind": "context",
+            "when": {
+              "/extensions/npc/is_parent": true
+            },
+            "reference_only": false,
+            "source": {
+              "type": "node",
+              "target": "world/knowledge/life/parent"
+            }
+          },
+          {
+            "id": "world-common",
+            "kind": "system_prompt",
+            "source": {
+              "type": "node",
+              "target": "world/common"
+            }
+          },
+          {
+            "id": "world-map",
+            "name": "小镇地图",
+            "kind": "context",
+            "source": {
+              "type": "node",
+              "target": "world/map"
+            }
+          }
+        ]
+      },
+      "state": {}
+    }
+  }
+}

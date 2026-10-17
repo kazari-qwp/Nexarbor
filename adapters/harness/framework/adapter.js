@@ -18,6 +18,7 @@ import {trackApprovals} from './approval-state.js';
 import {installWindowsPythonCompat} from './windows-python.js';
 import {prepareWindowsWorkspace} from './windows-workspace.js';
 import {installWindowsTerminal} from './windows-terminal.js';
+import {startEditorServer} from './editor-server.js';
 
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const plain=value=>JSON.parse(JSON.stringify(value,(_key,item)=>item instanceof Error?String(item.message):typeof item==='function'?undefined:item));
@@ -32,10 +33,20 @@ export async function createAdapter(ctx,config={}){
     if(closing.has(agent.id))await closing.get(agent.id);
     if(runtimes.has(agent.id))return;
     if(starting.has(agent.id))return starting.get(agent.id);
-    const pending=createRuntime(ctx,config,agent,owned);
+    const pending=createRuntime(ctx,config,agent,owned,openRestored);
     starting.set(agent.id,pending);
     try{runtimes.set(agent.id,await pending);}finally{starting.delete(agent.id);}
   });
+  async function openRestored(sessionId,parentAgent){
+    const handle=await ctx.agents.resume({resumeSessionId:sessionId,parentAgent});
+    if(starting.has(sessionId))await starting.get(sessionId);
+    if(!runtimes.has(sessionId)){
+      const pending=createRuntime(ctx,config,handle.agent,owned,openRestored);
+      starting.set(sessionId,pending);
+      try{runtimes.set(sessionId,await pending);}finally{starting.delete(sessionId);}
+    }
+    return runtimes.get(sessionId).editor?.url;
+  }
   async function closeRuntime(id){
     if(closing.has(id))return closing.get(id);
     const runtime=runtimes.get(id);if(!runtime)return;
@@ -54,7 +65,7 @@ export async function createAdapter(ctx,config={}){
   return {runtimes,components};
 }
 
-async function createRuntime(ctx,config,rootAgent,owned){
+async function createRuntime(ctx,config,rootAgent,owned,openRestored){
   const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
   const workspace=path.resolve(config.workspace??path.join(root,'workspace'));
   const base=path.resolve(config.storage??path.join(workspace,'.datanet'));
@@ -63,7 +74,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
   await prepareWindowsWorkspace(workspace);
   const native=new Map(),scopes=new WeakMap(),executions=new Map(),sessions=new Map();
   const history=new InstructionHistory(createUserMessage),permissions=new ToolPermissions(createUserMessage);
-  let bridge,checkpoints;
+  let bridge,checkpoints,editor;
   const call=(method,params={},timeout)=>bridge.call(method,params,timeout);
   const agentFor=actor=>{const value=native.get(actor);if(!value)throw new Error('Agent is not mounted: '+actor);return value;};
   const extensionRoot=path.resolve(config.extensionRoot??path.join(root,'extensions','.none'));
@@ -151,6 +162,11 @@ async function createRuntime(ctx,config,rootAgent,owned){
     if(operation==='document-present')return history.has(agentFor(p.actor).agent.ctx,p.document);
     if(operation==='inbox-snapshot'){const agent=agentFor(p.actor).agent;return [...agent.session.deriveMessages(),...(agent.inbox?.nextTurn??[]),...(agent.inbox?.nextStep??[])];}
     if(operation==='create'){
+      const existing=native.get(p.actor);
+      if(existing&&existing.agent.id===p.binding.session_id){
+        await updateCapabilityTools(existing.agent.ctx,existing.agent,p.grant.official,ctx,permissions);
+        return {session_id:existing.agent.id};
+      }
       const parent=agentFor(p.parent).agent;
       const setup=async(ac,agent)=>{
         attach(p.actor,agent);
@@ -168,7 +184,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
       return {session_id:handle.agent.id};
     }
     if(operation==='capabilities'){const entry=agentFor(p.actor);return updateCapabilityTools(entry.agent.ctx,entry.agent,p.grant.official,ctx,permissions);}
-    if(operation==='inspect'){const entry=agentFor(p.actor);return {session_id:entry.agent.id,status:entry.agent.status,options:entry.agent.options,pending_approvals:entry.pendingApprovals()};}
+    if(operation==='inspect'){const entry=agentFor(p.actor);return {session_id:entry.agent.id,status:entry.agent.status,options:entry.agent.options,pending_messages:(entry.agent.inbox?.nextTurn?.length??0)+(entry.agent.inbox?.nextStep?.length??0),pending_approvals:entry.pendingApprovals()};}
     if(operation==='messages')return agentFor(p.actor).agent.session.deriveMessages();
     if(operation==='dispose-agent'){const entry=agentFor(p.actor);await ctx.sessions.flush(entry.agent.session);await entry.handle.dispose();native.delete(p.actor);sessions.delete(p.actor);return {ok:true};}
     if(operation==='run'){
@@ -207,7 +223,7 @@ async function createRuntime(ctx,config,rootAgent,owned){
     await call('agent_progress',{target:'root',officialPreset:official.officialPreset});
   }
   checkpoints.ready=true;checkpoints.schedule();
-  const components={disable:async id=>{const result=await call('application/disable',{component:id},0);for(const entry of native.values())render(await call('application/view',{actor:entry.actor}),entry);return result;},dispose:async()=>{await checkpoints.stop();for(const {handle} of sessions.values())await handle.dispose();}};
+  const components={disable:async id=>{const result=await call('application/disable',{component:id},0);for(const entry of native.values())render(await call('application/view',{actor:entry.actor}),entry);return result;},dispose:async()=>{await editor?.close();await checkpoints.stop();for(const {handle} of sessions.values())await handle.dispose();}};
   async function restorePoint(pointId,destination){
     const bundle=await call('persistence_export',{point_id:pointId});
     const restored={};
@@ -218,5 +234,26 @@ async function createRuntime(ctx,config,rootAgent,owned){
     const result=await call('persistence_restore',{point_id:pointId,directory:target,sessions:restored},0);
     return {...result,root_session_id:restored.root,sessions:restored};
   }
-  return {bridge,components,sessions,scopes,checkpoints,restorePoint,instructionHistory:history,get rootAgent(){return rootAgent;},workspace,directory};
+  if(config.editor?.enabled){
+    editor=await startEditorServer({
+      web:path.join(root,'extensions/editor/capabilities/network_editor/web'),directory,port:config.editor.port??0,
+      request:(operation,params)=>call('application/component',{component:'capabilities/network_editor',operation,params},0),
+      chat:async(operation,p)=>{
+        const entry=agentFor(p.actor),agent=entry.agent;
+        if(operation==='chat.send'){
+          if(agent.status!=='idle')throw new Error('Agent正在活动，请等待其完成后再发送');
+          if(typeof p.text!=='string'||!p.text.trim()||p.text.length>32000)throw new Error('请输入不超过32000字符的内容');
+          agent.followup(user(p.text));
+        }else if(operation!=='chat.read')throw new Error('Unknown chat operation');
+        return {session_id:agent.id,status:agent.status,messages:plain(agent.session.deriveMessages())};
+      },
+      recover:async p=>{
+        await call('application/component',{component:'capabilities/network_editor',operation:'checkpoint',params:{}},0);
+        const restored=await restorePoint(p.point_id);
+        const editor_url=await openRestored(restored.root_session_id,rootAgent);
+        return {...restored,editor_url};
+      },
+    });
+  }
+  return {bridge,components,sessions,scopes,checkpoints,restorePoint,editor,instructionHistory:history,get rootAgent(){return rootAgent;},workspace,directory};
 }

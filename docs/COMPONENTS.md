@@ -42,8 +42,16 @@ python scripts/components.py enable nodes/csv --root extensions/storage
 | `extensions/storage` | CSV、SQLite、LlamaIndex、llm-wiki、MkDocs 适配等数据组件 |
 | `extensions/multi_agent` | 第一应用的讨论、协作、角色及组合清单 |
 | `extensions/knowledge_base` | 第二应用的知识接口、主 Agent 与受限助手、归档与查询组合 |
+| `extensions/npc_world` | 第三应用的地址、居民、业务与小镇预设 |
+| `extensions/editor` | 可选本地工作台，复用 NPC 组件与原生宿主接口 |
 | `extensions/all` | 两个应用共存的显式组合 |
 
 实现代码放在 `capabilities`；节点、工具箱和网络预设保持配置与文档。工具绑定归各工具箱的 `bindings.json` 所有，不再依赖整包工具登记表。
 
 第三方库声明在相应能力的 `requirements.txt`。只有调用相关能力时才导入其可选实现；框架不会下载模型或执行依赖安装脚本。Harness 适配层使用 Python 解析后的原生扩展路径，没有第二套业务依赖解析。
+
+## 编辑器配置定义
+
+组件可在 `component.json` 声明 `"editor": {"modules": "editor.json"}`。该资源按模块类型列出显示名、配置 `schema`、状态 `stateSchema` 及新装配默认值；工作台按已启用组件加载，使用 JSON Schema 生成表单。节点引用可标记 `format: "node-id"`，界面提供当前网络的节点选择，后端验证引用存在。
+
+这只是可选编辑元数据，不改变组件依赖、工具箱授权或 Agent 提示词。应用配置还要通过相同组件的实际构建和绑定检查，Schema 校验不能代替业务模块检查。详见[工作台使用说明](NETWORK_EDITOR.md)。

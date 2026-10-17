@@ -1,0 +1,90 @@
+{
+  "action.budget": {
+    "label": "行动额度",
+    "schema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "capacity": {
+          "title": "每周期行动值",
+          "type": "integer",
+          "minimum": 1
+        },
+        "default_cost": {
+          "title": "默认操作成本",
+          "type": "integer"
+        },
+        "costs": {
+          "title": "操作成本",
+          "type": "object",
+          "properties": {
+            "local_info": {
+              "title": "local_info",
+              "type": "integer"
+            },
+            "move_here": {
+              "title": "move_here",
+              "type": "integer"
+            },
+            "mine": {
+              "title": "mine",
+              "type": "integer"
+            },
+            "chop": {
+              "title": "chop",
+              "type": "integer"
+            },
+            "rest": {
+              "title": "rest",
+              "type": "integer"
+            }
+          },
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "stateSchema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "period": {
+          "title": "period",
+          "type": [
+            "string",
+            "number",
+            "boolean",
+            "object",
+            "array",
+            "null"
+          ]
+        },
+        "spent": {
+          "title": "spent",
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
+    "defaults": {
+      "config": {
+        "capacity": 10,
+        "default_cost": 1,
+        "costs": {
+          "local_info": 0,
+          "move_here": 3,
+          "mine": 6,
+          "chop": 6,
+          "rest": 6
+        }
+      },
+      "state": {
+        "period": null,
+        "spent": 0
+      }
+    }
+  }
+}

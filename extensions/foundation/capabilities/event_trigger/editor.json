@@ -1,0 +1,249 @@
+{
+  "event.trigger": {
+    "label": "事件触发器",
+    "schema": {
+      "title": "",
+      "type": "object",
+      "properties": {
+        "operations": {
+          "title": "可调用模块方法",
+          "type": "object",
+          "properties": {
+            "information": {
+              "title": "information",
+              "type": "object",
+              "properties": {
+                "module": {
+                  "title": "模块",
+                  "type": "string"
+                },
+                "method": {
+                  "title": "方法",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            },
+            "tools": {
+              "title": "tools",
+              "type": "object",
+              "properties": {
+                "module": {
+                  "title": "模块",
+                  "type": "string"
+                },
+                "method": {
+                  "title": "方法",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            },
+            "context": {
+              "title": "context",
+              "type": "object",
+              "properties": {
+                "module": {
+                  "title": "模块",
+                  "type": "string"
+                },
+                "method": {
+                  "title": "方法",
+                  "type": "string"
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        },
+        "rules": {
+          "title": "事件规则",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "title": "id",
+                "type": "string"
+              },
+              "event": {
+                "title": "event",
+                "type": "string"
+              },
+              "channels": {
+                "title": "频道",
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "where": {
+                "title": "where",
+                "type": "object",
+                "properties": {
+                  "/payload/actor": {
+                    "title": "/payload/actor",
+                    "type": "string"
+                  },
+                  "/payload/tool": {
+                    "title": "/payload/tool",
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": true
+              },
+              "graph": {
+                "title": "graph",
+                "type": "string"
+              }
+            },
+            "additionalProperties": true
+          }
+        },
+        "graphs": {
+          "title": "执行图",
+          "type": "object",
+          "properties": {
+            "refresh": {
+              "title": "refresh",
+              "type": "object",
+              "properties": {
+                "type": {
+                  "title": "type",
+                  "type": "string"
+                },
+                "steps": {
+                  "title": "steps",
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {
+                        "title": "type",
+                        "type": "string"
+                      },
+                      "steps": {
+                        "title": "steps",
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "type": {
+                              "title": "type",
+                              "type": "string"
+                            },
+                            "id": {
+                              "title": "id",
+                              "type": "string"
+                            },
+                            "operation": {
+                              "title": "operation",
+                              "type": "string"
+                            },
+                            "arguments": {
+                              "title": "arguments",
+                              "type": "object",
+                              "properties": {},
+                              "additionalProperties": true
+                            }
+                          },
+                          "additionalProperties": true
+                        }
+                      },
+                      "id": {
+                        "title": "id",
+                        "type": "string"
+                      },
+                      "operation": {
+                        "title": "operation",
+                        "type": "string"
+                      },
+                      "arguments": {
+                        "title": "arguments",
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": true
+                      }
+                    },
+                    "additionalProperties": true
+                  }
+                }
+              },
+              "additionalProperties": true
+            }
+          },
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    },
+    "stateSchema": {
+      "title": "",
+      "type": "object",
+      "properties": {},
+      "additionalProperties": true
+    },
+    "defaults": {
+      "config": {
+        "operations": {
+          "information": {
+            "module": "information.collector",
+            "method": "collect"
+          },
+          "tools": {
+            "module": "tools.assembly",
+            "method": "assemble"
+          },
+          "context": {
+            "module": "agent.signal",
+            "method": "assemble"
+          }
+        },
+        "rules": [
+          {
+            "id": "refresh-after-move",
+            "event": "node/tool-invoked",
+            "channels": [],
+            "where": {
+              "/payload/actor": "world/npc/lin",
+              "/payload/tool": "move_here"
+            },
+            "graph": "refresh"
+          }
+        ],
+        "graphs": {
+          "refresh": {
+            "type": "sequence",
+            "steps": [
+              {
+                "type": "parallel",
+                "steps": [
+                  {
+                    "type": "call",
+                    "id": "information",
+                    "operation": "information",
+                    "arguments": {}
+                  },
+                  {
+                    "type": "call",
+                    "id": "tools",
+                    "operation": "tools",
+                    "arguments": {}
+                  }
+                ]
+              },
+              {
+                "type": "call",
+                "id": "context",
+                "operation": "context",
+                "arguments": {}
+              }
+            ]
+          }
+        }
+      },
+      "state": {}
+    }
+  }
+}
