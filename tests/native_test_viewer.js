@@ -4,7 +4,7 @@ import {readFile} from 'node:fs/promises';
 import {registerEditorLauncher} from './editor-launcher.js';
 export const inject=['sessionPersistence','sessionProjectionCache','sessionTitle'];
 export async function apply(ctx,config){
-  if(config.editorConnection)registerEditorLauncher(ctx,async()=>JSON.parse(await readFile(config.editorConnection,'utf8')));
+  if(config.editorConnection)registerEditorLauncher(ctx,async()=>({...JSON.parse(await readFile(config.editorConnection,'utf8')),connection_file:config.editorConnection}));
   const headers=[];
   for(const id of config.sessions){
     const handle=await ctx.sessionPersistence.open(id,'read');

@@ -31,6 +31,7 @@ def install_viewer(profile,manifest):
     if connections:metadata['dsh']['client']=dict(platform='web',inject=['@deepseek-ai/dsh-client-ui-conversation'])
     files={package/'package.json':json.dumps(metadata,indent=2),
            package/'index.js':(Path(__file__).resolve().parents[1]/'tests/native_test_viewer.js').read_text(encoding='utf-8')}
+    files[package/'desktop-launcher.js']='export {launchDesktopEditor} from '+json.dumps((product/'adapters/harness/framework/desktop-launcher.js').as_uri())+';\n'
     files[package/'editor-launcher.js']=(product/'adapters/harness/framework/editor-launcher.js').read_text(encoding='utf-8')
     files[package/'client.js']=(product/'adapters/harness/framework/editor-client.js').read_text(encoding='utf-8').replace('id: "datanet-harness"','id: "nexarbor-test-session-list"',1)
     files[package/'cordis.patch.yml']=json.dumps([dict(insert=[dict(id='nexarbor-test-session-list',name='nexarbor-test-session-list',config=config)])],indent=2)

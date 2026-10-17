@@ -13,7 +13,7 @@ from datanet.core.signals import Signal
 def add(b,*nodes):
     for node in nodes:b.network.add_node(Node(node,node,None))
 def link(b,source,target,channels=('tick',)):
-    b.network.nodes[source].write_interfaces.append(Interface(target,{'channels':list(channels),'threshold':1}))
+    b.network.nodes[source].interfaces.append(Interface(target,{'channels':list(channels),'threshold':1}))
 def rule(id,channels,*steps):return dict(id=id,channels=channels,steps=[dict(type='call',id=id+'_'+str(i),operation=name,arguments=args) for i,(name,args) in enumerate(steps)])
 def bind(plugin,node,rules,operations):
     graphs={r['id']:dict(type='sequence',steps=r['steps']) for r in rules}

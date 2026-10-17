@@ -42,17 +42,17 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
 
     def connection(target, value):
         if value is None:
-            value = {'metadata': {'visibility': 'private'}}
+            value = {'metadata': {'visibility':'private','channels':['access.read','access.write']}}
         if not isinstance(value, dict) or set(value) != {'metadata'}:
             raise ValueError('接口必须包含 metadata 对象')
         return Interface(target_node_id=target, **value)
 
-    def create_child_node(child_id, node_spec, read_interface=None, write_interface=None, parent_node_id=None, strength=0):
+    def create_child_node(child_id, node_spec, interface=None, parent_node_id=None, strength=0):
         with lock:
             folder = None
             child = None
             published = False
-            read_link = write_link = None
+            link = None
             parent = None
             try:
                 parent, error = resolve(parent_node_id, strength)
@@ -80,40 +80,37 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
                 if set(spec) - allowed or not {'type', 'parameters'} <= spec.keys():
                     raise ValueError('节点需要 type、parameters；可选 name、data_kind、description、divergence、toolboxes、expose')
                 if spec['type'] not in codecs():raise ValueError('Node component is disabled: '+spec['type'])
-                read_link, write_link = (connection(node_id, read_interface), connection(node_id, write_interface))
-                entry = {'type': spec['type'], 'node_id': node_id, 'name': spec.get('name', child_id), 'data_kind': spec.get('data_kind'), 'description': spec.get('description', ''), 'divergence': spec.get('divergence', -1), 'parameters': spec['parameters'], 'connections': {'read_interfaces': [], 'write_interfaces': []}, 'agent': None, 'toolboxes': spec.get('toolboxes', []), 'expose': spec.get('expose', [])}
+                link = connection(node_id, interface)
+                entry = {'type': spec['type'], 'node_id': node_id, 'name': spec.get('name', child_id), 'data_kind': spec.get('data_kind'), 'description': spec.get('description', ''), 'divergence': spec.get('divergence', -1), 'parameters': spec['parameters'], 'connections': {'interfaces': []}, 'agent': None, 'toolboxes': spec.get('toolboxes', []), 'expose': spec.get('expose', [])}
                 folder = storage_dir / uuid4().hex
                 folder.mkdir(parents=True)
-                fragment = _build({'version': 5, 'signals': {}, 'nodes': [entry], 'delegations': []}, folder)
+                fragment = _build({'version': 6, 'signals': {}, 'nodes': [entry], 'delegations': []}, folder)
                 child = fragment.nodes[node_id]
                 from datanet.core.node_toolboxes import validate_exposure
                 validate_exposure(child)
                 save_network(fragment, folder / 'node.json')
-                attachment = {'parent_node_id': parent.node_id, 'child_node_id': node_id, 'read_interface': asdict(read_link), 'write_interface': asdict(write_link), 'management_parent_id': parent.node_id}
+                attachment = {'parent_node_id': parent.node_id, 'child_node_id': node_id, 'interface':asdict(link), 'management_parent_id': parent.node_id}
                 (folder / 'attachment.json').write_text(json.dumps(attachment, ensure_ascii=False, indent=2), encoding='utf-8')
                 child.management_parent_id = parent.node_id
                 network.add_node(child)
                 published = True
-                parent.read_interfaces.append(read_link)
-                parent.write_interfaces.append(write_link)
-                return NodeResult(items=[{**child.describe(include_schema=False), 'configuration_path': str(folder / 'node.json'), 'attachment_path': str(folder / 'attachment.json'), 'read_interface': asdict(read_link), 'write_interface': asdict(write_link)}])
+                parent.interfaces.append(link)
+                return NodeResult(items=[{**child.describe(include_schema=False), 'configuration_path': str(folder / 'node.json'), 'attachment_path': str(folder / 'attachment.json'), 'interface':asdict(link)}])
             except Exception as error:
                 if published and network.nodes.get(child.node_id) is child:
                     network.nodes.pop(child.node_id)
-                    if read_link in parent.read_interfaces:
-                        parent.read_interfaces.remove(read_link)
-                    if write_link in parent.write_interfaces:
-                        parent.write_interfaces.remove(write_link)
+                    if link in parent.interfaces:
+                        parent.interfaces.remove(link)
                 if folder is not None and folder.parent == storage_dir and folder.exists():
                     shutil.rmtree(folder)
                 return NodeResult(status='error', errors=[str(error)])
 
-    def create_network(preset, instance_id, entry_point, parent_node_id=None, read_interface=None, write_interface=None, strength=0, with_agents=False):
+    def create_network(preset, instance_id, entry_point, parent_node_id=None, interface=None, strength=0, with_agents=False):
         with lock:
             folder = None
             report = None
             parent = None
-            read_link = write_link = None
+            link = None
             added_grants = []
             try:
                 if scope == 'self':
@@ -134,8 +131,7 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
                 if not isinstance(entry_point, str) or entry_point not in package.entry_points:
                     raise ValueError('网络预设入口不存在')
                 prefix = instance_id
-                read_link = connection(prefix + '/' + package.entry_points[entry_point], read_interface)
-                write_link = connection(read_link.target_node_id, write_interface)
+                link = connection(prefix + '/' + package.entry_points[entry_point], interface)
                 folder = storage_dir / uuid4().hex
                 folder.mkdir(parents=True)
                 report = package.mount(network, prefix, toolkits=toolkits, storage_dir=folder / 'resources')
@@ -161,10 +157,9 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
                     fragment.nodes[node_id].management_parent_id = None
                 fragment.delegation_permissions = {key: list(network.delegation_permissions[key]) for key in fragment.nodes if key in network.delegation_permissions}
                 save_network(fragment, folder / 'network.json')
-                attachment = {'parent_node_id': parent.node_id, 'entry_node_id': read_link.target_node_id, 'read_interface': asdict(read_link), 'write_interface': asdict(write_link), 'management_parent_id': parent.node_id}
+                attachment = {'parent_node_id': parent.node_id, 'entry_node_id': link.target_node_id, 'interface':asdict(link), 'management_parent_id': parent.node_id}
                 (folder / 'attachment.json').write_text(json.dumps(attachment, ensure_ascii=False, indent=2), encoding='utf-8')
-                parent.read_interfaces.append(read_link)
-                parent.write_interfaces.append(write_link)
+                parent.interfaces.append(link)
                 if configs:
                     grants = network.delegation_permissions.setdefault(owner.node_id, [])
                     for node_id in configs:
@@ -177,10 +172,8 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
                     for node_id in report.node_ids.values():
                         network.nodes.pop(node_id, None)
                         network.delegation_permissions.pop(node_id, None)
-                    if read_link in parent.read_interfaces:
-                        parent.read_interfaces.remove(read_link)
-                    if write_link in parent.write_interfaces:
-                        parent.write_interfaces.remove(write_link)
+                    if link in parent.interfaces:
+                        parent.interfaces.remove(link)
                     for node_id in added_grants:
                         network.delegation_permissions[owner.node_id].remove(node_id)
                 if folder is not None and folder.parent == storage_dir and folder.exists():
@@ -188,6 +181,6 @@ def attach_node_creation_tools(network, owner, *, storage_dir, presets=None, all
                 return NodeResult(status='forbidden' if isinstance(error, PermissionError) else 'error', errors=[str(error)])
     owner.register_agent_tool('list_node_presets', catalog, description='列出获准使用的节点预设、自定义开关及参数字段。', parameters={'type': 'object', 'properties': {}, 'additionalProperties': False})
     interface_schema = {'type': 'object', 'properties': {'metadata': metadata_schema()}, 'required': ['metadata'], 'additionalProperties': False}
-    owner.register_agent_tool('create_child_node', create_child_node, description='在管理范围内的父节点下面创建子节点，不创建Agent。先查看 list_node_presets。默认父节点为自己，默认私有读写接口。', parameters={'type': 'object', 'properties': {'child_id': {'type': 'string'}, 'parent_node_id': {'type': 'string', 'description': '省略表示自己；按管理归属和工具箱scope授权，不要求普通写可达。'}, 'node_spec': {'type': 'object', 'description': '{preset:id} 或 {type,parameters,name?,data_kind?,description?,divergence?,toolboxes?,expose?}'}, 'read_interface': interface_schema, 'write_interface': deepcopy(interface_schema)}, 'required': ['child_id', 'node_spec'], 'additionalProperties': False})
-    owner.register_agent_tool('create_network', create_network, description='使用登记网络预设搭建子网络；需要children或descendants范围。with_agents=true可按预设同时装配Agent，但必须拥有create_agent且配置获准。默认仅建节点；失败撤销本次创建。', parameters={'type': 'object', 'properties': {'preset': {'type': 'string'}, 'instance_id': {'type': 'string'}, 'entry_point': {'type': 'string'}, 'parent_node_id': {'type': 'string'}, 'with_agents': {'type': 'boolean', 'description': '默认false；true按网络预设装配所有Agent，需要创建Agent授权，提示词独立复制。'}, 'read_interface': deepcopy(interface_schema), 'write_interface': deepcopy(interface_schema)}, 'required': ['preset', 'instance_id', 'entry_point'], 'additionalProperties': False})
+    owner.register_agent_tool('create_child_node', create_child_node, description='在管理范围内的父节点下面创建子节点，不创建Agent。先查看 list_node_presets。默认父节点为自己，默认私有连接并开放access.read/access.write频道。', parameters={'type': 'object', 'properties': {'child_id': {'type': 'string'}, 'parent_node_id': {'type': 'string', 'description': '省略表示自己；按管理归属和工具箱scope授权，不要求普通连接可达。'}, 'node_spec': {'type': 'object', 'description': '{preset:id} 或 {type,parameters,name?,data_kind?,description?,divergence?,toolboxes?,expose?}'}, 'interface':interface_schema}, 'required': ['child_id', 'node_spec'], 'additionalProperties': False})
+    owner.register_agent_tool('create_network', create_network, description='使用登记网络预设搭建子网络；需要children或descendants范围。with_agents=true可按预设同时装配Agent，但必须拥有create_agent且配置获准。默认仅建节点；失败撤销本次创建。', parameters={'type': 'object', 'properties': {'preset': {'type': 'string'}, 'instance_id': {'type': 'string'}, 'entry_point': {'type': 'string'}, 'parent_node_id': {'type': 'string'}, 'with_agents': {'type': 'boolean', 'description': '默认false；true按网络预设装配所有Agent，需要创建Agent授权，提示词独立复制。'}, 'interface':deepcopy(interface_schema)}, 'required': ['preset', 'instance_id', 'entry_point'], 'additionalProperties': False})
     return {name: deepcopy(owner.agent_tool_definitions[name]) for name in ('list_node_presets', 'create_child_node', 'create_network')}

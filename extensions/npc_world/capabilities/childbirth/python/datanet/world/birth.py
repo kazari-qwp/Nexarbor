@@ -30,11 +30,11 @@ class Birth(ActionModule):
         spec=render(self.config['child_template'],bindings)
         resident=AgentNode(child,name,file_path=b.directory/'world/memories'/(pid+'.md'));resident.write_memory('# '+name+'的私人记忆\n')
         b.network.add_node(resident);assembly=Node(child+'/context',name+'的上下文',None);b.network.add_node(assembly)
-        assembly.read_interfaces=[Interface(**e) for e in spec['context_reads']]
+        assembly.interfaces=[Interface(**e) for e in spec['context_reads']]
         for target,entries in ((child,spec['actor_modules']),(child+'/context',spec['context_modules'])):
             for key,value in entries.items():b.modules.mount(target,key,**value,bind=False)
-        resident.read_interfaces=[Interface(child+'/context',{'threshold':1,'visibility':'private'})]
-        resident.write_interfaces=[Interface(spec['signal_return'],{'threshold':1,'channels':spec['channels']})]
+        resident.interfaces=[Interface(child + '/context', {'threshold': 1, 'visibility': 'private', 'channels': ['access.read']})]
+        resident.interfaces+=[Interface(spec['signal_return'], {'threshold': 1, 'channels': spec['channels']})]
         presence(b,child,self.config['address'])
         if home:home.state['residents'].append(child)
         pregnancy['child']=child

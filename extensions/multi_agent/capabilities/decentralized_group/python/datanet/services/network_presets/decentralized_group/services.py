@@ -69,7 +69,7 @@ def get(b, p, member=False):
         if actor in g.get('unavailable', {}):
             raise PermissionError('成员已退出本轮协作')
     elif actor not in g['members']:
-        reachable = {n.node_id for n, _ in b.network.walk(actor, direction='read', strength=p.get('strength', 2))}
+        reachable = {n.node_id for n, _ in b.network.walk(actor, channels=('access.read',), strength=p.get('strength', 2))}
         if g['entry_points']['board'] not in reachable:
             raise PermissionError('小组不在调用者的读取范围内')
     return g

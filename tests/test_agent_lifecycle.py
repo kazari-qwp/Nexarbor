@@ -22,7 +22,7 @@ class LifecycleTests(unittest.TestCase):
 
     def detach(self, target, choice):
         self.invoke('datanet_interfaces_channel')
-        pending = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(direction='both', target_node_id=target)))
+        pending = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(target_node_id=target)))
         self.assertTrue(pending['awaiting_confirmation'])
         result = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(confirmation_id=pending['confirmation_id'], choice=choice)))
         self.app.plugins['capabilities/agent_lifecycle'].settle()
@@ -43,20 +43,20 @@ class LifecycleTests(unittest.TestCase):
         result = self.detach(target, 1)
         self.assertTrue(result['cancelled'])
         self.assertIn(target, self.app.states)
-        self.assertTrue(any(edge.target_node_id == target for edge in self.backend.root.read_interfaces))
+        self.assertTrue(any(edge.target_node_id == target for edge in self.backend.root.interfaces))
 
     def test_directed_detach_retains_structure_and_reconnects(self):
         parent = self.agent()['node_id']
         child = self.agent('operator', parent_node_id=parent)['node_id']
-        self.backend.network.nodes[child].read_interfaces.append(Interface('root/project'))
+        self.backend.network.nodes[child].interfaces.append(Interface('root/project', metadata={'channels': ['access.read']}))
         self.detach(parent, 2)
         self.assertNotIn(parent, self.app.states)
         self.assertNotIn(child, self.backend.network.nodes)
         self.assertIn('root/project', self.backend.network.nodes)
         self.assertNotIn(parent, self.backend.lifecycle['pool'])
-        self.invoke('datanet_interfaces', dict(action='add', arguments=dict(direction='read', target_node_id=parent)))
+        self.invoke('datanet_interfaces', dict(action='add', arguments=dict(interface={'metadata':{'channels':['access.read']}}, target_node_id=parent)))
         self.assertIn(child, self.app.states)
-        self.assertTrue(any(edge.target_node_id == child for edge in self.backend.network.nodes[parent].read_interfaces))
+        self.assertTrue(any(edge.target_node_id == child for edge in self.backend.network.nodes[parent].interfaces))
 
     def test_decompose_reuses_identity_session_and_memory(self):
         old = self.agent()
@@ -95,7 +95,7 @@ class LifecycleTests(unittest.TestCase):
         self.assertEqual(saved[0]['network_id'], detached['saved_network_id'])
         selected = self.invoke('datanet_presets', dict(archived_network_id=detached['saved_network_id']))['saved_networks'][0]
         self.assertEqual(selected['connected_node_count'], 0)
-        self.invoke('datanet_interfaces', dict(action='add', arguments=dict(direction='read', target_node_id=selected['entry_node_id'])))
+        self.invoke('datanet_interfaces', dict(action='add', arguments=dict(interface={'metadata':{'channels':['access.read']}}, target_node_id=selected['entry_node_id'])))
         self.assertIn(old['node_id'], self.app.states)
 
     def test_decomposed_archive_lists_available_employees(self):
@@ -152,7 +152,7 @@ class LifecycleTests(unittest.TestCase):
     def test_stale_confirmation_does_not_remove_link(self):
         target = self.agent()['node_id']
         self.invoke('datanet_interfaces_channel')
-        pending = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(direction='both', target_node_id=target)))
+        pending = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(target_node_id=target)))
         self.agent('another')
         result = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(confirmation_id=pending['confirmation_id'], choice=3)))
         self.assertTrue(result['stale'])
@@ -242,11 +242,11 @@ class LifecycleTests(unittest.TestCase):
         first = self.agent()['node_id']
         self.invoke('datanet_create_node_channel')
         self.invoke('datanet_create_node', dict(child_id='shared', node_spec=dict(type='value', parameters=dict(value=7))))
-        self.backend.network.nodes[first].read_interfaces.append(Interface('root/shared'))
+        self.backend.network.nodes[first].interfaces.append(Interface('root/shared', metadata={'channels': ['access.read']}))
         self.detach(first, 2)
         self.detach('root/shared', 3)
-        self.invoke('datanet_interfaces', dict(action='add', arguments=dict(direction='read', target_node_id=first)))
-        self.assertFalse(self.backend.network.nodes[first].read_interfaces)
+        self.invoke('datanet_interfaces', dict(action='add', arguments=dict(interface={'metadata':{'channels':['access.read']}}, target_node_id=first)))
+        self.assertFalse(self.backend.network.nodes[first].interfaces)
 
 
 if __name__ == '__main__':

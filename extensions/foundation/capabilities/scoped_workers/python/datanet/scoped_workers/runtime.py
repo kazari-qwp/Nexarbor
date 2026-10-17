@@ -81,7 +81,7 @@ class Plugin(Component):
             node = AgentNode(id, '任务助手', file_path=self.r.directory / 'agents/memories' / (id.encode().hex() + '.md'))
             node.management_parent_id = actor
             self.r.backend.network.add_node(node)
-            self.r.backend.network.nodes[actor].read_interfaces.append(Interface(id, visibility='private'))
+            self.r.backend.network.nodes[actor].interfaces.append(Interface(id, metadata={'visibility': 'private', 'channels': ['access.read']}))
             # Persist identity/scope before mounting, so bound hooks see the same policy.
             self.r.rpc('bind_agent', target=id, session_id='datanet-' + str(uuid4()), kind='helper', manager_id=actor,
                        creator_node_id=actor, worker_parent=actor, business_scope=scope, worker_components=selected)

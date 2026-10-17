@@ -23,7 +23,7 @@ def add(network,*ids):
 
 def link(network,source,target,channels=('tick',),**metadata):
     edge=Interface(target,dict(channels=channels,**metadata))
-    network.nodes[source].write_interfaces.append(edge)
+    network.nodes[source].interfaces.append(edge)
     return edge
 
 class ValueTests(unittest.TestCase):
@@ -50,13 +50,13 @@ class ValueTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'network.json';save_network(network,path)
             document=json.loads(path.read_text(encoding='utf-8'))
-            self.assertEqual(document['version'],5)
-            self.assertEqual(set(document['nodes'][0]['connections']['write_interfaces'][0]),{'target_node_id','metadata'})
+            self.assertEqual(document['version'],6)
+            self.assertEqual(set(document['nodes'][0]['connections']['interfaces'][0]),{'target_node_id','metadata'})
             restored=load_network(path)
             self.assertIsInstance(restored.nodes['pulse'],PulseNode)
             self.assertEqual(restored.nodes['pulse'].channels,('tick',))
-            self.assertEqual(restored.nodes['pulse'].write_interfaces[0].metadata.attributes['purpose'],'clock')
-            for old_version in [3,4]:
+            self.assertEqual(restored.nodes['pulse'].interfaces[0].metadata.attributes['purpose'],'clock')
+            for old_version in [3,4,5]:
                 document['version']=old_version
                 with self.assertRaises(ValueError):_build(document,Path(folder))
 
@@ -65,10 +65,10 @@ class ValueTests(unittest.TestCase):
         from datanet.core.node_creation import attach_node_creation_tools
         network=Network();add(network,'root','other');network.nodes['other'].management_parent_id='root'
         root=network.nodes['root'];attach_interface_management_tools(network,root,scope='descendants')
-        result=root.invoke_tool('manage_interfaces',action='add',direction='write',target_node_id='other',interface={'metadata':{'channels':['tick'],'threshold':1}})
+        result=root.invoke_tool('manage_interfaces', action='add', target_node_id='other', interface={'metadata': {'channels': ['tick'], 'threshold': 1}})
         self.assertEqual(result.status,'ok')
-        result=root.invoke_tool('manage_interfaces',action='update',direction='write',target_node_id='other',changes={'metadata':{'visibility':'private'}})
-        self.assertEqual(result.status,'ok');self.assertEqual(root.write_interfaces[0].metadata.visibility,'private')
+        result=root.invoke_tool('manage_interfaces', action='update', target_node_id='other', changes={'metadata': {'visibility': 'private'}})
+        self.assertEqual(result.status,'ok');self.assertEqual(root.interfaces[0].metadata.visibility,'private')
         with tempfile.TemporaryDirectory() as folder:
             attach_node_creation_tools(network,root,storage_dir=folder,allow_custom=True)
             result=root.invoke_tool('create_child_node',child_id='pulse',node_spec={'type':'pulse','parameters':{'channels':['tick'],'strength':3}})
@@ -101,7 +101,7 @@ class PropagationTests(unittest.IsolatedAsyncioTestCase):
         report=await r.propagate(Signal('source',['A','B'],3))
         self.assertEqual(seen,[('a',('A','B')),('b',('A','B'))]);self.assertEqual(report['status'],'completed')
         # Ordinary owner-private data access is still distinct from public signal routing.
-        self.assertIn('private',[node.node_id for node,_ in n.walk('source',direction='write',strength=3)])
+        self.assertIn('private',[node.node_id for node,_ in n.walk('source', channels=('A',), strength=3)])
 
     async def test_each_layer_parallel_but_next_waits_for_entire_layer(self):
         n=Network();add(n,'s','clock','a','b','sink')
@@ -182,14 +182,14 @@ class PropagationTests(unittest.IsolatedAsyncioTestCase):
             if c.delivery.node_id=='a':started.set();await release.wait()
         r.bind('a',handler);r.bind('sink',handler)
         job=asyncio.create_task(r.propagate(Signal('s',['tick'],3)))
-        await started.wait();self.assertFalse(job.done());self.assertEqual(seen,['a'])
+        await asyncio.wait_for(started.wait(),.5);self.assertFalse(job.done());self.assertEqual(seen,['a'])
         release.set();report=await job;self.assertEqual(seen,['a','sink']);self.assertEqual(report['status'],'completed')
         with self.assertRaises(TypeError):Interface('a',{'wait_for_completion':False})
 
     async def test_topology_frozen_and_new_signal_observes_updates(self):
         n=Network();add(n,'s','a','b');link(n,'s','a');r=self.runtime(n)
         async def handler(c):
-            if not n.nodes['a'].write_interfaces:link(n,'a','b')
+            if not n.nodes['a'].interfaces:link(n,'a','b')
         r.bind('a',handler)
         first=await r.propagate(Signal('s',['tick'],3));self.assertEqual(first['layers'],[['a']])
         second=await r.propagate(Signal('s',['tick'],3));self.assertEqual(second['layers'],[['a'],['b']])

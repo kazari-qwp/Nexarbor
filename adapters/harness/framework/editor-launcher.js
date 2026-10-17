@@ -1,5 +1,6 @@
 // Optional, operator-only UI entry. Harness Connection owns authentication.
-export function registerEditorLauncher(ctx, resolve) {
+import {launchDesktopEditor} from './desktop-launcher.js';
+export function registerEditorLauncher(ctx, resolve, launch=launchDesktopEditor) {
   ctx.inject(['connection'], scope => {
     scope.effect(() => scope.connection.fetch.register({
       path: '/api/nexarbor/editor', methods: ['POST'], requestBody: 'buffered',
@@ -11,7 +12,8 @@ export function registerEditorLauncher(ctx, resolve) {
           const value=await resolve(input.session_id);
           const url=new URL(value.url);
           if(url.protocol!=='http:'||url.hostname!=='127.0.0.1'||!url.hash.startsWith('#token='))throw new Error('工作台启动地址无效');
-          return reply(200,value);
+          if(input.open!==undefined&&typeof input.open!=='boolean')throw new Error('无效的启动参数');
+          return reply(200,input.open?await launch(value):{url:value.url});
         } catch(error) {return reply(400,{error:String(error.message??error)});}
       }
     }), 'nexarbor.editor.launcher');

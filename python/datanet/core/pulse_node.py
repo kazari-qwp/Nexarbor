@@ -16,7 +16,7 @@ class PulseNode(Node):
         self.channels=names(channels,'channels',allow_empty=False)
         self.strength=validate_strength(strength);self.content=freeze(content)
         self.signal_options=freeze(signal_options or {})
-        allowed={'direction','failure_policy','max_hops','max_deliveries','timeout_seconds','node_timeout_seconds'}
+        allowed={'failure_policy','max_hops','max_deliveries','timeout_seconds','node_timeout_seconds'}
         if set(self.signal_options)-allowed:raise ValueError('Invalid pulse signal option')
         Signal(node_id,self.channels,strength,content=self.content,**thaw(self.signal_options))
         self.state=deepcopy(state) if state is not None else dict(sequence=0,phase='idle',active_signal=None,last_signal=None,last_status=None)

@@ -45,7 +45,7 @@ class SignalRuntime:
     def _snapshot(self,signal):
         # Snapshot nodes and interfaces before any handler runs. New topology applies next signal.
         nodes=dict(self.network.nodes)
-        links={k:tuple(getattr(n,signal.direction+'_interfaces')) for k,n in nodes.items()}
+        links={k:tuple(n.interfaces) for k,n in nodes.items()}
         divergences={k:n.divergence for k,n in nodes.items()}
         return nodes,links,divergences
 

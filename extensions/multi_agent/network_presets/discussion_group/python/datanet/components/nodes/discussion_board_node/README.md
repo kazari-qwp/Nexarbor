@@ -22,7 +22,7 @@ archive/<运行ID>/round_*.md  # 仅供调试，未注册历史读取工具
 
 ## 网络配置要求
 
-参数指定 `members`、`leader_id`、`recorder_id`、`project_id`、`notebook_id`、`output_id`。Leader和Recorder必须在成员列表中且不同。成员需要Agent及黑板到成员的显式委托许可；项目说明和输出文本节点须从黑板读可达。公共笔记和输出的写接口应只给Recorder，私人笔记接口给对应成员。这些接口不由黑板工具自动授予。
+参数指定 `members`、`leader_id`、`recorder_id`、`project_id`、`notebook_id`、`output_id`。Leader和Recorder必须在成员列表中且不同。成员需要Agent及黑板到成员的显式委托许可；项目说明和输出文本节点须从黑板读可达。公共笔记和输出的access.write 频道应只给Recorder，私人笔记接口给对应成员。这些接口不由黑板工具自动授予。
 
 成员轮次使用持续Agent会话；每轮作为独立访问请求，从成员自身开始遍历，预算继承其到达强度，不重新注入。Agent调用链保留调用方和黑板，因此循环委托仍被拒绝。这使星形成员能够访问共享黑板，而不是把调度路径误当成数据读取的已访问路径。
 

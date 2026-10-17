@@ -4,7 +4,7 @@
   "id": "experiment_analysis",
   "description": "实验分析拼图，组合 CSV 记录与 SQLite 规则。",
   "network": {
-    "version": 3,
+    "version": 6,
     "nodes": [
       {
         "type": "agent",
@@ -15,21 +15,30 @@
           "file_path": "root_memory.md"
         },
         "connections": {
-          "read_interfaces": [
+          "interfaces": [
             {
               "target_node_id": "lab_rules",
-              "threshold": 0,
-              "visibility": "public",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "public",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "lab_records",
-              "threshold": 0,
-              "visibility": "public",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "public",
+                "multiplier": 1
+              }
             }
-          ],
-          "write_interfaces": []
+          ]
         },
         "agent": {
           "package": "../../../../../../../nodes/agent_experiment_report/python/datanet/components/agents/experiment_report"
@@ -53,8 +62,7 @@
           "key_column": "project_id"
         },
         "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
+          "interfaces": []
         },
         "agent": null,
         "description": "保存项目 A/B/C 的合格判定规则，按项目编号查询。",
@@ -85,8 +93,7 @@
           }
         },
         "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
+          "interfaces": []
         },
         "agent": null,
         "description": "保存模拟实验记录，支持按记录编号读取和字段等值筛选。",
@@ -102,7 +109,8 @@
         "management_parent_id": "root"
       }
     ],
-    "delegations": []
+    "delegations": [],
+    "signals": {}
   },
   "entry_points": {
     "root": "root",

@@ -36,19 +36,13 @@ def presence(b,actor,destination):
                 m.state.setdefault('departures',{})[actor]=dict(origin=old,destination=destination,name=b.network.nodes[destination].name,tick=tick(b))
             elif m.state['place']==destination:
                 m.state.get('departures',{}).pop(actor,None)
-    for source in (actor,):
-        for direction in ('read','write'):
-            edges=getattr(b.network.nodes[source],direction+'_interfaces')
-            edges[:]=[e for e in edges if not e.metadata.attributes.get('world_presence')]
+    node.interfaces[:]=[e for e in node.interfaces if not e.metadata.attributes.get('world_presence')]
     person(b,actor).state['place']=destination
-    # Remove only this resident's old address edges; preserve other people and roads.
-    for direction in ('read','write'):
-        oldedges=getattr(b.network.nodes[old],direction+'_interfaces')
-        oldedges[:]=[e for e in oldedges if not (e.target_node_id==actor and e.metadata.attributes.get('world_presence'))]
-        for source,target in ((actor,destination),(destination,actor)):
-            edges=getattr(b.network.nodes[source],direction+'_interfaces')
-            if not any(e.target_node_id==target and e.metadata.attributes.get('world_presence') for e in edges):
-                edges.append(Interface(target,{'threshold':1,'attributes':{'world_presence':True}}))
+    oldedges=b.network.nodes[old].interfaces
+    oldedges[:]=[e for e in oldedges if not(e.target_node_id==actor and e.metadata.attributes.get('world_presence'))]
+    for source,target in ((actor,destination),(destination,actor)):
+        b.network.nodes[source].connect(target,channels=('access.read','access.write'),threshold=1,attributes={'world_presence':True})
+
 
 def take(a,item,n):
     if type(n) is not int or n<1:raise ValueError('Quantity must be a positive integer')
@@ -86,7 +80,7 @@ def action(b,p):
     module=instance(b,p['target'],p['module']);module.check(p['actor'],p['name'])
     # One serial core transaction, rollback all domain values and graph changes on failure.
     saved={(n.node_id,k):deepcopy(spec['state']) for n in b.network.nodes.values() for k,spec in n.modules.items()}
-    links={n.node_id:(list(n.read_interfaces),list(n.write_interfaces)) for n in b.network.nodes.values()}
+    links={n.node_id:list(n.interfaces) for n in b.network.nodes.values()}
     existing=set(b.network.nodes)
     budget=instance(b,p['actor'],'action.budget')
     try:
@@ -116,7 +110,7 @@ def action(b,p):
         for node in set(b.network.nodes)-existing:b.network.nodes.pop(node)
         for (node,key),value in saved.items():
             current=b.network.nodes[node].modules[key]['state'];current.clear();current.update(value)
-        for node,(read,write) in links.items():b.network.nodes[node].read_interfaces=read;b.network.nodes[node].write_interfaces=write
+        for node,edges in links.items():b.network.nodes[node].interfaces=edges
         raise
 
 def metadata(b,node):

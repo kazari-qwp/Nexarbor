@@ -10,6 +10,7 @@ const waitApi=async(operation,action)=>{const pending=page.waitForResponse(r=>r.
 try{
  await page.goto(connection.url);
  if(!process.argv.includes('--finish-only')){
+ if(!process.argv.includes('--continue-built')){
  await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
  if(!await page.getByText('让网络定义行动空间',{exact:true}).isVisible()){
   await page.getByRole('button',{name:'新建空网络',exact:true}).click();
@@ -41,6 +42,7 @@ try{
  const validation=await waitApi('validate',()=>page.getByRole('button',{name:'检查配置',exact:true}).click());expect(validation.valid,JSON.stringify(validation)).toBeTruthy();
  await waitApi('draft',()=>page.getByRole('button',{name:'保存草稿',exact:true}).click());
  const applied=await waitApi('apply',()=>page.getByRole('button',{name:'应用网络',exact:true}).click());expect(applied.applied,JSON.stringify(applied)).toBeTruthy();
+ }
  for(const b of await page.getByRole('group',{name:'节点类型显示'}).getByRole('button').all())if(await b.textContent()!=='居民')await b.click();await page.locator('.react-flow__controls-fitview').click();
  const alice=page.locator('[data-id="world/npc/alice"]');await waitApi('view',()=>alice.click());
  await expect(page.getByText('由后端按照真实连接权限计算。界面筛选不授予权限。')).toBeVisible();
@@ -57,8 +59,8 @@ try{
  expect(live.find(n=>n.node_id==='world/npc/bob').modules['action.budget'].state.spent).toBe(1);expect(final.job.reports[0].reports[0].layers[1].sort()).toEqual(['world/npc/alice','world/npc/bob']);
  await page.getByRole('button',{name:'全局网络',exact:true}).click();await page.locator('.react-flow__controls-fitview').click();
  await page.screenshot({path:path.join(run,'04-running-result.png')});
- await page.getByRole('button',{name:'清除筛选',exact:true}).click();await page.getByLabel('搜索节点').fill('阿青');await page.locator('.react-flow__controls-fitview').click();
- await page.locator('[data-id="world/npc/alice"]').dblclick();await expect(page.locator('.chat-message.assistant').first()).toBeVisible();
+ await page.getByRole('button',{name:'清除筛选',exact:true}).click();await page.getByLabel('搜索节点').fill('阿青');await expect(page.locator('.react-flow__node')).toHaveCount(3);await page.locator('.react-flow__controls-fitview').click();await page.waitForTimeout(400);
+ await page.locator('[data-id="world/npc/alice"] .network-node').dblclick();await expect(page.getByLabel('对话输入')).toBeVisible();await expect(page.locator('.chat-message.assistant').first()).toBeVisible();
  const previousReplies=await page.locator('.chat-message.assistant').count();
  await page.getByLabel('对话输入').fill('测试对话入口，请回复一句。');await page.locator('.chat-composer button').click();await expect(page.getByLabel('对话输入')).toHaveValue('');
  await expect(page.locator('.chat-message.assistant')).toHaveCount(previousReplies+1);

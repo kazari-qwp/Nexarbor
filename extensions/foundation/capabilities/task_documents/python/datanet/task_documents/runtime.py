@@ -61,10 +61,8 @@ class Plugin(Component):
         for actor, result in task['members'].items():
             node = network.nodes[actor]
             for id in [task['input'], *task['documents']]:
-                if not any(e.target_node_id == id for e in node.read_interfaces):
-                    node.read_interfaces.append(Interface(id, visibility='private'))
-            if not any(e.target_node_id == result for e in node.write_interfaces):
-                node.write_interfaces.append(Interface(result, visibility='private'))
+                node.connect(id,channels=('access.read',),visibility='private')
+            node.connect(result,channels=('access.write',),visibility='private')
 
     def reference(self, actor, task):
         return dict(task_id=task['id'], mode=task['mode'], input_id=task['input'],

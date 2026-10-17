@@ -5,7 +5,7 @@ def describe_node(node_id, *, network):
     node = network.nodes.get(node_id)
     if node is None:
         raise ValueError(f'节点不存在：{node_id}')
-    return {**node.describe(), 'read_interfaces': [asdict(i) for i in node.read_interfaces], 'write_interfaces': [asdict(i) for i in node.write_interfaces], 'tools': sorted(node.tools)}
+    return {**node.describe(), 'interfaces':[asdict(i) for i in node.interfaces], 'tools': sorted(node.tools)}
 
 def read(request, node_id=None, scope='network', data_kind=None, strength=0, *, network, entry_node_id):
     origin = entry_node_id if node_id is None else node_id

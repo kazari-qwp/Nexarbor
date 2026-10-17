@@ -16,13 +16,12 @@ const unauthenticated=await fetch(base+'/api/nexarbor/editor',{method:'POST',hea
 expect(unauthenticated.status).toBe(401);
 const browser=await chromium.launch({channel:'msedge',headless:true});const context=await browser.newContext({viewport:{width:1600,height:1000}});await context.addCookies([cookie]);const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
 try{
- await page.goto(base);const title=(manifest.sessions.find(s=>s.actor==='root'&&s.session_id!==manifest.root_session)??manifest.sessions.find(s=>s.actor==='root')).title;
+ await page.goto(base);const later=page.getByRole('button',{name:'稍后配置',exact:true});await later.waitFor({state:'visible',timeout:5000}).then(()=>later.click()).catch(()=>{});const title=(manifest.sessions.find(s=>s.actor==='root'&&s.session_id!==manifest.root_session)??manifest.sessions.find(s=>s.actor==='root')).title;
  await page.getByText(title,{exact:true}).first().click({timeout:15000});
- const action=page.getByRole('button',{name:'打开网络工作台',exact:true});await expect(action).toHaveAttribute('href',/^http:\/\/127\.0\.0\.1:/,{timeout:15000});
+ const action=page.getByRole('button',{name:'打开网络工作台',exact:true});await expect(action).toBeEnabled({timeout:15000});
  await page.screenshot({path:path.join(run,'08-harness-editor-launcher.png')});
- const popupPromise=page.waitForEvent('popup');await action.click();const workbench=await popupPromise;await workbench.waitForLoadState();
- await expect(workbench.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
- await expect(workbench.locator('.left-panel').getByRole('button',{name:'阿青',exact:true})).toBeVisible();
- await fs.writeFile(path.join(run,'launcher-verification.json'),JSON.stringify({passed:true,officialSlot:'conversation.session.header.actions',nativeAuthRequired:true,opensRealWorkbench:true,modelApiCalls:0,errors},null,2));
- expect(errors).toEqual([]);console.log('PASS native Harness button, authenticated address lookup and actual workbench opening; no model calls');
+ const responsePromise=page.waitForResponse(r=>r.url().endsWith('/api/nexarbor/editor')&&r.request().postDataJSON()?.open===true);
+ await action.click();const launched=await responsePromise;expect(launched.ok()).toBe(true);expect(await launched.json()).toEqual({opened:true,kind:'desktop'});
+ await fs.writeFile(path.join(run,'launcher-verification.json'),JSON.stringify({passed:true,officialSlot:'conversation.session.header.actions',nativeAuthRequired:true,launchesDesktop:true,modelApiCalls:0,errors},null,2));
+ expect(errors).toEqual([]);console.log('PASS native Harness button, authenticated address lookup and desktop launch response; no model calls');
 }catch(error){await page.screenshot({path:path.join(run,'launcher-failure.png')});console.error((await page.locator('body').innerText()).slice(0,2500));console.error('Page errors:',errors);throw error;}finally{await browser.close();}

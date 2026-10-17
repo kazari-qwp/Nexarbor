@@ -25,7 +25,7 @@ def compose(editor):
     d=template(editor.r.catalog,empty(editor),'infrastructure',{})
     d=template(editor.r.catalog,d,'place',dict(id='woods',name='小树林',kind='forest'))
     d=template(editor.r.catalog,d,'place',dict(id='shop',name='商店',kind='shop'))
-    link(d,'world/place/woods','world/place/shop',both=True,reciprocal=True)
+    link(d,'world/place/woods','world/place/shop',reciprocal=True)
     for slug,name in [('alice','阿青'),('bob','阿白')]:
         d=template(editor.r.catalog,d,'resident',dict(id=slug,name=name,role='woodcutter',gender='unspecified',place='world/place/woods',coins=10,personality='安静而好奇。',motivation='想赚一点金币。'))
     return d
@@ -78,7 +78,7 @@ class EditorTests(unittest.TestCase):
                 result=e.apply(dict(document=d,base_commit=e.current()['commit']));assert result.get('applied'),result
                 old=b.agents['world/npc/alice']['session_id']
                 view=e.view(dict(actor='world/npc/alice',strength=2))
-                read={x['id'] for x in view['paths']['read']}
+                read={x['id'] for x in [item for group in view['paths'].values() for item in group if 'access.read' in item['channels']]}
                 assert 'world/place/shop' in read and 'world/service/shop' not in read
                 assert 'world/npc/bob' in read
                 assert any(t['name']=='datanet_memory_read' for t in view['tools'])
@@ -143,14 +143,14 @@ class EditorTests(unittest.TestCase):
                     app.event(actor,'agent/pre-step',{});app.event(actor,'agent/request',{})
                     assembly=instance(b,actor,'tools.assembly');assembly.assemble()
                     def use(tool,args={}):
-                        key=next(k for k,v in assembly.aliases.items() if v['tool']==tool and v['direction']=='write')
+                        key=next(k for k,v in assembly.aliases.items() if v['tool']==tool)
                         return app.invoke(actor,key,args)
                     if actor.endswith('alice'):
                         use('chop')
                         self.talked.wait(timeout=10)
                         use('move_here')
                     else:
-                        key=next(k for k,v in assembly.aliases.items() if v['target']=='world/npc/alice' and v['tool']=='talk' and v['direction']=='write')
+                        key=next(k for k,v in assembly.aliases.items() if v['target']=='world/npc/alice' and v['tool']=='talk')
                         app.invoke(actor,key,{'content':'你好。'})
                         self.talked.set()
                     with self.guard:self.calls.append(actor)

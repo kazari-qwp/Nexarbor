@@ -19,12 +19,12 @@ async def demo():
         network.add_node(pulse);network.add_node(clock)
         workers=[AgentNode(id,id,file_path=root/(id+'.md')) for id in ['worker-a','worker-b']]
         for worker in workers:network.add_node(worker)
-        def link(source,target):network.nodes[source].write_interfaces.append(Interface(target,{'channels':['demo.tick'],'threshold':1}))
+        def link(source,target):network.nodes[source].interfaces.append(Interface(target, {'channels': ['demo.tick'], 'threshold': 1}))
         link('pulse','clock')
         for worker in workers:
             link('clock',worker.node_id);link(worker.node_id,'pulse')
             # Private read edges expose the text to each worker, not to signal routing.
-            worker.read_interfaces.append(Interface('clock',{'visibility':'private','threshold':1}))
+            worker.interfaces.append(Interface('clock', {'visibility': 'private', 'threshold': 1, 'channels': ['access.read']}))
         observations=[]
         async def update_clock(context):
             tick=context.signal.sequence-1;slots=['早','午','下午','傍晚','午夜']

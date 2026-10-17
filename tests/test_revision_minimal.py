@@ -20,7 +20,7 @@ class RevisionTests(unittest.TestCase):
         group = self.invoke('datanet_create_network', dict(preset='discussion_group', instance_id='restored', project='资料', member_count=1, rounds=1))
         self.app.rpc('group_begin', group_id='restored', task='恢复快照')
         initial = self.app.rpc('start_round', group_id='restored')
-        self.invoke('write_resident_text', dict(content='本轮新写入'), group['recorder_id'])
+        self.invoke('node_write', dict(target='restored/notebook',key='content',value='本轮新写入'), group['recorder_id'])
         self.reopen()
         recovered = self.app.rpc('start_round', group_id='restored')
         self.assertEqual(recovered['notebook_snapshot'], initial['notebook_snapshot'])
@@ -46,7 +46,7 @@ class RevisionTests(unittest.TestCase):
                             testcase.assertEqual(len([o for o in observed if o[0] == 1]), 3)
                         barriers[n].wait(timeout=5)
                         if p['actor'] == group['recorder_id']:
-                            native.app.invoke(p['actor'], 'write_resident_text', dict(content=f'第{n}轮新笔记'))
+                            native.app.invoke(p['actor'], 'node_write', dict(target='parallel/notebook',key='content',value=f'第{n}轮新笔记'))
                             updated[n].set()
                         testcase.assertTrue(updated[n].wait(5))
                         texts = []

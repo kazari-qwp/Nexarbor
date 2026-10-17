@@ -189,7 +189,7 @@ const base=productRoot;
    const changed=await r.checkpoints.checkpoint();assert.ok(changed);assert.notEqual(changed.commit_id,original.commit_id);
    assert.deepEqual(changed.contexts,original.contexts,'real topology edits do not duplicate unchanged native positions');
    const bundle=await r.bridge.call('persistence_export',{point_id:changed.id});
-   assert.ok(bundle.document.network.nodes.find(n=>n.node_id==='world/npc/woodcutter').connections.read_interfaces.some(e=>e.target_node_id==='world/place/shop'));
+   assert.ok(bundle.document.network.nodes.find(n=>n.node_id==='world/npc/woodcutter').connections.interfaces.some(e=>e.target_node_id==='world/place/shop'));
    console.log('PASS topology-only checkpoint: immediate movement edges saved while every native log position stayed unchanged');
  }
  if(durable){

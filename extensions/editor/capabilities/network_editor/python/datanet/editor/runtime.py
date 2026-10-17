@@ -191,10 +191,11 @@ class Plugin(Component):
             if actor not in b.network.nodes: raise ValueError('节点尚未应用到运行网络')
             maximum = self.r.states.get(actor, {}).get('strength', strength)
             strength = min(strength, maximum)
-            paths = {}
-            for direction in ('read', 'write'):
-                paths[direction] = [dict(id=n.node_id, path=path, remaining=remaining)
-                                    for n, path, remaining in b.network.walk_states(actor, direction=direction, strength=strength)]
+            paths={}
+            channel_sets={('access.read',),('access.write',)}
+            channel_sets.update(tuple(spec['access_channels']) for node in b.network.nodes.values() for spec in node.tool_definitions.values())
+            for index,channels in enumerate(sorted(channel_sets)):
+                paths[str(index)]=[dict(id=n.node_id,path=path,remaining=remaining,channels=list(channels)) for n,path,remaining in b.network.walk_states(actor,channels=channels,strength=strength)]
             return dict(actor=actor, paths=paths, strength=strength, max_strength=maximum, tools=self.r.definitions(actor) if actor in self.r.states else [],
                         metadata=b.network.get_metadata(actor))
 

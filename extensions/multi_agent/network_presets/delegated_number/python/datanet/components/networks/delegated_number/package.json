@@ -4,7 +4,7 @@
   "id": "delegated_number",
   "description": "协调者与数字处理者组成的委托拼图。",
   "network": {
-    "version": 3,
+    "version": 6,
     "nodes": [
       {
         "type": "agent",
@@ -15,15 +15,19 @@
           "file_path": "root_memory.md"
         },
         "connections": {
-          "read_interfaces": [
+          "interfaces": [
             {
               "target_node_id": "worker",
-              "threshold": 0,
-              "visibility": "public",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "public",
+                "multiplier": 1
+              }
             }
-          ],
-          "write_interfaces": []
+          ]
         },
         "agent": {
           "package": "../../../../../../../nodes/agent_coordinator/python/datanet/components/agents/coordinator"
@@ -43,15 +47,19 @@
           "file_path": "worker_memory.md"
         },
         "connections": {
-          "read_interfaces": [
+          "interfaces": [
             {
               "target_node_id": "worker_data",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             }
-          ],
-          "write_interfaces": []
+          ]
         },
         "agent": {
           "package": "../../../../../../../nodes/agent_number_worker/python/datanet/components/agents/number_worker"
@@ -71,8 +79,7 @@
           "value": 42
         },
         "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
+          "interfaces": []
         },
         "agent": null,
         "description": "保存模拟数字42。",
@@ -92,7 +99,8 @@
         "source": "root",
         "target": "worker"
       }
-    ]
+    ],
+    "signals": {}
   },
   "entry_points": {
     "root": "root",

@@ -1,4 +1,4 @@
-"""按连接门槛与可见性访问；读取聚合，写入只命中指定目标。"""
+"""按频道、门槛与可见性访问；工具调用采用可信声明的频道。"""
 from datanet.core.node import NodeResult
 from datanet.core.interface import validate_strength, validate_signal
 from datanet.core.access_budget import current_access, access_context, active_agent
@@ -36,16 +36,16 @@ class Network:
         self.metadata_registry = registry
         for node in self.nodes.values():node._metadata_registry = registry
 
-    def walk(self, node_id, *, direction='read', strength=0, scope='network'):
-        for node, path, remaining in self.walk_states(node_id, direction=direction, strength=strength, scope=scope):
+    def walk(self, node_id, *, channels=('access.read',), strength=0, scope='network'):
+        for node, path, remaining in self.walk_states(node_id, channels=channels, strength=strength, scope=scope):
             yield (node, path)
 
-    def walk_states(self, node_id, *, direction='read', strength=0, scope='network'):
+    def walk_states(self, node_id, *, channels=('access.read',), strength=0, scope='network'):
         validate_strength(strength)
         if scope not in ('local', 'network'):
             raise ValueError('scope 必须为 local 或 network')
-        if direction not in ('read', 'write'):
-            raise ValueError('direction 必须为 read 或 write')
+        from .json_values import names
+        channels=names(channels,'channels')
         if not isinstance(node_id, str):
             raise TypeError('起点编号必须为字符串')
         if node_id not in self.nodes:
@@ -56,6 +56,7 @@ class Network:
             if node_id != frame['node_id']:
                 raise ValueError('嵌套访问必须从当前执行节点出发')
             strength = frame['strength']
+            if not set(channels)<=set(frame['channels']):raise ValueError('嵌套访问不能扩大访问频道')
         else:
             acting = active_agent.get()
             if acting is not None:
@@ -79,10 +80,10 @@ class Network:
             pending = {}
             for current, path, remaining in layer:
                 node = self.nodes[current]
-                for interface in getattr(node, direction + '_interfaces'):
+                for interface in node.interfaces:
                     if interface.target_node_id in visited:
                         continue
-                    if not interface.allows(origin_node_id=node_id, source_node_id=current, strength=remaining):
+                    if not interface.allows(origin_node_id=node_id, source_node_id=current, strength=remaining,channels=channels):
                         continue
                     target = self.nodes.get(interface.target_node_id)
                     if target is None:
@@ -97,7 +98,7 @@ class Network:
             for target_id, (total, path) in pending.items():
                 remaining = total + self.nodes[target_id].divergence
                 validate_signal(remaining)
-                layer.append((target_id, path, remaining))
+                if remaining>=0:layer.append((target_id,path,remaining))
 
     def read(self, node_id, request, scope='network', data_kind=None, *, strength=0):
         from datanet.core.read_request import validate_request
@@ -114,7 +115,7 @@ class Network:
             for node, path, remaining in self.walk_states(node_id, strength=strength, scope=scope):
                 if data_kind is not None and node.data_kind != data_kind:
                     continue
-                with access_context(self, node.node_id, remaining, path):
+                with access_context(self, node.node_id, remaining, path, channels=('access.read',)):
                     local = node.read(request)
                 if local is None:
                     continue
@@ -147,9 +148,9 @@ class Network:
         if node_id not in self.nodes or target_node_id not in self.nodes:
             return NodeResult(status='error', errors=['起点或目标节点不存在'])
         try:
-            for node, path, remaining in self.walk_states(node_id, direction='write', strength=strength, scope=scope):
+            for node, path, remaining in self.walk_states(node_id, channels=('access.write',), strength=strength, scope=scope):
                 if node.node_id == target_node_id:
-                    with access_context(self, node.node_id, remaining, path):
+                    with access_context(self, node.node_id, remaining, path, channels=('access.write',)):
                         result = node.write(key, value, mode=mode)
                     result.sources = [{**source, 'write_path': path.copy()} for source in result.sources]
                     return result

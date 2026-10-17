@@ -86,7 +86,7 @@ class EventTests(unittest.TestCase):
                 lin='world/npc/lin';yue='world/npc/yue'
                 presence(b,lin,address('civil_registry'));presence(b,yue,address('civil_registry'));begin(lin);begin(yue)
                 value=use(lin,node,'marry',dict(partner=yue))['items'][0]['result']
-                assert value==dict(waiting_for=yue) and not m.state['counts'] and not m.state['draws']
+                assert value.get('waiting_for')==yue and 'married' not in value and not m.state['counts'] and not m.state['draws'],value
                 value=use(yue,node,'marry',dict(partner=lin))['items'][0]['result']
                 assert value['married']==lin and len(value['events'])==1 and m.state['counts']==dict(flowers=1)
             finally:stop(app,b)

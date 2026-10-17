@@ -110,8 +110,7 @@ def attach_agent_creation_tools(network, owner, *, storage_dir, presets=None, al
                 target.agent_config = validate_config(config, folder)
                 assemble_agents(network, runtime_client, node_ids={target_node_id})
                 detached = copy(target)
-                detached.read_interfaces = []
-                detached.write_interfaces = []
+                detached.interfaces = []
                 detached.management_parent_id = None
                 fragment = Network()
                 fragment.add_node(detached)

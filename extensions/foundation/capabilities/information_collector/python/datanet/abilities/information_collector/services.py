@@ -21,7 +21,7 @@ class Collector(NodeModule):
                     visit=dict(origin=actor,path=list(path),hops=len(path)-1,remaining_strength=remaining)
                     access=collection_access.set(visit)
                     try:
-                        with access_context(self.backend.network,node.node_id,remaining,path):value=node.get_information(visit)
+                        with access_context(self.backend.network,node.node_id,remaining,path,channels=('access.read',)):value=node.get_information(visit)
                     finally:collection_access.reset(access)
                     if value:items.append(dict(**value,path=list(path),remaining_strength=remaining))
         finally:active_agent.reset(token)

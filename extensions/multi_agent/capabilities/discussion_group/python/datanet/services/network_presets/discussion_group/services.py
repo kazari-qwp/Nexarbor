@@ -102,7 +102,7 @@ def read_round(self, p):
     g = group(self, p['group_id'])
     if p['actor'] not in g['board'].members:
         raise PermissionError('Only discussion members may read round snapshots')
-    if not any((node.node_id == g['board'].node_id for node, _ in self.network.walk(p['actor'], direction='read', strength=p.get('strength', 2)))):
+    if not any((node.node_id == g['board'].node_id for node, _ in self.network.walk(p['actor'], channels=('access.read',), strength=p.get('strength', 2)))):
         raise PermissionError('Discussion board is not read-reachable')
     return g['board']._read_key('content')
 
@@ -116,7 +116,7 @@ def submit(self, p):
         raise ValueError('empty submission')
     if p.get('skip'):
         content = '[跳过] ' + content
-    if not any((node.node_id == g['board'].node_id for node, _ in self.network.walk(member, direction='write', strength=2))):
+    if not any((node.node_id == g['board'].node_id for node, _ in self.network.walk(member, channels=('access.write',), strength=2))):
         return NodeResult(status='forbidden', errors=['讨论黑板不在成员写入范围内'])
     result = g['board']._append_submission('content', f"\n## 第{g['round']}轮 · {member}\n{content}\n", mode='append')
     if result.status != 'ok':
@@ -250,7 +250,7 @@ def project_sources(backend, p):
             raise ValueError('project_nodes 必须为不重复的非空查询文本节点ID列表')
         if 'project' in p:
             raise ValueError('project_nodes 与 project 只选一种')
-        reachable = {n.node_id for n, _ in backend.network.walk(p.get('actor', 'root'), direction='read', strength=p.get('strength', 0))}
+        reachable = {n.node_id for n, _ in backend.network.walk(p.get('actor', 'root'), channels=('access.read',), strength=p.get('strength', 0))}
         for target in refs:
             node = backend.network.nodes.get(target)
             if not isinstance(node, TextFileNode) or node.delivery != 'query' or target not in reachable:
@@ -263,13 +263,12 @@ def project_sources(backend, p):
 def connect_project(backend, board, refs):
     old = board.project_id
     for node in backend.network.nodes.values():
-        for direction in ('read', 'write'):
-            attr = direction + '_interfaces'
+        for attr in ('interfaces',):
             setattr(node, attr, [edge for edge in getattr(node, attr) if edge.target_node_id != old])
     backend.network.nodes.pop(old)
     for actor in [board.node_id, *board.members]:
         node = backend.network.nodes[actor]
-        node.read_interfaces.extend((Interface(target, visibility='private') for target in refs))
+        node.interfaces.extend((Interface(target, metadata={'visibility': 'private', 'channels': ['access.read']}) for target in refs))
     board.project_ids = list(refs)
     board.project_id = refs[0]
 

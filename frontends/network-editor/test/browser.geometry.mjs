@@ -8,7 +8,7 @@ records.sort((a,b)=>b.mtime-a.mtime);const connection=JSON.parse(await fs.readFi
 const browser=await chromium.launch({channel:'msedge',headless:true});const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
 try{
  await page.goto(connection.url);await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
- await page.getByRole('group',{name:'连接频道显示'}).getByRole('button',{name:'普通连接',exact:true}).click();
+ for(const name of ['access.read','access.write'])await page.getByRole('group',{name:'连接频道显示'}).getByRole('button',{name,exact:true}).click();
  await page.locator('.react-flow__controls-fitview').click();
  const npc=page.locator('.react-flow__node[data-id="world/npc/alice"]'),time=page.locator('.react-flow__node[data-id="world/time"]');
  const before=await npc.boundingBox();expect(before.width).toBeCloseTo(before.height,0);
@@ -22,7 +22,10 @@ try{
  const wire=page.locator('.react-flow__edge[aria-label^="world/time → world/npc/alice"] [data-source-side]');
  await page.mouse.move(before.x+before.width/2,before.y+before.height/2);await page.mouse.down();await page.mouse.move(x,y,{steps:12});
  const during=await npc.boundingBox();expect(Math.hypot(during.x-before.x,during.y-before.y)).toBeGreaterThan(40);
- await expect(wire).toHaveAttribute('data-source-side','top');await page.mouse.up();
+ await expect(wire).toHaveAttribute('data-routing','preview');
+ // Waiting during a drag must never switch back to a temporary/basic route.
+ for(let i=0;i<4;i++){await page.mouse.move(x+i*3,y+i*2);await page.waitForTimeout(35);await expect(wire).toHaveAttribute('data-routing','preview');}
+ await page.mouse.up();await expect(wire).toHaveAttribute('data-routing','avoiding');await expect(wire).toHaveAttribute('data-source-side','top');
  await page.locator('.react-flow__pane').click({position:{x:12,y:16}});await expect(npc.locator('.node-details')).toHaveCSS('visibility','hidden');
  await expect(page.locator('.react-flow__edge-text')).toHaveCount(0);
  // Move an unrelated node into this wire: the reused router must reroute it.
@@ -44,6 +47,6 @@ try{
   }return hits;
  });expect(collisions).toEqual([]);
  await page.screenshot({path:path.join(run,'11-rounded-routing.png')});expect(errors).toEqual([]);
- await fs.writeFile(path.join(run,'geometry-verification.json'),JSON.stringify({passed:true,circularNodes:true,hoverExpandsAroundSameCenter:true,positionUpdatesBeforePointerUp:true,portsFollowDraggedPosition:true,labelsHiddenByDefault:true,renderedPathsAvoidUnrelatedNodes:true,modelApiCalls:0,errors},null,2));
+ await fs.writeFile(path.join(run,'geometry-verification.json'),JSON.stringify({passed:true,circularNodes:true,hoverExpandsAroundSameCenter:true,positionUpdatesBeforePointerUp:true,noFallbackFlashingDuringDrag:true,portsFollowDraggedPosition:true,labelsHiddenByDefault:true,renderedPathsAvoidUnrelatedNodes:true,modelApiCalls:0,errors},null,2));
  console.log('PASS circles, hover expansion, native continuous drag, port changes and obstacle-free rendered paths; no model calls');
 }catch(error){await page.screenshot({path:path.join(run,'geometry-failure.png')});console.error('Page errors:',errors);throw error;}finally{await browser.close();}

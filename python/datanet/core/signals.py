@@ -13,7 +13,6 @@ class Signal:
     strength:float
     content:object=None
     kind:str='request'
-    direction:str='write'
     signal_id:str=field(default_factory=lambda:uuid4().hex)
     parent_id:str|None=None
     sequence:int=0
@@ -32,7 +31,6 @@ class Signal:
         validate_strength(self.strength)
         object.__setattr__(self,'channels',names(self.channels,'channels',allow_empty=False))
         object.__setattr__(self,'content',freeze(self.content))
-        if self.direction not in ('read','write'):raise ValueError('Invalid signal direction')
         if type(self.close_loop) is not bool:raise ValueError('close_loop must be boolean')
         if self.failure_policy not in ('stop','continue'):raise ValueError('Invalid failure policy')
         for key,minimum in [('max_hops',0),('max_deliveries',1)]:

@@ -57,7 +57,7 @@ def run():
         network.nodes[board.project_id].write('content', '最小链路测试：所有五名成员每轮只调用submit_round(content="测试")，content必须恰好是两个汉字测试，不加角色、说明或标点，共两轮。不要跳过。Recorder在讨论结束后向最终成果节点写入成功，最后正文也只回复成功。')
     registry['discussion_group_storage'] = install_test
     prompt = directory / 'root_prompt.md'
-    prompt.write_text('你负责执行真实测试。先调用create_network，preset=group，instance_id=team，entry_point=board，with_agents=true。之后对返回的board入口调用list_tools，direction=write，strength=3；然后invoke_tool调用run_discussion，direction=write，strength=3，arguments包含rounds=2，task必须明确为：所有五名成员每轮调用submit_round(content="测试")，content必须恰好等于测试这两个汉字，不加其他内容，不跳过，共两轮；Recorder结束后向成果节点写入成功，并只回复成功。不要再额外委托成员。工具完成后只回复成功，若失败如实报告。', encoding='utf-8')
+    prompt.write_text('你负责执行真实测试。先调用create_network，preset=group，instance_id=team，entry_point=board，with_agents=true。之后对返回的board入口调用list_tools，strength=3；然后invoke_tool调用run_discussion，strength=3，arguments包含rounds=2，task必须明确为：所有五名成员每轮调用submit_round(content="测试")，content必须恰好等于测试这两个汉字，不加其他内容，不跳过，共两轮；Recorder结束后向成果节点写入成功，并只回复成功。不要再额外委托成员。工具完成后只回复成功，若失败如实报告。', encoding='utf-8')
     try:
         attach_node_creation_tools(network, root, storage_dir=directory / 'nodes', scope='descendants', network_presets={'group': group_path}, toolkits=registry)
         attach_agent_creation_tools(network, root, storage_dir=directory / 'agents', presets=presets, client=client, scope='descendants')

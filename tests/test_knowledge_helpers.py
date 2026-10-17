@@ -44,7 +44,7 @@ assert set(general['scope']['storage_types'])=={'wiki','csv','sqlite','rag'}
 assert app.invoke(general['node_id'],'kb_fetch',dict(id=page['id']))['id']==page['id']
 # Revoking a graph edge affects both direct reads and global searches.
 node=backend.network.nodes[worker]
-node.read_interfaces=[e for e in node.read_interfaces if e.target_node_id!=table['node_id']]
+node.interfaces=[e for e in node.interfaces if e.target_node_id!=table['node_id']]
 app.invoke(worker,'kb_create_node',dict(name='另一知识集合',storage='wiki'))
 try:app.invoke(worker,'kb_fetch',dict(id=raw['id']))
 except PermissionError:pass

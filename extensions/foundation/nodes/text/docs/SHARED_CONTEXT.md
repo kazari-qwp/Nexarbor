@@ -1,11 +1,9 @@
 # 共享文本
 
-query_text / resident_text 预设均保存 UTF-8 文本，读写连接负责授权，管理归属独立。
+`query_text` 是普通 UTF-8 文本加按需查询呈现。查询工具将正文作为历史文档加载；原生标记仍在时不重复加载，压缩后可重新查询。读取使用 access.read，写入使用 access.write；管理关系单独授权。
 
-查询文本：提供绑定查询工具，正文作为普通历史文档消息按需加载。仍保留时不重复加载，压缩后再次查询可重新加载。
+常驻内容、系统提示词和请求尾部由独立上下文装配器处理，不再提供 resident_text 节点或 write_resident_text 工具。根节点的 project、progress、work 仍使用查询文本。
 
-常驻文本：每次模型请求读取当前正文，附加到请求尾部。公共笔记标识为 `[公共笔记：小组ID/notebook](由recorder维护)`。Recorder 用 write_resident_text 维护，写入结果不回显正文。正文不进入历史或压缩摘要。
+讨论小组的公共笔记是有200字符上限的普通文本节点，只有 Recorder 获得写入频道，使用 node_write、target=笔记节点ID、key=content。讨论组件把轮初快照送入各成员请求尾部；当前轮内修改下一轮生效，避免并行成员依据不同笔记。项目和输出板是按需查询文本，详细内容不自动重复注入。
 
-根节点 project、progress、work 使用查询文本。讨论创建时用 project_nodes 引用多个已有查询文本；未提供时必须填写非空 project，自动生成查询文本。黑板 load_project 首次加载全部项目资料，成员之后按需查询。全部成员直接读取连接同一批资料和公共笔记。
-
-插件提供官方 rc.2 AgentLoop 的请求尾部扩展及对应 invariant。每次 datanet/request-tail 记录当次请求快照用于还原，没有 surfaceOp，不参与 deriveMessages。旧标准文档在检查点恢复时迁移到对应类型。
+四类输入及原生标记说明见 docs/CONTEXT_ASSEMBLY.md。当前存档格式不读取旧网络。

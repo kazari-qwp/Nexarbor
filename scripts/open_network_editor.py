@@ -4,7 +4,8 @@ import json
 from pathlib import Path
 import urllib.parse
 import urllib.request
-import webbrowser
+import subprocess
+import os
 
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
@@ -20,6 +21,8 @@ for file in files:
         request=urllib.request.Request(urllib.parse.urlunparse(url._replace(path='/api',fragment='')),data=b'{"operation":"state","params":{}}',headers={'Content-Type':'application/json','X-Nexarbor-Token':token},method='POST')
         result=json.load(urllib.request.urlopen(request,timeout=3))
         if 'value' not in result:continue
-        webbrowser.open(connection['url']);print('已打开本地网络工作台。');break
+        node_code="import {launchDesktopEditor} from './adapters/harness/framework/desktop-launcher.js';await launchDesktopEditor({connection_file:process.argv[1]});"
+        subprocess.run(['node','--input-type=module','-e',node_code,str(file.resolve())],cwd=ROOT,check=True)
+        print('已打开 Nexarbor 桌面工作台。');break
     except (OSError,ValueError,KeyError):continue
 else:raise SystemExit('没有找到运行中的工作台。先在 Harness 的编辑器工作区打开一份根会话，或用 --connection 指定启动记录。')

@@ -89,7 +89,7 @@ def wake(b, p):
     rows = records(b)
     ids = reachable(rows) if p.get('target') is None else reachable(rows, p['target'])
     # Waking a contact does not silently reconnect a detached fragment to root.
-    built = _build({'version': 3, 'nodes': list(rows.values()), 'delegations': []}, b.directory)
+    built = _build({'version':6,'signals':{},'nodes': list(rows.values()), 'delegations': []}, b.directory)
     for target in ids & b.lifecycle['archived'].keys():
         b.network.add_node(built.nodes[target])
         b.lifecycle['archived'].pop(target)
@@ -108,17 +108,11 @@ def wake(b, p):
 
 def remove_link(b, actor, args, options):
     node = resolve_managed(b.network, actor, args.get('node_id'), options.get('scope', 'self'))
-    direction = args.get('direction')
-    if direction not in ('read', 'write', 'both'):
-        raise ValueError('Direction required')
-    changes = []
-    for label in ('read', 'write') if direction == 'both' else (direction,):
-        links = getattr(node, label + '_interfaces')
-        index = args.get('interface_index')
-        candidates = [i for i, link in enumerate(links) if link.target_node_id == args['target_node_id'] and (index is None or i == index)]
-        if len(candidates) != 1:
-            raise ValueError('Interface absent or ambiguous; query indices')
-        changes.append((label, candidates[0], asdict(links[candidates[0]])))
+    changes=[]
+    links=node.interfaces;index=args.get('interface_index')
+    candidates=[i for i,link in enumerate(links) if link.target_node_id==args['target_node_id'] and (index is None or i==index)]
+    if len(candidates)!=1:raise ValueError('Interface absent or ambiguous; query indices')
+    changes.append(('interfaces',candidates[0],asdict(links[candidates[0]])))
     return node, changes
 
 
@@ -148,14 +142,14 @@ def interfaces(b, p):
     node, changes = remove_link(b, actor, args, options)
     simulated = deepcopy(rows)
     for label, index, edge in changes:
-        simulated[node.node_id]['connections'][label + '_interfaces'].pop(index)
+        simulated[node.node_id]['connections'][label].pop(index)
     detached = sorted(reachable(rows) - reachable(simulated))
     if detached and choice is None:
         token = str(uuid4())
         b.lifecycle['confirmations'][token] = dict(actor=actor, arguments=deepcopy(args), revision=graph_hash(rows))
         return {'status': 'ok', 'confirmation_id': token, 'awaiting_confirmation': True, 'entry_node_id': args['target_node_id'], 'node_count': len(detached), 'agent_count': sum(id in b.agents for id in detached), 'message': '拆除链接将导致一部分节点和网络与根节点断开连接。', 'choices': {'1': '取消拆除，保留该链接。', '2': '拆除链接，从内存释放并保存到磁盘，保留结构。', '3': '拆除链接并分解脱离部分，只保留 Agent 节点及其上下文、记忆文件，等待复用。'}}
     for label, index, edge in changes:
-        getattr(node, label + '_interfaces').pop(index)
+        getattr(node,label).pop(index)
     saved_id = str(uuid4()) if detached else None
     if detached:
         b.lifecycle['deferred'].append(dict(network_id=saved_id, ids=detached, choice=choice, entry=args['target_node_id'], owner=actor))
@@ -172,7 +166,7 @@ def decompose(b, p):
         binding = b.agents.get(target)
         if binding:
             row = rows[target]
-            row['connections'] = {'read_interfaces': [], 'write_interfaces': []}
+            row['connections'] = {'interfaces': []}
             row['management_parent_id'] = None
             write_record(b, row)
             if target in b.network.nodes:
@@ -183,14 +177,14 @@ def decompose(b, p):
             b.network.nodes.pop(target, None)
             b.lifecycle['archived'].pop(target, None)
     for node in b.network.nodes.values():
-        for label in ('read_interfaces', 'write_interfaces'):
+        for label in ('interfaces',):
             setattr(node, label, [edge for edge in getattr(node, label) if edge.target_node_id not in ids])
         if node.management_parent_id in ids:
             node.management_parent_id = None
     for row in archive_entries(b):
         if row['node_id'] in ids:
             continue
-        for label in ('read_interfaces', 'write_interfaces'):
+        for label in ('interfaces',):
             row['connections'][label] = [edge for edge in row['connections'][label] if edge['target_node_id'] not in ids]
         if row['management_parent_id'] in ids:
             row['management_parent_id'] = None
@@ -218,13 +212,13 @@ def claim(b, p):
     target = p['target']
     slot = b.network.nodes[target]
     row = next(row for row in archive_entries(b) if row['node_id'] == candidate)
-    node = _build({'version': 3, 'nodes': [row], 'delegations': []}, b.directory).nodes[candidate]
+    node = _build({'version':6,'signals':{},'nodes': [row], 'delegations': []}, b.directory).nodes[candidate]
     node.management_parent_id = slot.management_parent_id
-    node.read_interfaces, node.write_interfaces = slot.read_interfaces, slot.write_interfaces
+    node.interfaces = slot.interfaces
     b.network.nodes.pop(target)
     b.network.add_node(node)
     for other in b.network.nodes.values():
-        for links in (other.read_interfaces, other.write_interfaces):
+        for links in (other.interfaces,):
             links[:] = [replace(edge, target_node_id=candidate) if edge.target_node_id == target else edge for edge in links]
         if other.management_parent_id == target:
             other.management_parent_id = candidate
@@ -255,7 +249,7 @@ def archive(b, p):
     data = dict(nodes=[rows[target] for target in sorted(ids)], agents={target: b.agents[target] for target in sorted(ids & b.agents.keys())}, groups={key: {k: v for k, v in group.items() if k != 'board'} | {'board_id': group['board'].node_id} for key, group in getattr(b, 'groups', {}).items() if group['board'].node_id in ids})
     manifest['binary_files'] = []
     manifest['resources'] = []
-    decoded = _build({'version': 3, 'nodes': list(rows.values()), 'delegations': []}, b.directory)
+    decoded = _build({'version':6,'signals':{},'nodes': list(rows.values()), 'delegations': []}, b.directory)
     for target in sorted(ids - set(manifest['agent_ids'])):
         for _, label, source in resource_paths(decoded.nodes[target]):
             if not source.is_file():

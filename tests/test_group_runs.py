@@ -29,7 +29,7 @@ class GroupRunTests(unittest.TestCase):
                         native.app.invoke(actor, 'node_write', dict(target=turn['expected_output'], key='content', value=group['task'] + '成果'))
                         message = dict(id=str(uuid4()), role='assistant', content=[dict(type='text', text=group['task'] + '成果')])
                         native.messages.setdefault(actor, []).append(message)
-                        return dict(messages=[message], session_id=native.agents[actor]['session_id'])
+                        return dict(messages=[message], session_id=native.agents[actor]['session_id'],completion='completed')
                 return original(native, name, p)
 
         self.native.__class__ = Port

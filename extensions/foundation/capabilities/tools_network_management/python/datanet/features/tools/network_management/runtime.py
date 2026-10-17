@@ -141,7 +141,7 @@ class Plugin(Component):
     def tool_datanet_call_agent(self, actor, p):
         if self.r.backend.agents.get(p['target'], {}).get('kind') != 'generic':
             raise ValueError('Use discussion scheduling for discussion members')
-        if not self.r.rpc('check_access', actor=actor, target=p['target'], direction='read', strength=p.get('strength', self.r.state(actor)['strength']))['allowed']:
+        if not self.r.rpc('check_access', actor=actor, target=p['target'], channels=('access.read',), strength=p.get('strength', self.r.state(actor)['strength']))['allowed']:
             raise PermissionError('Target is outside permitted network path')
         queue = self.r.plugins.get('capabilities/agent_delegation')
         if queue:
@@ -195,8 +195,6 @@ class Plugin(Component):
         args = dict(p['arguments'], action=p['action'])
         if p['action'] != 'list' and not args.get('target_node_id') and not args.get('confirmation_id'):
             raise ValueError('target_node_id is required for add/update/remove')
-        if args.get('interface'):
-            args['interface'] = dict(threshold=0, multiplier=1, **args['interface'])
         options = self.r.state(actor)['grant']['framework'].get('datanet_interfaces', {})
         lifecycle = self.r.plugins.get('capabilities/agent_lifecycle')
         if lifecycle and p['action'] == 'remove':
@@ -214,9 +212,6 @@ class Plugin(Component):
             raise PermissionError('Custom node configuration is disabled')
         if not p['node_spec'].get('preset'):
             p['node_spec'] = {'parameters': {}, **p['node_spec']}
-        for direction in ('read', 'write'):
-            if p.get(direction + '_interface'):
-                p[direction + '_interface'] = {'threshold': 0, 'multiplier': 1, **p[direction + '_interface']}
         result = self.r.rpc('create_node', actor=actor, options=options, **p)
         self.r.emit('graph/changed', actor=actor)
         return result
@@ -230,12 +225,10 @@ class Plugin(Component):
         structure = result.get('structure', result.get('items', [{}])[0].get('structure'))
         if structure:
             compact = dict(management='\n'.join(n['management_parent_id'] + ' → ' + n['node_id'] for n in structure['nodes'] if n['management_parent_id']))
-            for direction in ('read', 'write'):
-                rows = {}
-                for edge in structure['attachment_interfaces'] + structure['interfaces']:
-                    if edge['direction'] == direction:
-                        rows.setdefault(edge['source_node_id'], []).append(edge['target_node_id'])
-                compact[direction] = '\n'.join(source + ' → ' + ', '.join(dict.fromkeys(targets)) for source, targets in rows.items())
+            rows={}
+            for edge in structure['attachment_interfaces']+structure['interfaces']:
+                rows.setdefault(edge['source_node_id'],[]).append(edge['target_node_id'])
+            compact['interfaces']='\n'.join(source+' → '+', '.join(dict.fromkeys(targets)) for source,targets in rows.items())
             if 'structure' in result:
                 result['structure'] = compact
             else:

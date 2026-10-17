@@ -19,11 +19,10 @@ def ensure_network(backend):
     new_collections=[]
     for id,name in [('knowledge','知识库'),('knowledge/data','知识数据区'),('knowledge/sources','原始资料区')]:
         if id not in backend.network.nodes:
-            node=Node(id,name,None);node.management_parent_id='root';backend.network.add_node(node)
+            node=Node(id,name,None,divergence=0);node.management_parent_id='root';backend.network.add_node(node)
     for source,target in [('root','knowledge'),('knowledge','knowledge/data'),('knowledge','knowledge/sources')]:
         node=backend.network.nodes[source]
-        if not any(e.target_node_id==target for e in node.read_interfaces):node.read_interfaces.append(Interface(target))
-        if not any(e.target_node_id==target for e in node.write_interfaces):node.write_interfaces.append(Interface(target))
+        node.connect(target,channels=('access.read','access.write'))
     for collection in store.catalog(limit=1000):
         if collection['node_id'] not in backend.network.nodes:
             node=CollectionNode(collection['node_id'],collection['name'],collection['storage'],store.directory,collection['id'])
@@ -32,8 +31,7 @@ def ensure_network(backend):
             new_collections.append(collection)
         else:backend.network.nodes[collection['node_id']]._store=store
         parent=backend.network.nodes['knowledge/data']
-        if not any(e.target_node_id==collection['node_id'] for e in parent.read_interfaces):parent.read_interfaces.append(Interface(collection['node_id']))
-        if not any(e.target_node_id==collection['node_id'] for e in parent.write_interfaces):parent.write_interfaces.append(Interface(collection['node_id']))
+        parent.connect(collection['node_id'],channels=('access.read','access.write'))
     connect_workers(backend, new_collections)
     return store
 
@@ -62,15 +60,12 @@ def connect_workers(backend, collections=None):
         for collection in backend.knowledge.catalog(limit=1000) if collections is None else collections:
             for direction in ('read', 'write'):
                 if collection['storage'] in grant[direction]:
-                    edges = getattr(node, direction + '_interfaces')
-                    if not any(e.target_node_id == collection['node_id'] for e in edges):
-                        edges.append(Interface(collection['node_id'], visibility='private'))
+                    node.connect(collection['node_id'],channels=('access.'+direction,),visibility='private')
 
 
 def reachable(backend, actor, node_id, mutation=False):
     strength = backend.agents.get(actor, {}).get('maxStrength', 2)
-    return any(n.node_id == node_id for n, _ in backend.network.walk(actor,
-               direction='write' if mutation else 'read', strength=strength))
+    return any(n.node_id == node_id for n, _ in backend.network.walk(actor, channels=('access.write',) if mutation else ('access.read',), strength=strength))
 
 
 def authorize(backend, p, mutation=False, collection=None, storage=None):

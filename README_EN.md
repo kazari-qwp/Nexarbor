@@ -51,7 +51,7 @@ Nexarbor represents data, agents, and callable capabilities as nodes. Directed c
 | Foundation | Purpose |
 |---|---|
 | Nodes and a shared access protocol | Consistent interfaces for describing, reading, writing, and discovering tools across data types |
-| Directed connections and access control | Separate read/write paths with thresholds, visibility rules, and signal budgets |
+| Directed connections and access control | Channel-scoped capability paths with thresholds, visibility rules, and signal budgets |
 | Management relationships and Agent identity | Agent nodes own independent memory; management and data-access relationships are represented separately |
 | Serialization and checkpoints | Persist network structure, node configuration, and state for continued work and recovery |
 | Component manifests and dependency assembly | Add, enable, disable, or replace capabilities while retaining persisted data |
@@ -134,7 +134,6 @@ This example makes no model calls:
 
 ```python
 from datanet.core.network import Network
-from datanet.core.interface import Interface
 from datanet.core.node import Node
 from datanet.core.text_node import TextFileNode
 from datanet.core.agent_node import AgentNode
@@ -143,7 +142,7 @@ network = Network()
 source = Node("source", "Access origin", None)
 data = TextFileNode("data", "Text data", "text", "data.md")
 data.write("content", "Hello, Nexarbor", mode="upsert")
-source.read_interfaces.append(Interface("data", visibility="public"))
+source.connect("data", channels=["access.read"], visibility="public")
 network.add_node(source)
 network.add_node(data)
 network.add_node(AgentNode("worker", "Agent", file_path="worker-memory.md"))
@@ -228,3 +227,5 @@ Issues and pull requests on protocols, independent components, presets, and appl
 ## License
 
 A project license has not yet been selected. A future `LICENSE` file will define the project's terms. Third-party hosts, dependencies, and materials remain subject to their own licenses.
+
+See the [desktop workbench guide](docs/NETWORK_EDITOR.md) and [channel authorization model](docs/CHANNEL_ACCESS.md). The current network format is v6; older saves are rejected.

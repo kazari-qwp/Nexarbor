@@ -310,7 +310,7 @@ class Plugin(Component):
         if p['action'] == 'status':
             return self.call('status', actor, group)
         # Control requires write reachability as well as read reachability.
-        if not self.r.rpc('check_access', actor=actor, target=group['entry_points']['board'], direction='write', strength=self.r.state(actor)['strength'])['allowed']:
+        if not self.r.rpc('check_access', actor=actor, target=group['entry_points']['board'], channels=('access.write',), strength=self.r.state(actor)['strength'])['allowed']:
             raise PermissionError('小组不在调用者写入范围内')
         if p['action'] == 'stop':
             self.call('status', actor, group)

@@ -28,7 +28,7 @@ export function planPorts(nodes,edges){
     const buckets=new Map();
     for(const item of items){
       const metadata=item.edge.metadata??{};
-      const key=JSON.stringify([item.end,item.edge.direction,Object.keys(metadata).sort().map(k=>[k,k==='channels'?[...metadata[k]].sort():metadata[k]])]);
+      const key=JSON.stringify([item.end,Object.keys(metadata).sort().map(k=>[k,k==='channels'?[...metadata[k]].sort():metadata[k]])]);
       const bucket=buckets.get(key)??[];bucket.push(item);buckets.set(key,bucket);
     }
     const step=Math.min(.22,1.2/Math.max(1,buckets.size-1));
@@ -37,7 +37,7 @@ export function planPorts(nodes,edges){
       const base={right:0,bottom:Math.PI/2,left:Math.PI,top:-Math.PI/2}[item.side];
       const offset=(index-(buckets.size-1)/2)*step;
       const angle=base+((item.side==='left'||item.side==='bottom')?-offset:offset);
-      const point={x:item.box.cx+Math.cos(angle)*item.box.width/2,y:item.box.cy+Math.sin(angle)*item.box.height/2,side:item.side,portId:JSON.stringify([item.box.id,item.side,item.end,item.edge.direction,item.edge.metadata])};
+      const point={x:item.box.cx+Math.cos(angle)*item.box.width/2,y:item.box.cy+Math.sin(angle)*item.box.height/2,side:item.side,portId:JSON.stringify([item.box.id,item.side,item.end,item.edge.metadata])};
       for(const member of bucket)plans.get(member.edge.id)[member.end]=point;
     });
   }
@@ -86,4 +86,27 @@ export function circularEndpoint(point,side,node){
   }
   const offset=Math.max(-1,Math.min(1,(point.x-b.cx)/(b.width/2)));
   return {x:point.x,y:b.cy+(side==='south'?1:-1)*b.height/2*Math.sqrt(1-offset*offset)};
+}
+
+// Preserve the settled trunk while a node is dragged. Only orthogonal terminal
+// legs follow the pointer; obstacle routing runs once after the drag ends.
+export function previewRoute(route,start,end){
+  const old=[route.sourcePoint,...route.bendPoints,route.targetPoint];
+  let body=old.slice(1,-1);
+  if(!body.length){
+    const a=old[0],b=old.at(-1);
+    body=(route.sourceSide==='east'||route.sourceSide==='west')?
+      [{x:(a.x+b.x)/2,y:a.y},{x:(a.x+b.x)/2,y:b.y}]:
+      [{x:a.x,y:(a.y+b.y)/2},{x:b.x,y:(a.y+b.y)/2}];
+  }
+  const terminal=(point,join,side)=>{
+    if(side==='east'||side==='west'){
+      const x=side==='east'?Math.max(point.x+20,join.x):Math.min(point.x-20,join.x);
+      return [point,{x,y:point.y},{x,y:join.y},join];
+    }
+    const y=side==='south'?Math.max(point.y+20,join.y):Math.min(point.y-20,join.y);
+    return [point,{x:point.x,y},{x:join.x,y},join];
+  };
+  return [...terminal(start,body[0],route.sourceSide),...body.slice(1,-1),...terminal(end,body.at(-1),route.targetSide).reverse()]
+    .filter((p,i,points)=>!i||p.x!==points[i-1].x||p.y!==points[i-1].y);
 }

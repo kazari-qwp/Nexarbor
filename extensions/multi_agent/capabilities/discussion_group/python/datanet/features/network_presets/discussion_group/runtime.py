@@ -23,9 +23,17 @@ class Plugin(Component):
             stage = '讨论已结束；当前阶段：成果汇总。' if turn.get('final') else f"当前轮数：{turn['round']}/{turn['total']}。"
             e['texts'].append('[讨论状态：' + e['actor'] + ']\n' + stage + f"\n当前请求次数：{turn['count']}/10。")
         if turn.get('active') and not turn.get('final'):
-            for text in turn.get('resident_snapshot', []):
-                label = text.split('\n', 1)[0]
-                e['texts'][:] = [text if item.split('\n', 1)[0] == label else item for item in e['texts']]
+            e['texts'].extend(turn.get('resident_snapshot', []))
+        else:
+            # Notebook snapshots belong to the discussion component, not to a
+            # special text node delivery mode. Channel checks still apply.
+            from datanet.services.nodes.text.services import label
+            for group in self.r.backend.groups.values():
+                board=group['board']
+                if e['actor'] not in board.members:continue
+                result=self.r.backend.dispatch('read',dict(actor=e['actor'],target=board.notebook_id,request=dict(method='key',key='content'),strength=self.r.state(e['actor'])['strength']))
+                if result.status=='ok' and result.items:
+                    e['texts'].append(label(self.r.backend.network.nodes[board.notebook_id])+'\n'+result.items[0]['content'])
 
     def before_create(self, e):
         if e['arguments']['preset'] == 'discussion_group' and e['arguments'].get('with_agents') is not False:
@@ -169,7 +177,7 @@ class Plugin(Component):
 
     def tool_datanet_discuss(self, actor, p):
         group_id = p['group_id']
-        if not self.r.rpc('check_access', actor=actor, target=group_id + '/board', direction='write', strength=self.r.state(actor)['strength'])['allowed']:
+        if not self.r.rpc('check_access', actor=actor, target=group_id + '/board', channels=('access.write',), strength=self.r.state(actor)['strength'])['allowed']:
             raise PermissionError('Target is outside permitted network path')
         self.r.load(actor, 'preset:discussion_group', self.r.resource(self.id, 'AGENTS.md'))
         with self.lock:

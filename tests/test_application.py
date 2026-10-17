@@ -39,6 +39,8 @@ class NativePort:
         if name == 'create':
             self.agents[actor] = dict(session_id=p['binding']['session_id'], status='idle', options=p['binding']['agentOptions'])
             return self.agents[actor]
+        if name == 'input-message':
+            return {'queued':True}
         if name == 'make-message':
             return dict(id=str(uuid4()), role='user', content=[dict(type='text', text=p['text'])])
         if name == 'steer':
@@ -62,7 +64,7 @@ class NativePort:
                 self.app.invoke(actor, 'submit_round', dict(content='测试'))
             message = dict(id=str(uuid4()), role='assistant', content=[dict(type='text', text='完成')])
             self.messages.setdefault(actor, []).append(message)
-            return dict(messages=[message], session_id=self.agents[actor]['session_id'])
+            return dict(messages=[message], session_id=self.agents[actor]['session_id'],completion='completed')
         raise AssertionError(name)
 
 
@@ -141,7 +143,7 @@ class ApplicationTests(unittest.TestCase):
         with self.assertRaises(PermissionError):
             self.invoke('datanet_send_message', dict(target='root', content='主动消息'), member)
         recorder = group['recorder_id']
-        self.invoke('write_resident_text', dict(content='简短笔记'), recorder)
+        self.invoke('node_write', dict(target=self.backend.groups[group['group_id']]['board'].notebook_id,key='content',value='简短笔记'), recorder)
         payload = dict(actor=member, texts=[])
         for owner, handler in self.app.listeners['context/tail']:
             handler(payload)

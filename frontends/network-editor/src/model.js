@@ -1,9 +1,6 @@
 export const clone=value=>structuredClone(value);
 export function edgesOf(document){
-  return document.network.nodes.flatMap(node=>Object.entries(node.connections).flatMap(([direction,links])=>links.map((link,index)=>({
-    id:`${node.node_id}|${direction}|${index}`,source:node.node_id,target:link.target_node_id,
-    direction:direction==='read_interfaces'?'read':'write',index,metadata:link.metadata,
-  }))));
+  return document.network.nodes.flatMap(node=>node.connections.interfaces.map((link,index)=>({id:`${node.node_id}|${index}`,source:node.node_id,target:link.target_node_id,index,metadata:link.metadata})));
 }
 export function nodeKind(node){
   if(node.modules['world.resident'])return '居民';
@@ -29,7 +26,7 @@ export function layoutNodes(document,saved={}){
   return document.network.nodes.map(node=>{
     const kind=nodeKind(node);
     if(kind==='文本'){positions[node.node_id]={x:(documentIndex%5)*270,y:(documentRow+Math.floor(documentIndex/5))*115};documentIndex++;}
-    return {id:node.node_id,type:'network',position:saved[node.node_id]??positions[node.node_id],data:{node,kind}};
+    return {id:node.node_id,type:'network',width:92,height:92,position:saved[node.node_id]??positions[node.node_id],data:{node,kind}};
   });
 }
 export function removeNode(document,id){
@@ -43,14 +40,15 @@ export function removeNode(document,id){
 }
 const edgeChannels=edge=>edge.metadata.channels.length?edge.metadata.channels:[null];
 export const connectionChannels=edges=>[...new Set(edges.flatMap(edgeChannels))];
-export function filterGraph(nodes,edges,{query='',kinds=null,channels=null,local=null,direction='both'}){
+export function filterGraph(nodes,edges,{query='',kinds=null,channels=null,local=null}){
   const reached=local?new Set([local.actor,...Object.values(local.paths).flat().map(x=>x.id)]):null;
-  const selectedEdges=edges.filter(e=>(direction==='both'||e.direction===direction)&&(channels===null||edgeChannels(e).some(c=>channels.includes(c))));
+  const selectedEdges=edges.filter(e=>(channels===null||edgeChannels(e).some(c=>channels.includes(c))));
   const restrictedChannels=channels!==null&&(!channels.length||!connectionChannels(edges).every(c=>channels.includes(c)));
   const channelNodes=restrictedChannels?new Set(selectedEdges.flatMap(e=>[e.source,e.target])):null;
   const visible=nodes.filter(n=>(kinds===null||kinds.includes(n.data.kind))&&(!query||`${n.id} ${n.data.node.name}`.toLowerCase().includes(query.toLowerCase()))&&(!reached||reached.has(n.id))&&(!channelNodes||channelNodes.has(n.id)));
-  const traversed=local?new Set(Object.entries(local.paths).flatMap(([d,paths])=>paths.flatMap(p=>p.path.slice(1).map((id,i)=>`${d}|${p.path[i]}|${id}`)))):null;
-  const ids=new Set(visible.map(n=>n.id));return {nodes:visible,edges:selectedEdges.filter(e=>ids.has(e.source)&&ids.has(e.target)&&(!traversed||traversed.has(`${e.direction}|${e.source}|${e.target}`)))};
+  const traversed=local?new Map():null;
+  if(local)for(const item of Object.values(local.paths).flat())for(let i=1;i<item.path.length;i++){const pair=`${item.path[i-1]}|${item.path[i]}`,grants=traversed.get(pair)??new Set();for(const channel of item.channels)grants.add(channel);traversed.set(pair,grants);}
+  const ids=new Set(visible.map(n=>n.id));return {nodes:visible,edges:selectedEdges.filter(e=>ids.has(e.source)&&ids.has(e.target)&&(!traversed||((e.metadata.visibility!=='private'||e.source===local.actor)&&e.metadata.channels.some(c=>traversed.get(`${e.source}|${e.target}`)?.has(c)))))};
 }
 
 // Newly visible items rise above existing ones, including re-enabled filters.

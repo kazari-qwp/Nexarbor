@@ -41,10 +41,10 @@ class Interface:
         if isinstance(self.metadata,dict):object.__setattr__(self,'metadata',InterfaceMetadata(**self.metadata))
         if not isinstance(self.metadata,InterfaceMetadata):raise TypeError('metadata must be InterfaceMetadata or an object')
 
-    def allows(self,*,origin_node_id,source_node_id,strength):
+    def allows(self,*,origin_node_id,source_node_id,strength,channels):
         validate_signal(strength)
         m=self.metadata
-        return strength>=m.threshold and (m.visibility=='public' or origin_node_id==source_node_id)
+        return strength>=m.threshold and bool(set(channels).intersection(m.channels)) and (m.visibility=='public' or origin_node_id==source_node_id)
 
     def carries(self,channels,*,strength):
         validate_signal(strength)

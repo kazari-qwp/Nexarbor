@@ -28,11 +28,11 @@ class Plugin(Component):
         if name == 'network_structure':
             options = self.r.state(actor)['grant']['framework'][name]
             maximum = options.get('max_depth', 100)
-            return self.r.rpc(name, actor=actor, direction=p.get('direction', 'read'), depth=p.get('depth', maximum), max_depth=maximum, inspect_private=options.get('inspect_private', False))
-        if name == 'node_invoke' and (p['target'], p.get('direction', 'read'), p['tool']) not in self.discovered.get(actor, set()):
+            return self.r.rpc(name, actor=actor, channels=p.get('channels', ['access.read','access.write']), depth=p.get('depth', maximum), max_depth=maximum, inspect_private=options.get('inspect_private', False))
+        if name == 'node_invoke' and (p['target'],p['tool']) not in self.discovered.get(actor, set()):
             raise PermissionError('Discover the exposed node tool first')
         result = self.r.rpc(methods[name], actor=actor, **p)
-        if name == 'node_invoke':self.r.emit('node/tool-invoked',actor=actor,target=p['target'],tool=p['tool'],direction=p.get('direction','read'),result=result)
+        if name == 'node_invoke':self.r.emit('node/tool-invoked',actor=actor,target=p['target'],tool=p['tool'],result=result)
         if name == 'node_list':
             for item in result.get('items', []):
                 item['has_agent'] = item['node_id'] in self.r.states
@@ -41,5 +41,5 @@ class Plugin(Component):
                 return '该节点并未有向你开放的工具'
             discovered = self.discovered.setdefault(actor, set())
             for item in result['items']:
-                discovered.add((p['target'], p.get('direction', 'read'), item['name']))
+                discovered.add((p['target'],item['name']))
         return result

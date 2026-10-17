@@ -40,7 +40,7 @@ class Resident(ActionModule):
 
 def look(b,p):
     actor=p['actor'];m=person(b,actor);a=m.state;address=instance(b,a['place'],'world.address')
-    adjacent=[e.target_node_id for e in address.node.read_interfaces if e.target_node_id in b.network.nodes and 'world.address' in b.network.nodes[e.target_node_id].modules]
+    adjacent=[e.target_node_id for e in address.node.interfaces if e.target_node_id in b.network.nodes and 'world.address' in b.network.nodes[e.target_node_id].modules]
     return dict(clock=date(max(0,tick(b))),action_budget=instance(b,actor,'action.budget').status(period=tick(b)),self={k:deepcopy(a[k]) for k in ('name','gender','role','coins','stamina','inventory','spouse','children')},
       location=dict(id=a['place'],name=address.node.name,service=address.config['service']),neighbors=[dict(id=k,name=b.network.nodes[k].name) for k in adjacent],
       people=[dict(id=k,name=v.state['name']) for k,v in residents(b).items() if k!=actor and v.state['place']==a['place']],

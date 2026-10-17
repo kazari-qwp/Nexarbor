@@ -1,10 +1,10 @@
 # 核心信号、频道响应器与脉冲节点
 
-当前网络格式为 **v5**。旧v3/v4网络和检查点直接拒绝，不做兼容转换。第一、第二应用尚未迁移；当前验证覆盖新核心、共享组件与NPC最小链路。
+当前网络格式为 **v6**，连接统一保存为 `connections.interfaces`。旧v3/v4/v5网络和检查点直接拒绝。三个应用的源码预设均已同步；访问授权见[频道与工具访问](CHANNEL_ACCESS.md)。
 
 ## 核心只负责传播
 
-`Signal` 是不可变JSON值，携带来源、频道集合、内容、强度、方向、编号、父编号、序号、闭环标记、失败策略及执行预算。已删除 `NodeFilter`、`PermissionRequirement` 和 `activation`。
+`Signal` 是不可变JSON值，携带来源、频道集合、内容、强度、编号、父编号、序号、闭环标记、失败策略及执行预算。已删除 `NodeFilter`、`PermissionRequirement` 和 `activation`。
 
 ```python
 signal = Signal('source', ['world.tick', 'notice'], 3,

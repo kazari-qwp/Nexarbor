@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'adapters/harness/backend'))
+os.environ['DATANET_COMPONENT_ROOT']=str(Path(__file__).resolve().parents[1]/'extensions/multi_agent')
 from server import Backend
 from datanet.core.storage_paths import storage_path
 from datanet.workspace.git import Workspace

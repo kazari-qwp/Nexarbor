@@ -57,7 +57,7 @@ assert fetched['evidence']==dict(node_id=c['node_id'],locator=target['id'],versi
 app.invoke(helper,'task_document_write',dict(content='Checked target',sources=[fetched['evidence']]))
 hit=app.invoke(helper,'kb_search',dict(query='Unstructured',collection=c['id']))['items'][0]
 assert hit['entry']['wiki_link']=='[['+target['id']+']]' and hit['entry']['read']['version']==1
-node=backend.network.nodes[helper];node.read_interfaces=[e for e in node.read_interfaces if e.target_node_id!=c['node_id']]
+node=backend.network.nodes[helper];node.interfaces=[e for e in node.interfaces if e.target_node_id!=c['node_id']]
 try:app.invoke(helper,'kb_fetch',read)
 except PermissionError:pass
 else:raise AssertionError('Previously read link granted permission after revocation')

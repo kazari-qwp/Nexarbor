@@ -32,7 +32,7 @@ class Operator(NodeModule):
             # Finite operator selection controls signal recipients; no per-round action store.
             with self.backend._transaction_lock:
                 clock=self.backend.network.nodes[self.config['clock']]
-                clock.write_interfaces=[Interface(t,{'threshold':1,'channels':self.config['channels']}) for t in targets]
+                clock.interfaces=[Interface(t, {'threshold': 1, 'channels': self.config['channels']}) for t in targets]
                 self.backend.dispatch('save',{})
             if not self.loop:
                 self.loop=asyncio.new_event_loop();self.thread=Thread(target=self.loop.run_forever,name='scene-signals',daemon=True);self.thread.start()

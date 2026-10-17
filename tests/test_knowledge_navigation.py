@@ -94,7 +94,7 @@ record=app.invoke('root','kb_store',dict(collection=collection['id'],content='# 
 helper=app.invoke('root','datanet_spawn_helper',dict(components=['wiki']))
 actor=helper['node_id']
 assert app.invoke(actor,'kb_fetch',dict(id=record['id'],view='outline'))['outline']
-node=backend.network.nodes[actor];node.read_interfaces=[e for e in node.read_interfaces if e.target_node_id!=collection['node_id']]
+node=backend.network.nodes[actor];node.interfaces=[e for e in node.interfaces if e.target_node_id!=collection['node_id']]
 for view,args in [('outline',{}),('section',{'section_id':'L1'}),('window',{'start_line':1})]:
     try:app.invoke(actor,'kb_fetch',dict(id=record['id'],view=view,**args))
     except PermissionError:pass

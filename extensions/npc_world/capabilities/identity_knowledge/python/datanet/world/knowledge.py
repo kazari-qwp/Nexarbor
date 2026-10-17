@@ -13,9 +13,9 @@ class Knowledge(NodeModule):
         return result
     def sync(self):
         b=self.backend;assembly=b.network.nodes[self.config['context']]
-        for node in (self.node,assembly):node.read_interfaces[:]=[e for e in node.read_interfaces if not e.metadata.attributes.get('identity_knowledge')]
+        for node in (self.node,assembly):node.interfaces[:]=[e for e in node.interfaces if not e.metadata.attributes.get('identity_knowledge')]
         for spec in self.matched():
-            for node in (self.node,assembly):node.read_interfaces.append(Interface(spec['node_id'],{'threshold':1,'visibility':'private','attributes':{'identity_knowledge':True}}))
+            for node in (self.node,assembly):node.interfaces.append(Interface(spec['node_id'], {'threshold': 1, 'visibility': 'private', 'attributes': {'identity_knowledge': True}, 'channels': ['access.read']}))
     def references(self):return [dict(node_id=s['node_id'],name=s['name'],delivery=s['delivery']) for s in self.matched()]
     def bind(self,r):
         self.sync()
@@ -28,7 +28,7 @@ class Knowledge(NodeModule):
     def unmount(self):
         for node_id in (self.node.node_id,self.config['context']):
             node=self.backend.network.nodes[node_id]
-            node.read_interfaces[:]=[e for e in node.read_interfaces if not e.metadata.attributes.get('identity_knowledge')]
+            node.interfaces[:]=[e for e in node.interfaces if not e.metadata.attributes.get('identity_knowledge')]
         super().unmount()
 
 def register(s):s.node_module('world.knowledge',Knowledge)

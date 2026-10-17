@@ -51,7 +51,7 @@ flowchart TB
 | 基础能力 | 作用 |
 |---|---|
 | 节点与统一访问协议 | 不同数据类型提供一致的描述、读取、写入与工具发现入口 |
-| 定向连接与访问控制 | 分别组织读写路径，通过连接门槛、可见性与访问预算控制传播范围 |
+| 定向连接与访问控制 | 用频道组织能力路径，通过连接门槛、可见性与访问预算控制范围 |
 | 管理关系与Agent身份 | Agent节点绑定独立记忆，管理关系与数据连接分别表达职责和访问 |
 | 状态、序列化与检查点 | 保存网络结构、节点配置和运行状态，为恢复与持续任务提供基础 |
 | 组件清单与依赖装配 | 独立添加、启用、停用和替换能力，保留持久数据 |
@@ -127,7 +127,6 @@ $env:PYTHONPATH = (Join-Path (Get-Location) "python")
 
 ```python
 from datanet.core.network import Network
-from datanet.core.interface import Interface
 from datanet.core.node import Node
 from datanet.core.text_node import TextFileNode
 from datanet.core.agent_node import AgentNode
@@ -136,7 +135,7 @@ network = Network()
 source = Node("source", "访问起点", None)
 data = TextFileNode("data", "数据节点", "text", "data.md")
 data.write("content", "你好，织林", mode="upsert")
-source.read_interfaces.append(Interface("data", visibility="public"))
+source.connect("data", channels=["access.read"], visibility="public")
 network.add_node(source)
 network.add_node(data)
 network.add_node(AgentNode("worker", "Agent", file_path="worker-memory.md"))
@@ -219,3 +218,5 @@ Pop-Location
 ## 许可证
 
 项目许可证尚未确定，后续以仓库提供的 `LICENSE` 为准。第三方宿主、依赖与相关材料遵循各自许可证。
+
+桌面工作台的启动、图编辑与会话操作见[客户端指南](docs/NETWORK_EDITOR.md)，统一权限模型见[频道授权](docs/CHANNEL_ACCESS.md)。当前网络格式为 v6，旧存档不兼容。

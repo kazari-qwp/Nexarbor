@@ -6,7 +6,7 @@
 独立 Agent 包：backend/host_configs/project_root/agent/package.json 和 prompt.md。
 网络包旁的 project.md、progress.md、work.md 是实例初始文本模板。
 
-网络采用已有 kind=network/version=1 配置包，内部为 JSON v3 节点和接口。root 是入口节点，引用 project_root Agent 包，连接 root/project、root/progress、root/work 三个文本节点；读写接口均为 private、threshold=0、multiplier=1。工作子节点和子网络在任务执行中挂到根节点上，不在初始配置中硬编码。
+网络采用已有 kind=network/version=1 配置包，内部为 JSON v6 节点和接口。root 是入口节点，引用 project_root Agent 包，连接 root/project、root/progress、root/work 三个文本节点；接口为 private、threshold=0、multiplier=1，频道为 access.read 和 access.write。工作子节点和子网络在任务执行中挂到根节点上，不在初始配置中硬编码。
 
 ## 加载与权限
 

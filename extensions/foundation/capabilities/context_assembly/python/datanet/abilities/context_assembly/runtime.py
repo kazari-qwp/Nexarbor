@@ -22,7 +22,7 @@ class Plugin(Component):
     def configure(self,node_id,sources,document_roots=()):return self.r.rpc('context_assembly_configure',actor='root',node_id=node_id,sources=sources,document_roots=list(document_roots))
     def bind(self,actor,node_id):return self.r.rpc('context_assembly_bind',actor='root',target=actor,node_id=node_id)
     def allowed(self,owner,target,strength):
-        return any(e.target_node_id==target and e.allows(origin_node_id=owner,source_node_id=owner,strength=strength) for e in self.r.backend.network.nodes[owner].read_interfaces)
+        return any(e.target_node_id==target and e.allows(origin_node_id=owner,source_node_id=owner,strength=strength,channels=('access.read',)) for e in self.r.backend.network.nodes[owner].interfaces)
     def read(self,node_id,spec,config,strength):
         source=spec['source'];kind=source['type']
         if kind=='text':return source['text']

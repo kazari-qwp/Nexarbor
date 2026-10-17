@@ -9,7 +9,7 @@ from datanet.components.nodes.value_node import ValueNode
 def main():
     root = Node('root', '项目入口', None)
     note = ValueNode(node_id='project_note', name='项目说明', data_kind='text', value='本项目使用模拟实验数据。')
-    root.read_interfaces.append(Interface(note.node_id, threshold=0))
+    root.interfaces.append(Interface(note.node_id, metadata={'threshold': 0, 'channels': ['access.read']}))
     network = Network()
     network.add_node(root)
     network.add_node(note)

@@ -161,6 +161,10 @@ class Backend:
     def _dispatch_transaction(self, method, p):
         if self.failed:
             raise RuntimeError('Checkpoint failed; restart before further operations')
+        if method in {'network_structure','list_nodes','list_tools','invoke_tool','check_access'} and 'direction' in p:
+            raise ValueError('direction 已移除；连接统一采用频道授权')
+        if method in {'list_tools','invoke_tool'} and 'channels' in p:
+            raise ValueError('工具访问频道由可信工具声明决定')
         mutation = method in self.components.mutations or method in {'write', 'invoke_tool', 'save', 'bind_agent', 'agent_progress', 'agent_inputs_update', 'agent_inputs_ack', 'network_initialize'}
         if not mutation:
             return self._dispatch(method, p)
@@ -188,36 +192,26 @@ class Backend:
         options = {} if options is None else options
         attach_node_creation_tools(self.network, owner, storage_dir=self.directory / 'created', presets=self.components.node_presets, scope=options.get('scope', 'descendants'), allow_custom=options.get('allow_custom', False), network_presets=self.components.network_presets, toolkits=self.components.toolkits(self))
 
-    def reachable_structure(self, actor, direction='read', depth=2, max_depth=100, inspect_private=False):
-        if direction not in ('read', 'write', 'both'):
-            raise ValueError('Invalid direction')
-        if type(depth) is not int or type(max_depth) is not int or max_depth < 1 or (not 0 <= depth <= max_depth):
-            raise ValueError('Invalid scan depth')
-        if type(inspect_private) is not bool:
-            raise ValueError('Invalid topology grant')
-        result = {'origin': actor, 'depth': depth}
-        for label in ('read', 'write') if direction == 'both' else (direction,):
-            layer, reached, edges, level = ([actor], {actor}, {}, 0)
-            while layer and (depth == max_depth or level < depth):
-                following = []
-                for source in layer:
-                    targets = []
-                    for link in getattr(self.network.nodes[source], label + '_interfaces'):
-                        if link.metadata.visibility == 'private' and source != actor and (not inspect_private):
-                            continue
-                        target = link.target_node_id
-                        if target not in self.network.nodes:
-                            continue
-                        if target not in targets:
-                            targets.append(target)
-                        if target not in reached:
-                            reached.add(target)
-                            following.append(target)
-                    if targets:
-                        edges[source] = targets
-                layer, level = (following, level + 1)
-            result[label] = '\n'.join((source + ' → ' + ', '.join(targets) for source, targets in edges.items())) or actor
-        return result
+    def reachable_structure(self,actor,channels=('access.read','access.write'),depth=2,max_depth=100,inspect_private=False):
+        from .json_values import names
+        channels=names(channels,'channels')
+        if type(depth) is not int or type(max_depth) is not int or max_depth<1 or not 0<=depth<=max_depth:raise ValueError('Invalid scan depth')
+        if type(inspect_private) is not bool:raise ValueError('Invalid topology grant')
+        layer,reached,edges,level=[actor],{actor},{},0
+        while layer and (depth==max_depth or level<depth):
+            following=[]
+            for source in layer:
+                targets=[]
+                for link in self.network.nodes[source].interfaces:
+                    if not set(channels).intersection(link.metadata.channels):continue
+                    if link.metadata.visibility=='private' and source!=actor and not inspect_private:continue
+                    target=link.target_node_id
+                    if target not in self.network.nodes:continue
+                    if target not in targets:targets.append(target)
+                    if target not in reached:reached.add(target);following.append(target)
+                if targets:edges[source]=targets
+            layer,level=following,level+1
+        return dict(origin=actor,depth=depth,channels=list(channels),interfaces='\n'.join(source+' → '+', '.join(targets) for source,targets in edges.items()) or actor)
 
     def created_structure(self, report):
         """Describe only the newly created fragment and its attachment; no stored data."""
@@ -227,13 +221,12 @@ class Backend:
         for local_id, node_id in ids.items():
             node = self.network.nodes[node_id]
             nodes.append({'local_id': local_id, **node.get_metadata(), 'type': type(node).__name__, 'exposed_tools': list(node.expose)})
-            for direction in ('read', 'write'):
-                for index, link in enumerate(getattr(node, direction + '_interfaces')):
-                    interfaces.append({'source_node_id': node_id, 'direction': direction, 'interface_index': index, **asdict(link)})
+            for index,link in enumerate(node.interfaces):
+                interfaces.append({'source_node_id':node_id,'interface_index':index,**asdict(link)})
         parent_id = report['parent_node_id']
         parent = self.network.nodes[parent_id]
         created_ids = set(ids.values())
-        attachment = [{'source_node_id': parent_id, 'direction': direction, 'interface_index': index, **asdict(link)} for direction in ('read', 'write') for index, link in enumerate(getattr(parent, direction + '_interfaces')) if link.target_node_id in created_ids]
+        attachment = [{'source_node_id':parent_id,'interface_index':index,**asdict(link)} for index,link in enumerate(parent.interfaces) if link.target_node_id in created_ids]
         return {'node_ids': ids, 'entry_points': report['entry_points'], 'parent_node_id': parent_id, 'nodes': nodes, 'interfaces': interfaces, 'attachment_interfaces': attachment}
 
     def _dispatch(self, method, p):
@@ -297,28 +290,28 @@ class Backend:
             if p['target'] != owner.node_id:
                 if scope == 'self':
                     return {'allowed': False}
-                if scope == 'children' and (not any((x.target_node_id == p['target'] for x in owner.read_interfaces))):
+                if scope == 'children' and (not any((x.target_node_id == p['target'] for x in owner.interfaces))):
                     return {'allowed': False}
-            return {'allowed': any((node.node_id == p['target'] for node, _ in self.network.walk(owner.node_id, direction='read', strength=p['strength'])))}
+            return {'allowed': any((node.node_id == p['target'] for node, _ in self.network.walk(owner.node_id, channels=('access.read',), strength=p['strength'])))}
         if method == 'check_access':
-            return {'allowed': any((node.node_id == p['target'] for node, _ in self.network.walk(p['actor'], direction=p.get('direction', 'read'), strength=p.get('strength', 2))))}
+            return {'allowed': any((node.node_id == p['target'] for node, _ in self.network.walk(p['actor'], channels=p.get('channels',('access.read','access.write')), strength=p.get('strength', 2))))}
         if method == 'ping':
             return {'ok': True, 'core': 'datanet', 'nodes': len(self.network.nodes)}
         if method == 'network_structure':
-            return self.reachable_structure(p['actor'], p.get('direction', 'read'), p.get('depth', 2), p.get('max_depth', 100), p.get('inspect_private', False))
+            return self.reachable_structure(p['actor'], p.get('channels',('access.read','access.write')), p.get('depth', 2), p.get('max_depth', 100), p.get('inspect_private', False))
         if method == 'list_nodes':
-            return list_nodes(self.network, p['actor'], strength=p.get('strength', 2))
+            return list_nodes(self.network,p['actor'],strength=p.get('strength',2),channels=p.get('channels',('access.read','access.write')))
         if method == 'list_tools':
-            return list_tools(self.network, p['actor'], p['target'], strength=p.get('strength', 2), direction=p.get('direction', 'read'))
+            return list_tools(self.network, p['actor'], p['target'], strength=p.get('strength', 2))
         if method == 'invoke_tool':
-            return invoke_tool(self.network, p['actor'], p['target'], p['tool'], p.get('arguments', {}), strength=p.get('strength', 2), direction=p.get('direction', 'read'))
+            return invoke_tool(self.network, p['actor'], p['target'], p['tool'], p.get('arguments', {}), strength=p.get('strength', 2))
         if method == 'read':
             if p.get('target'):
                 from datanet.core.access_budget import access_context
                 from datanet.core.node import NodeResult
                 for node, path, remaining in self.network.walk_states(p['actor'], strength=p.get('strength', 2), scope=p.get('scope', 'network')):
                     if node.node_id == p['target']:
-                        with access_context(self.network, node.node_id, remaining, path):
+                        with access_context(self.network,node.node_id,remaining,path,channels=('access.read',)):
                             return node.read(p['request'])
                 return NodeResult(status='forbidden', errors=['Target is not readable from origin'])
             return self.network.read(p['actor'], p.get('request', {'method': 'key', 'key': 'content'}), strength=p.get('strength', 2), scope=p.get('scope', 'network'))

@@ -1,5 +1,5 @@
 from datanet.core.component_registry import codecs, codec_for_node
-'JSON v5：节点、连接、Agent 创建配置和显式委托许可。'
+'JSON v6：节点、连接、Agent 创建配置和显式委托许可。'
 import json
 import math
 import os
@@ -11,7 +11,7 @@ from dataclasses import asdict
 from datanet.core.network import Network
 from datanet.core.node import Node
 from datanet.core.execution import encode_execution, decode_execution
-LINKS = ('read_interfaces', 'write_interfaces')
+LINKS = ('interfaces',)
 
 def _string(value, label):
     if not isinstance(value, str) or not value:
@@ -73,7 +73,7 @@ def network_document(network: Network, base: str | Path) -> dict:
         entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'modules': node.modules, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding, 'inputs': node.inputs.snapshot() if hasattr(node,'inputs') else getattr(node,'_saved_inputs',None)})
     if getattr(network, 'archived_entries', None):
         entries.extend(network.archived_entries())
-    document = {'version': 5, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
+    document = {'version': 6, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
     _build(document, path.parent)
     return document
 
@@ -97,7 +97,7 @@ def _fields(value, expected, label):
         raise ValueError(f"{label} 字段必须为：{', '.join(expected)}")
 
 def _build(document, base):
-    if not isinstance(document, dict) or type(document.get('version')) is not int or document['version'] != 5:
+    if not isinstance(document, dict) or type(document.get('version')) is not int or document['version'] != 6:
         raise ValueError('不支持的网络配置版本')
     _fields(document, ('version', 'nodes', 'delegations', 'signals'), '网络配置')
     if not isinstance(document['nodes'], list):

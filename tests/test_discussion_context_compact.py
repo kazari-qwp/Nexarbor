@@ -30,9 +30,9 @@ class DiscussionContextTests(unittest.TestCase):
     def test_public_note_limit_rejects_overflow_and_append_without_changes(self):
         self.group();b=self.backend.groups['discussion']['board'];node=self.backend.network.nodes[b.notebook_id]
         self.assertEqual(node.max_chars,200)
-        result=self.invoke('write_resident_text',dict(content='字'*200),b.recorder_id)
+        result=self.invoke('node_write',dict(target=b.notebook_id,key='content',value='字'*200),b.recorder_id)
         self.assertEqual(result['status'],'ok')
-        for tool,p in [('write_resident_text',dict(content='字'*201)),('write_resident_text',dict(content='字',mode='append')),('node_write',dict(target=b.notebook_id,key='content',value='字'*201))]:
+        for tool,p in [('node_write',dict(target=b.notebook_id,key='content',value='字'*201)),('node_write',dict(target=b.notebook_id,key='content',value='字',mode='append'))]:
             with self.assertRaises(RuntimeError) as failure:
                 self.invoke(tool,p,b.recorder_id)
             self.assertIn('201',str(failure.exception))

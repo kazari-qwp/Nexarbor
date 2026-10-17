@@ -4,7 +4,7 @@
   "id": "discussion_group",
   "description": "讨论小组：一个讨论小组，默认只有讨论工具，无终端等其他工具。适合讨论和指定方案。",
   "network": {
-    "version": 3,
+    "version": 6,
     "nodes": [
       {
         "type": "discussion_board",
@@ -27,45 +27,74 @@
           "output_id": "output"
         },
         "connections": {
-          "read_interfaces": [
+          "interfaces": [
             {
               "target_node_id": "project",
-              "threshold": 0,
-              "visibility": "public",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "public",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "notebook",
-              "threshold": 0,
-              "visibility": "public",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "public",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "output",
-              "threshold": 0,
-              "visibility": "public",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "public",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "leader",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "recorder",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "member_1",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             }
-          ],
-          "write_interfaces": []
+          ]
         },
         "agent": null,
         "toolboxes": [
@@ -89,8 +118,7 @@
           "delivery": "query"
         },
         "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
+          "interfaces": []
         },
         "agent": null,
         "toolboxes": [
@@ -112,12 +140,11 @@
         "divergence": -1,
         "parameters": {
           "file_path": "data/notebook.md",
-          "delivery": "resident",
+          "delivery": "plain",
           "max_chars": 200
         },
         "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
+          "interfaces": []
         },
         "agent": null,
         "toolboxes": [
@@ -141,8 +168,7 @@
           "delivery": "query"
         },
         "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
+          "interfaces": []
         },
         "agent": null,
         "toolboxes": [
@@ -166,38 +192,51 @@
           "file_path": "data/leader_memory.md"
         },
         "connections": {
-          "read_interfaces": [
+          "interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read",
+                  "access.write"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "project",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "notebook",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "output",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            }
-          ],
-          "write_interfaces": [
-            {
-              "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             }
           ]
         },
@@ -219,50 +258,53 @@
           "file_path": "data/recorder_memory.md"
         },
         "connections": {
-          "read_interfaces": [
+          "interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read",
+                  "access.write"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "project",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "notebook",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read",
+                  "access.write"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "output",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            }
-          ],
-          "write_interfaces": [
-            {
-              "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "notebook",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            },
-            {
-              "target_node_id": "output",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read",
+                  "access.write"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             }
           ]
         },
@@ -284,38 +326,51 @@
           "file_path": "data/member_1_memory.md"
         },
         "connections": {
-          "read_interfaces": [
+          "interfaces": [
             {
               "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read",
+                  "access.write"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "project",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "notebook",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "output",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
-            }
-          ],
-          "write_interfaces": [
-            {
-              "target_node_id": "board",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             }
           ]
         },
@@ -340,7 +395,8 @@
         "source": "board",
         "target": "member_1"
       }
-    ]
+    ],
+    "signals": {}
   },
   "entry_points": {
     "board": "board",

@@ -4,7 +4,7 @@
   "id": "decentralized_group",
   "description": "去中心化的项目小组，用类似github协作的方式完成项目方案，默认具有相关工具来提交代码和自己测试。适合并行完成项目目标。最好是拥有详细方案或者初始框架后再下达任务。",
   "network": {
-    "version": 3,
+    "version": 6,
     "nodes": [
       {
         "data_kind": null,
@@ -19,33 +19,52 @@
         "type": "node",
         "parameters": {},
         "connections": {
-          "read_interfaces": [
+          "interfaces": [
             {
               "target_node_id": "project",
-              "threshold": 0,
-              "visibility": "public",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "public",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "findings",
-              "threshold": 0,
-              "visibility": "public",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "public",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "output",
-              "threshold": 0,
-              "visibility": "public",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "public",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "worker_1",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             }
-          ],
-          "write_interfaces": []
+          ]
         }
       },
       {
@@ -69,8 +88,7 @@
           "delivery": "query"
         },
         "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
+          "interfaces": []
         }
       },
       {
@@ -94,8 +112,7 @@
           "delivery": "query"
         },
         "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
+          "interfaces": []
         }
       },
       {
@@ -119,8 +136,7 @@
           "delivery": "query"
         },
         "connections": {
-          "read_interfaces": [],
-          "write_interfaces": []
+          "interfaces": []
         }
       },
       {
@@ -138,31 +154,46 @@
           "file_path": "data/worker_1_memory.md"
         },
         "connections": {
-          "read_interfaces": [
+          "interfaces": [
             {
               "target_node_id": "project",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "findings",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             },
             {
               "target_node_id": "output",
-              "threshold": 0,
-              "visibility": "private",
-              "multiplier": 1
+              "metadata": {
+                "channels": [
+                  "access.read"
+                ],
+                "threshold": 0,
+                "visibility": "private",
+                "multiplier": 1
+              }
             }
-          ],
-          "write_interfaces": []
+          ]
         }
       }
     ],
-    "delegations": []
+    "delegations": [],
+    "signals": {}
   },
   "entry_points": {
     "board": "board",

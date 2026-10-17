@@ -40,7 +40,7 @@ class DiscussionBoardNode(TextFileNode):
     def load_project(self):
         documents = []
         for target in self.project_ids:
-            if not any((n.node_id == target for n, _ in self._network.walk(self.node_id, direction='read', strength=0))):
+            if not any((n.node_id == target for n, _ in self._network.walk(self.node_id, channels=('access.read',), strength=1))):
                 return NodeResult(status='forbidden', errors=['项目资料读取连接已断开'])
             result = self._network.nodes[target].read({'method': 'key', 'key': 'content'})
             if result.status != 'ok':
@@ -69,7 +69,7 @@ class DiscussionBoardNode(TextFileNode):
         if not isinstance(content, str) or (not skip and (not content.strip())):
             return NodeResult(status='error', errors=['提交发言不能为空'])
         text = ('[跳过本轮] ' if skip else '') + content
-        if not any((node.node_id == self.node_id for node, _, _ in self._network.walk_states(member, direction='write', strength=2))):
+        if not any((node.node_id == self.node_id for node, _, _ in self._network.walk_states(member, channels=('access.write',), strength=2))):
             return NodeResult(status='forbidden', errors=['讨论黑板不在成员写入范围内'])
         result = self._append_submission('content', f'\n## 第{self.current_round}轮 · {member}\n{text}\n', mode='append')
         if result.status == 'ok':

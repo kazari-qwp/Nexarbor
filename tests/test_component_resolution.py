@@ -22,7 +22,7 @@ class ComponentResolutionTests(unittest.TestCase):
         self.isolated("""
 import sys
 from datanet.core.component_registry import codecs, enabled_components
-assert set(codecs()) == {'node', 'agent', 'text_file', 'csv'}
+assert set(codecs()) == {'node', 'agent', 'text_file', 'pulse', 'csv'}
 assert enabled_components() == {'nodes/csv', 'capabilities/csv'}
 assert not any(x.startswith('datanet.features') or 'llamaindex_node' in x for x in sys.modules)
 """, ['nodes/csv'])
@@ -35,7 +35,7 @@ from datanet.core.application import Application
 with tempfile.TemporaryDirectory() as folder:
     b=Backend(folder)
     app=Application(b, lambda op,p: {'ok':True}, {})
-    assert set(app.plugins)=={'capabilities/agent_runtime'}
+    assert set(app.plugins)=={'capabilities/agent_runtime','capabilities/context_assembly'}
     assert not app.tools and not app.boxes
     assert 'create_network' not in b.components.routes
     assert 'ensure_agent_node' in b.components.routes

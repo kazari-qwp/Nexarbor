@@ -4,7 +4,7 @@ TEXT_PRESETS={'query_text':{'type':'text_file','name':'查询文本','data_kind'
 def label(node):return '['+node.name+'：'+node.node_id+']'+('('+node.description+')' if node.description else '')
 def bindings(backend,p):
     owner=backend.network.nodes[p['actor']]
-    targets={e.target_node_id for e in owner.read_interfaces if e.allows(origin_node_id=owner.node_id,source_node_id=owner.node_id,strength=p.get('strength',0))}
+    targets={e.target_node_id for e in owner.interfaces if e.allows(origin_node_id=owner.node_id,source_node_id=owner.node_id,strength=p.get('strength',0),channels=('access.read',))}
     return [backend.network.nodes[x] for x in sorted(targets) if type(backend.network.nodes[x]) is TextFileNode and backend.network.nodes[x].delivery=='query']
 def dispatch(backend,method,p):
     if method=='text_bindings':return {'read':[dict(node_id=n.node_id,name=n.name,description=n.description,delivery=n.delivery,label=label(n)) for n in bindings(backend,p)]}

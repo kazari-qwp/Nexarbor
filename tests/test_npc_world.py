@@ -34,9 +34,8 @@ class WorldPort(Port):
         return result
 
 def use(actor,target,tool,args=None,read=False):
-    direction='read' if read else 'write'
     assembly=instance(b,actor,'tools.assembly')
-    def find():return next((k for k,v in assembly.aliases.items() if v['target']==target and v['tool']==tool and v['direction']==direction),None)
+    def find():return next((k for k,v in assembly.aliases.items() if v['target']==target and v['tool']==tool and v['spec']['read_only']==read),None)
     name=find()
     if name is None:assembly.assemble();name=find()
     if name is None:raise PermissionError('No direct entry in current access scope')
@@ -85,7 +84,7 @@ class WorldTests(unittest.TestCase):
                 assert b.network.nodes[old].file_path!=b.network.nodes[new].file_path
                 assert new in instance(b,business('home2'),'world.household').state['residents']
                 assert instance(b,new,'input.opening').config!=instance(b,old,'input.opening').config
-                assert new in [e.target_node_id for e in b.network.nodes[address('mine')].read_interfaces]
+                assert new in [e.target_node_id for e in b.network.nodes[address('mine')].interfaces]
             finally:stop(app,b)
         """)
 
@@ -186,7 +185,7 @@ class WorldTests(unittest.TestCase):
                 assert person(b,actor).state['place']==address('smithy')
                 assert business('smithy') in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
                 assert business('mine') not in {n.node_id for n,_ in b.network.walk(actor,strength=2)}
-                assert 'world/npc/smith' in [e.target_node_id for e in b.network.nodes[address('smithy')].read_interfaces]
+                assert 'world/npc/smith' in [e.target_node_id for e in b.network.nodes[address('smithy')].interfaces]
                 repaired=use(actor,business('smithy'),'repair',dict(item='pickaxe'))
                 assert repaired['items'][0]['result']['action_budget']['remaining']==6
                 assert not port.conclusions
@@ -322,7 +321,7 @@ class WorldTests(unittest.TestCase):
                 clock(b).state['tick']=pregnancy['due_tick'];begin(yue,'due')
                 use(yue,business('hospital'),'birth');child=pregnancy['child']
                 assert child in residents(b) and child not in port.calls
-                assert child not in [e.target_node_id for e in b.network.nodes['world/time'].write_interfaces]
+                assert child not in [e.target_node_id for e in b.network.nodes['world/time'].interfaces]
                 assert child in instance(b,business('home1'),'world.household').state['residents']
                 assert person(b,child).state['parents']==[lin,yue]
                 app.event(yue,'context/prepare',{})
@@ -363,8 +362,8 @@ class WorldTests(unittest.TestCase):
                 assert not matcher.assemble(actor)['sources']
                 assert not b.network.nodes[actor].inputs.snapshot()['context-assembly:'+actor+'/context']['tail']
                 b.modules.mount(actor+'/context','context.sources',**saved)
-                assert 'world/time' not in [e.target_node_id for e in b.network.nodes[actor].read_interfaces]
-                assert 'world/time' in [e.target_node_id for e in b.network.nodes[actor+'/context'].read_interfaces]
+                assert 'world/time' not in [e.target_node_id for e in b.network.nodes[actor].interfaces]
+                assert 'world/time' in [e.target_node_id for e in b.network.nodes[actor+'/context'].interfaces]
                 port.actions[actor]=(business('forest'),'chop',{})
                 app.invoke('root','world_run_npc',dict(target=actor));assert app.state(actor)['prompt']==stable
                 app.invoke(actor,'datanet_memory_write',dict(content='记住树林'))

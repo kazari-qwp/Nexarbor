@@ -49,7 +49,7 @@ def create_network(self, p):
     attach_node_creation_tools(self.network, owner, storage_dir=self.directory / 'created', presets=self.components.node_presets,
                                scope=options.get('scope', 'descendants'), allow_custom=options.get('allow_custom', False),
                                network_presets=packages, toolkits=self.components.toolkits(self))
-    result = owner.invoke_tool('create_network', preset=preset, instance_id=p['instance_id'], entry_point=p.get('entry_point', handler.get('entry_point', 'root')), with_agents=False, parent_node_id=p.get('parent_node_id'), strength=p.get('strength', 0), read_interface=p.get('read_interface'), write_interface=p.get('write_interface'))
+    result = owner.invoke_tool('create_network', preset=preset, instance_id=p['instance_id'], entry_point=p.get('entry_point', handler.get('entry_point', 'root')), with_agents=False, parent_node_id=p.get('parent_node_id'), strength=p.get('strength', 0), interface=p.get('interface'))
     if result.status != 'ok':
         return result
     if 'finalize' in handler:

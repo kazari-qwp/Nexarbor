@@ -27,14 +27,23 @@ class Node:
         self.agent_config: dict | None = None
         self.execution_binding: dict | None = None
         self.management_parent_id: str | None = None
-        self.read_interfaces: list[Interface] = []
-        self.write_interfaces: list[Interface] = []
+        self.interfaces: list[Interface] = []
         self.tools: dict[str, Callable[..., Any]] = {}
         self.tool_definitions: dict[str, dict] = {}
         self.modules: dict = {}
         self.toolboxes: list[str] = []
         self.expose: list[str] = []
         self.agent_tool_definitions: dict[str, dict] = {}
+
+    def connect(self,target,*,channels,visibility='public',threshold=0,multiplier=1,attributes=None):
+        """Grant channels, merging only equal target/routing metadata."""
+        from dataclasses import replace
+        edge=Interface(target,dict(channels=channels,visibility=visibility,threshold=threshold,multiplier=multiplier,attributes=attributes or {}))
+        for index,existing in enumerate(self.interfaces):
+            if existing.target_node_id==target and replace(existing.metadata,channels=())==replace(edge.metadata,channels=()):
+                combined=replace(existing,metadata=replace(existing.metadata,channels=tuple(dict.fromkeys(existing.metadata.channels+edge.metadata.channels))))
+                self.interfaces[index]=combined;return combined
+        self.interfaces.append(edge);return edge
 
     def register_agent_tool(self, name, function, *, description, parameters):
         if not isinstance(name, str) or not name or (not callable(function)):
@@ -49,8 +58,8 @@ class Node:
         if self.agent is not None:
             self.agent.tool_definitions = [d for d in self.agent.tool_definitions if d['function']['name'] != name] + [deepcopy(definition)]
 
-    def register_tool(self, name: str, function: Callable[..., Any], *, description: str, parameters: dict, read_only: bool=False) -> None:
-        """应用显式声明可发现的能力；未声明只读的工具不能通过读连接调用。"""
+    def register_tool(self, name: str, function: Callable[..., Any], *, description: str, parameters: dict, read_only: bool=False, access_channels=None) -> None:
+        """应用声明能力与访问频道；框架根据声明授权，调用者不能覆盖频道。"""
         if not isinstance(name, str) or not name or (not callable(function)):
             raise ValueError('工具名称必须非空，工具必须可调用')
         if name in self.agent_tool_definitions:
@@ -60,7 +69,9 @@ class Node:
         if not isinstance(parameters, dict) or parameters.get('type') != 'object':
             raise ValueError('工具参数定义必须为 object')
         self.tools[name] = function
-        self.tool_definitions[name] = {'name': name, 'description': description, 'parameters': deepcopy(parameters), 'read_only': read_only}
+        from .json_values import names
+        channels=names(access_channels if access_channels is not None else ('access.read',) if read_only else ('access.write',),'access_channels',allow_empty=False)
+        self.tool_definitions[name] = {'name': name, 'description': description, 'parameters': deepcopy(parameters), 'read_only': read_only, 'access_channels': list(channels)}
 
     def get_schema(self) -> dict | None:
         return None

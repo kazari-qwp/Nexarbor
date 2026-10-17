@@ -150,15 +150,6 @@
             "node_id": {
               "type": "string"
             },
-            "direction": {
-              "type": "string",
-              "enum": [
-                "read",
-                "write",
-                "both"
-              ],
-              "description": "both 用于同时拆除目标的读写链接。"
-            },
             "target_node_id": {
               "type": "string",
               "description": "add/update/remove必填；即便提供interface_index也须填写，用来核验目标。"
@@ -166,27 +157,91 @@
             "interface": {
               "type": "object",
               "properties": {
-                "visibility": {
-                  "type": "string",
-                  "enum": [
-                    "private",
-                    "public"
-                  ]
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "visibility": {
+                      "type": "string",
+                      "enum": [
+                        "public",
+                        "private"
+                      ],
+                      "default": "public"
+                    },
+                    "threshold": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "default": 0
+                    },
+                    "multiplier": {
+                      "type": "number",
+                      "minimum": 0,
+                      "default": 1
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "uniqueItems": true,
+                      "default": []
+                    },
+                    "attributes": {
+                      "type": "object"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
+              "required": [
+                "metadata"
+              ],
               "additionalProperties": false
             },
             "changes": {
               "type": "object",
               "properties": {
-                "visibility": {
-                  "type": "string",
-                  "enum": [
-                    "private",
-                    "public"
-                  ]
+                "metadata": {
+                  "type": "object",
+                  "properties": {
+                    "visibility": {
+                      "type": "string",
+                      "enum": [
+                        "public",
+                        "private"
+                      ],
+                      "default": "public"
+                    },
+                    "threshold": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "default": 0
+                    },
+                    "multiplier": {
+                      "type": "number",
+                      "minimum": 0,
+                      "default": 1
+                    },
+                    "channels": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "uniqueItems": true,
+                      "default": []
+                    },
+                    "attributes": {
+                      "type": "object"
+                    }
+                  },
+                  "additionalProperties": false
                 }
               },
+              "required": [
+                "metadata"
+              ],
               "additionalProperties": false
             },
             "interface_index": {
@@ -230,30 +285,49 @@
         "parent_node_id": {
           "type": "string"
         },
-        "read_interface": {
+        "interface": {
           "type": "object",
           "properties": {
-            "visibility": {
-              "type": "string",
-              "enum": [
-                "private",
-                "public"
-              ]
+            "metadata": {
+              "type": "object",
+              "properties": {
+                "visibility": {
+                  "type": "string",
+                  "enum": [
+                    "public",
+                    "private"
+                  ],
+                  "default": "public"
+                },
+                "threshold": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "default": 0
+                },
+                "multiplier": {
+                  "type": "number",
+                  "minimum": 0,
+                  "default": 1
+                },
+                "channels": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "uniqueItems": true,
+                  "default": []
+                },
+                "attributes": {
+                  "type": "object"
+                }
+              },
+              "additionalProperties": false
             }
           },
-          "additionalProperties": false
-        },
-        "write_interface": {
-          "type": "object",
-          "properties": {
-            "visibility": {
-              "type": "string",
-              "enum": [
-                "private",
-                "public"
-              ]
-            }
-          },
+          "required": [
+            "metadata"
+          ],
           "additionalProperties": false
         }
       },

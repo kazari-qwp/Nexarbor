@@ -30,7 +30,7 @@ export async function createAdapter(ctx,config={}){
   if(config.editor?.enabled)registerEditorLauncher(ctx,async sessionId=>{
     if(starting.has(sessionId))await starting.get(sessionId);
     for(const [rootId,runtime] of runtimes){
-      if(rootId===sessionId||[...runtime.sessions.values()].some(entry=>entry.handle.agent.id===sessionId))return {url:runtime.editor.url};
+      if(rootId===sessionId||[...runtime.sessions.values()].some(entry=>entry.handle.agent.id===sessionId))return {url:runtime.editor.url,connection_file:path.join(runtime.directory,'editor-connection.json')};
     }
     throw new Error('此会话尚未连接工作台，请在编辑器工作区打开根会话');
   });

@@ -9,7 +9,7 @@ from datanet.core.node import Node
 from datanet.core.text_node import TextFileNode
 from datanet.core.interface import Interface
 
-def connect(b,source,target):b.network.nodes[source].read_interfaces.append(Interface(target,dict(visibility='private',threshold=1)))
+def connect(b,source,target):b.network.nodes[source].interfaces.append(Interface(target,dict(visibility='private',threshold=1,channels=['access.read'])))
 def setup(b,port):
     app=Application(b,port,{});app.bind_session('root-session');b.agents['root']={'session_id':'root-session'}
     b.network.add_node(Node('assembly','Context',None));connect(b,'root','assembly')
@@ -98,7 +98,7 @@ class AssemblyTests(unittest.TestCase):
                 except PermissionError:pass
                 else:raise AssertionError('Agent business access was incorrectly used by the assembly node')
                 connect(b,'assembly','secret');assert p.assemble('root')['sources'][0]['loaded']==['secret']
-                b.root.read_interfaces=[e for e in b.root.read_interfaces if e.target_node_id!='assembly']
+                b.root.interfaces=[e for e in b.root.interfaces if e.target_node_id!='assembly']
                 assert p.assemble('root')['sources'][0]['revoked'];assert not app.input_tail('root')
             finally:stop(app,b)
         """)

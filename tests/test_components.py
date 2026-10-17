@@ -8,9 +8,11 @@ class Rpc:
         self.process=subprocess.Popen([*args,str(directory)],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',errors='replace')
     def call(self,name,**params):
         self.process.stdin.write(json.dumps({'id':1,'method':name,'params':params})+'\n');self.process.stdin.flush()
-        line=self.process.stdout.readline()
-        if not line:raise RuntimeError(self.process.stderr.read())
-        return json.loads(line)
+        while True:
+            line=self.process.stdout.readline()
+            if not line:raise RuntimeError(self.process.stderr.read())
+            value=json.loads(line)
+            if value.get('id')==1:return value
     def result(self,name,**params):
         r=self.call(name,**params)
         if 'error' in r:raise RuntimeError(r['error'])
@@ -21,10 +23,10 @@ class Rpc:
         if self.process.returncode:raise RuntimeError(stderr)
 class ComponentsTests(unittest.TestCase):
     def test_core_without_harness(self):
-        env={**os.environ,'PYTHONPATH':str(ROOT/'python'),'PYTHONDONTWRITEBYTECODE':'1','PYTHONUTF8':'1'}
+        env={**os.environ,'PYTHONPATH':str(ROOT/'python'),'PYTHONDONTWRITEBYTECODE':'1','PYTHONUTF8':'1','DATANET_COMPONENT_ROOT':str(ROOT/'extensions/multi_agent')}
         subprocess.run([sys.executable,'-c',"from datanet.core.component_registry import codecs,toolboxes; import sys; assert {'node','text_file','discussion_board','value'}<=codecs().keys(); assert 'local_data' in toolboxes(); assert 'config' not in sys.modules; assert not any(x.startswith('harness_components') for x in sys.modules)"],env=env,check=True)
     def test_node_toolbox_revocation(self):
-        env={**os.environ,'PYTHONPATH':str(ROOT/'python'),'PYTHONDONTWRITEBYTECODE':'1','PYTHONUTF8':'1'}
+        env={**os.environ,'PYTHONPATH':str(ROOT/'python'),'PYTHONDONTWRITEBYTECODE':'1','PYTHONUTF8':'1','DATANET_COMPONENT_ROOT':str(ROOT/'extensions/multi_agent')}
         script='''
 from datanet.core.component_registry import codecs,toolboxes,enabled_components
 node=codecs()['value'].node_class('v','value','value',7)
@@ -52,14 +54,14 @@ assert node.read({'method':'key','key':'value'}).items[0]['value']==9
             b=Rpc(directory,{'capabilities/local_data':False})
             try:
                 for tool,args,direction in [('read',{'request':{'method':'key','key':'value'}},'read'),('get_schema',{},'read'),('write',{'key':'value','value':9},'write')]:
-                    result=b.result('invoke_tool',actor='root',target='root/value',tool=tool,arguments=args,direction=direction,strength=100)
+                    result=b.result('invoke_tool',actor='root',target='root/value',tool=tool,arguments=args,strength=100)
                     self.assertEqual(result['status'],'forbidden',result)
                 self.assertEqual(b.result('read',actor='root',target='root/value',request={'method':'key','key':'value'},strength=100)['items'][0]['value'],7)
                 b.result('save')
             finally:b.close()
             b=Rpc(directory)
             try:
-                result=b.result('invoke_tool',actor='root',target='root/value',tool='write',arguments={'key':'value','value':9},direction='write',strength=100)
+                result=b.result('invoke_tool',actor='root',target='root/value',tool='write',arguments={'key':'value','value':9},strength=100)
                 self.assertEqual(result['status'],'ok',result)
             finally:b.close()
     def test_unplug_restore_state(self):

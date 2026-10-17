@@ -5,7 +5,7 @@ import {NODE_SIZE,planPorts,routingGraph} from '../src/routing.js';
 import {sceneRouter} from '../src/route-session.js';
 import {arrangeGraph} from '../src/layout.js';
 const node=(id,x,y)=>({id,position:{x,y},measured:{width:NODE_SIZE,height:NODE_SIZE},data:{}});
-const edge=(id,source,target,direction='write',channels=[])=>({id,source,target,direction,metadata:{channels,visibility:'public'}});
+const edge=(id,source,target,direction='write',channels=[])=>({id,source,target,metadata:{channels:[...channels,'access.'+direction],visibility:'public'}});
 const points=route=>[route.sourcePoint,...route.bendPoints,route.targetPoint];
 function assertClear(routes,nodes,edges){
  for(const [id,route] of routes){const e=edges.find(e=>e.id===id),p=points(route);

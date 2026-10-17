@@ -21,11 +21,11 @@ try{
  await page.getByRole('button',{name:'清除筛选',exact:true}).click();await expect(nodes).toHaveCount(total);
  for(const button of await channels.all())await button.click();
  await expect(nodes).toHaveCount(0);await expect(edges).toHaveCount(0);
- await page.getByRole('group',{name:'连接频道显示'}).getByRole('button',{name:'普通连接',exact:true}).click();
+ await page.getByRole('group',{name:'连接频道显示'}).getByRole('button',{name:'access.read',exact:true}).click();
  await expect.poll(()=>edges.count()).toBeGreaterThan(0);await expect(page.locator('.react-flow__edge-text')).not.toContainText(['world.tick']);
  await page.getByRole('button',{name:'清除筛选',exact:true}).click();await expect(nodes).toHaveCount(total);
  for(const button of [...await kinds.all(),...await channels.all()])await expect(button).toHaveAttribute('aria-pressed','true');
  await page.screenshot({path:path.join(run,'09-display-switches.png')});expect(errors).toEqual([]);
- await fs.writeFile(path.join(run,'filter-verification.json'),JSON.stringify({passed:true,defaultAllEnabled:true,hideOneCategoryInOneClick:true,noNodeTypesShowsNothing:true,noChannelsShowsNothing:true,ordinaryConnectionsSelectable:true,clearRestoresAll:true,modelApiCalls:0,errors},null,2));
- console.log('PASS default-all, one-click hide, all-off empty, ordinary links and reset; no model calls');
+ await fs.writeFile(path.join(run,'filter-verification.json'),JSON.stringify({passed:true,defaultAllEnabled:true,hideOneCategoryInOneClick:true,noNodeTypesShowsNothing:true,noChannelsShowsNothing:true,accessChannelSelectable:true,clearRestoresAll:true,modelApiCalls:0,errors},null,2));
+ console.log('PASS default-all, one-click hide, all-off empty, access channel and reset; no model calls');
 }finally{await browser.close();}

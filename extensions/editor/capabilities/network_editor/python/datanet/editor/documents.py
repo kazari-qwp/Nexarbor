@@ -118,7 +118,7 @@ def refresh_map(document):
     clean = lambda value: value.replace('|', '／').replace('\n', ' ')
     lines = ['# 小镇地图', '', '| 地点 | 可直接前往 |', '|---|---|']
     for key, node in places.items():
-        neighbors = list(dict.fromkeys(e['target_node_id'] for e in node['connections']['write_interfaces'] if e['target_node_id'] in places))
+        neighbors = list(dict.fromkeys(e['target_node_id'] for e in node['connections']['interfaces'] if e['target_node_id'] in places))
         lines.append('| ' + clean(node['name']) + ' | ' + ('、'.join(clean(places[k]['name']) for k in neighbors) or '无') + ' |')
     document['files'][target['parameters']['file_path']] = '\n'.join(lines) + '\n'
     return document
@@ -133,7 +133,7 @@ def template(catalog, document, kind, options):
     original = {n['node_id']: n for n in full['network']['nodes']}
     if kind == 'empty':
         root = deepcopy(original['root']); root['modules'] = {}
-        return dict(version=1, network=dict(version=5, nodes=[root], signals={}, delegations=[]), agents={}, files={'root-memory.md': ''}, tools={}, tool_names={})
+        return dict(version=1, network=dict(version=6, nodes=[root], signals={}, delegations=[]), agents={}, files={'root-memory.md': ''}, tools={}, tool_names={})
     if kind == 'infrastructure':
         for key, node in original.items():
             if key == 'root' or key.startswith(('world/place/', 'world/service/', 'world/npc/')): continue
@@ -165,7 +165,7 @@ def template(catalog, document, kind, options):
             if 'world.birth' in node['modules']:
                 node['modules']['world.birth']['config']['families'] = [n['node_id'] for n in nodes if 'world.family' in n['modules']]
             nodes.append(node)
-        link(doc, target, service, both=True)
+        link(doc,target,service)
         return refresh_map(doc)
     if kind == 'resident':
         actor = 'world/npc/' + slug
@@ -180,7 +180,7 @@ def template(catalog, document, kind, options):
         context = replace(original[old + '/context'], replacements)
         resident['name'] = options.get('name', slug)
         context['name'] = resident['name'] + '的上下文'
-        resident['connections'] = dict(read_interfaces=[], write_interfaces=[])
+        resident['connections'] = dict(interfaces=[])
         state = resident['modules']['world.resident']['state']
         state.update(id=slug, name=resident['name'], place=place, role=role, gender=options.get('gender', 'unspecified'), coins=options.get('coins', 10))
         for field in ('spouse',): state[field] = None
@@ -193,13 +193,13 @@ def template(catalog, document, kind, options):
         text_node.update(node_id=personality, name=resident['name'] + '的人格')
         text_node['parameters']['file_path'] = 'world/personalities/' + slug + '.md'
         doc['files'][text_node['parameters']['file_path']] = options.get('personality', '')
-        context['connections']['read_interfaces'] = [e for e in context['connections']['read_interfaces'] if e['target_node_id'] in by]
+        context['connections']['interfaces'] = [e for e in context['connections']['interfaces'] if e['target_node_id'] in by]
         for src in context['modules']['context.sources']['config']['sources']:
             if src['id'] == 'personality': src['source'] = dict(type='node', target=personality)
         nodes.extend([resident, context, text_node])
-        link(doc, actor, actor + '/context', direction='read', visibility='private')
-        link(doc, actor + '/context', personality, direction='read', visibility='private')
-        link(doc, actor, place, both=True, reciprocal=True, attributes={'world_presence': True})
+        link(doc, actor, actor + '/context', channels=('access.read',),visibility='private')
+        link(doc, actor + '/context', personality, channels=('access.read',),visibility='private')
+        link(doc, actor, place, reciprocal=True, attributes={'world_presence': True})
         link(doc, 'world/time', actor, channels=['world.tick'])
         link(doc, actor, 'world/savepoint', channels=['world.tick'])
         return doc
@@ -208,7 +208,7 @@ def template(catalog, document, kind, options):
         if key in by: raise ValueError('节点编号已存在')
         sample = {'node': 'world/savepoint', 'agent': 'root', 'text_file': 'world/common', 'pulse': 'world/pulse'}[kind]
         node = deepcopy(original[sample]); node.update(node_id=key, name=options.get('name', key), modules={})
-        node['connections'] = dict(read_interfaces=[], write_interfaces=[])
+        node['connections'] = dict(interfaces=[])
         if kind in ('text_file', 'agent'):
             node['parameters'] = dict(file_path='editor/documents/' + key + '.md')
             if kind == 'agent': node['parameters']['creation_options'] = {}
@@ -218,11 +218,10 @@ def template(catalog, document, kind, options):
     raise ValueError('未知模板')
 
 
-def link(doc, source, target, *, direction='write', both=False, reciprocal=False, channels=(), visibility='public', threshold=1, multiplier=1, attributes=None):
-    by = {n['node_id']: n for n in doc['network']['nodes']}
-    for a, b in [(source, target)] + ([(target, source)] if reciprocal else []):
-        for d in ('read', 'write') if both else (direction,):
-            entry = dict(target_node_id=b, metadata=dict(visibility=visibility, threshold=threshold, multiplier=multiplier, channels=list(channels), attributes=attributes or {}))
-            edges = by[a]['connections'][d + '_interfaces']
-            if entry not in edges: edges.append(entry)
+def link(doc,source,target,*,reciprocal=False,channels=('access.read','access.write'),visibility='public',threshold=1,multiplier=1,attributes=None):
+    by={n['node_id']:n for n in doc['network']['nodes']}
+    for a,b in [(source,target)]+([(target,source)] if reciprocal else []):
+        entry=dict(target_node_id=b,metadata=dict(visibility=visibility,threshold=threshold,multiplier=multiplier,channels=list(channels),attributes=attributes or {}))
+        edges=by[a]['connections']['interfaces']
+        if entry not in edges:edges.append(entry)
     return doc

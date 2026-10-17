@@ -40,7 +40,7 @@ class CooperationTests(unittest.TestCase):
                 if name == 'run' and p['actor'] in group['members']:
                     release.wait(10)
                     message = dict(id=p['actor'] + '-done', role='assistant', content=[dict(type='text', text='协作完毕')])
-                    return dict(messages=[message], session_id=native.agents[p['actor']]['session_id'])
+                    return dict(messages=[message], session_id=native.agents[p['actor']]['session_id'],completion='completed')
                 if name == 'cancel-agent':
                     release.set()
                     return {'ok': True}
@@ -214,7 +214,7 @@ class CooperationTests(unittest.TestCase):
     def test_member_reuse_joins_new_group(self):
         old = self.team('old', count=2)
         self.invoke('datanet_interfaces_channel')
-        pending = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(direction='both', target_node_id='old/board')))
+        pending = self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(target_node_id='old/board')))
         self.invoke('datanet_interfaces', dict(action='remove', arguments=dict(confirmation_id=pending['confirmation_id'], choice=3)))
         self.app.plugins['capabilities/agent_lifecycle'].settle()
         new = self.team('new', count=2)

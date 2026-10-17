@@ -11,7 +11,7 @@ const snapshot=()=>page.evaluate(()=>({viewport:document.querySelector('.react-f
 try{
  await page.goto(connection.url);await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
  await expect.poll(()=>page.locator('[data-routing="avoiding"]').count()).toBeGreaterThan(20);
- const initial=await snapshot(),channel=page.getByRole('group',{name:'连接频道显示'}).getByRole('button',{name:'普通连接',exact:true});
+ const initial=await snapshot(),channel={click:async()=>{for(const name of ['access.read','access.write'])await page.getByRole('group',{name:'连接频道显示'}).getByRole('button',{name,exact:true}).click();}};
  await channel.click();const reduced=await snapshot();expect(reduced.viewport).toBe(initial.viewport);
  for(const [id,n] of Object.entries(reduced.nodes))expect(n.position).toBe(initial.nodes[id].position);
  for(const [id,e] of Object.entries(reduced.edges))expect(e.path).toBe(initial.edges[id].path);
