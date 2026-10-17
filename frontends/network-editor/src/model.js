@@ -41,11 +41,14 @@ export function removeNode(document,id){
   }
   return next;
 }
-export function filterGraph(nodes,edges,{query='',kinds=[],channels=[],local=null,direction='both'}){
+const edgeChannels=edge=>edge.metadata.channels.length?edge.metadata.channels:[null];
+export const connectionChannels=edges=>[...new Set(edges.flatMap(edgeChannels))];
+export function filterGraph(nodes,edges,{query='',kinds=null,channels=null,local=null,direction='both'}){
   const reached=local?new Set([local.actor,...Object.values(local.paths).flat().map(x=>x.id)]):null;
-  const selectedEdges=edges.filter(e=>(direction==='both'||e.direction===direction)&&(!channels.length||e.metadata.channels.some(c=>channels.includes(c))));
-  const channelNodes=channels.length?new Set(selectedEdges.flatMap(e=>[e.source,e.target])):null;
-  const visible=nodes.filter(n=>(!kinds.length||kinds.includes(n.data.kind))&&(!query||`${n.id} ${n.data.node.name}`.toLowerCase().includes(query.toLowerCase()))&&(!reached||reached.has(n.id))&&(!channelNodes||channelNodes.has(n.id)));
+  const selectedEdges=edges.filter(e=>(direction==='both'||e.direction===direction)&&(channels===null||edgeChannels(e).some(c=>channels.includes(c))));
+  const restrictedChannels=channels!==null&&(!channels.length||!connectionChannels(edges).every(c=>channels.includes(c)));
+  const channelNodes=restrictedChannels?new Set(selectedEdges.flatMap(e=>[e.source,e.target])):null;
+  const visible=nodes.filter(n=>(kinds===null||kinds.includes(n.data.kind))&&(!query||`${n.id} ${n.data.node.name}`.toLowerCase().includes(query.toLowerCase()))&&(!reached||reached.has(n.id))&&(!channelNodes||channelNodes.has(n.id)));
   const traversed=local?new Set(Object.entries(local.paths).flatMap(([d,paths])=>paths.flatMap(p=>p.path.slice(1).map((id,i)=>`${d}|${p.path[i]}|${id}`)))):null;
   const ids=new Set(visible.map(n=>n.id));return {nodes:visible,edges:selectedEdges.filter(e=>ids.has(e.source)&&ids.has(e.target)&&(!traversed||traversed.has(`${e.direction}|${e.source}|${e.target}`)))};
 }
