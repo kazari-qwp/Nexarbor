@@ -8,6 +8,7 @@ import subprocess
 import time
 import urllib.request
 import urllib.parse
+from harness_test_environment import harness_test_environment
 
 ROOT=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser(description=__doc__)
@@ -33,7 +34,7 @@ exe=Path(os.environ['LOCALAPPDATA'])/'Programs/DeepSeek Harness/DeepSeek Harness
 started=time.time()
 with (run/'host.stdout.log').open('ab') as stdout,(run/'host.stderr.log').open('ab') as stderr:
     process=subprocess.Popen([str(exe),'--experimental-vm-modules',str(ROOT/'tests/native_network_editor_test.cjs')],cwd=ROOT,
-        env=dict(os.environ,ELECTRON_RUN_AS_NODE='1',DATANET_TEST_OUTPUT=str(run),**({'DATANET_EDITOR_ROOT_SESSION':resume_session} if resume_session else {})),stdout=stdout,stderr=stderr,creationflags=subprocess.CREATE_NO_WINDOW)
+        env=harness_test_environment(ELECTRON_RUN_AS_NODE='1',DATANET_TEST_OUTPUT=str(run),**({'DATANET_EDITOR_ROOT_SESSION':resume_session} if resume_session else {})),stdout=stdout,stderr=stderr,creationflags=subprocess.CREATE_NO_WINDOW)
 (run/'host-process.json').write_text(json.dumps(dict(pid=process.pid,executable=str(exe),script=str(ROOT/'tests/native_network_editor_test.cjs'),run=str(run)),indent=2),'utf-8')
 deadline=time.monotonic()+45
 while time.monotonic()<deadline:

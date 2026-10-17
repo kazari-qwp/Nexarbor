@@ -148,3 +148,7 @@ node test/visual-fixture.mjs
 ```
 
 第二条命令从仓库根目录执行。展示窗口明确标注“不运行Agent”，仅用于拖动、筛选与整理查看，不能保存网络或运行世界。自动桌面验收从前端目录执行 `node test/desktop.routing.mjs`。
+
+客户端要求选择的JSON是正在运行的后端生成的连接记录；当前展示服务将它写入 `build/routing-v7/preview/editor-connection.json`。选择此文件即可连接，不选择网络存档或预设JSON。展示服务有60分钟上限，过期后重启上面的Node命令，再打开同一路径。桌面快捷方式直接启动可执行文件，可通过 `--connection` 绑定该记录。
+
+本仓库的 `run_network_editor_test.py`、`run_npc_minimal_test.py` 和 `open_harness_test_client.py` 启动子进程时，把TEMP/TMP/TMPDIR设为仓库的 `build/harness-temp`。项目位于E盘时，这些测试的工作区快照等临时文件也写入E盘；不修改Windows用户临时目录，不影响普通方式启动的Harness。
