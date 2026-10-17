@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {connectionChannels,edgesOf,filterGraph,layoutNodes,removeNode} from '../src/model.js';
+import {connectionChannels,edgesOf,filterGraph,layoutNodes,removeNode,stackVisible} from '../src/model.js';
 const document={network:{nodes:[{node_id:'root',name:'Root',type:'agent',modules:{},connections:{read_interfaces:[{target_node_id:'b',metadata:{channels:[]}}],write_interfaces:[]}},{node_id:'b',name:'Clock',type:'text_file',modules:{},connections:{read_interfaces:[],write_interfaces:[{target_node_id:'root',metadata:{channels:['tick']}}]}}]}};
 test('filters never invent reach or mutate actual graph',()=>{
  const nodes=layoutNodes(document),edges=edgesOf(document);assert.equal(edges.length,2);
@@ -26,4 +26,10 @@ test('visibility switches distinguish all, none and ordinary connections',()=>{
  assert.equal(ordinary.nodes.length,2);
  assert.equal(filterGraph(nodes,edges,{kinds:['Agent','节点'],channels}).nodes.some(n=>n.id==='b'),false);
  assert.deepEqual(document.network.nodes[0].connections.read_interfaces[0].metadata.channels,[]);
+});
+
+test('new nodes and re-enabled filters rise above existing nodes and edges',()=>{
+ const a=stackVisible(null,[{id:'a'},{id:'b'}],[{id:'ab'}]);
+ const b=stackVisible(a,[{id:'a'}],[]),c=stackVisible(b,[{id:'a'},{id:'b'},{id:'c'}],[{id:'ab'}]);
+ assert.equal(c.nodes.a,a.nodes.a);assert.ok(c.edges.ab>a.nodes.b);assert.ok(c.nodes.b>c.edges.ab);assert.ok(c.nodes.c>c.nodes.b);
 });

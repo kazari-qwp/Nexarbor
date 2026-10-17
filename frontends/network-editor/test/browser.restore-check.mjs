@@ -6,7 +6,8 @@ const run=path.resolve(process.argv[2]),source=JSON.parse(await fs.readFile(path
 const roots=path.join(run,'.datanet/networks');const candidates=[];
 for(const folder of await fs.readdir(roots)){const file=path.join(roots,folder,'editor-connection.json');try{candidates.push({file,mtime:(await fs.stat(file)).mtimeMs});}catch{}}
 candidates.sort((a,b)=>b.mtime-a.mtime);const target=JSON.parse(await fs.readFile(candidates[0].file,'utf8'));
-expect(target.authority).not.toBe(source.authority);
+const reopened=await fs.stat(path.join(run,'resumed-editor-state.json')).then(()=>true,()=>false);
+if(!reopened)expect(target.authority).not.toBe(source.authority);
 const token=new URLSearchParams(new URL(target.url).hash.slice(1)).get('token');
 const read=async(operation,params={})=>{const r=await fetch('http://'+target.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':token},body:JSON.stringify({operation,params})});const body=await r.json();expect(r.ok,JSON.stringify(body)).toBe(true);return body.value;};
 const restored=await read('state');const nodes=restored.live.document.network.nodes;

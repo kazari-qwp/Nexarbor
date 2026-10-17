@@ -52,3 +52,11 @@ export function filterGraph(nodes,edges,{query='',kinds=null,channels=null,local
   const traversed=local?new Set(Object.entries(local.paths).flatMap(([d,paths])=>paths.flatMap(p=>p.path.slice(1).map((id,i)=>`${d}|${p.path[i]}|${id}`)))):null;
   const ids=new Set(visible.map(n=>n.id));return {nodes:visible,edges:selectedEdges.filter(e=>ids.has(e.source)&&ids.has(e.target)&&(!traversed||traversed.has(`${e.direction}|${e.source}|${e.target}`)))};
 }
+
+// Newly visible items rise above existing ones, including re-enabled filters.
+export function stackVisible(previous,nodes,edges){
+ const next={serial:previous?.serial??0,nodes:{},edges:{}};
+ for(const [kind,items] of [['edges',edges],['nodes',nodes]])for(const item of items)
+  next[kind][item.id]=previous?.[kind]?.[item.id]??++next.serial;
+ return next;
+}

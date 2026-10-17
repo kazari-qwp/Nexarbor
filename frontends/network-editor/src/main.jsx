@@ -1,13 +1,17 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import {ReactFlow,ReactFlowProvider,Background,Controls,MiniMap,Handle,Position,MarkerType,useReactFlow} from '@xyflow/react';
+import {ReactFlow,ReactFlowProvider,Background,Controls,MiniMap,Handle,Position,MarkerType,useReactFlow,applyNodeChanges,ConnectionMode} from '@xyflow/react';
 import Form from '@rjsf/core';
 import validator from '@rjsf/validator-ajv8';
 import {Activity,ArrowLeft,ArrowRight,Box,Check,ChevronDown,ChevronRight,Download,FileText,Filter,GitBranch,Layers,MapPin,MessageSquare,MousePointer2,Network,Pause,Play,Plus,RotateCcw,Save,Search,Settings2,ShieldCheck,SkipForward,Trash2,Upload,UserRound,X} from 'lucide-react';
 import '@xyflow/react/dist/style.css';
 import './style.css';
-import {clone,colors,connectionChannels,edgesOf,filterGraph,layoutNodes,nodeKind,removeNode} from './model.js';
+import {clone,colors,connectionChannels,edgesOf,filterGraph,layoutNodes,nodeKind,removeNode,stackVisible} from './model.js';
 import {GraphEditor,ValueEditor} from './fields.jsx';
+import {edgeTypes,RoutedScene} from './routing.jsx';
+import ELK from 'elkjs/lib/elk-api.js';
+import elkWorkerUrl from 'elkjs/lib/elk-worker.min.js?url';
+import {arrangeGraph} from './layout.js';
 
 const fragment=new URLSearchParams(location.hash.slice(1));
 const token=fragment.get('token')??sessionStorage.getItem('nexarbor-token')??'';
@@ -20,8 +24,10 @@ const icons={'居民':UserRound,'Agent':UserRound,'场所':MapPin,'文本':FileT
 function NetworkNode({data,selected}){
   const Icon=icons[data.kind];const budget=data.node.modules['action.budget'];
   return <div onDoubleClick={e=>{e.stopPropagation();if(data.node.type==='agent')data.openChat?.(data.node);}} className={'network-node '+(selected?'is-selected':'')} style={{'--node-color':colors[data.kind]}}>
-    <Handle type="target" position={Position.Left}/><div className="node-kind"><Icon size={12}/>{data.kind}<span className="node-dot"/></div><div className="node-title">{data.node.name}</div><div className="node-subtitle">{data.node.node_id.split('/').slice(-2).join('/')}</div>
-    <div className="node-footer"><span>{Object.keys(data.node.modules).length} 个模块</span>{budget&&<span>{budget.config.capacity} AP</span>}</div><Handle type="source" position={Position.Right}/>
+    {[Position.Left,Position.Right,Position.Top,Position.Bottom].map(side=><Handle key={side} id={side} type="source" position={side}/>)}
+    <span className="node-name">{data.node.name}</span>
+    <div className="node-details"><div className="node-kind"><Icon size={12}/>{data.kind}<span className="node-dot"/></div><div className="node-title">{data.node.name}</div><div className="node-subtitle">{data.node.node_id.split('/').slice(-2).join('/')}</div>
+    <div className="node-footer"><span>{Object.keys(data.node.modules).length} 个模块</span>{budget&&<span>{budget.config.capacity} AP</span>}</div></div>
   </div>;
 }
 const nodeTypes={network:NetworkNode};
@@ -50,7 +56,9 @@ function App(){
   const [dirty,setDirty]=useState(false),[draftVersion,setDraftVersion]=useState(0),[baseCommit,setBaseCommit]=useState(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[selected,setSelected]=useState(null),[edge,setEdge]=useState(null),[tab,setTab]=useState('属性');
   const [query,setQuery]=useState(''),[hiddenKinds,setHiddenKinds]=useState([]),[hiddenChannels,setHiddenChannels]=useState([]),[direction,setDirection]=useState('both'),[local,setLocal]=useState(null),[localOnly,setLocalOnly]=useState(false),[strength,setStrength]=useState(2);
   const [modal,setModal]=useState(null),[wizard,setWizard]=useState({}),[check,setCheck]=useState(null),[chat,setChat]=useState(null),[chatText,setChatText]=useState(''),[chatData,setChatData]=useState(null),[chatError,setChatError]=useState('');
-  const [cycles,setCycles]=useState(5),[pulse,setPulse]=useState('world/pulse'),[points,setPoints]=useState([]),[newModule,setNewModule]=useState('');
+  const [cycles,setCycles]=useState(5),[pulse,setPulse]=useState('world/pulse'),[points,setPoints]=useState([]),[newModule,setNewModule]=useState(''),[hoveredEdge,setHoveredEdge]=useState(null);
+  const [selectedIds,setSelectedIds]=useState([]),[arranging,setArranging]=useState(false),[routingTask,setRoutingTask]=useState(null);
+  const layers=useRef();
   const clickTimer=useRef(),selectionSequence=useRef(0),chatScroll=useRef(),chatFollow=useRef(true);
   const undo=useRef([]),redo=useRef([]),docRef=useRef(),dirtyRef=useRef(false),layoutRef=useRef({}),fileRef=useRef();
   const note=err=>setMessage(err instanceof Error?err.message:err);
@@ -73,9 +81,11 @@ function App(){
   const canvas=useMemo(()=>doc?layoutNodes(doc,layout):[],[doc,layout]);
   const allKinds=[...new Set(canvas.map(n=>n.data.kind))];const allChannels=connectionChannels(allEdges);
   const graph=useMemo(()=>filterGraph(canvas,allEdges,{query,kinds:canvas.map(n=>n.data.kind).filter(k=>!hiddenKinds.includes(k)),channels:allEdges.length?connectionChannels(allEdges).filter(c=>!hiddenChannels.includes(c)):null,direction,local:localOnly?local:null}),[canvas,allEdges,query,hiddenKinds,hiddenChannels,direction,localOnly,local]);
-  const visibleEdges=graph.edges.map(e=>({...e,type:'smoothstep',label:e.metadata.channels.join(', ')||(e.direction==='read'?'读':'写'),markerEnd:{type:MarkerType.ArrowClosed,width:16,height:16},style:{stroke:e.metadata.channels.length?'#a88cd0':e.direction==='read'?'#547087':'#668e82',strokeWidth:e.id===edge?.id?2.5:1.2,strokeDasharray:e.metadata.visibility==='private'?'5 4':undefined},labelStyle:{fill:'#8696a6',fontSize:10},labelBgStyle:{fill:'#121b25'},animated:state?.job.status==='running'&&e.metadata.channels.length>0,selected:e.id===edge?.id}));
+  layers.current=stackVisible(layers.current,graph.nodes,graph.edges);
+  const optimizeLines=()=>setRoutingTask(old=>({serial:(old?.serial??0)+1,nodes:graph.nodes.filter(n=>selectedIds.includes(n.id)).map(n=>n.id)}));
+  const visibleEdges=graph.edges.map(e=>({...e,type:'routed',zIndex:layers.current.edges[e.id],data:{hovered:hoveredEdge===e.id},ariaLabel:e.source+' → '+e.target+' · '+e.direction+' · '+e.metadata.channels.join(', '),label:e.metadata.channels.join(', ')||(e.direction==='read'?'读':'写'),markerEnd:{type:MarkerType.ArrowClosed,width:16,height:16},style:{stroke:e.metadata.channels.length?'#a88cd0':e.direction==='read'?'#547087':'#668e82',strokeWidth:e.id===edge?.id||hoveredEdge===e.id?2.5:1.2,opacity:(hoveredEdge||edge)&&hoveredEdge!==e.id&&edge?.id!==e.id ? .3 : 1,strokeDasharray:e.metadata.visibility==='private'?'5 4':undefined},labelStyle:{fill:'#8696a6',fontSize:10},labelBgStyle:{fill:'#121b25'},animated:state?.job.status==='running'&&e.metadata.channels.length>0,selected:e.id===edge?.id}));
   const updateNode=change=>{const next=clone(doc);const index=next.network.nodes.findIndex(n=>n.node_id===selected);change(next.network.nodes[index],next);edit(next);};
-  const selectNode=async n=>{const sequence=++selectionSequence.current;setSelected(n.id);setEdge(null);if(n.data.node.type==='agent')try{const view=await api('view',{actor:n.id,strength});if(sequence===selectionSequence.current){setLocal(view);setLocalOnly(true);setTab('权限');}}catch{}else{setLocal(null);setLocalOnly(false);setTab('属性');}};
+  const selectNode=async n=>{const sequence=++selectionSequence.current;setSelected(n.id);setSelectedIds([n.id]);setEdge(null);if(n.data.node.type==='agent')try{const view=await api('view',{actor:n.id,strength});if(sequence===selectionSequence.current){setLocal(view);setLocalOnly(true);setTab('权限');}}catch{}else{setLocal(null);setLocalOnly(false);setTab('属性');}};
   const refreshPerspective=async value=>{setStrength(value);if(node?.type==='agent')try{setLocal(await api('view',{actor:selected,strength:value}));}catch(e){note(e);}};
   const save=()=>run(async()=>{const value=await api('draft',{document:doc,layout,base_commit:baseCommit,expected_version:draftVersion});setDraftVersion(value.version);note('草稿已保存 · v'+value.version);});
   const apply=()=>run(async()=>{const result=await api('apply',{document:doc,layout,base_commit:baseCommit});if(!result.valid){setCheck(result);note('配置尚未通过校验');return;}setDoc(result.document);setDraftVersion(result.draft.version);setBaseCommit(result.commit);setDirty(false);dirtyRef.current=false;setCheck({valid:true,errors:[],warnings:[]});await load();note('已应用，Agent 会话和模块已装配');});
@@ -85,6 +95,27 @@ function App(){
   const replayHistory=(from,to)=>{if(!from.current.length)return;to.current.push({doc:clone(doc),layout:clone(layout)});const next=from.current.pop();setDoc(next.doc);setLayout(next.layout);setDirty(true);docRef.current=next.doc;dirtyRef.current=true;};
   const exportDoc=()=>{const blob=new Blob([JSON.stringify({format:'nexarbor-editor',document:doc,layout},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='nexarbor-network.json';a.click();URL.revokeObjectURL(url);};
   const importFile=async e=>{try{const value=JSON.parse(await e.target.files[0].text());edit(value.document??value);if(value.layout)setLayout(value.layout);note('已导入草稿，应用前将进行校验');}catch(err){note(err);}e.target.value='';};
+  const changePositions=changes=>{
+    const choices=changes.filter(c=>c.type==='select');
+    if(choices.length)setSelectedIds(old=>{const ids=new Set(old);for(const c of choices)c.selected?ids.add(c.id):ids.delete(c.id);return [...ids];});
+    const moved=changes.filter(c=>c.type==='position'&&c.position);
+    if(!moved.length)return;
+    const next=applyNodeChanges(moved,graph.nodes);
+    setLayout(old=>({...old,...Object.fromEntries(next.filter(n=>moved.some(c=>c.id===n.id)).map(n=>[n.id,n.position]))}));
+  };
+  const arrange=async()=>{
+    const nodes=graph.nodes.filter(n=>selectedIds.includes(n.id));if(!nodes.length||arranging)return;
+    setArranging(true);const engine=new ELK({workerUrl:elkWorkerUrl});
+    const before=clone(layout),document=doc,selectedSet=new Set(nodes.map(n=>n.id));
+    try{
+      const positions=await arrangeGraph(nodes,graph.edges,engine,graph.nodes.filter(n=>!selectedSet.has(n.id)));
+      if(docRef.current!==document||JSON.stringify(layoutRef.current)!==JSON.stringify(before)){note('布局期间网络已变化，请重新整理');return;}
+      undo.current.push({doc:clone(document),layout:before});redo.current=[];
+      setLayout(old=>({...old,...positions}));setHoveredEdge(null);optimizeLines();
+      note('已整理 '+nodes.length+' 个选中节点及相关连线，可撤销');
+      setTimeout(()=>flow.fitView({nodes:nodes.map(n=>({id:n.id})),duration:300,padding:.3}),80);
+    }catch(e){note(e);}finally{engine.terminateWorker();setArranging(false);}
+  };
   const connect=connection=>{setWizard({source:connection.source,target:connection.target,direction:'write',both:true,reciprocal:false,visibility:'public',threshold:1,multiplier:1,channels:''});setModal('connect');};
   const openChat=n=>{clearTimeout(clickTimer.current);chatFollow.current=true;setChat(n);setChatText('');};
   if(!catalog||!doc)return <div className="loading"><Network size={32}/><h2>Nexarbor</h2><p>{message||'连接本地网络工作台…'}</p></div>;
@@ -98,12 +129,12 @@ function App(){
       <div className="section-label">显示筛选 <Filter size={12}/></div><div className="filter-label">节点类型</div><div className="chips" role="group" aria-label="节点类型显示">{allKinds.map(kind=><button aria-pressed={!hiddenKinds.includes(kind)} className={!hiddenKinds.includes(kind)?'selected':''} onClick={()=>toggle(kind,hiddenKinds,setHiddenKinds)} key={kind}><i style={{background:colors[kind]}}/>{kind}</button>)}</div><div className="filter-label">连接频道</div><div className="chips" role="group" aria-label="连接频道显示">{allChannels.map(channel=><button aria-pressed={!hiddenChannels.includes(channel)} className={!hiddenChannels.includes(channel)?'selected':''} key={channel??'ordinary'} onClick={()=>toggle(channel,hiddenChannels,setHiddenChannels)}>{channel??'普通连接'}</button>)}{!allChannels.length&&<span className="muted">暂无连接</span>}</div><label className="filter-label">连接方向<select value={direction} onChange={e=>setDirection(e.target.value)}><option value="both">读与写</option><option value="read">读取路径</option><option value="write">写入路径</option></select></label><button className="text-button" onClick={()=>{setHiddenKinds([]);setHiddenChannels([]);setQuery('');setDirection('both');setLocalOnly(false);}}>清除筛选</button>
       <div className="section-label">Agent 会话 <MessageSquare size={13}/></div>{Object.entries(state?.live.sessions??{}).map(([id,session])=><button className="preset-item" key={id} onClick={()=>openChat(doc.network.nodes.find(n=>n.node_id===id)??{node_id:id,name:session.name})}><UserRound size={14}/><span>{session.name}</span><MessageSquare size={12}/></button>)}<div className="section-label">网络预设 <Layers size={13}/></div>{catalog.presets.map(p=><button className="preset-item" key={p.id} onClick={()=>{setWizard({preset:p.id});setModal('preset');}}><Network size={15}/><span>{p.name==='small_town'?'NPC 小镇':p.name}</span><ArrowRight size={13}/></button>)}<div className="left-bottom"><span><ShieldCheck size={13}/>{catalog.modules&&Object.keys(catalog.modules).length} 个可装配模块</span><button onClick={()=>{setModal('empty');}}>新建空网络</button></div>
     </aside>
-    <main className="canvas-panel"><div className="canvas-toolbar"><div className="view-tabs"><button className={!localOnly?'active':''} onClick={()=>setLocalOnly(false)}><Network size={14}/>全局网络</button><button className={localOnly?'active':''} disabled={!local} onClick={()=>setLocalOnly(true)}><MousePointer2 size={14}/>局部视角</button></div><div className="canvas-tools"><button title="撤销" onClick={()=>replayHistory(undo,redo)}><RotateCcw size={15}/></button><button title="重做" onClick={()=>replayHistory(redo,undo)}><RotateCcw size={15} style={{transform:'scaleX(-1)'}}/></button><span/>{dirty?<span className="draft-dot">未应用草稿</span>:<span>运行网络 · #{baseCommit}</span>}</div></div>
-      <ReactFlow nodes={doc.network.nodes.length===1?[]:graph.nodes.map(n=>({...n,data:{...n.data,openChat},selected:n.id===selected}))} edges={visibleEdges} nodeTypes={nodeTypes} onNodeClick={(_,n)=>{clearTimeout(clickTimer.current);clickTimer.current=setTimeout(()=>selectNode(n),300);}} onNodeDoubleClick={(_,n)=>{if(n.data.node.type==='agent')openChat(n.data.node);}} onEdgeClick={(_,e)=>{setEdge(allEdges.find(x=>x.id===e.id));setSelected(null);setLocal(null);}} onPaneClick={()=>{clearTimeout(clickTimer.current);selectionSequence.current++;setSelected(null);setEdge(null);setLocal(null);}} onConnect={connect} onNodeDragStop={(_,n)=>{setLayout(old=>({...old,[n.id]:n.position}));}} onNodesDelete={nodes=>{let next=doc;for(const n of nodes)if(n.id!=='root')next=removeNode(next,n.id);edit(next);}} fitView zoomOnDoubleClick={false} minZoom={.12} maxZoom={1.8} deleteKeyCode={null} colorMode="dark" proOptions={{hideAttribution:false}}>
+    <main className="canvas-panel"><div className="canvas-toolbar"><div className="view-tabs"><button className={!localOnly?'active':''} onClick={()=>setLocalOnly(false)}><Network size={14}/>全局网络</button><button className={localOnly?'active':''} disabled={!local} onClick={()=>setLocalOnly(true)}><MousePointer2 size={14}/>局部视角</button></div><div className="canvas-tools"><button title="选中当前可见节点" onClick={()=>setSelectedIds(graph.nodes.map(n=>n.id))}>全选可见</button><button title="仅整理当前选中的节点及相关连线" disabled={arranging||!graph.nodes.some(n=>selectedIds.includes(n.id))} onClick={arrange}>{arranging?'整理中…':'整理选中'}（{graph.nodes.filter(n=>selectedIds.includes(n.id)).length}）</button><button title="仅优化选中节点相关连线，保留节点位置" disabled={!graph.nodes.some(n=>selectedIds.includes(n.id))} onClick={optimizeLines}>优化连线</button><button title="撤销" onClick={()=>replayHistory(undo,redo)}><RotateCcw size={15}/></button><button title="重做" onClick={()=>replayHistory(redo,undo)}><RotateCcw size={15} style={{transform:'scaleX(-1)'}}/></button><span/>{dirty?<span className="draft-dot">未应用草稿</span>:<span>运行网络 · #{baseCommit}</span>}</div></div>
+      <RoutedScene nodes={graph.nodes} edges={graph.edges} optimize={routingTask}><ReactFlow nodes={doc.network.nodes.length===1?[]:graph.nodes.map(n=>({...n,data:{...n.data,openChat},selected:selectedIds.includes(n.id),zIndex:layers.current.nodes[n.id]}))} edges={visibleEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} connectionMode={ConnectionMode.Loose} elevateEdgesOnSelect={false} elevateNodesOnSelect={false} onNodesChange={changePositions} onEdgeMouseEnter={(_,e)=>setHoveredEdge(e.id)} onEdgeMouseLeave={()=>setHoveredEdge(null)} onNodeClick={(event,n)=>{clearTimeout(clickTimer.current);if(!event.shiftKey)clickTimer.current=setTimeout(()=>selectNode(n),300);}} onNodeDoubleClick={(_,n)=>{if(n.data.node.type==='agent')openChat(n.data.node);}} onEdgeClick={(_,e)=>{setEdge(allEdges.find(x=>x.id===e.id));setSelected(null);setLocal(null);}} onPaneClick={()=>{setHoveredEdge(null);clearTimeout(clickTimer.current);selectionSequence.current++;setSelected(null);setSelectedIds([]);setEdge(null);setLocal(null);}} multiSelectionKeyCode="Shift" selectionKeyCode="Shift" onNodeDragStart={()=>clearTimeout(clickTimer.current)} onConnect={connect} onNodeDragStop={(_,n)=>{setHoveredEdge(null);setLayout(old=>({...old,[n.id]:n.position}));}} onNodesDelete={nodes=>{let next=doc;for(const n of nodes)if(n.id!=='root')next=removeNode(next,n.id);edit(next);}} fitView zoomOnDoubleClick={false} minZoom={.12} maxZoom={1.8} deleteKeyCode={null} colorMode="dark" proOptions={{hideAttribution:false}}>
         <Background color="#283340" gap={24} size={1}/><Controls showInteractive={false}/><MiniMap nodeColor={n=>colors[n.data.kind]} maskColor="rgba(12,19,28,.75)" pannable zoomable/>
-      </ReactFlow>
+      </ReactFlow></RoutedScene>
       {doc.network.nodes.length===1&&<div className="welcome"><div className="welcome-icon"><GitBranch size={26}/></div><h2>让网络定义行动空间</h2><p>从左侧添加时间、场所和居民，<br/>连接它们，建立你的第一个小世界。</p><button className="primary" onClick={()=>useTemplate('infrastructure')}><Plus size={15}/>添加时间与共享资料</button></div>}
-      <div className="canvas-hint">拖拽圆点连接节点 <span>·</span> 单击 Agent 查看权限 <span>·</span> 双击 Agent 打开对话</div>
+      <div className="canvas-hint">悬停展开详情 <span>·</span> Shift 点击或框选多选 <span>·</span> 单击 Agent 查看权限 <span>·</span> 双击 Agent 打开对话</div>
       <div className="runbar"><div className="run-status"><span className={'status-dot '+(active?'pulsing':'')}/><div><strong>{active?'信号传播中':state?.job.status==='failed'?'执行中断':'网络已暂停'}</strong><small>{state?.job.error??`已完成 ${state?.job.completed??0} / ${state?.job.requested??0} 个时刻`}</small></div></div><select aria-label="执行脉冲" value={pulse} onChange={e=>setPulse(e.target.value)}>{doc.network.nodes.filter(n=>n.type==='pulse').map(n=><option key={n.node_id} value={n.node_id}>{n.name}</option>)}</select><button disabled={busy||active||dirty||!doc.network.nodes.some(n=>n.node_id===pulse)} onClick={()=>run(async()=>{await api('run',{pulse,cycles:1});await load();})}><SkipForward size={15}/>单步</button>{active?<button onClick={()=>run(async()=>{await api('pause');note('将在当前时刻完成后暂停');})}><Pause size={15}/>暂停</button>:<button className="primary" disabled={busy||dirty||!doc.network.nodes.some(n=>n.node_id===pulse)} onClick={()=>run(async()=>{await api('run',{pulse,cycles});await load();})}><Play size={15}/>运行</button>}<input aria-label="运行时刻数" type="number" min="1" max="20" value={cycles} onChange={e=>setCycles(Number(e.target.value))}/><span>时刻</span></div>
     </main>
     <aside className="right-panel"><div className="panel-heading"><span>{edge?'连接属性':node?'节点检查器':'工作区'}</span><Settings2 size={15}/></div>

@@ -43,6 +43,14 @@ python scripts/open_network_editor.py --connection <editor-connection.json的路
 
 ## 编辑与观察
 
+- 节点默认是圆形加名称；悬停或键盘聚焦时展开详情卡片。卡片围绕原中心展开，不重新排布网络。拖动复用React Flow原生位置更新，连续跟随指针。
+- 连线采用横平竖直的折线和小圆角。复用libavoid进行避障、交叉惩罚和共用主干；共用端点且方向、频道和访问元数据相同的连接才使用同一端口。每条真实连接仍可独立选择、查看和编辑，悬停时突出整条路径、显示频道，其他线淡化。
+- Shift点击或Shift框选可多选；“全选可见”选中当前画布内的节点。“整理选中”用ELK减少选中节点之间的交叉，只改变这些节点的位置，能够撤销。“优化连线”只重算选中节点的相关线路，不移动节点。计算仅使用当前可见节点与连接，未显示的内容不作为障碍，也不参与合并。
+- 筛选仅增减显示，保留原有节点位置、已绘线路和当前视角，不自动整理或重新分配端口。重新显示的节点、连接以及新添加的内容自动置顶。新线路需要计算时保留已有有效线路；移动时更新相关线路，并绕开当前可见的障碍。
+- 连线合并属于显示方式，没有创建新的连接或修改权限。密集图不承诺零交叉；节点重叠或通道被堵时可调整位置再整理。为了保证筛选不跳图，重新显示的节点可能与原线路重叠，使用“优化连线”按当前画布重算即可。
+
+![仅整理选中的时间频道节点，其他位置保持不变](images/network-editor-rounded.png)
+
 - 节点类型、连接频道、方向及名称筛选只改变显示。私有连接显示为虚线。
 - 类型与频道按钮是显示开关，默认全部点亮；点击关闭对应类别，全部关闭时画布为空。“普通连接”表示没有频道标签的连接。“清除筛选”恢复全部显示；新出现的类别默认开启。
 - 单击 Agent：后端使用核心 `walk_states` 计算读写范围，强度不超过该 Agent 实际授权。局部图中的边来自实际访问路径；展示筛选不授予新权限。尚未应用的节点需要先应用后才能查看真实权限。
@@ -68,6 +76,10 @@ python scripts/open_network_editor.py --connection <editor-connection.json的路
 
 图编辑复用 [React Flow](https://reactflow.dev/)，表单复用 [react-jsonschema-form](https://github.com/rjsf-team/react-jsonschema-form)，不另写图编辑引擎。评估了 [Archify](https://github.com/tt-a1i/archify)：其展示图生成定位适合架构讲解，本工作台采用可编辑图组件连接真实后端。未复制 Archify 源码。
 
+布局复用 [ELK.js](https://github.com/kieler/elkjs) 0.12.0；交叉减少、正交避障与共用主干由 [libavoid](https://github.com/Aksem/libavoid-js) 0.5.0-beta.5 与 [elkjs-libavoid](https://github.com/MrMint/elkjs-libavoid) 0.5.0 承担，在本地Worker中计算，不调用模型。参考Archify固定提交`88d1ae4498b6a1df610badf690c5406882622d15`的端点排序、已画线路避让和主干分支思路，未复制源码。工作台只适配圆形端点、选中范围、稳定筛选和层级。
+
+拖动使用React Flow官方`applyNodeChanges`，悬停使用CSS过渡，没有自行实现动画引擎。依赖版本锁定在前端package-lock.json，许可、对应上游源码与替换构建说明在组件的[第三方声明](../extensions/editor/capabilities/network_editor/licenses/NOTICE.md)。
+
 ```powershell
 cd frontends/network-editor
 npm ci
@@ -82,6 +94,14 @@ npm test
 ```powershell
 .venv/Scripts/python.exe scripts/run_network_editor_test.py
 ```
+
+测试宿主在60分钟后结束。如果只想继续查看已保存的小镇，可重新打开同一份工作台，不发出模型输入：
+
+```powershell
+.venv/Scripts/python.exe scripts/run_network_editor_test.py --resume build/<本次目录>
+```
+
+已运行时该命令不会启动第二个宿主。重新打开后可用启动记录打开新地址；历史验收结果保持原文件，新增宿主状态写入`resumed-editor-state.json`。
 
 它输出连接记录路径，可通过 `open_network_editor.py --connection` 打开。测试宿主使用真实 Harness SDK、AgentLoop、工具运行时、JSONL和检查点，模型回复是确定性 Mock，因此只能验证结构与交互，不代表真实模型决策质量。
 

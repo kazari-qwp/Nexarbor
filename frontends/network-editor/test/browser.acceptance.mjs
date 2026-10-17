@@ -24,8 +24,8 @@ try{
   await waitApi('template',()=>page.getByRole('button',{name:'添加到草稿',exact:true}).click());
  }
  await addPlace('woods','小树林','forest');await addPlace('shop','商店','shop');
- await page.getByRole('button',{name:'场所',exact:true}).click();await page.locator('.react-flow__controls-fitview').click();
- const source=page.locator('[data-id="world/place/woods"] .source'),target=page.locator('[data-id="world/place/shop"] .target');
+ for(const b of await page.getByRole('group',{name:'节点类型显示'}).getByRole('button').all())if(await b.textContent()!=='场所')await b.click();await page.locator('.react-flow__controls-fitview').click();
+ const source=page.locator('[data-id="world/place/woods"] [data-handleid="right"]'),target=page.locator('[data-id="world/place/shop"] [data-handleid="left"]');
  await expect(source).toBeVisible();const a=await source.boundingBox(),b=await target.boundingBox();
  await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:15});await page.mouse.up();
  await expect(page.getByRole('dialog')).toBeVisible();await page.getByLabel('反向也建立连接（适合道路）').check();
@@ -41,7 +41,7 @@ try{
  const validation=await waitApi('validate',()=>page.getByRole('button',{name:'检查配置',exact:true}).click());expect(validation.valid,JSON.stringify(validation)).toBeTruthy();
  await waitApi('draft',()=>page.getByRole('button',{name:'保存草稿',exact:true}).click());
  const applied=await waitApi('apply',()=>page.getByRole('button',{name:'应用网络',exact:true}).click());expect(applied.applied,JSON.stringify(applied)).toBeTruthy();
- await page.getByRole('button',{name:'居民',exact:true}).click();await page.locator('.react-flow__controls-fitview').click();
+ for(const b of await page.getByRole('group',{name:'节点类型显示'}).getByRole('button').all())if(await b.textContent()!=='居民')await b.click();await page.locator('.react-flow__controls-fitview').click();
  const alice=page.locator('[data-id="world/npc/alice"]');await waitApi('view',()=>alice.click());
  await expect(page.getByText('由后端按照真实连接权限计算。界面筛选不授予权限。')).toBeVisible();
  await page.screenshot({path:path.join(run,'02-local-perspective.png')});

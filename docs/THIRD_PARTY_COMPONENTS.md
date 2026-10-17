@@ -11,6 +11,10 @@
 | 事件执行图 | [LangGraph](https://github.com/langchain-ai/langgraph) 1.2.16 | 官方 Python 包的 StateGraph、条件分支、异步并行与汇合；核心与 Agent 循环不依赖它 |
 | Git 工作区 | [Git](https://git-scm.com/) | 独立共享组件包装 worktree、提交与串行整合 |
 | Agent 执行 | DeepSeek Harness / 可选执行器 | 通过核心执行器契约和通用适配层接入 |
+| 工作台图编辑 | [React Flow](https://reactflow.dev/) | 原生画布、缩放、连接交互及连续位置更新 |
+| 工作台连线 | [libavoid-js](https://github.com/Aksem/libavoid-js) 0.5.0-beta.5 / [elkjs-libavoid](https://github.com/MrMint/elkjs-libavoid) 0.5.0 | 原生正交避障、交叉惩罚、共用主干与增量移动，运行于本地Worker |
+| 工作台选中布局 | [ELK.js](https://github.com/kieler/elkjs) 0.12.0 | 分层交叉最小化，只整理选中节点，未选中的节点位置保持不变 |
+| 工作台参数表单 | [react-jsonschema-form](https://github.com/rjsf-team/react-jsonschema-form) | 按组件Schema生成参数表单 |
 
 扩展只承担必要的节点、权限、数据引用和工具接口适配。组件 manifest 记录上游信息；Python 可选依赖在对应 requirements.txt 中。没有向核心复制第三方项目实现。
 

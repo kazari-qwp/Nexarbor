@@ -47,9 +47,11 @@ setTimeout(()=>{console.error('Editor test host deadline (60 minutes)');process.
   }
  }
  const model=new Model();host.llm.registerAdapter(['mock'],model);
- const root=await host.agentLoop.create(native('dsh-session').SessionId('network-editor-'+Date.now()),{provider:'mock',model:'mock'},{cwd:run});
+ const resumeId=process.env.DATANET_EDITOR_ROOT_SESSION;
+ const previous=resumeId?JSON.parse(await fs.readFile(path.join(run,'sessions-manifest.json'),'utf8')):null;
+ const root=resumeId?(await host.agents.resume({resumeSessionId:resumeId})).agent:await host.agentLoop.create(native('dsh-session').SessionId('network-editor-'+Date.now()),{provider:'mock',model:'mock'},{cwd:run});
  await host.parallel('agent/created',{agent:root});const runtime=controller.runtimes.get(root.id);
- root.followup(llm.createUserMessage({source:{kind:'user'},content:[{type:'text',text:'网络工作台最小测试就绪。'}]}));await root.whenIdle();
+ if(!resumeId){root.followup(llm.createUserMessage({source:{kind:'user'},content:[{type:'text',text:'网络工作台最小测试就绪。'}]}));await root.whenIdle();}
  const connection={url:runtime.editor.url,authority:runtime.editor.authority,directory:runtime.directory,workspace:run,mode:'native-mock',model_api_calls:0};
  await fs.writeFile(path.join(run,'editor.json'),JSON.stringify(connection,null,2));
  async function manifest(){
@@ -59,10 +61,10 @@ setTimeout(()=>{console.error('Editor test host deadline (60 minutes)');process.
     rows.push({actor:'root',agent:network.rootAgent,rootId});
     for(const [actor,entry] of network.sessions)rows.push({actor,agent:entry.handle.agent,rootId});
   }
-  const sessions=[];
-  for(const row of rows){const node=live.live.document.network.nodes.find(n=>n.node_id===row.actor),title='网络编辑器测试（Mock） · '+(node?.name??row.actor)+(row.rootId===root.id?'':'（恢复）');if(host.sessionTitle.get(row.agent.session).title!==title)host.sessionTitle.rename(row.agent.session,title);await host.sessions.flush(row.agent.session);sessions.push({actor:row.actor,network_root:row.rootId,session_id:row.agent.id,name:node?.name??row.actor,events:row.agent.session.seq,title});}
-  await fs.writeFile(path.join(run,'sessions-manifest.json'),JSON.stringify({kind:'native-mock',workspace:run,native_logs:path.join(run,'native-logs'),root_session:root.id,sessions},null,2));
-  await fs.writeFile(path.join(run,'acceptance-state.json'),JSON.stringify({job:live.job,document:live.live.document,requests:model.calls,peak_parallel_streams:model.peak,model_api_calls:0},null,2));
+  const sessions=previous?[...previous.sessions]:[];
+  for(const row of rows){const node=live.live.document.network.nodes.find(n=>n.node_id===row.actor),old=sessions.find(s=>s.session_id===row.agent.id),title=old?.title??('网络编辑器测试（Mock） · '+(node?.name??row.actor)+(row.rootId===root.id?'':'（恢复）'));if(host.sessionTitle.get(row.agent.session).title!==title)host.sessionTitle.rename(row.agent.session,title);await host.sessions.flush(row.agent.session);const entry={actor:row.actor,network_root:row.rootId,session_id:row.agent.id,name:node?.name??row.actor,events:row.agent.session.seq,title};if(old)Object.assign(old,entry);else sessions.push(entry);}
+  await fs.writeFile(path.join(run,'sessions-manifest.json'),JSON.stringify({kind:'native-mock',workspace:run,native_logs:path.join(run,'native-logs'),root_session:previous?.root_session??root.id,sessions},null,2));
+  await fs.writeFile(path.join(run,resumeId?'resumed-editor-state.json':'acceptance-state.json'),JSON.stringify({job:live.job,document:live.live.document,requests:model.calls,peak_parallel_streams:model.peak,model_api_calls:0},null,2));
  }
  await manifest();setInterval(()=>manifest().catch(e=>console.error(e.message)),2500);
  console.log('READY native network editor; connection saved in '+path.join(run,'editor.json'));

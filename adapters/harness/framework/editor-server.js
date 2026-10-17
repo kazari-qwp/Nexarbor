@@ -10,7 +10,7 @@ export async function startEditorServer({web,directory,request,chat,recover,port
   const server=http.createServer(async(req,res)=>{
     res.setHeader('X-Content-Type-Options','nosniff');
     res.setHeader('Referrer-Policy','no-referrer');
-    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'");
+    res.setHeader('Content-Security-Policy',"default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; frame-ancestors 'none'");
     try{
       if(req.headers.host!==authority)return send(res,403,{error:'无效的本地地址'});
       const url=new URL(req.url,'http://'+authority);
@@ -31,7 +31,7 @@ export async function startEditorServer({web,directory,request,chat,recover,port
       const file=path.resolve(web,relative);
       if(!file.startsWith(path.resolve(web)+path.sep))return send(res,403,{error:'Invalid asset path'});
       const content=await readFile(file);
-      const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.woff2':'font/woff2'};
+      const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.woff2':'font/woff2','.wasm':'application/wasm'};
       res.writeHead(200,{'Content-Type':types[path.extname(file)]??'application/octet-stream','Cache-Control':'no-cache'});res.end(content);
     }catch(error){send(res,error.code==='ENOENT'?404:400,{error:String(error.message??error)});}
   });
