@@ -21,5 +21,6 @@ export class NativeRunner{
  }
  send(method,params){return new Promise((resolve,reject)=>{const id=++this.serial;this.pending.set(id,{resolve,reject});this.child.stdin.write(JSON.stringify({id,method,params})+'\n');});}
  async request(method,params){await this.start();return this.send(method,params);}
+ notify(){if(this.child)this.send('core-commit',{}).catch(()=>{});}
  async close(){if(!this.child)return;const child=this.child;child.stdin.end();await new Promise(resolve=>{const timer=setTimeout(()=>{child.kill();resolve();},10000);child.once('exit',()=>{clearTimeout(timer);resolve();});});}
 }

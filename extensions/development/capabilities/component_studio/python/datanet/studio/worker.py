@@ -28,8 +28,9 @@ def main():
     async def execute_agent(*args,**kwargs):return dict(status='completed',session_id='contract-check',steps=0,output='')
     backend=SimpleNamespace(network=network,metadata_registry=network.metadata_registry,directory=folder,execute_agent=execute_agent,dispatch=lambda *a,**k:saves.append((a,k)) or {'saved':True})
     instance=create(backend,node,defaults['config'],{});instance.install()
-    assert set(node.tool_definitions)==set(t['name'] for t in spec['tools'])|({'read','write'} if kind=='text_file' else set())
+    assert set(node.tool_definitions)==set(t['name'] for t in spec['tools'] if instance.tool_enabled(t['name']))|({'read','write'} if kind=='text_file' else set())
     for tool in spec['tools']:
+        if not instance.tool_enabled(tool['name']):continue
         actual=node.tool_definitions[tool['name']]
         assert 'read_only' not in actual and 'access_channels' in actual
     if spec['signals']:

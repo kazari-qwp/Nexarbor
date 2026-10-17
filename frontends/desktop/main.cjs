@@ -12,7 +12,7 @@ function projectRoot(){
 }
 async function development(){
  try{
-  if(!studio){const root=projectRoot();const {startStudio}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href);studio=await startStudio({directory:process.env.NEXARBOR_WORKSPACE??path.join(root,'build/workbench')});}
+  if(!studio){const root=projectRoot();const {startStudio}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href);studio=await startStudio({directory:flag('--workspace')??process.env.NEXARBOR_WORKSPACE??path.join(root,'build/workbench'),initialNetwork:flag('--network')});}
   await window.loadURL(studio.url);
  }catch(error){window.show();await dialog.showMessageBox(window,{type:'error',title:'组件工作室未启动',message:'请检查项目目录和Python运行时。',detail:error.message});}
 }

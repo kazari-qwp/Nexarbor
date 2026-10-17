@@ -29,8 +29,21 @@ async function init(p){
  return {ready:true,model:config.model,limits:{requests:config.maxRequests,seconds:config.maxSeconds}};
 }
 async function refresh(entry){
+ if(entry.compacted){
+  const referenced=[...new Set(entry.agent.session.deriveMessages().flatMap(m=>(m.content??[]).filter(b=>b.type==='tool-call').map(b=>b.name)))];
+  const keep=new Set(await rpc('executor_prune',{actor:entry.actor,referenced}));
+  for(const name of entry.definitions.keys())if(!keep.has(name))entry.definitions.delete(name);
+  entry.compacted=false;
+ }
  const view=await rpc('executor_prepare',{actor:entry.actor});entry.view=view;
+ permissions.refusals(entry.agent.ctx,view.unavailable??{});
  const desired=new Set(view.tools.map(t=>t.name));
+ for(const definition of view.retained_tools??[]){
+  if(entry.definitions.has(definition.name))continue;
+  entry.definitions.set(definition.name,JSON.stringify(definition));
+  const dispose=permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:(_a,value)=>[{type:'text',text:JSON.stringify(value)}]},execute:args=>rpc('executor_invoke',{actor:entry.actor,name:definition.name,arguments:args})});
+  if(desired.has(definition.name))entry.tools.set(definition.name,dispose);else dispose();
+ }
  for(const [name,dispose] of entry.tools)if(!desired.has(name)){dispose();entry.tools.delete(name);}
  for(const definition of view.tools){
   const signature=JSON.stringify(definition);if(entry.definitions.get(definition.name)===signature&&entry.tools.has(definition.name))continue;
@@ -55,7 +68,7 @@ async function agentFor(p){
  const entry={actor:p.actor,agent,tools:new Map(),definitions:new Map(),view:{},steps:0,maxSteps:12};agents.set(p.actor,entry);
  host.sessionTitle.rename(agent.session,'小镇组件实测 · '+p.name);
  history.bind(agent.ctx,agent);permissions.bind(agent.ctx,agent);
- agent.ctx.on('session/event',(session)=>{if(session===agent.session)checkpoints.schedule();});
+ agent.ctx.on('session/event',(session,event)=>{if(session===agent.session){if(event.type==='compaction/end'&&!event.data?.error)entry.compacted=true;checkpoints.schedule();}});
  agent.ctx.systemPrompt.section({name:'nexarbor:assembled',order:90,interpolate:false,text:()=>entry.view.system_prompt??''});
  agent.ctx.on('agent/prepare-context',()=>refresh(entry));
  agent.ctx.on('agent/request-tail',async(_p,next)=>[...await next(),...(entry.view.tail??[]).map(text=>({role:'user',content:[{type:'text',text}]}))]);
@@ -81,5 +94,5 @@ async function close(){if(closed)return;closed=true;for(const e of agents.values
 readline.createInterface({input:process.stdin}).on('line',line=>{
  let value;try{value=JSON.parse(line);}catch{return;}
  if(value.host_id){const p=callbacks.get(value.host_id);if(p){callbacks.delete(value.host_id);value.error?p.reject(Error(value.error)):p.resolve(value.result);}return;}
- Promise.resolve().then(()=>value.method==='init'?init(value.params):value.method==='agent-run'?run(value.params):value.method==='agent-read'?agentFor(value.params).then(e=>({session_id:e.agent.id,status:e.running?'running':'idle',messages:e.agent.session.deriveMessages()})):value.method==='agent-cancel'?(agents.get(value.params.actor)?.agent.cancel('user'),{ok:true}):Promise.reject(Error('Unknown native operation'))).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:String(error.stack??error)}));
+ Promise.resolve().then(()=>value.method==='init'?init(value.params):value.method==='core-commit'?(checkpoints?.schedule(),{ok:true}):value.method==='agent-run'?run(value.params):value.method==='agent-read'?agentFor(value.params).then(e=>({session_id:e.agent.id,status:e.running?'running':'idle',messages:e.agent.session.deriveMessages()})):value.method==='agent-cancel'?(agents.get(value.params.actor)?.agent.cancel('user'),{ok:true}):Promise.reject(Error('Unknown native operation'))).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:String(error.stack??error)}));
 }).on('close',()=>close().finally(()=>process.exit()));

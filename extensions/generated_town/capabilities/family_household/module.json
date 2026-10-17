@@ -1,0 +1,307 @@
+{
+  "format": "nexarbor-module/v1",
+  "id": "family.household",
+  "version": "1.0.1",
+  "entry": "module.py:Module",
+  "node_types": [
+    "node"
+  ],
+  "requires": [
+    "entity.profile",
+    "action.points",
+    "time.text"
+  ],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "mode",
+      "channels",
+      "place",
+      "presence_channel",
+      "entity_component",
+      "action_component"
+    ],
+    "properties": {
+      "mode": {
+        "type": "string",
+        "enum": [
+          "civil",
+          "family",
+          "hospital"
+        ],
+        "description": "业务模式：civil 民政登记、family 家庭计划、hospital 医院接生。"
+      },
+      "channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true,
+        "description": "本实例唯一工具允许的访问频道；频道交集与强度由网络核心检查。"
+      },
+      "place": {
+        "type": "string",
+        "minLength": 1,
+        "description": "本模式的地点节点 ID：民政登记处、夫妻自己家或医院。"
+      },
+      "entity_component": {
+        "type": "string",
+        "minLength": 1,
+        "description": "人物资料组件 ID，默认 entity.profile；人物数据保存在它的 profile 中。"
+      },
+      "action_component": {
+        "type": "string",
+        "minLength": 1,
+        "description": "行动值组件 ID，默认 action.points；每次成功操作按 costs 扣除。"
+      },
+      "clock_node": {
+        "type": "string",
+        "minLength": 1,
+        "description": "时钟节点 ID；family 与 hospital 模式必填，用于读取当前 tick。"
+      },
+      "clock_component": {
+        "type": "string",
+        "minLength": 1,
+        "description": "时钟组件 ID，默认 time.text；调用它的 get_tick 操作。"
+      },
+      "presence_channel": {
+        "type": "string",
+        "minLength": 1,
+        "description": "人物与 place 之间双向在场连接的频道；三种模式都必填，用于核实真实在场，不只看 profile.place。"
+      },
+      "time_node": {
+        "type": "string",
+        "minLength": 1,
+        "description": "向孩子发送 world.tick 的时钟/脉冲节点 ID；hospital 模式必填。"
+      },
+      "save_node": {
+        "type": "string",
+        "minLength": 1,
+        "description": "接收孩子 world.tick 的存档/脉冲节点 ID；hospital 模式必填。"
+      },
+      "child_id_prefix": {
+        "type": "string",
+        "minLength": 1,
+        "description": "孩子节点 ID 前缀，默认 child；最终 ID 为 前缀/姓名，重名时追加序号。"
+      },
+      "adult_age": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "民政登记判定的成年年龄，默认 18。"
+      },
+      "due_ticks": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "家庭计划从同意到预产的 tick 数，默认 10（默认一天 5 个时刻，即两天）。"
+      },
+      "ticks_per_day": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "一天包含多少个时刻，仅用于把 due_tick 换算成第几天提示，默认 5。"
+      },
+      "costs": {
+        "type": "object",
+        "additionalProperties": false,
+        "description": "各工具成功操作时扣除的行动值；未列出的键默认 1。",
+        "properties": {
+          "register_marriage": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "plan_child": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "give_birth": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "child_template": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "memory_path",
+          "modules",
+          "execution"
+        ],
+        "description": "hospital 模式新建孩子 AgentNode 的模板；姓名、gender、age_group、parents、place 由运行时填入。",
+        "properties": {
+          "memory_path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "相对运行目录的独立记忆文件路径，必须包含 {node_id} 或 {name} 占位符。"
+          },
+          "memory_text": {
+            "type": "string",
+            "description": "新记忆文件的初始文本，默认空串；不会复制父母记忆。"
+          },
+          "description": {
+            "type": "string",
+            "description": "孩子 Agent 节点的描述文本。"
+          },
+          "profile": {
+            "type": "object",
+            "description": "孩子初始资料字段；会合并到实体组件配置的 profile 上，姓名、gender、age_group、parents、place 由运行时覆盖。"
+          },
+          "execution": {
+            "type": "object",
+            "description": "孩子节点的执行绑定配置，例如 {\"executor\":\"harness\",\"strength\":2,...}。"
+          },
+          "management_parent_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "孩子节点的管理归属节点 ID；配置时该节点必须已存在，孩子创建后写入 management_parent_id。"
+          },
+          "modules": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {
+              "type": "object"
+            },
+            "description": "孩子节点要挂载的模块配置，键是模块 ID；必须包含 entity_component 对应的配置，其 profile 会被动态字段覆盖。"
+          }
+        }
+      }
+    },
+    "allOf": [
+      {
+        "if": {
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "const": "family"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "clock_node"
+          ]
+        }
+      },
+      {
+        "if": {
+          "required": [
+            "mode"
+          ],
+          "properties": {
+            "mode": {
+              "const": "hospital"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "clock_node",
+            "time_node",
+            "save_node",
+            "child_template"
+          ]
+        }
+      }
+    ]
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "marriage_consents",
+      "family_consents"
+    ],
+    "properties": {
+      "marriage_consents": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "description": "待完成的民政登记同意：夫妻对键 → 已同意的节点 ID 列表。"
+      },
+      "family_consents": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "description": "待完成的家庭计划同意：夫妻对键 → 已同意的节点 ID 列表。"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "register_marriage",
+      "description": "向对方提出结婚同意。双方各自调用并满足成年、都在登记处、都没有其他配偶后完成登记，双方资料互指配偶；重复登记不再扣费。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "partner"
+        ],
+        "properties": {
+          "partner": {
+            "type": "string",
+            "minLength": 1,
+            "description": "对方的 Agent 节点 ID。"
+          }
+        }
+      },
+      "channels": {
+        "config": "channels"
+      }
+    },
+    {
+      "name": "plan_child",
+      "description": "同意与配偶要孩子。夫妻双方各自调用、都在自己家且都已婚时，为 gender=female 的一方记录 due_tick；每对最多一个孩子。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "channels": {
+        "config": "channels"
+      }
+    },
+    {
+      "name": "give_birth",
+      "description": "本人在预产期后、亲自到医院时接生。创建一个独立的孩子 Agent 节点，登记双向父母关系并接好 world.tick 与在场连接；已生过会返回同一个孩子，不重复创建或扣费。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "gender"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "孩子的姓名。"
+          },
+          "gender": {
+            "type": "string",
+            "minLength": 1,
+            "description": "孩子的 gender 值，例如 female 或 male。"
+          }
+        }
+      },
+      "channels": {
+        "config": "channels"
+      }
+    }
+  ],
+  "signals": [],
+  "operations": []
+}

@@ -1,0 +1,187 @@
+{
+  "format": "nexarbor-module/v1",
+  "id": "local.action_rules",
+  "version": "1.0.1",
+  "entry": "module.py:Module",
+  "node_types": [
+    "node"
+  ],
+  "requires": [
+    "entity.profile",
+    "action.points"
+  ],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "address",
+      "channels",
+      "rules"
+    ],
+    "properties": {
+      "address": {
+        "type": "string",
+        "minLength": 1,
+        "description": "这个业务所在地址的节点 ID；行动前提、执行者变化与地点库存变化都围绕它结算。"
+      },
+      "channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true,
+        "description": "act 工具的访问频道，同时也是双向在场连接必须共用的行动频道；频道交集与强度由网络核心检查。"
+      },
+      "entity_module": {
+        "type": "string",
+        "minLength": 1,
+        "default": "entity.profile",
+        "description": "实体资料与物品组件 ID，默认 entity.profile。"
+      },
+      "action_module": {
+        "type": "string",
+        "minLength": 1,
+        "default": "action.points",
+        "description": "行动值组件 ID，默认 action.points。"
+      },
+      "rules": {
+        "type": "object",
+        "minProperties": 1,
+        "description": "动作名到规则定义的对象；动作名就是 act 的 action 参数。",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "description",
+            "cost"
+          ],
+          "properties": {
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "description": "动作的简短说明，会出现在工具描述的动作菜单里。"
+            },
+            "cost": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "每次调用固定消耗的行动值；当 cost_per_unit 为 true 时表示每单位消耗。"
+            },
+            "cost_per_unit": {
+              "type": "boolean",
+              "default": false,
+              "description": "默认 false：整单只按一次 cost 计费；true：实际消耗 cost × quantity。"
+            },
+            "requires_items": {
+              "type": "object",
+              "description": "每单位最低持有量；本次共需 每单位最低持有量 × quantity，检查执行者物品。",
+              "additionalProperties": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "requires_profile": {
+              "type": "object",
+              "description": "执行者资料字段的等值要求；可用来限制仅成年人工作或只能在某个家休息。"
+            },
+            "actor": {
+              "$ref": "#/$defs/effects",
+              "description": "执行者的金币、物品与资料变化；金币和物品按 quantity 倍增。"
+            },
+            "place": {
+              "$ref": "#/$defs/effects",
+              "description": "业务地址的库存、金币与资料变化；金币和物品按 quantity 倍增。"
+            },
+            "event_trigger": {
+              "type": "string",
+              "minLength": 1,
+              "description": "成功动作后调用 chance.events.draw 的触发名，默认取 action。"
+            }
+          }
+        }
+      },
+      "events_ref": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "node",
+          "module"
+        ],
+        "properties": {
+          "node": {
+            "type": "string",
+            "minLength": 1,
+            "description": "挂载概率事件组件的节点 ID。"
+          },
+          "module": {
+            "type": "string",
+            "minLength": 1,
+            "description": "概率事件组件 ID，通常是 chance.events。"
+          }
+        },
+        "description": "可选：成功动作后按规则 event_trigger 抽取概率事件。"
+      }
+    },
+    "$defs": {
+      "effects": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "coins": {
+            "type": "integer",
+            "description": "金币增量，可为负；按 quantity 倍增。"
+          },
+          "items": {
+            "type": "object",
+            "description": "物品数量增量，可为负；按 quantity 倍增。",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "fields": {
+            "type": "object",
+            "description": "资料字段，原样合并写入，不按 quantity 倍增。"
+          }
+        }
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "tools": [
+    {
+      "name": "act",
+      "description": "在本地点执行配置好的本地行动；动作菜单、花费与前提由实例配置生成。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "description": "动作名，必须是工具描述中动作菜单里的一项。"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "default": 1,
+            "description": "数量倍数，1 到 100；金币与物品按数量倍增，行动消耗只扣一次。"
+          }
+        },
+        "required": [
+          "action"
+        ]
+      },
+      "channels": {
+        "config": "channels"
+      }
+    }
+  ],
+  "signals": [],
+  "operations": []
+}

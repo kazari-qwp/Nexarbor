@@ -42,6 +42,8 @@ class StudioModule(NodeModule):
     def setup(self):pass
     def on_signal(self,context):return None
     def tool_description(self,name,default):return default
+    def tool_enabled(self,name):return True
+    def on_tool_denied(self,name,actor,reason):return reason
     def invoke_operation(self,name,arguments):
         spec=next((s for s in self.manifest.get('operations',[]) if s['name']==name),None)
         if spec is None:raise ValueError('Module operation is not declared: '+name)
@@ -59,15 +61,18 @@ class StudioModule(NodeModule):
         self.setup()
         Draft202012Validator(self.manifest['state_schema']).validate(self.state)
         for tool in self.manifest['tools']:
+            if not self.tool_enabled(tool['name']):continue
             channels=tool['channels']
             if isinstance(channels,dict):channels=self.config[channels['config']]
             channels=names(channels,'tool channels')
             function=getattr(self,tool['name'])
-            def checked(_function=function,**arguments):
+            def checked(_function=function,_schema=tool['parameters'],**arguments):
+                Draft202012Validator(_schema).validate(arguments)
                 value=_function(**arguments)
                 Draft202012Validator(self.manifest['state_schema']).validate(self.state)
                 return value
-            self.tool(tool['name'],checked,description=self.tool_description(tool['name'],tool['description']),parameters=tool['parameters'],access_channels=channels)
+            def refusal(actor,reason,_name=tool['name']):return self.on_tool_denied(_name,actor,reason)
+            self.tool(tool['name'],checked,description=self.tool_description(tool['name'],tool['description']),parameters=tool['parameters'],access_channels=channels,refusal=refusal)
 
 def factory(folder):
     folder=Path(folder).resolve();specification=manifest(folder)

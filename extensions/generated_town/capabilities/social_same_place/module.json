@@ -1,0 +1,89 @@
+{
+  "format": "nexarbor-module/v1",
+  "id": "social.same_place",
+  "version": "1.0.2",
+  "entry": "module.py:Module",
+  "node_types": [
+    "agent"
+  ],
+  "requires": [
+    "entity.profile",
+    "action.points"
+  ],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "channels"
+    ],
+    "properties": {
+      "channels": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "同场交互频道列表，talk 工具只对这些频道可达；此处的值必须与接线时使用的频道一致。"
+      },
+      "action_cost": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 1,
+        "description": "每说一句话从发送者扣除的行动值，默认 1；0 表示不消耗。"
+      },
+      "profile_module": {
+        "type": "string",
+        "minLength": 1,
+        "default": "entity.profile",
+        "description": "提供 profile 字段的依赖组件 ID，默认 entity.profile。"
+      },
+      "action_module": {
+        "type": "string",
+        "minLength": 1,
+        "default": "action.points",
+        "description": "扣除行动值的依赖组件 ID，默认 action.points。"
+      },
+      "place_field": {
+        "type": "string",
+        "minLength": 1,
+        "default": "place",
+        "description": "profile 中表示所在场所的字段名，默认 place。"
+      },
+      "display_name": {
+        "type": "string",
+        "minLength": 1,
+        "description": "可选：收话者姓名。仅当挂载时还读不到 profile.name 时用于生成工具描述。"
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "tools": [
+    {
+      "name": "talk",
+      "description": "对同场所的收话者说一句话；话会带上你的姓名写进对方输入，并消耗你的行动值。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "message"
+        ],
+        "properties": {
+          "message": {
+            "type": "string",
+            "description": "你要对这位同场所收话者说的话。"
+          }
+        }
+      },
+      "channels": {
+        "config": "channels"
+      }
+    }
+  ],
+  "signals": [],
+  "operations": []
+}

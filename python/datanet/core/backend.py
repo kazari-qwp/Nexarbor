@@ -30,6 +30,7 @@ class Backend:
         self.agents = {}
         self.failed = False
         self.commit_observer = None
+        self.agent_executor = None
         self.network = Network()
         self.metadata_registry = self.network.metadata_registry
         from datanet.core.agent_node import AgentNode
@@ -61,19 +62,37 @@ class Backend:
         if set(self.network.nodes)!={'root'} or self.store.latest() is not None:raise ValueError('Initial config requires an empty backend')
         candidate=_build(document['network'],self.directory)
         if 'root' not in candidate.nodes:raise ValueError('Initial config requires root')
+        self.network=candidate;candidate.use_metadata_registry(self.metadata_registry);self.root=candidate.nodes['root']
+        self.write_documents(document.get('files',{}))
+
+    def write_documents(self,documents):
+        """Track configuration-owned text resources with the graph checkpoints."""
         files=[]
-        for name,text in document.get('files',{}).items():
+        for name,text in documents.items():
             target=(self.directory/name).resolve()
             if not target.is_relative_to(self.directory) or not isinstance(text,str):raise ValueError('Initial documents must stay in backend directory')
             files.append((target,text))
-        self.network=candidate;candidate.use_metadata_registry(self.metadata_registry);self.root=candidate.nodes['root']
         for target,text in files:target.parent.mkdir(parents=True,exist_ok=True);target.write_text(text,encoding='utf-8')
+        self.extension_state['document_resources']=sorted(set(self.extension_state.get('document_resources',[]))|{target.relative_to(self.directory).as_posix() for target,_ in files})
+
+    def document_files(self):
+        files={}
+        for name in self.extension_state.get('document_resources',[]):
+            target=(self.directory/name).resolve()
+            if not target.is_relative_to(self.directory):raise ValueError('Document escapes runtime directory')
+            files[name]=target.read_text(encoding='utf-8') if target.exists() else None
+        return files
 
     @property
     def signals(self):
         runtime=self.network.signals
         runtime.checkpoint=lambda:self.dispatch('save',{})
         return runtime
+
+    async def execute_agent(self,node_id,message='',**options):
+        """Stable asynchronous port implemented by the selected host adapter."""
+        if self.agent_executor is None:raise RuntimeError('This host has no Agent executor installed')
+        return await self.agent_executor(node_id,message,**options)
 
     def close(self):
         try:
@@ -85,7 +104,7 @@ class Backend:
 
     def snapshot(self):
         network = network_document(self.network,self.directory)
-        files = {}
+        files = self.document_files()
         for node in self.network.nodes.values():
             for _, label, target in resource_paths(node):
                 if target.is_relative_to(self.directory):

@@ -1,0 +1,116 @@
+{
+  "format": "nexarbor-module/v1",
+  "id": "resident.context",
+  "version": "1.0.0",
+  "entry": "module.py:Module",
+  "node_types": [
+    "agent"
+  ],
+  "requires": [
+    "entity.profile",
+    "action.points",
+    "time.text"
+  ],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "clock_node",
+      "persona_file",
+      "common_sense_file",
+      "map_file",
+      "opening_line",
+      "road_channels",
+      "presence_channels"
+    ],
+    "properties": {
+      "entity_component": {
+        "type": "string",
+        "minLength": 1,
+        "default": "entity.profile",
+        "description": "本节点上提供实体资料、金币与物品的组件 ID。"
+      },
+      "action_component": {
+        "type": "string",
+        "minLength": 1,
+        "default": "action.points",
+        "description": "本节点上提供行动值余额的组件 ID。"
+      },
+      "clock_node": {
+        "type": "string",
+        "minLength": 1,
+        "description": "时钟组件所在节点的 ID。"
+      },
+      "clock_component": {
+        "type": "string",
+        "minLength": 1,
+        "default": "time.text",
+        "description": "时钟组件 ID；prepare 调用它的 get_time 操作。"
+      },
+      "persona_file": {
+        "type": "string",
+        "minLength": 1,
+        "description": "backend.directory 下的人格文件相对路径，每次 prepare 重新读取。"
+      },
+      "common_sense_file": {
+        "type": "string",
+        "minLength": 1,
+        "description": "backend.directory 下的常识文件相对路径，每次 prepare 重新读取。"
+      },
+      "map_file": {
+        "type": "string",
+        "minLength": 1,
+        "description": "backend.directory 下的地图文件相对路径，每次 prepare 重新读取。"
+      },
+      "opening_line": {
+        "type": "string",
+        "description": "一次性开场白；空串表示不投递开场白。"
+      },
+      "road_channels": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "用于识别地点之间道路连接的频道。"
+      },
+      "presence_channels": {
+        "type": "array",
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": "用于识别场所与同场人物连接的频道。"
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "opening_delivered"
+    ],
+    "properties": {
+      "opening_delivered": {
+        "type": "boolean",
+        "description": "开场白是否已经投递过；随存档保存，读档后不会重发。"
+      }
+    }
+  },
+  "tools": [],
+  "signals": [],
+  "operations": [
+    {
+      "name": "prepare",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      }
+    }
+  ]
+}

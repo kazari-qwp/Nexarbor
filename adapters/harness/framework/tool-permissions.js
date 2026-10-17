@@ -16,7 +16,7 @@ export class ToolPermissions {
     ac.tools.guard(exec=>{
       if(exec.agent?.ctx&&exec.agent.ctx!==ac)return;
       const local=s.tools.get(exec.name);
-      if(local?.enabled===false||!local&&s.managed&&exec.name!=='run_code'&&!s.official.has(exec.name))return permissionReason(exec.name);
+      if(local?.enabled===false||!local&&s.managed&&exec.name!=='run_code'&&!s.official.has(exec.name))return s.refusals?.[exec.name]??permissionReason(exec.name);
     });
     ac.on('agent/tool-schemas',async(_payload,next)=>{
       const tools=await next();
@@ -37,6 +37,7 @@ export class ToolPermissions {
       this.rebase(ac);
     });
   }
+  refusals(ac,reasons){this.state(ac).refusals=reasons;}
   onRebase(ac,callback){this.state(ac).rebaseOfficial=callback;}
   rebase(ac){
     const s=this.state(ac);if(!s.agent)return;

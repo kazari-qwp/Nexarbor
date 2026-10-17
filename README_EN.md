@@ -1,6 +1,6 @@
 # Nexarbor
 
-> The development branch now uses the v7 channel-only core, without built-in read/write or public/private access categories. Existing components and the three applications have not been migrated and are not expected to run yet. Application results below describe earlier implementations. See the [channel protocol](docs/CHANNEL_ACCESS.md) and [current validation](docs/ROUTING_CHANNELS_V7_TEST_20261017.md).
+> The development branch uses the v7 channel-only core. The NPC town has been rebuilt with Agent-made standard modules and passed a real one-day run. The first two applications have not been migrated. Earlier application results below refer to previous implementations. See the [component studio](docs/COMPONENT_STUDIO.md), [latest town evaluation](docs/applications/npc_world/COMPONENT_STUDIO_TEST_20261018.md), and [channel protocol](docs/CHANNEL_ACCESS.md).
 
 [English](README_EN.md) | [简体中文](README.md)
 
@@ -43,6 +43,12 @@ flowchart TB
 ```
 
 Multi-agent collaboration is the first application and has been evaluated end to end in real clients. The initial knowledge and memory application has component and native-bridge validation. An initial discrete-time NPC town has local validation. The applications share the network foundation while keeping business rules in separate components.
+
+## Create modules in the desktop workbench
+
+The workbench supports source inspection, CodeMirror editing and diffs, and a DeepSeek Harness component-making Agent. Describe a module in natural language, review host validation and repair feedback, publish the tested revision, and mount it through configuration forms. Unchanged prefixes can reuse or fork native session history.
+
+The current town runs on **12 Agent-written standard modules, one network configuration, and the core**, without handwritten adapters for individual generated modules. Seven NPCs completed all five slots of a real day; a separate birth test created a child that acted in the next slot. File hashes, prompts, repair records, and the limits of the source-reference evaluation are documented in the [test report](docs/applications/npc_world/COMPONENT_STUDIO_TEST_20261018.md). See the [studio guide](docs/COMPONENT_STUDIO.md).
 
 ## Core framework
 

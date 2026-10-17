@@ -1,6 +1,6 @@
 # 织林 · Nexarbor
 
-> 当前开发分支采用 v7 纯频道核心，已移除内置读写、公私访问分类；旧组件和三个应用尚未迁移，本轮不保证其可运行。下方应用测试记录对应此前实现。详见[频道协议](docs/CHANNEL_ACCESS.md)与[本轮验证](docs/ROUTING_CHANNELS_V7_TEST_20261017.md)。
+> 当前开发分支采用 v7 纯频道核心。NPC 小镇已用 Agent 制作的标准组件重新装配并完成一天真实实测；前两个应用尚未迁移。下方较早的应用结果对应此前实现。详见[组件工作室](docs/COMPONENT_STUDIO.md)、[最新小镇实测](docs/applications/npc_world/COMPONENT_STUDIO_TEST_20261018.md)与[频道协议](docs/CHANNEL_ACCESS.md)。
 
 [简体中文](README.md) | [English](README_EN.md)
 
@@ -29,6 +29,12 @@
 网络结构为不同工作方式提供基础，具体行为由 Agent、权限配置和业务组件共同实现。**我们希望把组织智能体、数据与能力的方式，变成可以保存、复用和持续演化的网络。**
 
 项目名称为 **织林 / Nexarbor**。Python 命名空间与 Harness 插件目前沿用 `datanet` / `datanet-harness` 技术标识；当前插件版本为 **0.4.0**。本文包含组件化与知识库的最新开发进展；实现状态详见各应用验证记录。已发布安装包的内容以对应 Release 为准。
+
+## 客户端制作组件与配置装配
+
+桌面工作台可以直接查看模块代码，用 CodeMirror 编辑和比较变更，再让 DeepSeek Harness 组件制作 Agent 按中文需求编写、验证修复并发布组件。节点装配使用配置表单，网络可保存为配置预设；同前缀的修改支持继续或分叉原会话。
+
+当前小镇由 **12 个 Agent 编写的标准组件 + 一份网络配置 + 核心** 运行，没有逐组件注册胶水。7 名 NPC 的一天五时刻真实测试和独立出生测试通过。组件产物保留逐文件来源摘要；详细需求、修复记录及源码参考边界见[实测报告](docs/applications/npc_world/COMPONENT_STUDIO_TEST_20261018.md)。使用方式见[工作室文档](docs/COMPONENT_STUDIO.md)。
 
 ## 项目结构：一个核心，三个应用
 

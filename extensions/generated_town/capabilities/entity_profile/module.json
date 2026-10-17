@@ -1,0 +1,127 @@
+{
+  "format": "nexarbor-module/v1",
+  "id": "entity.profile",
+  "version": "1.0.0",
+  "entry": "module.py:Module",
+  "node_types": [
+    "node",
+    "agent",
+    "text_file",
+    "pulse"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "profile": {
+        "type": "object",
+        "description": "Initial profile fields used only when the saved state has none yet."
+      },
+      "coins": {
+        "type": "integer",
+        "minimum": 0,
+        "description": "Initial coin balance used only when the saved state has none yet."
+      },
+      "items": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "description": "Initial item counts used only when the saved state has none yet."
+      },
+      "metadata_namespace": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Metadata namespace holding the profile, default profile."
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "required": [
+      "profile",
+      "coins",
+      "items"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "profile": {
+        "type": "object"
+      },
+      "coins": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "items": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "entity_view",
+      "description": "查看本节点实体的资料字段、金币余额与物品数量；只读，不能修改。",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "channels": [
+        "access.read"
+      ]
+    }
+  ],
+  "signals": [],
+  "operations": [
+    {
+      "name": "read",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      }
+    },
+    {
+      "name": "update_profile",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "fields"
+        ],
+        "properties": {
+          "fields": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    {
+      "name": "adjust",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "coins": {
+            "type": "integer"
+          },
+          "items": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          },
+          "fields": {
+            "type": "object"
+          }
+        }
+      }
+    }
+  ]
+}

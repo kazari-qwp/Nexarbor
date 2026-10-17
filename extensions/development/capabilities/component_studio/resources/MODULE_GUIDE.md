@@ -41,4 +41,8 @@ Node/AgentNode/TextFileNode/PulseNode分别从datanet.core.node/agent_node/text_
 
 多个实体状态需要一起变更时，可以使用 with backend.modules.transaction(节点ID1,节点ID2,...):，异常时会恢复这些节点所有模块的原有state；省略节点ID表示全部模块。该事务只保护模块状态，不能回滚文件、外部I/O、新建节点或接口操作。只包住短暂的同步修改，不能跨await等待模型。先验证业务前提，再扣行动值及转移资源。
 
+tool_enabled(name)默认True。组件可以按实例config覆盖它，只装配该实例真正提供的工具；不适用的工具返回False，不要暴露一堆只能拒绝的工具。tool_description(name,default)同样可以按配置返回简洁、具体的说明。
+
+on_tool_denied(name,actor,reason)可返回面向调用者的简短拒绝说明，默认原样返回reason；这个回调只解释，不得扣费、发送消息或做任何业务修改。原生宿主在曾经可见的工具后来不可达时可以调用它；不会因此执行原工具或重新授予权限。
+
 依赖接线完整后的应用测试由装配者另行运行。组件自己的tests必须覆盖主要成功、失败、状态恢复与重复调用场景；不要修改宿主验收，不需要为不存在的旧接口写兼容层。README必须列明config、operations、tools、signals和返回结果，装配者只看文档和配置就能接线。

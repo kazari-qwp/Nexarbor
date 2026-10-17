@@ -30,6 +30,7 @@ class Node:
         self.interfaces: list[Interface] = []
         self.tools: dict[str, Callable[..., Any]] = {}
         self.tool_definitions: dict[str, dict] = {}
+        self.tool_refusals: dict[str, Callable[..., Any]] = {}
         self.modules: dict = {}
         self.toolboxes: list[str] = []
         self.expose: list[str] = []
@@ -58,7 +59,7 @@ class Node:
         if self.agent is not None:
             self.agent.tool_definitions = [d for d in self.agent.tool_definitions if d['function']['name'] != name] + [deepcopy(definition)]
 
-    def register_tool(self, name: str, function: Callable[..., Any], *, description: str, parameters: dict, access_channels) -> None:
+    def register_tool(self, name: str, function: Callable[..., Any], *, description: str, parameters: dict, access_channels,refusal=None) -> None:
         """应用声明能力与访问频道；框架根据声明授权，调用者不能覆盖频道。"""
         if not isinstance(name, str) or not name or (not callable(function)):
             raise ValueError('工具名称必须非空，工具必须可调用')
@@ -68,8 +69,12 @@ class Node:
             raise ValueError('工具参数定义必须为 object')
         from .json_values import names
         channels=names(access_channels,'access_channels')
+        if refusal is not None and not callable(refusal):raise TypeError('Tool refusal must be callable')
         self.tools[name] = function
         self.tool_definitions[name] = {'name': name, 'description': description, 'parameters': deepcopy(parameters), 'access_channels': list(channels)}
+        if refusal is not None:
+            self.tool_refusals[name]=refusal
+        else:self.tool_refusals.pop(name,None)
 
     def get_schema(self) -> dict | None:
         return None

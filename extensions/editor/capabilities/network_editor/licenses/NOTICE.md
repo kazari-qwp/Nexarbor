@@ -7,6 +7,7 @@ These unmodified upstream dependencies are used only by the optional editor fron
 | ELK.js | 0.12.0 | EPL-2.0 (chosen distribution license) | https://github.com/kieler/elkjs/tree/ff5771d7165445c42c408bb8a090c8035272218c |
 | elkjs-libavoid | 0.5.0 | MIT | https://github.com/MrMint/elkjs-libavoid/tree/24b98cd4393eb55111ec21c35aba3df736f5b3f1 |
 | libavoid-js | 0.5.0-beta.5 | LGPL-2.1-or-later | https://github.com/Aksem/libavoid-js/tree/5062a42fbd82fff562afeebcbb7b1ed45eed8e75 |
+| CodeMirror 6 (editor, Python/JSON language support and merge view) | Pinned per package in package-lock.json | MIT | https://github.com/codemirror |
 
 License texts are included next to this notice. libavoid-js supplies the unmodified, separately served `libavoid-*.wasm` asset; its JavaScript binding and the routing adapter are bundled into the separate routing Worker. libavoid-js provides build instructions and the upstream Adaptagrams source reference in its pinned repository, including its submodule version.
 

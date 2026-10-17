@@ -16,6 +16,7 @@ try{
  await page.screenshot({path:path.join(run,'component-studio.png')});
  await dialog.getByRole('button',{name:'关闭组件工作室',exact:true}).click();await page.locator('.react-flow__controls-fitview').click();
  await page.getByRole('button',{name:'单步',exact:true}).click();
+    await expect(page.getByRole('button',{name:'单步',exact:true})).toBeEnabled({timeout:15000});
  const state=await page.evaluate(async()=>{const response=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':sessionStorage.getItem('nexarbor-token')},body:JSON.stringify({operation:'state',params:{}})});return (await response.json()).value;});
  expect(state.live.document.network.nodes.find(n=>n.node_id==='town/save').modules['example.counter'].state.count).toBe(1);
  expect(Object.values(state.live.document.network.signals).some(s=>s.status==='completed')).toBe(true);

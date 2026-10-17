@@ -10,8 +10,9 @@ from types import SimpleNamespace
 class NativeExecutor:
     def __init__(self,backend,transport):
         self.backend,self.transport=backend,transport
-        backend.execute_agent=self.run
-        for method,mutation in [('prepare',True),('invoke',True),('ack',True),('bind',True)]:
+        self.seen={}
+        backend.agent_executor=self.run
+        for method,mutation in [('prepare',True),('invoke',True),('ack',True),('bind',True),('prune',True)]:
             backend.components.rpc('executor_'+method,lambda b,p,method=method:getattr(self,method)(p),mutation=mutation)
     def binding(self,actor):
         node=self.backend.network.nodes[actor]
@@ -35,14 +36,26 @@ class NativeExecutor:
             await asyncio.to_thread(self.transport.host,'agent-cancel',dict(actor=node_id));raise
     def definitions(self,actor):
         node,binding=self.binding(actor);definitions=[];routes={}
+        history=self.backend.agents.setdefault(actor,{}).setdefault('tool_history',{})
+        self.seen.setdefault(actor,{}).update({name:value['route'] for name,value in history.items()})
         for name,spec in node.agent_tool_definitions.items():
             definitions.append(spec['function']);routes[name]=dict(private=True,tool=name)
         for target in self.backend.network.nodes.values():
             for spec in list_tools(self.backend.network,actor,target.node_id,strength=binding.get('strength',0)).items:
-                alias='node_'+sha256((target.node_id+'\0'+spec['name']).encode()).hexdigest()[:20]
+                alias=spec['name'][:32]+'_'+sha256((target.node_id+'\0'+spec['name']).encode()).hexdigest()[:16]
                 definitions.append(dict(name=alias,description=target.name+' · '+spec['description'],parameters=spec['parameters']))
                 routes[alias]=dict(private=False,target=target.node_id,tool=spec['name'])
+        self.seen.setdefault(actor,{}).update(routes)
+        for definition in definitions:history[definition['name']]=dict(definition=definition,route=routes[definition['name']])
         return definitions,routes
+    def refusal(self,actor,name):
+        route=self.seen.get(actor,{}).get(name)
+        reason='这个工具已离开你当前可达的范围，不能执行。'
+        if route and not route['private']:
+            target=self.backend.network.nodes.get(route['target'])
+            callback=target.tool_refusals.get(route['tool']) if target else None
+            if callback:return str(callback(actor,reason))
+        return reason
     def prepare(self,p):
         actor=p['actor'];node,binding=self.binding(actor)
         for reference in binding.get('prepare',[]):
@@ -51,10 +64,11 @@ class NativeExecutor:
         sources=node.inputs.snapshot();definitions,_=self.definitions(actor)
         return dict(actor=actor,system_prompt='你有一份私有的记忆，根据你的需要主动维护和阅读，适时清除过时和无用记忆。\n\n'+'\n\n'.join(v['system_prompt'] for _,v in sorted(sources.items())),
             context=[dict(id=s+'/'+d['id'],text=d['text']) for s,v in sorted(sources.items()) for d in v['context']],
-            inputs=[dict(source=s,**e) for s,e in node.inputs.pending()],tail=node.inputs.tail(),tools=definitions)
+            inputs=[dict(source=s,**e) for s,e in node.inputs.pending()],tail=node.inputs.tail(),tools=definitions,retained_tools=[v['definition'] for v in self.backend.agents[actor]['tool_history'].values()],
+            unavailable={name:self.refusal(actor,name) for name in self.seen.get(actor,{}) if name not in {d['name'] for d in definitions}})
     def invoke(self,p):
         actor=p['actor'];node,binding=self.binding(actor);_,routes=self.definitions(actor)
-        if p['name'] not in routes:raise PermissionError('Tool is no longer reachable from this Agent')
+        if p['name'] not in routes:return dict(status='forbidden',errors=[self.refusal(actor,p['name'])])
         route=routes[p['name']];arguments=p.get('arguments',{})
         identity=active_agent.set((SimpleNamespace(max_signal_strength=binding.get('strength',0)),actor))
         try:
@@ -72,3 +86,10 @@ class NativeExecutor:
         self.binding(p['actor'])
         self.backend.agents.setdefault(p['actor'],{}).update(session_id=p['session_id'],executor='harness')
         return {'ok':True}
+    def prune(self,p):
+        actor=p['actor'];definitions,_=self.definitions(actor)
+        retained=set(p.get('referenced',[]))|{d['name'] for d in definitions}
+        history=self.backend.agents[actor]['tool_history']
+        for name in list(history):
+            if name not in retained:history.pop(name);self.seen.get(actor,{}).pop(name,None)
+        return list(history)

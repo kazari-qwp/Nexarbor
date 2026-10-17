@@ -1,0 +1,3003 @@
+{
+  "network": {
+    "version": 7,
+    "signals": {},
+    "nodes": [
+      {
+        "type": "agent",
+        "node_id": "root",
+        "name": "小镇观察者",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "memory/root.md"
+        },
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 0,
+          "max_steps": 12,
+          "timeout_seconds": 90
+        },
+        "inputs": {}
+      },
+      {
+        "type": "pulse",
+        "node_id": "world/pulse",
+        "name": "世界脉冲",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "pulse",
+        "parameters": {
+          "channels": [
+            "world.tick"
+          ],
+          "strength": 4,
+          "content": null,
+          "signal_options": {
+            "timeout_seconds": 300,
+            "node_timeout_seconds": 210,
+            "max_hops": 8,
+            "max_deliveries": 128
+          },
+          "state": {
+            "sequence": 0,
+            "phase": "idle",
+            "active_signal": null,
+            "last_signal": null,
+            "last_status": null
+          }
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/time",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {},
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "text_file",
+        "node_id": "world/time",
+        "name": "时间",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "text",
+        "parameters": {
+          "file_path": "world/time.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "npc/lin",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/yue",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/sen",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/shi",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/li",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/tie",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/lu",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "time.text": {
+            "config": {
+              "slots": [
+                "早上",
+                "中午",
+                "下午",
+                "傍晚",
+                "午夜"
+              ],
+              "format": "第{day}天-{slot}"
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "world/save",
+        "name": "五时刻全量存档",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/pulse",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "savepoint.counter": {
+            "config": {
+              "interval": 5
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "place/civil",
+        "name": "民政局",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "place",
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "place/home1",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/tavern",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/civil",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "kind": "place",
+                "residents": []
+              },
+              "coins": 0,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "place.move": {
+            "config": {
+              "place_name": "民政局",
+              "cost": 3,
+              "channels": [
+                "town.local"
+              ],
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channel": "town.local",
+              "entity_module": "entity.profile",
+              "action_module": "action.points",
+              "events_ref": {
+                "node": "place/civil",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          },
+          "chance.events": {
+            "config": {
+              "events": [
+                {
+                  "id": "stamp",
+                  "triggers": [
+                    "arrive"
+                  ],
+                  "probability": 0.6,
+                  "max_hits": 1,
+                  "message": "柜台有张字条：那枚公章坚持要和订书机结婚，工作人员还在劝。"
+                }
+              ]
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "place/tavern",
+        "name": "酒馆",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "place",
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "place/home1",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/home2",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/shop",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/civil",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/lu",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/tavern_actions",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "kind": "place",
+                "residents": []
+              },
+              "coins": 0,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "place.move": {
+            "config": {
+              "place_name": "酒馆",
+              "cost": 3,
+              "channels": [
+                "town.local"
+              ],
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channel": "town.local",
+              "entity_module": "entity.profile",
+              "action_module": "action.points",
+              "events_ref": {
+                "node": "place/tavern",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          },
+          "chance.events": {
+            "config": {
+              "events": [
+                {
+                  "id": "pumpkin",
+                  "triggers": [
+                    "drink",
+                    "arrive"
+                  ],
+                  "probability": 0.5,
+                  "max_hits": 3,
+                  "message": "你听到离谱传闻：南瓜镇长准备让猫轮流值夜班，工资是会唱歌的鱼。"
+                }
+              ]
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "place/home1",
+        "name": "居民楼1",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "place",
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "place/civil",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/hospital",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/tavern",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/lin",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/yue",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/family1",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/home1_actions",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "kind": "place",
+                "residents": [
+                  "npc/lin",
+                  "npc/yue"
+                ]
+              },
+              "coins": 0,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "place.move": {
+            "config": {
+              "place_name": "居民楼1",
+              "cost": 3,
+              "channels": [
+                "town.local"
+              ],
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channel": "town.local",
+              "entity_module": "entity.profile",
+              "action_module": "action.points",
+              "events_ref": {
+                "node": "place/home1",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          },
+          "chance.events": {
+            "config": {
+              "events": [
+                {
+                  "id": "wall1",
+                  "triggers": [
+                    "rest",
+                    "arrive"
+                  ],
+                  "probability": 0.35,
+                  "max_hits": 2,
+                  "message": "墙上影子认真预报：明天可能下倒着走的雨。"
+                }
+              ]
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "place/home2",
+        "name": "居民楼2",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "place",
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "place/tavern",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/shop",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/woods",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/li",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/family2",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/home2_actions",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "kind": "place",
+                "residents": [
+                  "npc/sen",
+                  "npc/shi",
+                  "npc/li",
+                  "npc/tie"
+                ]
+              },
+              "coins": 0,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "place.move": {
+            "config": {
+              "place_name": "居民楼2",
+              "cost": 3,
+              "channels": [
+                "town.local"
+              ],
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channel": "town.local",
+              "entity_module": "entity.profile",
+              "action_module": "action.points",
+              "events_ref": {
+                "node": "place/home2",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          },
+          "chance.events": {
+            "config": {
+              "events": [
+                {
+                  "id": "wall2",
+                  "triggers": [
+                    "rest",
+                    "arrive"
+                  ],
+                  "probability": 0.35,
+                  "max_hits": 2,
+                  "message": "门口鞋子排成一圈，像在开会讨论谁最先学会走路。"
+                }
+              ]
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "place/smith",
+        "name": "铁匠铺",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "place",
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "place/shop",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/mine",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/tie",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/smith_actions",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "kind": "place",
+                "residents": []
+              },
+              "coins": 0,
+              "items": {
+                "iron": 20
+              },
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "place.move": {
+            "config": {
+              "place_name": "铁匠铺",
+              "cost": 3,
+              "channels": [
+                "town.local"
+              ],
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channel": "town.local",
+              "entity_module": "entity.profile",
+              "action_module": "action.points",
+              "events_ref": {
+                "node": "place/smith",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          },
+          "chance.events": {
+            "config": {
+              "events": [
+                {
+                  "id": "fire",
+                  "triggers": [
+                    "repair",
+                    "arrive"
+                  ],
+                  "probability": 0.5,
+                  "max_hits": 2,
+                  "message": "炉火里传出一个小声音，问能不能借把螺丝刀修太阳。"
+                }
+              ]
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "place/shop",
+        "name": "商店",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "place",
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "place/home2",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/tavern",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/smith",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/hospital",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/shop_actions",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "kind": "place",
+                "residents": []
+              },
+              "coins": 1000,
+              "items": {
+                "pickaxe": 20,
+                "axe": 20
+              },
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "place.move": {
+            "config": {
+              "place_name": "商店",
+              "cost": 3,
+              "channels": [
+                "town.local"
+              ],
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channel": "town.local",
+              "entity_module": "entity.profile",
+              "action_module": "action.points",
+              "events_ref": {
+                "node": "place/shop",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          },
+          "chance.events": {
+            "config": {
+              "events": [
+                {
+                  "id": "singing",
+                  "triggers": [
+                    "buy_pickaxe",
+                    "buy_axe",
+                    "sell_ore",
+                    "arrive"
+                  ],
+                  "probability": 0.45,
+                  "max_hits": 2,
+                  "message": "货架上的一根胡萝卜突然唱起账单，店里的人说是打折闹的。"
+                }
+              ]
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "place/mine",
+        "name": "矿坑",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "place",
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "place/smith",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/woods",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/shi",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/mine_actions",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "kind": "place",
+                "residents": []
+              },
+              "coins": 0,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "place.move": {
+            "config": {
+              "place_name": "矿坑",
+              "cost": 3,
+              "channels": [
+                "town.local"
+              ],
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channel": "town.local",
+              "entity_module": "entity.profile",
+              "action_module": "action.points",
+              "events_ref": {
+                "node": "place/mine",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          },
+          "chance.events": {
+            "config": {
+              "events": [
+                {
+                  "id": "gold",
+                  "triggers": [
+                    "mine"
+                  ],
+                  "probability": 0.55,
+                  "max_hits": 1,
+                  "message": "你挖到一小块金灿灿的东西，黄金+1。",
+                  "effects": {
+                    "items": {
+                      "gold": 1
+                    }
+                  }
+                },
+                {
+                  "id": "duck_smith",
+                  "triggers": [
+                    "mine",
+                    "arrive"
+                  ],
+                  "probability": 0.35,
+                  "max_hits": 2,
+                  "message": "一块矿石上竟写着：铁匠其实是三只鸭子叠起来假扮的。你也不知道该不该信。"
+                }
+              ]
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "place/woods",
+        "name": "树林",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "place",
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "place/home2",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/mine",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "npc/sen",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/woods_actions",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "kind": "place",
+                "residents": []
+              },
+              "coins": 0,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "place.move": {
+            "config": {
+              "place_name": "树林",
+              "cost": 3,
+              "channels": [
+                "town.local"
+              ],
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channel": "town.local",
+              "entity_module": "entity.profile",
+              "action_module": "action.points",
+              "events_ref": {
+                "node": "place/woods",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          },
+          "chance.events": {
+            "config": {
+              "events": [
+                {
+                  "id": "ghost",
+                  "triggers": [
+                    "chop",
+                    "arrive"
+                  ],
+                  "probability": 0.5,
+                  "max_hits": 2,
+                  "message": "远处一个穿西装的鬼影抱着树哭，说树欠它三个月房租。转眼又没影了。"
+                }
+              ]
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "place/hospital",
+        "name": "医院",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "place",
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "place/home1",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/shop",
+              "metadata": {
+                "channels": [
+                  "town.local",
+                  "map.road"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "service/hospital",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "kind": "place",
+                "residents": []
+              },
+              "coins": 0,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "place.move": {
+            "config": {
+              "place_name": "医院",
+              "cost": 3,
+              "channels": [
+                "town.local"
+              ],
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channel": "town.local",
+              "entity_module": "entity.profile",
+              "action_module": "action.points",
+              "events_ref": {
+                "node": "place/hospital",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          },
+          "chance.events": {
+            "config": {
+              "events": [
+                {
+                  "id": "invoice",
+                  "triggers": [
+                    "arrive"
+                  ],
+                  "probability": 0.6,
+                  "max_hits": 1,
+                  "message": "墙上小报说，隔壁镇的新生儿第一句话是“请开增值税发票”。真假不明。"
+                }
+              ]
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "agent",
+        "node_id": "npc/lin",
+        "name": "林",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "memory/lin.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/save",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/home1",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "name": "林",
+                "gender": "male",
+                "occupation": "居民",
+                "age_group": "adult",
+                "place": "place/home1",
+                "home": "place/home1",
+                "partner": "npc/yue",
+                "age": 23
+              },
+              "coins": 15,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "action.points": {
+            "config": {
+              "max": 10
+            },
+            "state": {}
+          },
+          "resident.context": {
+            "config": {
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "persona_file": "personas/lin.md",
+              "common_sense_file": "world/common.md",
+              "map_file": "world/map.md",
+              "opening_line": "你已经打算与悦结婚，想先征求她的意见，一起去民政局。",
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channels": [
+                "town.local"
+              ]
+            },
+            "state": {}
+          },
+          "social.same_place": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "action_cost": 1,
+              "profile_module": "entity.profile",
+              "action_module": "action.points",
+              "place_field": "place",
+              "display_name": "林"
+            },
+            "state": {}
+          },
+          "agent.activity": {
+            "config": {
+              "message": "新时刻开始。根据你的目标、当前位置和剩余行动值安排活动；可以继续移动、交谈或做事，不需要凑满行动值。记住重要的经历，合适时自然结束。",
+              "max_history": 256
+            },
+            "state": {}
+          },
+          "social.give": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "presence_channel": "town.local",
+              "action_cost": 1,
+              "entity_module": "entity.profile",
+              "action_module": "action.points"
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "max_steps": 16,
+          "timeout_seconds": 180,
+          "prepare": [
+            {
+              "module": "resident.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ]
+        },
+        "inputs": {}
+      },
+      {
+        "type": "agent",
+        "node_id": "npc/yue",
+        "name": "悦",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "memory/yue.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/save",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/home1",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "name": "悦",
+                "gender": "female",
+                "occupation": "居民",
+                "age_group": "adult",
+                "place": "place/home1",
+                "home": "place/home1",
+                "partner": "npc/lin",
+                "age": 24
+              },
+              "coins": 15,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "action.points": {
+            "config": {
+              "max": 10
+            },
+            "state": {}
+          },
+          "resident.context": {
+            "config": {
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "persona_file": "personas/yue.md",
+              "common_sense_file": "world/common.md",
+              "map_file": "world/map.md",
+              "opening_line": "林似乎已经准备向你正式求婚，你愿意和他商量未来，也想拥有一个孩子。",
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channels": [
+                "town.local"
+              ]
+            },
+            "state": {}
+          },
+          "social.same_place": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "action_cost": 1,
+              "profile_module": "entity.profile",
+              "action_module": "action.points",
+              "place_field": "place",
+              "display_name": "悦"
+            },
+            "state": {}
+          },
+          "agent.activity": {
+            "config": {
+              "message": "新时刻开始。根据你的目标、当前位置和剩余行动值安排活动；可以继续移动、交谈或做事，不需要凑满行动值。记住重要的经历，合适时自然结束。",
+              "max_history": 256
+            },
+            "state": {}
+          },
+          "social.give": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "presence_channel": "town.local",
+              "action_cost": 1,
+              "entity_module": "entity.profile",
+              "action_module": "action.points"
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "max_steps": 16,
+          "timeout_seconds": 180,
+          "prepare": [
+            {
+              "module": "resident.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ]
+        },
+        "inputs": {}
+      },
+      {
+        "type": "agent",
+        "node_id": "npc/sen",
+        "name": "阿森",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "memory/sen.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/save",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/woods",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "name": "阿森",
+                "gender": "male",
+                "occupation": "伐木工",
+                "age_group": "adult",
+                "place": "place/woods",
+                "home": "place/home2",
+                "age": 25
+              },
+              "coins": 8,
+              "items": {
+                "axe": 1
+              },
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "action.points": {
+            "config": {
+              "max": 10
+            },
+            "state": {}
+          },
+          "resident.context": {
+            "config": {
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "persona_file": "personas/sen.md",
+              "common_sense_file": "world/common.md",
+              "map_file": "world/map.md",
+              "opening_line": "你想先砍一些木头，再去商店卖掉，顺便看看有没有新鲜事。",
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channels": [
+                "town.local"
+              ]
+            },
+            "state": {}
+          },
+          "social.same_place": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "action_cost": 1,
+              "profile_module": "entity.profile",
+              "action_module": "action.points",
+              "place_field": "place",
+              "display_name": "阿森"
+            },
+            "state": {}
+          },
+          "agent.activity": {
+            "config": {
+              "message": "新时刻开始。根据你的目标、当前位置和剩余行动值安排活动；可以继续移动、交谈或做事，不需要凑满行动值。记住重要的经历，合适时自然结束。",
+              "max_history": 256
+            },
+            "state": {}
+          },
+          "social.give": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "presence_channel": "town.local",
+              "action_cost": 1,
+              "entity_module": "entity.profile",
+              "action_module": "action.points"
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "max_steps": 16,
+          "timeout_seconds": 180,
+          "prepare": [
+            {
+              "module": "resident.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ]
+        },
+        "inputs": {}
+      },
+      {
+        "type": "agent",
+        "node_id": "npc/shi",
+        "name": "阿石",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "memory/shi.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/save",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/mine",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "name": "阿石",
+                "gender": "male",
+                "occupation": "矿工",
+                "age_group": "adult",
+                "place": "place/mine",
+                "home": "place/home2",
+                "age": 26
+              },
+              "coins": 12,
+              "items": {
+                "broken_pickaxe": 1
+              },
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "action.points": {
+            "config": {
+              "max": 10
+            },
+            "state": {}
+          },
+          "resident.context": {
+            "config": {
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "persona_file": "personas/shi.md",
+              "common_sense_file": "world/common.md",
+              "map_file": "world/map.md",
+              "opening_line": "你的镐子坏了，兴许该先去铁匠铺修理，再回矿坑干活。",
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channels": [
+                "town.local"
+              ]
+            },
+            "state": {}
+          },
+          "social.same_place": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "action_cost": 1,
+              "profile_module": "entity.profile",
+              "action_module": "action.points",
+              "place_field": "place",
+              "display_name": "阿石"
+            },
+            "state": {}
+          },
+          "agent.activity": {
+            "config": {
+              "message": "新时刻开始。根据你的目标、当前位置和剩余行动值安排活动；可以继续移动、交谈或做事，不需要凑满行动值。记住重要的经历，合适时自然结束。",
+              "max_history": 256
+            },
+            "state": {}
+          },
+          "social.give": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "presence_channel": "town.local",
+              "action_cost": 1,
+              "entity_module": "entity.profile",
+              "action_module": "action.points"
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "max_steps": 16,
+          "timeout_seconds": 180,
+          "prepare": [
+            {
+              "module": "resident.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ]
+        },
+        "inputs": {}
+      },
+      {
+        "type": "agent",
+        "node_id": "npc/li",
+        "name": "小砾",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "memory/li.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/save",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/home2",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "name": "小砾",
+                "gender": "female",
+                "occupation": "矿工",
+                "age_group": "adult",
+                "place": "place/home2",
+                "home": "place/home2",
+                "age": 27
+              },
+              "coins": 10,
+              "items": {
+                "pickaxe": 1
+              },
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "action.points": {
+            "config": {
+              "max": 10
+            },
+            "state": {}
+          },
+          "resident.context": {
+            "config": {
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "persona_file": "personas/li.md",
+              "common_sense_file": "world/common.md",
+              "map_file": "world/map.md",
+              "opening_line": "你带着一把完好的镐子，想去矿坑试试运气，赚了钱再考虑买点好吃的。",
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channels": [
+                "town.local"
+              ]
+            },
+            "state": {}
+          },
+          "social.same_place": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "action_cost": 1,
+              "profile_module": "entity.profile",
+              "action_module": "action.points",
+              "place_field": "place",
+              "display_name": "小砾"
+            },
+            "state": {}
+          },
+          "agent.activity": {
+            "config": {
+              "message": "新时刻开始。根据你的目标、当前位置和剩余行动值安排活动；可以继续移动、交谈或做事，不需要凑满行动值。记住重要的经历，合适时自然结束。",
+              "max_history": 256
+            },
+            "state": {}
+          },
+          "social.give": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "presence_channel": "town.local",
+              "action_cost": 1,
+              "entity_module": "entity.profile",
+              "action_module": "action.points"
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "max_steps": 16,
+          "timeout_seconds": 180,
+          "prepare": [
+            {
+              "module": "resident.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ]
+        },
+        "inputs": {}
+      },
+      {
+        "type": "agent",
+        "node_id": "npc/tie",
+        "name": "老铁",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "memory/tie.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/save",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/smith",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "name": "老铁",
+                "gender": "male",
+                "occupation": "铁匠",
+                "age_group": "adult",
+                "place": "place/smith",
+                "home": "place/home2",
+                "age": 28
+              },
+              "coins": 18,
+              "items": {
+                "iron": 2
+              },
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "action.points": {
+            "config": {
+              "max": 10
+            },
+            "state": {}
+          },
+          "resident.context": {
+            "config": {
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "persona_file": "personas/tie.md",
+              "common_sense_file": "world/common.md",
+              "map_file": "world/map.md",
+              "opening_line": "你想看看店里材料是否够用，也想去酒馆听听最近的消息。",
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channels": [
+                "town.local"
+              ]
+            },
+            "state": {}
+          },
+          "social.same_place": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "action_cost": 1,
+              "profile_module": "entity.profile",
+              "action_module": "action.points",
+              "place_field": "place",
+              "display_name": "老铁"
+            },
+            "state": {}
+          },
+          "agent.activity": {
+            "config": {
+              "message": "新时刻开始。根据你的目标、当前位置和剩余行动值安排活动；可以继续移动、交谈或做事，不需要凑满行动值。记住重要的经历，合适时自然结束。",
+              "max_history": 256
+            },
+            "state": {}
+          },
+          "social.give": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "presence_channel": "town.local",
+              "action_cost": 1,
+              "entity_module": "entity.profile",
+              "action_module": "action.points"
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "max_steps": 16,
+          "timeout_seconds": 180,
+          "prepare": [
+            {
+              "module": "resident.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ]
+        },
+        "inputs": {}
+      },
+      {
+        "type": "agent",
+        "node_id": "npc/lu",
+        "name": "小路",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "memory/lu.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/save",
+              "metadata": {
+                "channels": [
+                  "world.tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "place/tavern",
+              "metadata": {
+                "channels": [
+                  "town.local"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "entity.profile": {
+            "config": {
+              "profile": {
+                "name": "小路",
+                "gender": "male",
+                "occupation": "流浪汉",
+                "age_group": "adult",
+                "place": "place/tavern",
+                "home": null,
+                "age": 29
+              },
+              "coins": 0,
+              "items": {},
+              "metadata_namespace": "profile"
+            },
+            "state": {}
+          },
+          "action.points": {
+            "config": {
+              "max": 10
+            },
+            "state": {}
+          },
+          "resident.context": {
+            "config": {
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "persona_file": "personas/lu.md",
+              "common_sense_file": "world/common.md",
+              "map_file": "world/map.md",
+              "opening_line": "你手头一分钱都没有，想先和周围的人聊聊，问问有没有挣钱的办法。",
+              "road_channels": [
+                "map.road"
+              ],
+              "presence_channels": [
+                "town.local"
+              ]
+            },
+            "state": {}
+          },
+          "social.same_place": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "action_cost": 1,
+              "profile_module": "entity.profile",
+              "action_module": "action.points",
+              "place_field": "place",
+              "display_name": "小路"
+            },
+            "state": {}
+          },
+          "agent.activity": {
+            "config": {
+              "message": "新时刻开始。根据你的目标、当前位置和剩余行动值安排活动；可以继续移动、交谈或做事，不需要凑满行动值。记住重要的经历，合适时自然结束。",
+              "max_history": 256
+            },
+            "state": {}
+          },
+          "social.give": {
+            "config": {
+              "channels": [
+                "town.local"
+              ],
+              "presence_channel": "town.local",
+              "action_cost": 1,
+              "entity_module": "entity.profile",
+              "action_module": "action.points"
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "max_steps": 16,
+          "timeout_seconds": 180,
+          "prepare": [
+            {
+              "module": "resident.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ]
+        },
+        "inputs": {}
+      },
+      {
+        "type": "node",
+        "node_id": "service/civil",
+        "name": "民政登记",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "service",
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "family.household": {
+            "config": {
+              "mode": "civil",
+              "channels": [
+                "town.local"
+              ],
+              "place": "place/civil",
+              "presence_channel": "town.local",
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "costs": {
+                "register_marriage": 1,
+                "plan_child": 1,
+                "give_birth": 1
+              }
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/family1",
+        "name": "居民楼1家庭计划",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "service",
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "family.household": {
+            "config": {
+              "mode": "family",
+              "channels": [
+                "town.local"
+              ],
+              "place": "place/home1",
+              "presence_channel": "town.local",
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "costs": {
+                "register_marriage": 1,
+                "plan_child": 1,
+                "give_birth": 1
+              },
+              "due_ticks": 10,
+              "ticks_per_day": 5
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/family2",
+        "name": "居民楼2家庭计划",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "service",
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "family.household": {
+            "config": {
+              "mode": "family",
+              "channels": [
+                "town.local"
+              ],
+              "place": "place/home2",
+              "presence_channel": "town.local",
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "costs": {
+                "register_marriage": 1,
+                "plan_child": 1,
+                "give_birth": 1
+              },
+              "due_ticks": 10,
+              "ticks_per_day": 5
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/hospital",
+        "name": "医院接生",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": "service",
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "family.household": {
+            "config": {
+              "mode": "hospital",
+              "channels": [
+                "town.local"
+              ],
+              "place": "place/hospital",
+              "presence_channel": "town.local",
+              "entity_component": "entity.profile",
+              "action_component": "action.points",
+              "clock_node": "world/time",
+              "clock_component": "time.text",
+              "costs": {
+                "register_marriage": 1,
+                "plan_child": 1,
+                "give_birth": 1
+              },
+              "time_node": "world/time",
+              "save_node": "world/save",
+              "child_id_prefix": "npc/child",
+              "child_template": {
+                "memory_path": "memory/{node_id}.md",
+                "memory_text": "",
+                "management_parent_id": "root",
+                "profile": {
+                  "home": "place/home1",
+                  "occupation": "孩子",
+                  "age": 0
+                },
+                "modules": {
+                  "entity.profile": {
+                    "profile": {
+                      "age": 0,
+                      "home": "place/home1",
+                      "occupation": "孩子"
+                    },
+                    "coins": 0,
+                    "items": {},
+                    "metadata_namespace": "profile"
+                  },
+                  "action.points": {
+                    "max": 10
+                  },
+                  "resident.context": {
+                    "entity_component": "entity.profile",
+                    "action_component": "action.points",
+                    "clock_node": "world/time",
+                    "clock_component": "time.text",
+                    "persona_file": "personas/child.md",
+                    "common_sense_file": "world/common.md",
+                    "map_file": "world/map.md",
+                    "opening_line": "你刚刚出生，能说话，想认识家人和这个小镇。",
+                    "road_channels": [
+                      "map.road"
+                    ],
+                    "presence_channels": [
+                      "town.local"
+                    ]
+                  },
+                  "social.same_place": {
+                    "channels": [
+                      "town.local"
+                    ],
+                    "action_cost": 1,
+                    "profile_module": "entity.profile",
+                    "action_module": "action.points",
+                    "place_field": "place"
+                  },
+                  "agent.activity": {
+                    "message": "新时刻开始。按你的性格和看到的信息行动、交谈或休息，不必凑满行动值，结束时自然停下。",
+                    "max_history": 256
+                  },
+                  "social.give": {
+                    "channels": [
+                      "town.local"
+                    ],
+                    "presence_channel": "town.local",
+                    "action_cost": 1,
+                    "entity_module": "entity.profile",
+                    "action_module": "action.points"
+                  }
+                },
+                "execution": {
+                  "executor": "harness",
+                  "strength": 2,
+                  "max_steps": 16,
+                  "timeout_seconds": 180,
+                  "prepare": [
+                    {
+                      "module": "resident.context",
+                      "operation": "prepare",
+                      "arguments": {}
+                    }
+                  ]
+                }
+              }
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/mine_actions",
+        "name": "矿坑服务",
+        "description": "配置驱动的本地行动",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "local.action_rules": {
+            "config": {
+              "address": "place/mine",
+              "channels": [
+                "town.local"
+              ],
+              "rules": {
+                "mine": {
+                  "description": "挖矿：持完好镐子，获得3份矿石；成年人可用",
+                  "cost": 6,
+                  "actor": {
+                    "items": {
+                      "ore": 3
+                    }
+                  },
+                  "requires_items": {
+                    "pickaxe": 1
+                  },
+                  "requires_profile": {
+                    "age_group": "adult"
+                  },
+                  "cost_per_unit": true
+                }
+              },
+              "events_ref": {
+                "node": "place/mine",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/woods_actions",
+        "name": "树林服务",
+        "description": "配置驱动的本地行动",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "local.action_rules": {
+            "config": {
+              "address": "place/woods",
+              "channels": [
+                "town.local"
+              ],
+              "rules": {
+                "chop": {
+                  "description": "砍树：持斧头，获得3份木材；成年人可用",
+                  "cost": 6,
+                  "actor": {
+                    "items": {
+                      "wood": 3
+                    }
+                  },
+                  "requires_items": {
+                    "axe": 1
+                  },
+                  "requires_profile": {
+                    "age_group": "adult"
+                  },
+                  "cost_per_unit": true
+                }
+              },
+              "events_ref": {
+                "node": "place/woods",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/smith_actions",
+        "name": "铁匠铺服务",
+        "description": "配置驱动的本地行动",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "local.action_rules": {
+            "config": {
+              "address": "place/smith",
+              "channels": [
+                "town.local"
+              ],
+              "rules": {
+                "repair": {
+                  "description": "修理坏镐：花2金币和店内1铁料，坏镐换完好镐",
+                  "cost": 1,
+                  "actor": {
+                    "coins": -2,
+                    "items": {
+                      "broken_pickaxe": -1,
+                      "pickaxe": 1
+                    }
+                  },
+                  "place": {
+                    "coins": 2,
+                    "items": {
+                      "iron": -1
+                    }
+                  },
+                  "requires_items": {
+                    "broken_pickaxe": 1
+                  }
+                },
+                "restock": {
+                  "description": "向铁匠铺补充1份自己携带的铁料",
+                  "cost": 1,
+                  "actor": {
+                    "items": {
+                      "iron": -1
+                    }
+                  },
+                  "place": {
+                    "items": {
+                      "iron": 1
+                    }
+                  },
+                  "requires_items": {
+                    "iron": 1
+                  }
+                }
+              },
+              "events_ref": {
+                "node": "place/smith",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/shop_actions",
+        "name": "商店服务",
+        "description": "配置驱动的本地行动",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "local.action_rules": {
+            "config": {
+              "address": "place/shop",
+              "channels": [
+                "town.local"
+              ],
+              "rules": {
+                "buy_pickaxe": {
+                  "description": "购买镐子，每把5金币",
+                  "cost": 1,
+                  "actor": {
+                    "coins": -5,
+                    "items": {
+                      "pickaxe": 1
+                    }
+                  },
+                  "place": {
+                    "coins": 5,
+                    "items": {
+                      "pickaxe": -1
+                    }
+                  }
+                },
+                "buy_axe": {
+                  "description": "购买斧头，每把5金币",
+                  "cost": 1,
+                  "actor": {
+                    "coins": -5,
+                    "items": {
+                      "axe": 1
+                    }
+                  },
+                  "place": {
+                    "coins": 5,
+                    "items": {
+                      "axe": -1
+                    }
+                  }
+                },
+                "sell_ore": {
+                  "description": "出售矿石，每份3金币",
+                  "cost": 1,
+                  "actor": {
+                    "coins": 3,
+                    "items": {
+                      "ore": -1
+                    }
+                  },
+                  "place": {
+                    "coins": -3,
+                    "items": {
+                      "ore": 1
+                    }
+                  },
+                  "requires_items": {
+                    "ore": 1
+                  }
+                },
+                "sell_wood": {
+                  "description": "出售木材，每份2金币",
+                  "cost": 1,
+                  "actor": {
+                    "coins": 2,
+                    "items": {
+                      "wood": -1
+                    }
+                  },
+                  "place": {
+                    "coins": -2,
+                    "items": {
+                      "wood": 1
+                    }
+                  },
+                  "requires_items": {
+                    "wood": 1
+                  }
+                },
+                "sell_gold": {
+                  "description": "出售黄金，每份10金币",
+                  "cost": 1,
+                  "actor": {
+                    "coins": 10,
+                    "items": {
+                      "gold": -1
+                    }
+                  },
+                  "place": {
+                    "coins": -10,
+                    "items": {
+                      "gold": 1
+                    }
+                  },
+                  "requires_items": {
+                    "gold": 1
+                  }
+                }
+              },
+              "events_ref": {
+                "node": "place/shop",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/tavern_actions",
+        "name": "酒馆服务",
+        "description": "配置驱动的本地行动",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "local.action_rules": {
+            "config": {
+              "address": "place/tavern",
+              "channels": [
+                "town.local"
+              ],
+              "rules": {
+                "drink": {
+                  "description": "买一杯饮品，花1金币",
+                  "cost": 1,
+                  "actor": {
+                    "coins": -1,
+                    "fields": {
+                      "mood": "轻松"
+                    }
+                  },
+                  "place": {
+                    "coins": 1
+                  }
+                }
+              },
+              "events_ref": {
+                "node": "place/tavern",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/home1_actions",
+        "name": "居民楼1服务",
+        "description": "配置驱动的本地行动",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "local.action_rules": {
+            "config": {
+              "address": "place/home1",
+              "channels": [
+                "town.local"
+              ],
+              "rules": {
+                "rest": {
+                  "description": "在自己的家休息，消耗6点行动值；不恢复本时刻行动值",
+                  "cost": 6,
+                  "actor": {
+                    "fields": {
+                      "mood": "休息过了"
+                    }
+                  },
+                  "requires_profile": {
+                    "home": "place/home1"
+                  },
+                  "cost_per_unit": true
+                }
+              },
+              "events_ref": {
+                "node": "place/home1",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "service/home2_actions",
+        "name": "居民楼2服务",
+        "description": "配置驱动的本地行动",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "local.action_rules": {
+            "config": {
+              "address": "place/home2",
+              "channels": [
+                "town.local"
+              ],
+              "rules": {
+                "rest": {
+                  "description": "在自己的家休息，消耗6点行动值；不恢复本时刻行动值",
+                  "cost": 6,
+                  "actor": {
+                    "fields": {
+                      "mood": "休息过了"
+                    }
+                  },
+                  "requires_profile": {
+                    "home": "place/home2"
+                  },
+                  "cost_per_unit": true
+                }
+              },
+              "events_ref": {
+                "node": "place/home2",
+                "module": "chance.events"
+              }
+            },
+            "state": {}
+          }
+        },
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null
+      }
+    ],
+    "delegations": []
+  },
+  "files": {
+    "personas/lin.md": "# 人格与身份\n你是林，男性。你喜欢认真规划，也愿意听取恋人的意见。你与悦相爱，住在居民楼1，希望一起到民政局结婚，之后商量要一个孩子。\n保持自己的判断，不必服从别人的请求；你不拥有未看到的信息。\n",
+    "personas/yue.md": "# 人格与身份\n你是悦，女性。你温和但有主见，喜欢孩子。你与林相爱，住在居民楼1。婚姻和家庭计划需要你本人同意。若怀孕，到期时应自己去医院生产，别让任何人替你决定。\n保持自己的判断，不必服从别人的请求；你不拥有未看到的信息。\n",
+    "personas/sen.md": "# 人格与身份\n你是阿森，男性。你开朗，爱与相遇的人闲聊，会记住有意思的传闻。你是伐木工，住居民楼2，靠砍树和卖木材维持生活。\n保持自己的判断，不必服从别人的请求；你不拥有未看到的信息。\n",
+    "personas/shi.md": "# 人格与身份\n你是阿石，男性。你务实、话不多，但别人有困难时愿意帮忙。你是矿工，住居民楼2，靠挖矿和出售矿石挣钱。\n保持自己的判断，不必服从别人的请求；你不拥有未看到的信息。\n",
+    "personas/li.md": "# 人格与身份\n你是小砾，女性。你冒险心强，喜欢研究怎样更快挣钱，也爱听小镇的奇闻。你是矿工，住居民楼2，与阿石的性格不一样，按自己的判断安排活动。\n保持自己的判断，不必服从别人的请求；你不拥有未看到的信息。\n",
+    "personas/tie.md": "# 人格与身份\n你是老铁，男性。你热心、爱讲笑话，是小镇的铁匠，住居民楼2。铁匠铺的修理服务会自动办理，你不需要一直守店，可以去串门、采购材料，和人聊聊生意。\n保持自己的判断，不必服从别人的请求；你不拥有未看到的信息。\n",
+    "personas/lu.md": "# 人格与身份\n你是小路，男性。你随和、好奇，住处不固定，没有任何居民楼的休息权。你想改善生活，会主动交朋友、请教赚钱方法，也可能向熟人求助借钱，但不能凭空得到物品。\n保持自己的判断，不必服从别人的请求；你不拥有未看到的信息。\n",
+    "world/common.md": "# 小镇常识\n这是一个演示小世界。每天依次为早上、中午、下午、傍晚、午夜五个时刻。大家不需要按现实规律睡觉，午夜也可以活动；只有自己的家允许使用休息服务，其他居民楼可以路过。\n每个时刻有10点行动值，移动通常3点，说话和交易通常1点，挖矿、砍树和休息通常6点。以具体工具返回为准，行动值不足时安排别的事或结束活动；移动不会结束你的时刻。\n你只能与同场所人物交流，去相邻地点移动，并使用本地业务工具。每次请求前会自动更新现场信息和可用工具，直接调用名字对应的工具。别人可能在你开口前离开。发消息不会强制对方立即回复。\n这里的家庭规则是虚构的：双方本人同意才结婚；婚后双方同意可以计划孩子，两天（10个时刻）后由待产者自己去医院办理出生。孩子生下来就是能说话的小孩，从下一时刻开始独立活动。不要替别人同意，不凭空认定已经结婚或怀孕。\n金币和物品只能通过实际工具操作获得或转移。听到的荒唐传闻未必是真实事实，你可以质疑、转述，或保持沉默。不要把传闻当作无可置疑的世界规则。\n\n物品代号：pickaxe=完好镐子，broken_pickaxe=坏镐，axe=斧头，ore=矿石，wood=木材，iron=铁料，gold=黄金。矿石、木材、黄金可以在商店出售。借钱要先商量，对方通过赠送工具主动转账；工具不会自动建立欠条。\n",
+    "world/map.md": "# 小镇地图\n\n道路双向，可逐条通行：\n- 居民楼1 ↔ 民政局\n- 居民楼1 ↔ 医院\n- 居民楼1 ↔ 酒馆\n- 居民楼2 ↔ 酒馆\n- 居民楼2 ↔ 商店\n- 居民楼2 ↔ 树林\n- 酒馆 ↔ 商店\n- 酒馆 ↔ 民政局\n- 商店 ↔ 铁匠铺\n- 铁匠铺 ↔ 矿坑\n- 商店 ↔ 医院\n- 树林 ↔ 矿坑\n\n民政局办理结婚；医院办理出生；商店买卖物品；铁匠铺修理镐子；矿坑挖矿，树林砍树；酒馆可以买饮品。\n",
+    "personas/child.md": "# 儿童人格\n你是林与悦的孩子，刚出生就会说话。你天真、好奇，会主动问问题；从家庭关系和见闻认识世界。你可以走动和交谈、在自己家休息，不能从事成人工作或婚育。你的经历和记忆独立，不继承父母的秘密。\n"
+  }
+}

@@ -58,6 +58,7 @@ class Studio:
         write_json(self.root/'library.json',self.library)
         self.jobs={};self.processes={};self.pool=ThreadPoolExecutor(max_workers=2)
         self.lock=threading.RLock();self.running=False;self.loop=asyncio.new_event_loop();self.bindings={}
+        self.run_state=dict(status='idle',completed=0,requested=0)
         self._load_releases()
     def _load_releases(self):
         visiting=set();done=set();factories={}
@@ -106,10 +107,13 @@ class Studio:
         if selected.get('reference'):
             source=PROJECT/selected['reference'];reference=folder/'reference';reference.mkdir()
             shutil.copyfile(source,reference/'legacy.py')
-        for name in p.get('dependencies',[]):
+        available=[]
+        for name in p.get('dependencies',list(self.library)):
             release=self.library[name];source=self.root/release['folder'];destination=folder/'dependencies'/name;destination.mkdir(parents=True)
             for file in ['module.json','README.md','example.json']:
                 if (source/file).exists():shutil.copyfile(source/file,destination/file)
+            available.append(dict(id=name,version=release['version'],manifest=f'dependencies/{name}/module.json',guide=f'dependencies/{name}/README.md'))
+        if available:write_json(folder/'dependencies/catalog.json',available)
         original=sources(folder)
         write_json(self.root/'baselines'/f'{id}.json',original)
         write_json(folder/'workspace.json',{'label':selected['name'],'sample':sample})
@@ -120,6 +124,15 @@ class Studio:
         original=read_json(self.root/'baselines'/f'{p["id"]}.json',{})
         references={str(f.relative_to(folder)):f.read_text(encoding='utf-8') for f in (folder/'reference').glob('*.py')} if (folder/'reference').exists() else {}
         return dict(id=p['id'],directory=str(folder),files=files,original=original,references=references,digest=digest(files))
+    def dependencies(self,p):
+        folder=self.folder(p['id']);catalog=read_json(folder/'dependencies/catalog.json',[])
+        known={item['id']:item for item in catalog}
+        for name in p.get('modules',list(self.library)):
+            release=self.library[name];source=self.root/release['folder'];target=folder/'dependencies'/name;target.mkdir(parents=True,exist_ok=True)
+            for file in ['module.json','README.md','example.json']:
+                if (source/file).exists():shutil.copyfile(source/file,target/file)
+            known[name]=dict(id=name,version=release['version'],manifest=f'dependencies/{name}/module.json',guide=f'dependencies/{name}/README.md')
+        write_json(folder/'dependencies/catalog.json',list(known.values()));return self.read(p)
     def release_read(self,p):
         release=self.library[p['module']];files=sources(self.root/release['folder']);files.pop('workspace.json',None)
         return dict(id=release['id'],files=files,original=files,references={},readOnly=True,release=release)
@@ -231,18 +244,25 @@ class Studio:
         return self.state()
     def pulse(self,p):
         if self.running:raise ValueError('Signal is active')
-        self.running=True
+        self.running=True;cycles=p.get('cycles',1)
+        self.run_state=dict(status='running',completed=0,requested=cycles)
         try:
             runtime=self.backend.network.signals
             runtime.checkpoint=lambda:self.backend.dispatch('save',{})
-            report=self.loop.run_until_complete(self.backend.network.nodes[p.get('pulse','town/pulse')].run(runtime,cycles=p.get('cycles',1),timeout_seconds=p.get('timeout_seconds',30)))
+            async def completed(pulse,report):self.run_state['completed']+=1
+            report=self.loop.run_until_complete(self.backend.network.nodes[p.get('pulse','town/pulse')].run(runtime,cycles=cycles,timeout_seconds=p.get('timeout_seconds',min(3600,300*cycles)),cycle_complete=completed))
+            self.run_state['status']='idle' if report['status']=='completed' else 'failed'
+            if report['status']!='completed':self.run_state['error']='信号未完成闭环：'+report['status']
+            self.running=False
             return dict(report=report,state=self.state())
+        except Exception as error:
+            self.run_state.update(status='failed',error=str(error));raise
         finally:self.running=False
     def state(self,p=None):
         document=network_document(self.backend.network,self.backend.directory)
-        files={str(n.file_path.relative_to(self.backend.directory)):n.file_path.read_text(encoding='utf-8') if n.file_path.exists() else '' for n in self.backend.network.nodes.values() if hasattr(n,'file_path') and n.file_path.is_relative_to(self.backend.directory)}
+        files={**self.backend.document_files(),**{str(n.file_path.relative_to(self.backend.directory)):n.file_path.read_text(encoding='utf-8') if n.file_path.exists() else '' for n in self.backend.network.nodes.values() if hasattr(n,'file_path') and n.file_path.is_relative_to(self.backend.directory)}}
         return dict(mode='组件开发 · Harness后端',live=dict(document=dict(network=document,files=files),commit=self.backend.store.head,sessions={id:dict(name=self.backend.network.nodes[id].name,**value) for id,value in self.backend.agents.items() if id in self.backend.network.nodes}),draft=read_json(self.root/'draft.json',None),
-                    job=dict(status='running' if self.running else 'idle',completed=0,requested=0),studio=True)
+                    job=dict(self.run_state),studio=True)
     def draft(self,p):
         previous=read_json(self.root/'draft.json',{'version':0})
         if p.get('expected_version',0)!=previous['version']:raise ValueError('Draft changed in another window; reload')
@@ -260,8 +280,7 @@ class Studio:
         try:
             self.backend.modules.clear();self.backend.network=candidate;candidate.use_metadata_registry(self.backend.metadata_registry)
             self.backend.root=candidate.nodes['root'];self.backend.modules.restore();self._bind()
-            for name,content in document.get('files',{}).items():
-                path=self.backend.directory/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
+            self.backend.write_documents(document.get('files',{}))
         except BaseException:
             self.backend.restore(old);self._bind();raise
         draft=read_json(self.root/'draft.json',{'version':0})
@@ -294,7 +313,13 @@ class Studio:
         self.closed=True
         for process in list(self.processes.values()):self._kill(process)
         self.pool.shutdown(wait=True,cancel_futures=True)
-        self.loop.run_until_complete(self.backend.network.signals.close());self.loop.close()
+        # A Backend can also be hosted by an existing asyncio application.
+        # Only drive our private loop when no other loop owns this thread.
+        try:asyncio.get_running_loop()
+        except RuntimeError:self.loop.run_until_complete(self.backend.network.signals.close())
+        # An external async host owns its runtime shutdown. Do not queue a save
+        # after Backend.close has already closed the checkpoint database.
+        self.loop.close()
 
 def register(services):
     def install(backend):backend.studio=Studio(backend)
@@ -305,5 +330,5 @@ def register(services):
     def restore(b,document):
         b.studio.library=document.get('studio_releases',b.studio.library);b.studio._load_releases()
     services.restorers.append(restore)
-    methods={'catalog':False,'create':False,'read':False,'release_read':False,'fork':False,'save':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'create':False,'read':False,'dependencies':False,'release_read':False,'fork':False,'save':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)
