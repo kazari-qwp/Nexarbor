@@ -1,6 +1,6 @@
 # 信号计数存档点
 
-在任意普通节点显式装配 `checkpoint.counter`，复用 `signal_response` 接收配置频道的信号。无 Agent 工具、无场景依赖。
+在任意普通节点显式装配 `checkpoint.counter`，复用 `event_trigger` / `module_execution` 接收配置频道的信号。无 Agent 工具、无场景依赖。
 
 ```json
 {"checkpoint.counter":{"config":{"channels":["world.tick"],"interval":5},"state":{"count":0}}}

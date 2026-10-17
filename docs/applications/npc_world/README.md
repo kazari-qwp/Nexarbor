@@ -43,7 +43,7 @@
 | 条件知识的读取权限 | world.knowledge | 居民 Agent |
 | 上下文源列表及装配绑定 | context.sources，复用 context_assembly | 上下文 Node |
 | 模型会话创建/恢复 | agent.session，复用 agent_runtime | Agent |
-| 响应脉冲、限额、完成/失败记录 | agent.signal，复用 signal_response/原生循环 | Agent |
+| 响应脉冲、限额、完成/失败记录 | agent.signal，复用事件触发器/模块执行图/原生循环 | Agent |
 | 时钟与时间文本更新 | clock.text | 时间文本 |
 | 观察与有限推进 | scene.operator | 操作入口 Agent |
 | 统一业务结算、轮次收尾 | 删除；业务工具当场完成，层屏障负责等待 | 无 |

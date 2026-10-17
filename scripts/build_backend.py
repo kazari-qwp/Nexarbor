@@ -13,8 +13,11 @@ for file in (root/'adapters/harness/backend').glob('*.py'):
 shutil.copytree(root/'executors/minimal/python',staging/'python',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__'))
 paths=[staging/'python',staging]
 modules=[]
+collect=set();metadata=set()
 for file in sorted((root/'extensions').glob('*/*/*/component.json')):
     m=json.loads(file.read_text(encoding='utf-8'))
+    collect.update(m.get('python',{}).get('collect',[]))
+    metadata.update(m.get('python',{}).get('metadata',[]))
     for section,key in [('python','path')]:
         relative=m.get(section,{}).get(key)
         if relative:
@@ -27,5 +30,7 @@ for file in sorted((root/'extensions').glob('*/*/*/component.json')):
 command=[sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--name','datanet-backend','--distpath',str(root/'build/dist'),'--workpath',str(root/'build/work'),'--specpath',str(root/'build')]
 for path in paths:command+=['--paths',str(path)]
 for module in modules:command+=['--hidden-import',module]
+for package in sorted(collect):command+=['--collect-all',package]
+for package in sorted(metadata):command+=['--copy-metadata',package]
 command+=[str(staging/'server.py')]
 subprocess.run(command,check=True)

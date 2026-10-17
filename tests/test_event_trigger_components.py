@@ -14,10 +14,14 @@ def add(b,*nodes):
     for node in nodes:b.network.add_node(Node(node,node,None))
 def link(b,source,target,channels=('tick',)):
     b.network.nodes[source].write_interfaces.append(Interface(target,{'channels':list(channels),'threshold':1}))
-def rule(id,channels,*steps):return dict(id=id,channels=channels,steps=[dict(tool=name,arguments=args) for name,args in steps])
+def rule(id,channels,*steps):return dict(id=id,channels=channels,steps=[dict(type='call',id=id+'_'+str(i),operation=name,arguments=args) for i,(name,args) in enumerate(steps)])
+def bind(plugin,node,rules,operations):
+    graphs={r['id']:dict(type='sequence',steps=r['steps']) for r in rules}
+    matches=[dict(id=r['id'],event='signal/received',channels=r['channels'],where={},graph=r['id']) for r in rules]
+    plugin.bind(node,matches,graphs,operations)
 """
 class ComponentTests(unittest.TestCase):
-    def case(self,code,component='signal_response'):
+    def case(self,code,component='event_trigger'):
         env=dict(os.environ,PYTHONPATH=str(ROOT/'python'),PYTHONUTF8='1',PYTHONDONTWRITEBYTECODE='1',DATANET_COMPONENT_ROOT=str(ROOT/'extensions/npc_world'),DATANET_COMPONENT_SELECTION=json.dumps(['capabilities/'+name for name in (component if isinstance(component,list) else [component])]),DATANET_COMPONENT_PROFILE='{}')
         result=subprocess.run([sys.executable,'-X','utf8','-c',SETUP+textwrap.dedent(code)],cwd=ROOT,env=env,text=True,encoding='utf-8',capture_output=True,timeout=30)
         self.assertEqual(result.returncode,0,result.stdout+result.stderr)
@@ -25,7 +29,7 @@ class ComponentTests(unittest.TestCase):
     def test_channels_order_references_and_parallel_layer_barrier(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);app=Application(b,Port(),{});p=app.plugins['capabilities/signal_response']
+            b=Backend(folder);app=Application(b,Port(),{});p=app.plugins['capabilities/event_trigger']
             add(b,'a','b','sink');link(b,'root','a');link(b,'root','b');link(b,'a','sink',['other']);link(b,'b','sink',['other'])
             async def run():
                 started=set();both=asyncio.Event();events=[]
@@ -39,13 +43,13 @@ class ComponentTests(unittest.TestCase):
                 async def third(c):assert 'a.second' in events;events.append('a.third')
                 async def sink(c):assert set(events)=={'a.first','b.first','a.second','a.third'};return True
                 async def forbidden(c):raise AssertionError('Unmatched responder executed')
-                p.bind('a',[rule('ignored',['unused'],('forbidden',{})),rule('main',['tick'],('first',{'n':{'$ref':'/signal/content/n'}}),('second',{'n':{'$ref':'/steps/0/value/n'}})),rule('later',['other'],('third',{}))],dict(first=first,second=second,third=third,forbidden=forbidden))
-                p.bind('b',[rule('work',['tick'],('first',{'n':41}))],dict(first=first))
-                p.bind('sink',[rule('finish',['other'],('sink',{}))],dict(sink=sink))
+                bind(p,'a',[rule('ignored',['unused'],('forbidden',{})),rule('main',['tick'],('first',{'n':{'$ref':'/event/payload/signal/content/n'}}),('second',{'n':{'$ref':'/results/main_0/value/n'}})),rule('later',['other'],('third',{}))],dict(first=first,second=second,third=third,forbidden=forbidden))
+                bind(p,'b',[rule('work',['tick'],('first',{'n':41}))],dict(first=first))
+                bind(p,'sink',[rule('finish',['other'],('sink',{}))],dict(sink=sink))
                 report=await b.signals.propagate(Signal('root',['tick','other'],3,content={'n':41}))
                 assert report['status']=='completed' and report['layers']==[['a','b'],['sink']]
                 assert report['deliveries'][0]['value']['matched']==2
-                assert b.snapshot()['signal_response']['a'][1]['steps'][0]['tool']=='first'
+                assert b.snapshot()['event_triggers']['a']['host']['graphs']['main']['steps'][0]['operation']=='first'
                 await b.signals.close()
             try:asyncio.run(run())
             finally:stop(app,b)
@@ -54,7 +58,7 @@ class ComponentTests(unittest.TestCase):
     def test_tool_grants_failure_stop_and_no_match_relay(self):
         self.case("""
         with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);app=Application(b,Port(),{});p=app.plugins['capabilities/signal_response']
+            b=Backend(folder);app=Application(b,Port(),{});p=app.plugins['capabilities/event_trigger']
             add(b,'bad','relay','sink','blocked');link(b,'root','bad');link(b,'root','relay');link(b,'bad','blocked');link(b,'relay','sink')
             async def run():
                 calls=[]
@@ -62,17 +66,17 @@ class ComponentTests(unittest.TestCase):
                 async def fail(c):return NodeResult(status='error',errors=['expected failure'])
                 async def forbidden(c):raise AssertionError('must not execute')
                 async def sink(c):calls.append('sink')
-                try:p.bind('bad',[rule('bad',['tick'],('unknown',{}))],{})
+                try:bind(p,'bad',[rule('bad',['tick'],('unknown',{}))],{})
                 except PermissionError:pass
                 else:raise AssertionError('Tool grant bypassed')
-                p.bind('bad',[rule('bad',['tick'],('first',{}),('fail',{}),('forbidden',{}))],dict(first=first,fail=fail,forbidden=forbidden))
-                p.bind('relay',[rule('other',['other'],('forbidden',{}))],dict(forbidden=forbidden))
-                p.bind('sink',[rule('finish',['tick'],('sink',{}))],dict(sink=sink))
+                bind(p,'bad',[rule('bad',['tick'],('first',{}),('fail',{}),('forbidden',{}))],dict(first=first,fail=fail,forbidden=forbidden))
+                bind(p,'relay',[rule('other',['other'],('forbidden',{}))],dict(forbidden=forbidden))
+                bind(p,'sink',[rule('finish',['tick'],('sink',{}))],dict(sink=sink))
                 signal=Signal('root',['tick'],3,failure_policy='continue');report=await b.signals.propagate(signal)
                 assert report['status']=='partial' and calls==['effect','sink']
                 assert 'blocked' not in [d['node_id'] for d in report['deliveries']]
                 assert next(d for d in report['deliveries'] if d['node_id']=='relay')['value']['matched']==0
-                assert 'step 2' in report['deliveries'][0]['error']
+                assert 'Operation fail failed' in report['deliveries'][0]['error']
                 await b.signals.propagate(signal);assert calls==['effect','sink']
                 await b.signals.close()
             try:asyncio.run(run())
@@ -83,16 +87,16 @@ class ComponentTests(unittest.TestCase):
         self.case("""
         import threading
         with tempfile.TemporaryDirectory() as folder:
-            b=Backend(folder);app=Application(b,Port(),{});p=app.plugins['capabilities/signal_response'];add(b,'a');link(b,'root','a')
+            b=Backend(folder);app=Application(b,Port(),{});p=app.plugins['capabilities/event_trigger'];add(b,'a');link(b,'root','a')
             async def run():
                 release=threading.Event();calls=[]
                 def work(c):calls.append(1);release.wait(1);return True
-                p.bind('a',[rule('work',['tick'],('work',{}))],dict(work=work))
+                bind(p,'a',[rule('work',['tick'],('work',{}))],dict(work=work))
                 try:
                     report=await b.signals.propagate(Signal('root',['tick'],2,node_timeout_seconds=.02));assert report['status']=='timed_out'
                     report=await b.signals.propagate(Signal('root',['tick'],2));assert report['status']=='failed' and calls==[1]
                 finally:
-                    release.set();await asyncio.gather(*p.workers.values(),return_exceptions=True)
+                    release.set();await asyncio.gather(*(task for workers in app.plugins['capabilities/module_execution'].workers.values() for task in workers),return_exceptions=True)
                 report=await b.signals.propagate(Signal('root',['tick'],2));assert report['status']=='completed' and len(calls)==2
                 await b.signals.close()
             try:asyncio.run(run())

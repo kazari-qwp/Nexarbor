@@ -23,3 +23,5 @@
 时间模块本身不要求 NPC 或小镇。信号 Agent 模块没有位置、职业、孕期或世界结算逻辑。磁盘加载是宿主入口，没有加载器图节点、Start 节点或世界构建代码。
 
 目前 disk_network 的初始网络格式复用核心 checkpoint 文档；initialFiles 是目标相对路径到 `{component,file}` 的只读资源映射，仅首次初始化读取。恢复已有档不会覆盖业务数据。正在执行的 Agent/工具不应被宿主热卸载；先停止活动再调整结构。
+
+执行图相关模块：`event.trigger` 匹配事件并启动图；`modules.executor` 执行宿主授予的结构化模块计划。两者通过可选组件依赖官方 LangGraph 后端，配置与示例见 [事件执行图](EVENT_EXECUTION.md)。信号 Agent、时钟及存档计数器已迁移，不再依赖旧 signal_response。

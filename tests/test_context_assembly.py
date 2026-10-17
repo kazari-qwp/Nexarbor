@@ -72,7 +72,7 @@ class AssemblyTests(unittest.TestCase):
             specs=[source('base','context','core rule',when={'node_id':'root'}),source('miner','context','miner rule',when={'/extensions/demo/role':'miner'}),source('smith','context','smith rule',when={'/extensions/demo/role':'smith'})]
             try:
                 assert app.catalog['capabilities/context_assembly']['requires']==[]
-                assert 'capabilities/signal_response' not in app.enabled
+                assert 'capabilities/event_trigger' not in app.enabled
                 p.configure('assembly',specs);p.bind('root','assembly')
                 assert p.assemble('root')['sources'][0]['matched']==['base']
                 extra.set('root','demo',{'role':'miner'});assert p.assemble('root')['sources'][0]['loaded']==['miner']

@@ -19,11 +19,11 @@ class SignalAgent(NodeModule):
             if entry['step'] in tools:raise ValueError('Duplicate or reserved preparation step')
             module=self.backend.modules.get(self.node.node_id,entry['module'])
             tools[entry['step']]=getattr(module,entry['method'])
-            steps.append(dict(tool=entry['step'],arguments={}))
-        if not steps:steps=[dict(tool='assemble_context',arguments={})]
-        steps.append(dict(tool='run_agent',arguments=dict(task={'$ref':'/signal/content/task'},timeout_ms={'$ref':'/signal/content/timeout_ms'})))
-        rules=[dict(id='execute-agent',channels=self.config['channels'],steps=steps)]
-        r.plugins['capabilities/signal_response'].bind(self.node.node_id,rules,tools,access_strength=self.config.get('strength',2),on_error=self.failed)
+            steps.append(dict(type='call',id=entry['step'],operation=entry['step'],arguments={}))
+        if not steps:steps=[dict(type='call',id='assemble_context',operation='assemble_context',arguments={})]
+        steps.append(dict(type='call',id='run_agent',operation='run_agent',arguments=dict(task={'$ref':'/event/payload/signal/content/task'},timeout_ms={'$ref':'/event/payload/signal/content/timeout_ms'})))
+        rules=[dict(id='execute-agent',event='signal/received',channels=self.config['channels'],where={},graph='main')]
+        r.plugins['capabilities/event_trigger'].bind(self.node.node_id,rules,{'main':dict(type='sequence',steps=steps)},tools,access_strength=self.config.get('strength',2),on_error=self.failed,binding='agent.signal')
     def pre_step(self,e):
         if e['actor']!=self.node.node_id:return
         if self.config.get('guide'):self.r.load(e['actor'],'node:activity-guide',text(self.r,self.config['guide']))
@@ -57,8 +57,8 @@ class SignalAgent(NodeModule):
         except Exception:pass
     def close(self):
         super().close()
-        runtime=getattr(self.backend.network,'_signal_runtime',None)
-        if runtime:runtime.unbind(self.node.node_id)
+        r=self.backend.modules.application
+        if r and 'capabilities/event_trigger' in r.plugins:r.plugins['capabilities/event_trigger'].unbind(self.node.node_id,binding='agent.signal')
 
 
 def start(b,p):

@@ -27,31 +27,11 @@ Interface('target', metadata={
 
 `SignalRuntime.bind(node_id, async_handler, access_strength=...)` 是底层宿主接入接口，不负责业务匹配。接收者使用自己的宿主授权执行，不能借发信者权限。节点处理有互斥、期限和错误回执；`failure_policy='stop'` 停止后续层，`continue` 只让成功/中继分支继续。失败不能当作成功就绪。
 
-## 节点信号响应器
+## 事件触发器与模块执行图
 
-`capabilities/signal_response` 是可选共享组件，配置保存在扩展状态，不增加核心节点字段。响应器由频道集合及有序工具步骤组成。到达节点后频道有交集就响应；同节点多个命中响应器按配置顺序执行。没有命中的响应器不执行工具，节点仍可中继。
+旧 signal_response 已由可选 event_trigger/module_execution/langgraph_backend 组件替代。信号包装为 signal/received 事件，节点按事件类型、频道和内容选择结构化图。顺序、条件分支、并行和汇合交给官方 LangGraph；整张图完成才向核心传播返回。
 
-```json
-{
-  "id": "live-this-moment",
-  "channels": ["world.tick"],
-  "steps": [
-    {"tool": "assemble_context", "arguments": {}},
-    {"tool": "run_agent", "arguments": {"task": {"$ref": "/signal/content/task"}}}
-  ]
-}
-```
-
-工具由宿主按节点显式绑定，不根据来信任意选择或扩大权限。参数支持JSON字面值和JSON Pointer引用：`/signal/...`、`/delivery/...`、`/steps/0/value/...`、`/responders/0/...`。没有eval、代码插值或任意函数查找。工具返回后才进入下一步；步骤失败停止当前节点后续步骤，并交由信号失败策略处理。同步工具在线程执行；超时后线程尚未结束时拒绝该节点重入。
-
-装配示例：
-
-```python
-responses = app.plugins['capabilities/signal_response']
-responses.bind(node_id, rules, {'assemble_context': match, 'run_agent': run}, access_strength=2)
-```
-
-异步工具接受 `(context, **arguments)` 并await；普通函数在线程调用，同样接受context。普通节点也可使用，无需Agent。配置可随Backend检查点保存，恢复后由宿主重新绑定可执行工具；不会自动重放中断的步骤。
+操作由宿主按节点授予，信号不能选择任意函数或扩大权限。同步操作超时后，未退出的全部线程会阻止节点重入。配置随核心提交保存，恢复时重绑可执行操作，不自动重放中断步骤。参数、节点装配和完整示例见 [事件执行图接口](EVENT_EXECUTION.md)。
 
 ## 独立上下文装配器
 
@@ -84,4 +64,4 @@ NPC用`npc`命名空间提供性别、职业、孕期等字段。装配器不导
 
 ## 最小验证
 
-核心信号、四类输入、共享响应器、独立装配器及NPC最小回环已验证，原生Harness使用Mock模型。当前记录见[NPC验证](applications/npc_world/VALIDATION.md)。无整世界真实Agent运行。旧匹配工具已移除，没有新增Agent可见工具描述。
+核心信号、四类输入、共享响应器、独立装配器及NPC最小回环已验证，原生Harness使用Mock模型。当前记录见[NPC验证](applications/npc_world/VALIDATION.md)。本次执行图改造仅做本地与原生Mock测试，没有新增付费世界运行。旧匹配工具已移除，没有新增Agent可见工具描述。

@@ -4,6 +4,7 @@ from importlib import import_module
 from pathlib import Path
 from threading import RLock, local
 import json
+import inspect
 from datanet.core.component_registry import enabled_components
 from datanet.component_catalog import tool_bindings, dependency
 
@@ -91,7 +92,16 @@ class Application:
     def emit(self, event, **payload):
         for owner, function in list(self.listeners[event]):
             if owner in self.enabled:
-                function(payload)
+                result=function(payload)
+                if inspect.isawaitable(result):
+                    if inspect.iscoroutine(result):result.close()
+                    raise RuntimeError('Async event listener requires await Application.emit_async')
+
+    async def emit_async(self, event, **payload):
+        for owner, function in list(self.listeners[event]):
+            if owner in self.enabled:
+                result=function(payload)
+                if inspect.isawaitable(result):await result
 
     def host(self, operation, **payload):
         payload.setdefault('execution_id', getattr(self.local, 'execution_id', None))

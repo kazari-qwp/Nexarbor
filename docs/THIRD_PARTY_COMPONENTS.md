@@ -8,6 +8,7 @@
 | 本地嵌入 | [HuggingFace LlamaIndex 适配](https://developers.llamaindex.ai/python/framework-api-reference/embeddings/huggingface/) | 应用统一配置模型，节点共享实例 |
 | Agent Wiki | [llm-wiki](https://github.com/jackwener/llm-wiki) | 固定源码、原版维护指南及 BM25/图分析算法；薄适配接入现有知识记录，不另建模型循环 |
 | Markdown Wiki | [MkDocs](https://www.mkdocs.org/) | 调用上游渲染、导航和搜索索引构建 |
+| 事件执行图 | [LangGraph](https://github.com/langchain-ai/langgraph) 1.2.16 | 官方 Python 包的 StateGraph、条件分支、异步并行与汇合；核心与 Agent 循环不依赖它 |
 | Git 工作区 | [Git](https://git-scm.com/) | 独立共享组件包装 worktree、提交与串行整合 |
 | Agent 执行 | DeepSeek Harness / 可选执行器 | 通过核心执行器契约和通用适配层接入 |
 

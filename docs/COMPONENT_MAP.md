@@ -20,34 +20,38 @@
 | `capabilities/discussion_group` | `extensions/multi_agent/capabilities/discussion_group` | `nodes/agent_discussion_leader`, `nodes/agent_discussion_member`, `nodes/agent_discussion_recorder`, `nodes/agent_leader`, `nodes/agent_member`, `nodes/agent_recorder`, `capabilities/text`, `capabilities/tools_network_management`, `capabilities/agent_identity`, `capabilities/agent_runtime` |
 | `capabilities/disk_network` | `extensions/foundation/capabilities/disk_network` |  |
 | `capabilities/document_structure` | `extensions/storage/capabilities/document_structure` |  |
+| `capabilities/event_trigger` | `extensions/foundation/capabilities/event_trigger` | `capabilities/langgraph_backend`, `capabilities/module_execution` |
 | `capabilities/execution_records` | `extensions/foundation/capabilities/execution_records` | `capabilities/agent_identity` |
 | `capabilities/experience` | `extensions/foundation/capabilities/experience` | `capabilities/agent_identity` |
 | `capabilities/experiment_analysis` | `extensions/multi_agent/capabilities/experiment_analysis` | `capabilities/agent_identity`, `nodes/csv`, `nodes/sqlite` |
 | `capabilities/family_planning` | `extensions/npc_world/capabilities/family_planning` | `capabilities/scene_support` |
 | `capabilities/household` | `extensions/npc_world/capabilities/household` | `capabilities/scene_support` |
 | `capabilities/identity_knowledge` | `extensions/npc_world/capabilities/identity_knowledge` | `capabilities/scene_support` |
+| `capabilities/information_collector` | `extensions/foundation/capabilities/information_collector` | `capabilities/information_provider` |
+| `capabilities/information_provider` | `extensions/foundation/capabilities/information_provider` |  |
 | `capabilities/knowledge_agents` | `extensions/knowledge_base/capabilities/knowledge_agents` | `capabilities/scoped_workers`, `capabilities/knowledge_tools`, `nodes/knowledge_worker`, `toolboxes/knowledge_reader` |
 | `capabilities/knowledge_store` | `extensions/knowledge_base/capabilities/knowledge_store` | `nodes/csv`, `nodes/sqlite`, `nodes/llamaindex`, `capabilities/markdown_wiki`, `capabilities/document_structure`, `capabilities/llm_wiki` |
 | `capabilities/knowledge_tools` | `extensions/knowledge_base/capabilities/knowledge_tools` | `nodes/knowledge_collection`, `capabilities/llm_wiki` |
+| `capabilities/langgraph_backend` | `extensions/foundation/capabilities/langgraph_backend` |  |
 | `capabilities/llamaindex` | `extensions/storage/capabilities/llamaindex` |  |
 | `capabilities/llm_wiki` | `extensions/storage/capabilities/llm_wiki` | `capabilities/document_structure` |
 | `capabilities/local_data` | `extensions/foundation/capabilities/local_data` |  |
 | `capabilities/markdown_wiki` | `extensions/storage/capabilities/markdown_wiki` |  |
 | `capabilities/marriage_registry` | `extensions/npc_world/capabilities/marriage_registry` | `capabilities/scene_support` |
+| `capabilities/module_execution` | `extensions/foundation/capabilities/module_execution` | `capabilities/langgraph_backend` |
 | `capabilities/network_access` | `extensions/foundation/capabilities/network_access` | `capabilities/agent_identity`, `capabilities/context_assembly` |
 | `capabilities/network_management` | `extensions/foundation/capabilities/network_management` | `capabilities/tools_network_management`, `capabilities/agent_identity` |
-| `capabilities/information_provider` | `extensions/foundation/capabilities/information_provider` |  |
-| `capabilities/information_collector` | `extensions/foundation/capabilities/information_collector` | `capabilities/information_provider` |
-| `capabilities/tool_assembly` | `extensions/foundation/capabilities/tool_assembly` |  |
 | `capabilities/node_agent_session` | `extensions/foundation/capabilities/node_agent_session` | `capabilities/agent_runtime` |
-| `capabilities/node_savepoint` | `extensions/foundation/capabilities/node_savepoint` | `capabilities/signal_response` |
-| `capabilities/node_clock` | `extensions/foundation/capabilities/node_clock` | `capabilities/signal_response` |
+| `capabilities/node_clock` | `extensions/foundation/capabilities/node_clock` | `capabilities/event_trigger` |
 | `capabilities/node_context_sources` | `extensions/foundation/capabilities/node_context_sources` | `capabilities/context_assembly` |
 | `capabilities/node_metadata` | `extensions/foundation/capabilities/node_metadata` |  |
-| `capabilities/node_signal_agent` | `extensions/foundation/capabilities/node_signal_agent` | `capabilities/agent_runtime`, `capabilities/signal_response`, `capabilities/context_assembly` |
+| `capabilities/node_savepoint` | `extensions/foundation/capabilities/node_savepoint` | `capabilities/event_trigger` |
+| `capabilities/node_signal_agent` | `extensions/foundation/capabilities/node_signal_agent` | `capabilities/agent_runtime`, `capabilities/event_trigger`, `capabilities/context_assembly` |
 | `capabilities/number_network` | `extensions/multi_agent/capabilities/number_network` | `capabilities/agent_identity`, `nodes/value` |
+| `capabilities/opening_input` | `extensions/foundation/capabilities/opening_input` | `capabilities/agent_runtime` |
 | `capabilities/place_information` | `extensions/npc_world/capabilities/place_information` | `capabilities/scene_support` |
 | `capabilities/place_movement` | `extensions/npc_world/capabilities/place_movement` | `capabilities/scene_support` |
+| `capabilities/probability_events` | `extensions/foundation/capabilities/probability_events` |  |
 | `capabilities/problem_handling` | `extensions/foundation/capabilities/problem_handling` | `capabilities/experience`, `capabilities/execution_records`, `capabilities/tools_network_management`, `capabilities/agent_identity` |
 | `capabilities/project_root` | `extensions/multi_agent/capabilities/project_root` | `capabilities/text`, `capabilities/agent_identity`, `capabilities/tools_network_management`, `capabilities/agent_runtime`, `toolboxes/network_access`, `toolboxes/node_creation`, `toolboxes/agent_management`, `toolboxes/interface_management`, `toolboxes/discussion`, `toolboxes/recovery`, `toolboxes/discussion_member`, `toolboxes/engineering`, `toolboxes/cooperation`, `toolboxes/agent_delegation`, `toolboxes/agent_messaging`, `toolboxes/problem_handling`, `toolboxes/cooperation_control` |
 | `capabilities/refreshment` | `extensions/npc_world/capabilities/refreshment` | `capabilities/scene_support` |
@@ -61,10 +65,10 @@
 | `capabilities/scoped_workers` | `extensions/foundation/capabilities/scoped_workers` | `capabilities/agent_runtime`, `capabilities/task_documents`, `toolboxes/agent_messaging` |
 | `capabilities/shared_workspace` | `extensions/foundation/capabilities/shared_workspace` |  |
 | `capabilities/shop_trade` | `extensions/npc_world/capabilities/shop_trade` | `capabilities/scene_support` |
-| `capabilities/signal_response` | `extensions/foundation/capabilities/signal_response` |  |
 | `capabilities/sqlite` | `extensions/storage/capabilities/sqlite` |  |
 | `capabilities/task_documents` | `extensions/foundation/capabilities/task_documents` |  |
 | `capabilities/text` | `extensions/foundation/capabilities/text` |  |
+| `capabilities/tool_assembly` | `extensions/foundation/capabilities/tool_assembly` |  |
 | `capabilities/tool_repair` | `extensions/npc_world/capabilities/tool_repair` | `capabilities/scene_support` |
 | `capabilities/tools_network_management` | `extensions/foundation/capabilities/tools_network_management` | `capabilities/agent_identity`, `capabilities/agent_runtime` |
 | `capabilities/value` | `extensions/storage/capabilities/value` |  |
@@ -76,7 +80,7 @@
 | `network_presets/knowledge_base` | `extensions/knowledge_base/network_presets/knowledge_base` | `capabilities/knowledge_agents`, `toolboxes/knowledge_base` |
 | `network_presets/number_network` | `extensions/multi_agent/network_presets/number_network` | `capabilities/number_network`, `nodes/value` |
 | `network_presets/project_root` | `extensions/multi_agent/network_presets/project_root` | `capabilities/project_root` |
-| `network_presets/small_town` | `extensions/npc_world/network_presets/small_town` | `capabilities/scene_operator`, `toolboxes/world_operator`, `toolboxes/world_resident` |
+| `network_presets/small_town` | `extensions/npc_world/network_presets/small_town` | `capabilities/scene_operator`, `toolboxes/world_operator`, `toolboxes/world_resident`, `capabilities/opening_input`, `capabilities/probability_events` |
 | `nodes/agent_cooperative_worker` | `extensions/multi_agent/nodes/agent_cooperative_worker` | `toolboxes/engineering` |
 | `nodes/agent_coordinator` | `extensions/multi_agent/nodes/agent_coordinator` | `toolboxes/discussion`, `toolboxes/network_management_skill`, `toolboxes/node_operations`, `toolboxes/topology_inspection`, `capabilities/agent_identity` |
 | `nodes/agent_discussion_leader` | `extensions/multi_agent/nodes/agent_discussion_leader` | `capabilities/agent_identity` |
@@ -139,7 +143,4 @@
 | `toolboxes/world_operator` | `extensions/npc_world/toolboxes/world_operator` | `capabilities/scene_operator` |
 | `toolboxes/world_resident` | `extensions/npc_world/toolboxes/world_resident` | `capabilities/scene_operator`, `toolboxes/network_access` |
 
-| `capabilities/opening_input` | `extensions/foundation/capabilities/opening_input` | `capabilities/agent_runtime` |
-| `capabilities/probability_events` | `extensions/foundation/capabilities/probability_events` |  |
-
-共 132 个唯一组件。
+共 138 个唯一组件。

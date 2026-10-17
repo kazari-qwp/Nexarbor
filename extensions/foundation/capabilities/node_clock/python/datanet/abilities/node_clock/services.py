@@ -8,13 +8,14 @@ def text(r,value):return r.resource(value['component'],value['file']) if isinsta
 
 class ClockText(NodeModule):
     def bind(self,r):
-        rules=[dict(id='advance-clock',channels=self.config['channels'],steps=[dict(tool='advance_clock',arguments=dict(signal_id={'$ref':'/signal/signal_id'}))])]
-        r.plugins['capabilities/signal_response'].bind(self.node.node_id,rules,{'advance_clock':self.advance})
+        graph=dict(type='call',id='advance_clock',operation='advance_clock',arguments=dict(signal_id={'$ref':'/event/payload/signal/signal_id'}))
+        rules=[dict(id='advance-clock',event='signal/received',channels=self.config['channels'],where={},graph='main')]
+        r.plugins['capabilities/event_trigger'].bind(self.node.node_id,rules,{'main':graph},{'advance_clock':self.advance},binding='clock.text')
     def advance(self,context,signal_id):return self.backend.dispatch('node_clock_advance',dict(target=self.node.node_id,signal_id=signal_id))
     def close(self):
         super().close()
-        runtime=getattr(self.backend.network,'_signal_runtime',None)
-        if runtime:runtime.unbind(self.node.node_id)
+        r=self.backend.modules.application
+        if r and 'capabilities/event_trigger' in r.plugins:r.plugins['capabilities/event_trigger'].unbind(self.node.node_id,binding='clock.text')
 
 
 def advance(b,p):

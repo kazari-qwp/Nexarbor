@@ -55,8 +55,8 @@ class NeighborhoodTests(unittest.TestCase):
                 else:raise AssertionError('stale tool retained authority')
                 b.dispatch('node_activity_end',dict(target=actor,signal_id='fixture',status='completed'))
                 result=app.invoke('root','world_run_npc',dict(target=actor))
-                steps=result['pulse']['reports'][0]['deliveries'][1]['value']['responders'][0]['steps']
-                assert [s['tool'] for s in steps]==['collect_information','assemble_tools','run_agent']
+                steps=result['pulse']['reports'][0]['deliveries'][1]['value']['executions'][0]['results'].values()
+                assert [s['operation'] for s in steps]==['collect_information','assemble_tools','run_agent']
                 assert '本地：名称：铁匠铺' in '\n'.join(app.input_tail(actor))
                 assert any(v['tool']=='repair' for v in assembler.aliases.values())
                 assert old not in app.state(actor)['dynamic']
