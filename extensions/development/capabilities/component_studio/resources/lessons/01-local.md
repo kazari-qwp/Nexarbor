@@ -11,6 +11,8 @@ async def execute(ctx, activation):
 ```
 清单格式 nexarbor-module/v3，entry 是 module.py:execute。声明 id、中文 name、version、node_types、requires、config_schema、state_schema、operations、signals。每项 operation 有 name/channels/parameters/result，parameters 是对象 Schema，result 校验返回 data。
 
+node_types 必须包含真实装配对象：NPC是 agent，场所一般是 node。可复用记录仓要支持两者。测试用 add_node('npc',agent=True) 创建真实 Agent，不能把它换成普通 node，再放松身份检查来迎合错误声明。metadata()['node_type'] 是准确的核心类型；需要 Agent 身份就严格等于 agent，不猜 has_agent 或 data_kind，不在查询失败时放行。
+
 config 是只读装配规则，state 是本实例持久状态。初始值、价格等放 config，运行结果放 state。不用全局字典保存所有节点数据，不直接拿其他实例 state。
 
 ctx.node_id/module_id 是本实例身份；metadata() 读本地资料，publish_metadata({...}) 在本模块命名空间发布。update_inputs({...}) 更新本地 Agent 的 system_prompt/context/inputs/tail：人格用 system_prompt，当前地点用 tail，一次性事件用有唯一 id/text 的 inputs。

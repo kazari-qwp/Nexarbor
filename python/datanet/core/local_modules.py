@@ -51,7 +51,7 @@ class NodeModule:
         definition.validate(self.config, definition.config_schema)
         definition.validate(self.state, definition.state_schema)
         for name, spec in definition.operations.items():
-            async def call(_name=name, _spec=spec, **parameters):
+            async def call(_name=name, _spec=spec, /, **parameters):
                 definition.validate(parameters, _spec['parameters'])
                 return await self.execute(Activation('access', _name, parameters, self.context.caller_id), _spec['result'])
             self.operations[name] = (call, tuple(spec['channels']))
@@ -122,7 +122,7 @@ class NodeModules:
             _executing.reset(token)
             current_access.reset(incoming_token)
 
-    def _run(self, key, function, *args, **kwargs):
+    def _run(self, key, function, /, *args, **kwargs):
         generation = self._generations.get(key)
         if inspect.iscoroutinefunction(function):
             async def run():

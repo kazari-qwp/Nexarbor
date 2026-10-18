@@ -37,6 +37,20 @@ def mount(b, node, name, strength=0, channels=(), **kwargs):
 
 
 class Protocol(unittest.IsolatedAsyncioTestCase):
+    async def test_parameter_names_cannot_collide_with_binding_internals(self):
+        payload=dict(key='receipt-1',function='data',self='data',_name='not-an-operation',_spec={'parameters':{}},parameters={'nested':True})
+        async def receive(ctx,activation):return ComponentResult(data=dict(operation=activation.operation,parameters=dict(activation.parameters)))
+        async def forward(ctx,activation):return ComponentResult(data=await ctx.network.call('b','echo','run',dict(activation.parameters)))
+        b=backend({'echo':definition(receive),'forward':definition(forward)})
+        mount(b,'a','forward',strength=1,channels=['red']);mount(b,'b','echo',channels=['red'])
+        b.network.nodes['a'].connect('b',channels=['red'])
+        try:
+            direct=await b.modules.call('b','echo','run',payload)
+            self.assertEqual(direct['data']['parameters'],payload);self.assertEqual(direct['data']['operation'],'run')
+            chained=await b.modules.call('a','forward','run',payload)
+            self.assertEqual(chained['data']['data'],direct['data'])
+        finally:await b.signals.close();b.modules.clear()
+
     async def test_registration_rejects_legacy_sync_and_nonstandard_signatures(self):
         for fn in (lambda ctx,activation: None,):
             with self.assertRaises(TypeError): ModuleDefinition(fn)
