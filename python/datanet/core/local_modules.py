@@ -6,6 +6,7 @@ from dataclasses import asdict, is_dataclass
 import inspect
 import asyncio
 import time
+import sys
 from .access_request import AccessRequest
 from .module_protocol import Activation, ComponentResult, require_definition
 from .json_values import freeze, thaw, names
@@ -72,6 +73,9 @@ class NodeModule:
 class NodeModules:
     def __init__(self, backend, factories):
         self.backend, self.factories = backend, factories
+        from .node_locks import NodeLocks
+        if not hasattr(backend, 'node_locks'): backend.node_locks = NodeLocks(backend)
+        backend.network.node_locks = backend.node_locks
         self.instances, self._access, self._published, self._generations = {}, {}, {}, {}
         self._owners, self._nodes = {}, {}
         self._bindings = []
@@ -108,7 +112,7 @@ class NodeModules:
         trace = parent['trace'] if parent and parent['lease']['active'] else dict(calls=0, deadline=time.monotonic()+180)
         lease = {'active': True}
         token = _executing.set(dict(key=key, generation=generation, lease=lease, strength=strength, channels=channels,
-                                   caller=caller, children=[], trace=trace))
+                                   caller=caller, children=[], trace=trace, scopes=[]))
         self.executing += 1
         try:
             with access_context(self.backend.network, key[0], strength, [key[0]], channels=channels): yield
@@ -122,6 +126,9 @@ class NodeModules:
         generation = self._generations.get(key)
         if inspect.iscoroutinefunction(function):
             async def run():
+                async with self.backend.node_locks.access([key[0]]):
+                    return await owned()
+            async def owned():
                 with self._enter(key, generation):
                     try:
                         result = await function(*args, **kwargs)
@@ -140,10 +147,17 @@ class NodeModules:
                             if not child.done(): child.cancel()
                         await asyncio.gather(*(child.task for child in children), return_exceptions=True)
                         raise
+                    finally:
+                        abandoned = [scope for scope in _executing.get()['scopes'] if scope.group is not None and not scope.closed]
+                        for scope in reversed(abandoned):
+                            await scope.__aexit__(RuntimeError, RuntimeError('Unclosed node lock scope'), None)
+                        if abandoned and not sys.exc_info()[0]:
+                            raise RuntimeError('Unclosed node lock scope was rolled back')
                     self._check(key, generation)
                     return json_copy(result)
             return run()
-        with self._enter(key, generation): result = function(*args, **kwargs)
+        with self.backend.node_locks.access_sync([key[0]]):
+            with self._enter(key, generation): result = function(*args, **kwargs)
         if inspect.isawaitable(result):
             async def finish():
                 with self._enter(key, generation):
@@ -213,6 +227,10 @@ class NodeModules:
 
     def tool_sources(self, actor, target, *, strength, channels):
         """Expose only reachable, active declared tool provider endpoints."""
+        with self.backend.node_locks.access_sync([target], mutable=False):
+            return self._tool_sources(actor,target,strength=strength,channels=channels)
+
+    def _tool_sources(self, actor, target, *, strength, channels):
         result = []
         for node, module in self.instances:
             if node != target: continue
@@ -227,12 +245,13 @@ class NodeModules:
     async def access(self, actor, target, module, operation, arguments=None, *, strength, channels):
         """Trusted host adapter entry; module code uses its scoped network.call."""
         from types import SimpleNamespace
-        selected, (path, left) = self._accessible(actor, target, module, operation, strength, channels)
-        identity = active_agent.set((SimpleNamespace(max_signal_strength=strength), actor))
-        try:
-            with access_context(self.backend.network, target, left, path, channels=selected):
-                return await self.call(target, module, operation, arguments)
-        finally: active_agent.reset(identity)
+        async with self.backend.node_locks.access([target]):
+            selected, (path, left) = self._accessible(actor, target, module, operation, strength, channels)
+            identity = active_agent.set((SimpleNamespace(max_signal_strength=strength), actor))
+            try:
+                with access_context(self.backend.network, target, left, path, channels=selected):
+                    return await self.call(target, module, operation, arguments)
+            finally: active_agent.reset(identity)
 
     def _budget(self, key, params):
         frame = self._scope(key)
@@ -251,7 +270,51 @@ class NodeModules:
     def _request(self, key, operation, p):
         frame = self._scope(key); instance = self._check(key)
         node, network = self.backend.network.nodes[key[0]], self.backend.network
+        if operation == 'lock_nodes':
+            strength, channels = self._budget(key,p)
+            start = len(frame['children'])
+            async def finish(cancel):
+                index = start
+                while index < len(frame['children']):
+                    batch = frame['children'][index:]; index = len(frame['children'])
+                    if cancel:
+                        for child in batch: child.cancel()
+                    results = await asyncio.gather(*(child.task for child in batch), return_exceptions=True)
+                    if not cancel:
+                        for child, result in zip(batch,results):
+                            if isinstance(result,BaseException) and not child.observed: raise result
+            scope = self.backend.node_locks.transaction(key[0],p['nodes'],strength=strength,channels=channels,
+                timeout=p['timeout'],validate=lambda:self._budget(key,p),finish=finish)
+            frame['scopes'].append(scope)
+            return scope
+        if operation in ('nodes','metadata','tools','visit','tool_sources'):
+            p = dict(p); p['strength'],p['channels'] = self._budget(key,p)
+            async def query():
+                while True:
+                    strength, channels = self._budget(key,p)
+                    reached = list(network.walk_states(key[0],strength=strength,channels=channels))
+                    targets = [n.node_id for n,_,_ in reached] if operation == 'nodes' else [p['target']]
+                    if operation != 'nodes': self._route(key,p['target'],strength,channels)
+                    async with self.backend.node_locks.access(targets,mutable=False):
+                        self._scope(key)
+                        with self.backend._transaction_lock:
+                            if operation == 'nodes':
+                                current = list(network.walk_states(key[0],strength=strength,channels=channels))
+                                if {n.node_id for n,_,_ in current} != set(targets): continue
+                                return [dict(metadata=json_copy(n.get_metadata()),path=path,strength=left) for n,path,left in current]
+                            target,path,left = self._route(key,p['target'],strength,channels)
+                            if operation == 'metadata': return json_copy(target.get_metadata())
+                            if operation == 'tool_sources': return self._tool_sources(key[0],p['target'],strength=strength,channels=channels)
+                            offers = getattr(self.backend,'external_tools',None)
+                            if operation == 'visit':
+                                return dict(metadata=json_copy(target.get_metadata()),path=path,strength=left,
+                                    tools=offers.visit(key[0],target.node_id,strength=strength,channels=channels) if offers else [])
+                            return self._query_tools(key,p['target'],strength,channels)
+            request = AccessRequest(query());frame['children'].append(request)
+            return request
         if operation in ('signal_status', 'signal_wait', 'signal_cancel'):
+            if operation == 'signal_wait' and self.backend.node_locks.current:
+                raise RuntimeError('Wait for independent signals after releasing node locks')
             signal_id = p['signal_id']
             record = network.signal_runs.get(signal_id)
             if not record or record['signal']['origin'] != key[0]:
@@ -264,27 +327,21 @@ class NodeModules:
             request = AccessRequest(manage())
             frame['children'].append(request)
             return request
-        if operation == 'visit':
-            strength, channels = self._budget(key, p)
-            target, path, remaining = self._route(key, p['target'], strength, channels)
-            offers = getattr(self.backend, 'external_tools', None)
-            return dict(metadata=json_copy(target.get_metadata()), path=path, strength=remaining,
-                tools=offers.visit(key[0], target.node_id, strength=strength, channels=channels) if offers else [])
-        if operation == 'tool_sources':
-            strength, channels = self._budget(key, p)
-            self._route(key, p['target'], strength, channels)
-            return self.tool_sources(key[0], p['target'], strength=strength, channels=channels)
         if operation == 'caller': return frame['caller']
         if operation == 'local_metadata': return json_copy(node.get_metadata())
         if operation == 'publish_metadata':
+            self.backend.node_locks.require_mutable(key[0])
             if not isinstance(p['fields'], dict): raise ValueError('Metadata fields must be an object')
             self._published[key] = json_copy(p['fields'])
             network.metadata_registry.register('module:' + repr(key),
                 lambda target: self._metadata_fields(key, target))
             return None
         if operation == 'read': return json_copy(node.read(json_copy(p['request'])))
-        if operation == 'write': return json_copy(node.write(p['key'], json_copy(p['value']), mode=p['mode']))
+        if operation == 'write':
+            self.backend.node_locks.require_mutable(key[0])
+            return json_copy(node.write(p['key'], json_copy(p['value']), mode=p['mode']))
         if operation == 'inputs':
+            self.backend.node_locks.require_mutable(key[0])
             def reject_files(value):
                 if isinstance(value, dict):
                     if 'file' in value: raise PermissionError('Modules cannot load arbitrary document paths')
@@ -299,13 +356,25 @@ class NodeModules:
             policy = self._access[key].get('extension')
             if not handler or not policy or p['operation'] not in policy['operations']:
                 raise PermissionError('Extended operation was not explicitly granted')
-            return json_copy(handler(self.backend, key[0], policy, p['operation'], json_copy(p['arguments'])))
+            arguments=json_copy(p['arguments'])
+            async def extended():
+                targets=[arguments[field] for field in ('source','target') if isinstance(arguments.get(field),str)]
+                if p['operation']=='nodes':targets=[n for n in network.nodes if '*' in policy['targets'] or n in policy['targets']]
+                async with self.backend.node_locks.access(targets,mutable=p['operation'] in ('connect','disconnect')):
+                    self._scope(key)
+                    value=handler(self.backend,key[0],policy,p['operation'],arguments)
+                    if inspect.isawaitable(value):value=await value
+                    return json_copy(value)
+            request=AccessRequest(extended());frame['children'].append(request);return request
         if operation in ('call', 'invoke'):
             p = dict(p)
             p['arguments'] = json_copy(p['arguments'])
             p['strength'], p['channels'] = self._budget(key, p)
             # Schedule immediately: independent requests overlap even before awaited.
             async def invoke():
+                async with self.backend.node_locks.access([p['target']]):
+                    return await entered()
+            async def entered():
                 strength, channels = self._budget(key, p)
                 target, _, _ = self._route(key, p['target'], strength, channels)
                 if operation == 'call':
@@ -345,25 +414,6 @@ class NodeModules:
             frame['children'].append(task)
             return task
         strength, channels = self._budget(key, p)
-        if operation in ('nodes', 'metadata'):
-            if operation == 'metadata':
-                target, _, _ = self._route(key, p['target'], strength, channels)
-                return json_copy(target.get_metadata())
-            return [dict(metadata=json_copy(target.get_metadata()), path=path, strength=remaining)
-                    for target, path, remaining in network.walk_states(key[0], channels=channels, strength=strength)]
-        if operation == 'tools':
-            target, _, _ = self._route(key, p['target'], strength, channels)
-            result = []
-            for name, definition in target.tool_definitions.items():
-                if name not in target.expose or name not in target.tools: continue
-                selected = tuple(c for c in channels if c in definition['access_channels'])
-                if (definition['access_channels'] or p['target'] != key[0]) and not selected: continue
-                try: _, path, remaining = self._route(key, p['target'], strength, selected)
-                except PermissionError: continue
-                result.append(dict(**json_copy(definition), path=path, remaining_strength=remaining))
-            if getattr(self.backend, 'external_tools', None):
-                result.extend(self.backend.external_tools.visit(key[0], target.node_id, strength=strength, channels=channels, acquire=False))
-            return result
         if operation == 'emit':
             from .signals import Signal
             allowed = {'kind', 'sequence', 'close_loop', 'failure_policy', 'max_hops', 'max_deliveries',
@@ -372,6 +422,20 @@ class NodeModules:
             signal = Signal(key[0], channels, strength, content=p['content'], **p['options'])
             return self.backend.signals.emit(signal)
         raise ValueError('Unknown local module request: ' + operation)
+
+    def _query_tools(self, key, target_id, strength, channels):
+        target, _, _ = self._route(key, target_id, strength, channels)
+        result = []
+        for name, definition in target.tool_definitions.items():
+            if name not in target.expose or name not in target.tools: continue
+            selected = tuple(c for c in channels if c in definition['access_channels'])
+            if (definition['access_channels'] or target_id != key[0]) and not selected: continue
+            try: _, path, remaining = self._route(key, target_id, strength, selected)
+            except PermissionError: continue
+            result.append(dict(**json_copy(definition), path=path, remaining_strength=remaining))
+        if getattr(self.backend, 'external_tools', None):
+            result.extend(self.backend.external_tools.visit(key[0], target.node_id, strength=strength, channels=channels, acquire=False))
+        return result
 
     @contextmanager
     def transaction(self, *node_ids):
@@ -420,6 +484,8 @@ class NodeModules:
         if errors: raise errors[0]
 
     def restore(self):
+        self.backend.node_locks.lifecycle()
+        self.backend.network.node_locks=self.backend.node_locks
         self.clear()
         try:
             for node in self.backend.network.nodes.values():
@@ -435,6 +501,7 @@ class NodeModules:
 
     def mount(self, node_id, name, config=None, state=None, *, access=None):
         with self.backend._transaction_lock:
+            self.backend.node_locks.lifecycle(node_id)
             node = self.backend.network.nodes[node_id]
             if name in node.modules: raise ValueError('Module already mounted')
             spec = validate_modules({name: dict(config={} if config is None else config,
@@ -454,6 +521,7 @@ class NodeModules:
 
     def unmount(self, node_id, name):
         with self.backend._transaction_lock:
+            self.backend.node_locks.lifecycle(node_id)
             key = (node_id, name)
             spec = self.backend.network.nodes[node_id].modules[name]
             try: self._remove(key, unmount=True)

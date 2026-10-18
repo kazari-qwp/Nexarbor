@@ -18,21 +18,30 @@ function updatePending(pending,event){
 
 export class NativePositions{
   constructor(ctx){this.ctx=ctx;this.cache=new WeakMap();}
-  async capture(session){
+  async capture(session,{allowPending=false}={}){
     const persistence=this.ctx.get('sessionPersistence');
     if(!persistence)throw new Error('Native session persistence is not mounted');
     const count=session.seq,header=headerHash(session.header),old=this.cache.get(session);
-    if(old&&old.cursor.event_count===count&&old.cursor.header_hash===header){if(old.pending.size)return null;return old.cursor;}
+    if(old&&old.cursor.event_count===count&&old.cursor.header_hash===header){if(old.pending.size&&!allowPending)return null;if(old.cursor.adapter)return old.cursor;}
     const start=old&&old.cursor.header_hash===header&&old.cursor.event_count<=count?old.cursor.event_count:0;
     const pending=new Set(start?old.pending:[]);let digest=start?old.cursor.prefix_hash:header;
     const suffix=session.snapshotEvents(start,count);
     for(const event of suffix){digest=chain(digest,event);updatePending(pending,event);}
-    // Remember scanned state even for an open tool, but never publish that state.
-    if(pending.size){this.cache.set(session,{cursor:{header_hash:header,event_count:count,prefix_hash:digest},pending});return null;}
+    // Ordinary global points wait for results; exclusive node snapshots may retain an open-tool prefix.
+    if(pending.size&&!allowPending){this.cache.set(session,{cursor:{header_hash:header,event_count:count,prefix_hash:digest},pending});return null;}
     const flushed=await this.ctx.sessions.flush(session);
     if(flushed===false)throw new Error('Native session has no durability writer');
     const cursor={adapter:'deepseek-harness',version:1,session_id:session.id,header_hash:header,event_count:count,prefix_hash:digest,inherited_event_count:session.inheritedEventCount,log:persistence.locate?.(session.header)??{kind:'native'}};
     this.cache.set(session,{cursor,pending});return cursor;
+  }
+  async captureStored(sessionId){
+    const persistence=this.ctx.get('sessionPersistence');if(!persistence)throw Error('Native session persistence is not mounted');
+    const handle=await persistence.open(sessionId,'read');
+    try{
+      const {events}=await handle.read();let digest=headerHash(handle.header);
+      for(const [index,event] of events.entries()){if(event.seq!==index)throw Error('Native log prefix is not contiguous');digest=chain(digest,event);}
+      return {adapter:'deepseek-harness',version:1,session_id:sessionId,header_hash:headerHash(handle.header),event_count:events.length,prefix_hash:digest,inherited_event_count:handle.inheritedEventCount,log:persistence.locate?.(handle.header)??{kind:'native'}};
+    }finally{await handle.close();}
   }
   async read(cursor){
     if(cursor?.adapter!=='deepseek-harness'||cursor.version!==1||!Number.isSafeInteger(cursor.event_count)||cursor.event_count<0)throw new Error('Invalid Harness recovery position');
@@ -72,8 +81,10 @@ export class NativeCheckpoints{
     const info=await this.call('persistence_info');
     if(info.executor_restore_required&&Object.keys(info.executor_restore_required).length){this.deferred='executor restoration pending';return null;}
     if(info.pending.length){this.deferred='uncertain core operation';return null;}
+    if(info.node_locks_preparing){this.deferred='node snapshots preparing';return null;}
     const contexts={},counts=[];let previous=this.last;
     for(const [actor,id] of Object.entries(info.bindings)){
+      if(info.locked_contexts?.[actor]){contexts[actor]=info.locked_contexts[actor];continue;}
       const entry=this.native.get(actor);
       if(!entry){
         previous??=await this.call('persistence_latest_point');

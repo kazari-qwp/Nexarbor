@@ -96,7 +96,7 @@ class Protocol(unittest.IsolatedAsyncioTestCase):
     async def test_callee_uses_own_grant_and_can_forward_back(self):
         async def sender(ctx, activation): return ComponentResult(data=await ctx.network.call('b','forward','run'))
         async def forward(ctx, activation):
-            metadata=ctx.network.metadata('c',channels=['blue'])
+            metadata=await ctx.network.metadata('c',channels=['blue'])
             value=await ctx.network.call('a','leaf','run')
             return ComponentResult(data=[metadata['node_id'],value['data']])
         async def leaf(ctx, activation): return ComponentResult(data=activation.source)
@@ -109,7 +109,7 @@ class Protocol(unittest.IsolatedAsyncioTestCase):
 
     async def test_node_id_payload_never_grants_access(self):
         async def execute(ctx, activation):
-            return ComponentResult(data=ctx.network.metadata(activation.parameters['target']))
+            return ComponentResult(data=await ctx.network.metadata(activation.parameters['target']))
         b=backend({'probe':definition(execute)});mount(b,'a','probe',1,['red'])
         with self.assertRaises(PermissionError):await b.modules.call('a','probe','run',{'target':'hidden'})
 

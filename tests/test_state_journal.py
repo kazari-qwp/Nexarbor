@@ -104,6 +104,7 @@ class JournalTests(unittest.TestCase):
             b=Backend(folder);b.dispatch('bind_agent',dict(target='root',session_id='native',manager_id=None))
             info=b.dispatch('persistence_info',{});args=dict(expected_commit=info['commit_id'],bindings=info['bindings'],contexts={'root':{'session':'native','seq':3}})
             point=b.dispatch('persistence_checkpoint',args)
+            args['expected_commit']=b.store.head  # The captured cursor is now part of the Agent node record.
             self.assertEqual(b.dispatch('persistence_checkpoint',args)['id'],point['id'])
             b.dispatch('agent_progress',dict(target='root',status='ready'))
             with self.assertRaises(RuntimeError):b.dispatch('persistence_checkpoint',args)

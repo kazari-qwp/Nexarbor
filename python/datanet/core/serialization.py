@@ -40,13 +40,18 @@ def _path_string(path, base):
     except ValueError:
         return path.as_posix()
 
-def network_document(network: Network, base: str | Path) -> dict:
+def network_document(network: Network, base: str | Path, *, node_overrides=None) -> dict:
     """Materialize the validated graph without writing an intermediate full file."""
+    if node_overrides is None and hasattr(network,'node_locks'):
+        node_overrides = network.node_locks.overrides()[0]
     path = Path(base).resolve() / 'network.json'
     if not getattr(network, 'archived_entries', None):
         validate_management(network)
     entries = []
     for node_id, node in network.nodes.items():
+        if node_overrides and node_id in node_overrides:
+            from copy import deepcopy
+            entries.append(deepcopy(node_overrides[node_id])); continue
         if node_id != node.node_id:
             raise ValueError('网络注册编号与节点编号不一致')
         from datanet.core.dormant_node import DormantNode
@@ -70,7 +75,7 @@ def network_document(network: Network, base: str | Path) -> dict:
             connections[label] = [asdict(interface) for interface in getattr(node, label)]
         agent_config = encode_execution(node, path.parent)
         _json_value(agent_config)
-        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'modules': node.modules, 'offered_tools': node.offered_tools, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding, 'inputs': node.inputs.snapshot() if hasattr(node,'inputs') else getattr(node,'_saved_inputs',None)})
+        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'modules': node.modules, 'offered_tools': node.offered_tools, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding, 'context_cursor': node.context_cursor, 'inputs': node.inputs.snapshot() if hasattr(node,'inputs') else getattr(node,'_saved_inputs',None)})
     if getattr(network, 'archived_entries', None):
         entries.extend(network.archived_entries())
     document = {'version': 8, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
@@ -104,7 +109,7 @@ def _build(document, base):
         raise ValueError('nodes 必须是列表')
     network = Network()
     for entry in document['nodes']:
-        _fields({k: v for k, v in entry.items() if k not in ('modules', 'offered_tools', 'toolboxes', 'expose', 'management_parent_id', 'execution', 'inputs')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
+        _fields({k: v for k, v in entry.items() if k not in ('modules', 'offered_tools', 'toolboxes', 'expose', 'management_parent_id', 'execution', 'inputs', 'context_cursor')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
         node_id = _string(entry['node_id'], 'node_id')
         name = _string(entry['name'], 'name')
         kind = entry['data_kind']
@@ -148,6 +153,9 @@ def _build(document, base):
             elif isinstance(node,DormantNode):node._saved_inputs=entry['inputs']
             else:raise ValueError('Input state requires an Agent node')
         node.execution_binding = entry.get('execution')
+        cursor = entry.get('context_cursor')
+        if cursor is not None and not isinstance(cursor,dict):raise ValueError('Executor cursor must be an object')
+        _json_value(cursor);node.context_cursor = cursor
         _json_value(node.execution_binding)
         description = entry['description']
         if not isinstance(description, str):

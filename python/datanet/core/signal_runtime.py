@@ -46,15 +46,27 @@ class SignalRuntime:
 
     def _snapshot(self,signal):
         # Snapshot nodes and interfaces before any handler runs. New topology applies next signal.
-        nodes=dict(self.network.nodes)
-        links={k:tuple(n.interfaces) for k,n in nodes.items()}
-        divergences={k:n.divergence for k,n in nodes.items()}
-        return nodes,links,divergences
+        return self.network.routing_snapshot()
 
     async def _process(self,node,delivery,signal,record):
         lock=self._node_locks.setdefault(node.node_id,asyncio.Lock())
         async with lock:
+            locks = getattr(self.network, 'node_locks', None)
+            if locks:
+                async with locks.access([node.node_id]):
+                    return await self._process_owned(node,delivery,signal,record)
             return await self._process_owned(node,delivery,signal,record)
+
+    async def _return_to_origin(self,node,delivery,signal,record,deadline):
+        locks=getattr(self.network,'node_locks',None)
+        if not locks:return dict(status='returned')
+        try:
+            left=min(signal.node_timeout_seconds,deadline-time.monotonic())
+            if left<=0:raise TimeoutError('Signal deadline exceeded')
+            async def enter():
+                async with locks.access([node.node_id],mutable=False):return dict(status='returned')
+            return await asyncio.wait_for(enter(),left)
+        except (TimeoutError,asyncio.TimeoutError):return dict(status='timed_out',error='Return node lock deadline exceeded')
 
     async def _process_owned(self,node,delivery,signal,record):
         binding=self.bindings.get(node.node_id)
@@ -160,7 +172,10 @@ class SignalRuntime:
                     entry=dict(node_id=target,depth=depth,strength=remaining,path=list(path),parents=parents,status='processing')
                     record['deliveries'].append(entry);layer.append(entry)
                     if target==signal.origin:
-                        returned=True;record['returned']=True;entry['status']='returned';continue
+                        returned=True
+                        required.append((delivery,entry))
+                        jobs.append(asyncio.create_task(self._return_to_origin(nodes[target],delivery,signal,record,deadline)))
+                        continue
                     required.append((delivery,entry))
                     jobs.append(asyncio.create_task(self._bounded(nodes[target],delivery,signal,record,deadline)))
                 try:outcomes=await asyncio.gather(*jobs)
@@ -171,6 +186,7 @@ class SignalRuntime:
                 frontier=[]
                 for (delivery,entry),outcome in zip(required,outcomes):
                     entry.update(outcome)
+                    if outcome['status']=='returned':record['returned']=True
                     if outcome['status'] in ('processed','relay'):frontier.append(delivery)
                 record['layers'].append([e['node_id'] for e in layer])
                 await self._save()

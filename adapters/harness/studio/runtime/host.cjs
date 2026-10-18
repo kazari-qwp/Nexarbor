@@ -5,6 +5,7 @@ const keepAlive=setInterval(()=>{},1000),write=value=>process.stdout.write(JSON.
 const rpc=(method,params)=>new Promise((resolve,reject)=>{const host_id=String(++next);callbacks.set(host_id,{resolve,reject});write({host_id,method,params});});
 const plain=value=>JSON.parse(JSON.stringify(value));
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
+const agentRpc=(entry,method,params)=>{if(entry.retired)throw Error('Agent session was restored; this execution is retired');return rpc(method,{...params,executor_session_id:entry.agent.id,...(entry.ticket?{node_access_ticket:entry.ticket}:{})});};
 let requestCount=0,started=Date.now(),closed=false;
 async function init(p){
  config=p;const loader=await require('./loader.cjs')();native=loader.native;
@@ -29,26 +30,27 @@ async function init(p){
  return {ready:true,model:config.model,limits:{requests:config.maxRequests,seconds:config.maxSeconds}};
 }
 async function refresh(entry){
+ if(entry.retired)throw Error('Agent session was restored; this execution is retired');
  if(entry.compacted){
   const referenced=[...new Set(entry.agent.session.deriveMessages().flatMap(m=>(m.content??[]).filter(b=>b.type==='tool-call').map(b=>b.name)))];
-  const keep=new Set(await rpc('executor_prune',{actor:entry.actor,referenced}));
+  const keep=new Set(await agentRpc(entry,'executor_prune',{actor:entry.actor,referenced}));
   for(const name of entry.definitions.keys())if(!keep.has(name))entry.definitions.delete(name);
   entry.compacted=false;
  }
- const view=await rpc('executor_prepare',{actor:entry.actor});entry.view=view;
+ const view=await agentRpc(entry,'executor_prepare',{actor:entry.actor});entry.view=view;
  permissions.refusals(entry.agent.ctx,view.unavailable??{});
  const desired=new Set(view.tools.map(t=>t.name));
  for(const definition of view.retained_tools??[]){
   if(entry.definitions.has(definition.name))continue;
   entry.definitions.set(definition.name,JSON.stringify(definition));
-  const dispose=permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:(_a,value)=>[{type:'text',text:JSON.stringify(value)}]},execute:args=>rpc('executor_invoke',{actor:entry.actor,name:definition.name,arguments:args})});
+  const dispose=permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:(_a,value)=>[{type:'text',text:JSON.stringify(value)}]},execute:args=>agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args})});
   if(desired.has(definition.name))entry.tools.set(definition.name,dispose);else dispose();
  }
  for(const [name,dispose] of entry.tools)if(!desired.has(name)){dispose();entry.tools.delete(name);}
  for(const definition of view.tools){
   const signature=JSON.stringify(definition);if(entry.definitions.get(definition.name)===signature&&entry.tools.has(definition.name))continue;
   entry.tools.get(definition.name)?.();entry.definitions.set(definition.name,signature);
-  entry.tools.set(definition.name,permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:(_a,value)=>[{type:'text',text:JSON.stringify(value)}]},execute:args=>rpc('executor_invoke',{actor:entry.actor,name:definition.name,arguments:args})}));
+  entry.tools.set(definition.name,permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:(_a,value)=>[{type:'text',text:JSON.stringify(value)}]},execute:args=>agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args})}));
  }
  for(const doc of view.context)history.load(entry.agent.ctx,doc.id,doc.text);
  const retained=new Set([...entry.agent.session.deriveMessages(),...entry.agent.inbox.nextStep,...entry.agent.inbox.nextTurn].map(m=>m.id));
@@ -56,16 +58,20 @@ async function refresh(entry){
   const id=crypto.createHash('sha256').update(entry.actor+'\0'+event.source+'\0'+event.id).digest('hex');
   if(!retained.has(id))entry.agent.steer({...user(event.text,{kind:'nexarbor-input',source:event.source,event:event.id}),id});
  }
- if(view.inputs.length)await rpc('executor_ack',{actor:entry.actor,events:view.inputs.map(e=>({source:e.source,id:e.id}))});
+ if(view.inputs.length)await agentRpc(entry,'executor_ack',{actor:entry.actor,events:view.inputs.map(e=>({source:e.source,id:e.id}))});
  return view;
 }
 async function agentFor(p){
  if(agents.has(p.actor))return agents.get(p.actor);
- const scope=crypto.createHash('sha256').update(config.directory+'\0'+p.actor).digest('hex').slice(0,24),id=p.session_id||'nexarbor-'+scope;
+ const scope=crypto.createHash('sha256').update(config.directory+'\0'+p.actor).digest('hex').slice(0,24);let id=p.session_id||'nexarbor-'+scope,cursor=p.context_cursor;
+ if(cursor){
+  const head=await checkpoints.positions.captureStored(id);
+  if(head.event_count!==cursor.event_count||head.prefix_hash!==cursor.prefix_hash){id=await checkpoints.positions.fork(cursor);cursor=await checkpoints.positions.captureStored(id);}
+ }
  let agent;
  try{agent=(await host.agentLoop.resume(host,{resumeSessionId:id,agentOptions:config.model})).agent;}
  catch(error){if(!/not found|ENOENT|does not exist/i.test(String(error)))throw error;agent=await host.agentLoop.create(native('dsh-session').SessionId(id),config.model,{cwd:config.directory});}
- const entry={actor:p.actor,agent,tools:new Map(),definitions:new Map(),view:{},steps:0,maxSteps:12};agents.set(p.actor,entry);
+ const entry={actor:p.actor,agent,tools:new Map(),definitions:new Map(),view:{},steps:0,maxSteps:12,ticket:p.node_access_ticket};agents.set(p.actor,entry);
  host.sessionTitle.rename(agent.session,'小镇组件实测 · '+p.name);
  history.bind(agent.ctx,agent);permissions.bind(agent.ctx,agent);
  agent.ctx.on('session/event',(session,event)=>{if(session===agent.session){if(event.type==='compaction/end'&&!event.data?.error)entry.compacted=true;checkpoints.schedule();}});
@@ -73,11 +79,11 @@ async function agentFor(p){
  agent.ctx.on('agent/prepare-context',()=>refresh(entry));
  agent.ctx.on('agent/request-tail',async(_p,next)=>[...await next(),...(entry.view.tail??[]).map(text=>({role:'user',content:[{type:'text',text}]}))]);
  agent.ctx.on('agent/request',async(_p,next)=>{if(++entry.steps>entry.maxSteps)throw Error('Agent step budget reached');return next();});
- await rpc('executor_bind',{actor:p.actor,session_id:agent.id});checkpoints.schedule();
+ await agentRpc(entry,'executor_bind',{actor:p.actor,session_id:agent.id,...(cursor?{context_cursor:cursor}:{})});checkpoints.schedule();
  return entry;
 }
 async function run(p){
- const entry=await agentFor(p);if(entry.running)throw Error('Agent already running');entry.running=true;entry.steps=0;entry.maxSteps=p.max_steps;
+ const entry=await agentFor(p);if(entry.running)throw Error('Agent already running');entry.running=true;entry.ticket=p.node_access_ticket;entry.steps=0;entry.maxSteps=p.max_steps;
  const before=entry.agent.session.seq;let expired=false;const timer=setTimeout(()=>{expired=true;entry.agent.cancel('user');},p.timeout_seconds*1000);
  try{
   await refresh(entry);entry.agent.followup(user(p.message||'请处理当前请求。'));await entry.agent.whenIdle();
@@ -88,11 +94,29 @@ async function run(p){
   const messages=entry.agent.session.deriveMessages();
   await fs.writeFile(path.join(config.directory,'native-sessions.json'),JSON.stringify([...agents.values()].map(e=>({actor:e.actor,session_id:e.agent.id,title:host.sessionTitle.get(e.agent.session).title,events:e.agent.session.seq})),null,2));
   return {status,session_id:entry.agent.id,steps:entry.steps,output:messages.filter(m=>m.role==='assistant').at(-1)?.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')??'',error:status==='completed'?null:JSON.stringify(ending?.data.reason),requests:requestCount};
- }finally{clearTimeout(timer);entry.running=false;await host.sessions.flush(entry.agent.session);}
+ }finally{clearTimeout(timer);entry.running=false;entry.ticket=null;await host.sessions.flush(entry.agent.session);}
 }
 async function close(){if(closed)return;closed=true;for(const e of agents.values())e.agent.cancel('user');await checkpoints?.stop();await host?.fiber.dispose();clearInterval(keepAlive);}
+async function captureContexts(p){
+ const result={};
+ for(const [actor,id] of Object.entries(p.bindings)){
+  const entry=agents.get(actor);
+  if(entry&&entry.agent.id!==id)throw Error('Agent binding changed during context capture');
+  result[actor]=entry?await checkpoints.positions.capture(entry.agent.session,{allowPending:true}):await checkpoints.positions.captureStored(id);
+ }
+ return result;
+}
+async function restoreContexts(p){
+ const contexts={};
+ for(const [actor,cursor] of Object.entries(p.contexts)){
+  const entry=agents.get(actor);
+  if(entry){entry.retired=true;entry.agent.cancel('user');agents.delete(actor);}
+  const id=await checkpoints.positions.fork(cursor);contexts[actor]=await checkpoints.positions.captureStored(id);
+ }
+ return {contexts};
+}
 readline.createInterface({input:process.stdin}).on('line',line=>{
  let value;try{value=JSON.parse(line);}catch{return;}
  if(value.host_id){const p=callbacks.get(value.host_id);if(p){callbacks.delete(value.host_id);value.error?p.reject(Error(value.error)):p.resolve(value.result);}return;}
- Promise.resolve().then(()=>value.method==='init'?init(value.params):value.method==='core-commit'?(checkpoints?.schedule(),{ok:true}):value.method==='agent-run'?run(value.params):value.method==='agent-read'?agentFor(value.params).then(e=>({session_id:e.agent.id,status:e.running?'running':'idle',messages:e.agent.session.deriveMessages()})):value.method==='agent-cancel'?(agents.get(value.params.actor)?.agent.cancel('user'),{ok:true}):Promise.reject(Error('Unknown native operation'))).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:String(error.stack??error)}));
+ Promise.resolve().then(()=>value.method==='init'?init(value.params):value.method==='core-commit'?(checkpoints?.schedule(),{ok:true}):value.method==='agent-context-capture'?captureContexts(value.params):value.method==='agent-context-restore'?restoreContexts(value.params):value.method==='agent-run'?run(value.params):value.method==='agent-read'?agentFor(value.params).then(e=>({session_id:e.agent.id,status:e.running?'running':'idle',messages:e.agent.session.deriveMessages()})):value.method==='agent-cancel'?(agents.get(value.params.actor)?.agent.cancel('user'),{ok:true}):Promise.reject(Error('Unknown native operation'))).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:String(error.stack??error)}));
 }).on('close',()=>close().finally(()=>process.exit()));

@@ -43,6 +43,8 @@ async def execute(ctx, activation):
 
 ## 普通组件能力
 
+核心节点锁提供 `async with ctx.network.lock_nodes([...])`，支持重入、异步等待、旧节点记录拼接存档和内部回滚。网络查询 nodes/metadata/tools/visit/tool_sources 使用 await。见 [节点锁与节点持久化](NODE_LOCKS.md)。
+
 装配项包含 `config`、`state`、`access`：
 
 ```json

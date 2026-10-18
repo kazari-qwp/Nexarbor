@@ -32,7 +32,11 @@ class Backend:
         self.failed = False
         self.commit_observer = None
         self.agent_executor = None
+        self.context_port = None
         self.network = Network()
+        from .node_locks import NodeLocks
+        self.node_locks = NodeLocks(self)
+        self.network.node_locks = self.node_locks
         self.metadata_registry = self.network.metadata_registry
         from datanet.core.agent_node import AgentNode
         self.root = AgentNode('root', 'DataNet根节点', file_path=self.directory / 'root-memory.md')
@@ -67,6 +71,7 @@ class Backend:
         candidate=_build(document['network'],self.directory)
         if 'root' not in candidate.nodes:raise ValueError('Initial config requires root')
         self.network=candidate;candidate.use_metadata_registry(self.metadata_registry);self.root=candidate.nodes['root']
+        candidate.node_locks = self.node_locks
         self.write_documents(document.get('files',{}))
 
     def write_documents(self,documents):
@@ -98,7 +103,10 @@ class Backend:
     @property
     def signals(self):
         runtime=self.network.signals
-        runtime.checkpoint=lambda:self.dispatch('save',{})
+        async def checkpoint():
+            await self.node_locks.wait_prepared()
+            self.dispatch('save',{})
+        runtime.checkpoint=checkpoint
         return runtime
 
     async def execute_agent(self,node_id,message='',**options):
@@ -115,22 +123,89 @@ class Backend:
                 for close in reversed(self.components.finalizers):close(self)
             finally:self.store.close()
 
-    def snapshot(self):
-        network = network_document(self.network,self.directory)
+    def snapshot(self, *, committing=None):
+        self.node_locks.wait_prepared_sync()
+        with self._transaction_lock:
+            return self._snapshot(committing=committing)
+
+    def _snapshot(self, *, committing=None):
+        from copy import deepcopy
+        overrides, images = self.node_locks.overrides(committing)
+        network = network_document(self.network,self.directory,node_overrides=overrides)
         files = self.document_files()
         for node in self.network.nodes.values():
+            if node.node_id in images: continue
             for _, label, target in resource_paths(node):
                 if target.is_relative_to(self.directory):
                     files[str(target.relative_to(self.directory))] = target.read_text(encoding='utf-8') if target.exists() else None
         extra = {**self.extension_state, **self.components.snapshot(self)}
         files.update(extra.pop('files', {}))
-        return {'version': 1, 'network': network, 'agents': self.agents, 'files': files, 'tool_names': {key: list(node.tools) for key, node in self.network.nodes.items()}, 'tools': {key: node.tool_definitions for key, node in self.network.nodes.items()}, **extra}
+        agents = deepcopy(self.agents)
+        tools = {key: deepcopy(node.tool_definitions) for key, node in self.network.nodes.items()}
+        tool_names = {key: list(node.tools) for key, node in self.network.nodes.items()}
+        publications = {node: {} for node in self.network.nodes}
+        for (node, module), fields in self.modules._published.items(): publications[node][module] = deepcopy(fields)
+        for node, image in images.items():
+            if image['binding'] is None: agents.pop(node, None)
+            else: agents[node] = deepcopy(image['binding'])
+            tools[node] = deepcopy(image['definitions']); tool_names[node] = list(image['tools'])
+            publications[node] = {key[1]: deepcopy(fields) for key, fields in image['published'].items()}
+            for path, content in image['files'].items():
+                files[path.relative_to(self.directory).as_posix()] = None if content is None else content.decode('utf-8')
+        document = deepcopy({'version': 1, 'network': network, 'agents': agents, 'files': files,
+                         'tool_names': tool_names, 'tools': tools, 'node_publications': publications, **extra})
+        from .node_records import merge_records
+        return merge_records(document,self.node_locks.records(committing))
+
+    def capture_node_records(self, node_ids):
+        """Trusted host: capture committed node records without chasing links."""
+        from .node_records import capture_records
+        with self._transaction_lock:
+            files = {n:[p.relative_to(self.directory).as_posix() for _,_,p in resource_paths(self.network.nodes[n])
+                        if p.is_relative_to(self.directory)] for n in node_ids}
+            return capture_records(self.snapshot(),node_ids,files)
+
+    async def capture_node_contexts(self, node_ids):
+        bindings = {n:self.agents[n]['session_id'] for n in node_ids if self.agents.get(n,{}).get('session_id')}
+        if not bindings:return {}
+        if self.context_port is None:raise RuntimeError('Bound Agents require an executor context capture port before locking')
+        cursors = await self.context_port.capture(bindings)
+        if set(cursors) != set(bindings):raise ValueError('Executor cursor set does not match locked Agents')
+        from .json_values import freeze,thaw
+        cursors=thaw(freeze(cursors))
+        for node,cursor in cursors.items():
+            if not isinstance(cursor,dict) or cursor.get('session_id') != bindings[node]:
+                raise ValueError('Executor session changed during node context capture')
+        return cursors
+
+    async def restore_node_contexts(self, cursors):
+        if not cursors:return
+        if self.context_port is None:raise RuntimeError('Executor context restore port is unavailable')
+        result = await self.context_port.restore(cursors)
+        if set(result.get('contexts',{})) != set(cursors):raise ValueError('Restored executor cursor set mismatch')
+        for node,cursor in result['contexts'].items():
+            if not isinstance(cursor,dict) or not isinstance(cursor.get('session_id'),str):raise ValueError('Invalid restored executor cursor')
+            self.agents[node]['session_id']=cursor['session_id']
+            self.network.nodes[node].context_cursor=cursor
+
+    def commit_node_transaction(self, group):
+        """Called under the coordinator mutex, before transaction gates reopen."""
+        try:
+            commit_id = self.store.commit(self.snapshot(committing=group))
+        except BaseException:
+            self.failed = True
+            raise
+        if self.commit_observer:
+            try:self.commit_observer(commit_id)
+            except Exception as error:self.notification_error=str(error)
 
     def restore(self, document):
+        self.node_locks.lifecycle()
         if document.get('version') != 1:
             raise ValueError('Unsupported checkpoint version')
-        self.extension_state = {k:v for k,v in document.items() if k not in {'version','network','agents','files','tool_names','tools'}}
+        self.extension_state = {k:v for k,v in document.items() if k not in {'version','network','agents','files','tool_names','tools','node_publications'}}
         self.network = _build(document['network'], self.directory)
+        self.network.node_locks = self.node_locks
         self.network.use_metadata_registry(self.metadata_registry)
         self.root = self.network.nodes['root']
         self.agents = document['agents']
@@ -160,6 +235,12 @@ class Backend:
                 temporary.replace(target)
 
         self.modules.restore()
+        for node, entries in document.get('node_publications', {}).items():
+            for module, fields in entries.items():
+                key = (node, module)
+                if key in self.modules.instances:
+                    self.modules._published[key] = fields
+                    self.metadata_registry.register('module:' + repr(key), lambda target, key=key: self.modules._metadata_fields(key,target))
         from datanet.core.node_toolboxes import validate_exposure
         for node in self.network.nodes.values():validate_exposure(node)
 
@@ -206,8 +287,15 @@ class Backend:
         return {'ok': True, 'agents': changed}
 
     def dispatch(self, method, p):
-        with self._transaction_lock:
-            return self._dispatch_transaction(method, p)
+        if method not in ('persistence_info','persistence_latest_point'):
+            self.node_locks.wait_prepared_sync()
+        from contextlib import nullcontext
+        targets = []
+        if method in ('agent_inputs_update','agent_inputs_ack','bind_agent','agent_progress'):
+            targets = [p.get('target',p.get('actor'))]
+        with self.node_locks.access_sync(targets) if targets else nullcontext():
+            with self._transaction_lock:
+                return self._dispatch_transaction(method, p)
 
     def _dispatch_transaction(self, method, p):
         if self.failed:
@@ -247,15 +335,16 @@ class Backend:
         from .json_values import names
         channels=names(channels,'channels')
         if type(depth) is not int or type(max_depth) is not int or max_depth<1 or not 0<=depth<=max_depth:raise ValueError('Invalid scan depth')
+        nodes,links,_=self.network.routing_snapshot()
         layer,reached,edges,level=[actor],{actor},{},0
         while layer and (depth==max_depth or level<depth):
             following=[]
             for source in layer:
                 targets=[]
-                for link in self.network.nodes[source].interfaces:
+                for link in links[source]:
                     if not set(channels).intersection(link.metadata.channels):continue
                     target=link.target_node_id
-                    if target not in self.network.nodes:continue
+                    if target not in nodes:continue
                     if target not in targets:targets.append(target)
                     if target not in reached:reached.add(target);following.append(target)
                 if targets:edges[source]=targets
@@ -287,20 +376,26 @@ class Backend:
             return {'loaded':True}
         if method == 'persistence_info':
             from .recovery import required_contexts
-            return {**self.store.stats(),'pending':self.store.pending(),'executor_restore_required':required_contexts(self.store),'bindings':{node:binding['session_id'] for node,binding in self.agents.items() if binding.get('session_id')}}
+            return {**self.store.stats(),'pending':self.store.pending(),'executor_restore_required':required_contexts(self.store),'bindings':self.node_locks.committed_bindings(),**self.node_locks.context_status()}
         if method == 'persistence_points':return self.store.points()
         if method == 'persistence_checkpoint':
             contexts=p.get('contexts',{})
-            bindings={node:binding['session_id'] for node,binding in self.agents.items() if binding.get('session_id')}
+            self.node_locks.validate_contexts(contexts)
+            bindings=self.node_locks.committed_bindings()
             if p.get('bindings')!=bindings or set(contexts)!=set(bindings):raise ValueError('Executor bindings changed during cursor capture')
             if type(p.get('expected_commit')) is not int:raise ValueError('Checkpoint requires an expected core commit')
-            return self.store.mark(contexts,p.get('kind','incremental'),p['expected_commit'],reuse=True)
+            if p['expected_commit']!=self.store.head:raise RuntimeError('Network changed during executor cursor capture')
+            for node,cursor in contexts.items():
+                if node not in self.node_locks.exclusive:self.network.nodes[node].context_cursor=cursor
+            self.store.commit(self.snapshot())
+            return self.store.mark(contexts,p.get('kind','incremental'),self.store.head,reuse=True)
         if method == 'persistence_latest_point':
             row=self.store.db.execute('SELECT id FROM recovery_points ORDER BY rowid DESC LIMIT 1').fetchone()
             return self.store.point(row[0]) if row else None
         if method == 'persistence_mark':
             contexts=p.get('contexts',{})
-            required={node for node,binding in self.agents.items() if binding.get('session_id')}
+            self.node_locks.validate_contexts(contexts)
+            required=set(self.node_locks.committed_bindings())
             if set(contexts)!=required:raise ValueError('Executor cursors must cover exactly all bound Agents')
             return self.store.mark(contexts,p.get('kind','incremental'),p.get('expected_commit'))
         if method == 'persistence_export':return self.store.bundle(p['point_id'])

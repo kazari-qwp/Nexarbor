@@ -5,14 +5,29 @@ from datanet.core.access_budget import access_context, current_access, active_ag
 from types import SimpleNamespace
 import asyncio
 import inspect
+from contextlib import nullcontext
+
+def _node_access(network,nodes,*,mutable=False):
+    locks=getattr(network,'node_locks',None)
+    return locks.access_sync(nodes,mutable=mutable) if locks else nullcontext()
 
 def reachable(network,node_id,scope='network',strength=0,channels=()):
     yield from network.walk(node_id,scope=scope,strength=strength,channels=channels)
 
 def list_nodes(network,node_id,scope='network',strength=0,channels=()):
+    targets=[n.node_id for n,_,_ in network.walk_states(node_id,scope=scope,strength=strength,channels=channels)]
+    with _node_access(network,targets):
+        return _list_nodes(network,node_id,scope,strength,channels)
+
+def _list_nodes(network,node_id,scope='network',strength=0,channels=()):
     return NodeResult(items=[{**node.describe(include_schema=False),'exposed_tool_count':sum(name in node.tools and name in node.expose for name in node.tool_definitions),'retrieval_path':path} for node,path in reachable(network,node_id,scope,strength,channels)])
 
 def list_tools(network,node_id,target_node_id,scope='network',strength=0):
+    if target_node_id not in network.nodes:return NodeResult(status='not_found',errors=['目标节点不存在'])
+    with _node_access(network,[target_node_id]):
+        return _list_tools(network,node_id,target_node_id,scope,strength)
+
+def _list_tools(network,node_id,target_node_id,scope='network',strength=0):
     target=network.nodes.get(target_node_id)
     if target is None:return NodeResult(status='not_found',errors=['目标节点不存在'])
     paths={};items=[]
@@ -53,10 +68,20 @@ def validate_arguments(value, schema):
 
 def invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope='network',strength=0):
     """Synchronous host entry; asynchronous tools also complete before returning."""
-    return _invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope,strength,asynchronous=False)
+    if target_node_id not in network.nodes:return NodeResult(status='not_found',errors=['目标节点不存在'])
+    with _node_access(network,[target_node_id],mutable=True):
+        return _invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope,strength,asynchronous=False)
 
 
 async def invoke_tool_async(network,node_id,target_node_id,tool_name,arguments,scope='network',strength=0):
+    locks=getattr(network,'node_locks',None)
+    if locks:
+        if target_node_id not in network.nodes:return NodeResult(status='not_found',errors=['目标节点不存在'])
+        async with locks.access([target_node_id]):
+            return await _invoke_async_owned(network,node_id,target_node_id,tool_name,arguments,scope,strength)
+    return await _invoke_async_owned(network,node_id,target_node_id,tool_name,arguments,scope,strength)
+
+async def _invoke_async_owned(network,node_id,target_node_id,tool_name,arguments,scope,strength):
     result=_invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope,strength,asynchronous=True)
     return await result if inspect.isawaitable(result) else result
 

@@ -256,9 +256,10 @@ class Studio:
             self.run_state.update(status='failed',error=str(error));raise
         finally:self.running=False
     def state(self,p=None):
-        document=network_document(self.backend.network,self.backend.directory)
-        files={**self.backend.document_files(),**{str(n.file_path.relative_to(self.backend.directory)):n.file_path.read_text(encoding='utf-8') if n.file_path.exists() else '' for n in self.backend.network.nodes.values() if hasattr(n,'file_path') and n.file_path.is_relative_to(self.backend.directory)}}
-        return dict(mode='组件开发 · Harness后端',live=dict(document=dict(network=document,files=files),commit=self.backend.store.head,sessions={id:dict(name=self.backend.network.nodes[id].name,**value) for id,value in self.backend.agents.items() if id in self.backend.network.nodes}),draft=read_json(self.root/'draft.json',None),
+        snapshot=self.backend.snapshot();document=snapshot['network']
+        files={name:content if content is not None else '' for name,content in snapshot['files'].items()}
+        names={entry['node_id']:entry['name'] for entry in document['nodes']}
+        return dict(mode='组件开发 · Harness后端',live=dict(document=dict(network=document,files=files),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),
                     job=dict(self.run_state),studio=True)
     def draft(self,p):
         previous=read_json(self.root/'draft.json',{'version':0})
@@ -266,6 +267,7 @@ class Studio:
         value=dict(document=p['document'],layout=p.get('layout',{}),version=previous['version']+1,base_commit=p.get('base_commit'),applied=False)
         write_json(self.root/'draft.json',value);return value
     def apply(self,p):
+        self.backend.node_locks.lifecycle()
         if self.running or self.backend.modules.executing or self.backend.network.signals._active:
             raise ValueError('Wait until component access and detached signals complete before replacing the graph')
         if p.get('base_commit')!=self.backend.store.head:raise ValueError('Network changed; reload before applying')

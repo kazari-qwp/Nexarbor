@@ -62,6 +62,12 @@ class ExecutorRegistry:
         self.bindings[node_id]={'executor':executor,'session_id':session_id,'tools':list(tool_names),'strength':validate_strength(max_signal_strength)}
         node.execution_binding=deepcopy(self.bindings[node_id])
     def run(self,node_id,message,**options):
+        from contextlib import nullcontext
+        locks=getattr(self.network,'node_locks',None)
+        with locks.access_sync([node_id]) if locks else nullcontext():
+            return self._run_owned(node_id,message,**options)
+
+    def _run_owned(self,node_id,message,**options):
         from types import SimpleNamespace
         from .access_budget import active_agent
         node=self.network.nodes[node_id];binding=self.bindings[node_id]

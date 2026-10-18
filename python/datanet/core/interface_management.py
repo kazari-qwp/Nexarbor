@@ -33,6 +33,17 @@ def attach_interface_management_tools(network, owner, *, scope='self', actions=(
         return indices[0]
 
     def manage(action, node_id=None, target_node_id=None, interface=None, changes=None, interface_index=None, strength=0):
+        from contextlib import nullcontext
+        try:
+            node=resolve(node_id,strength);locks=getattr(network,'node_locks',None)
+            with locks.access_sync([node.node_id],mutable=action!='list') if locks else nullcontext():
+                return manage_owned(action,node_id,target_node_id,interface,changes,interface_index,strength)
+        except PermissionError as error:
+            return NodeResult(status='forbidden',errors=[str(error)])
+        except (ValueError,TypeError) as error:
+            return NodeResult(status='error',errors=[str(error)])
+
+    def manage_owned(action, node_id=None, target_node_id=None, interface=None, changes=None, interface_index=None, strength=0):
         try:
             with lock:
                 if action not in actions:

@@ -1,0 +1,59 @@
+# 核心节点锁与节点持久化
+
+节点锁对一组节点提供独占访问、旧状态备份、成功提交和失败恢复。出边属于源节点：记录保留目标 ID，不递归备份链接目标，也不要求选中节点组成闭合子图。
+
+## 模块接口
+
+```python
+async def execute(ctx, activation):
+    async with ctx.network.lock_nodes([ctx.node_id, "place/old", "place/new"], timeout=30):
+        result = await ctx.network.call("place/old", "occupancy", "leave", {})
+        if result["status"] != "ok":
+            raise RuntimeError(result["error"])
+        result = await ctx.network.call("place/new", "occupancy", "enter", {})
+        if result["status"] != "ok":
+            raise RuntimeError(result["error"])
+    return ComponentResult(data={"completed": True})
+```
+
+occupancy 是应用模块示意，不是本次新增的标准模块。锁不增加改边或其他操作权限，不包含 NPC 移动规则。
+
+推荐 async with：正常退出提交并释放，异常或取消恢复内部状态并释放。也支持 `lock = await ctx.network.lock_nodes(ids)`，随后 `await lock.commit()` 或 `await lock.rollback()`。模块返回时仍未关闭的锁自动撤销，并报告错误。
+
+可信宿主执行者使用同一协调器：`async with backend.node_locks.transaction(actor, ids, strength=2, channels=['town.local']): ...`。宿主代码仍须通过节点门禁进行访问，不把原始 Python 对象交给普通组件。
+
+timeout 限制获取锁与准备旧上下文的等待；业务执行期限由调用者、模块图或信号控制。业务失败应在锁范围内抛出异常或显式 rollback；在 with 内返回 error 对象仍是 Python 的正常退出，不自动表示撤销。
+
+## 范围和等待
+
+- 申请时和实际获锁时检查发起者的频道、强度及当前可达性。锁不隐藏节点，不改变连接，不增加权限。
+- 整组节点一起获取，已有其他访问先结束。等待通过异步通知完成，不阻塞事件循环。
+- 持锁后发起的下游调用继承事务。同一模块的其他调用、锁前已启动的并行分支不共享锁许可。宿主适配器以临时票据传递执行祖先关系，票据不进入模型提示或工具参数。
+- 调用、信号、工具与元数据查询遵守节点门禁，等待后重新检查权限。网络查询 nodes/metadata/tools/visit/tool_sources 统一使用 await。
+- 锁内执行的模块及本地可变状态必须属于锁集合；只读查询可访问其他可达节点。嵌套只允许重入已有集合，扩大集合需退出后重新申请。循环等待会拒绝其中一个操作，调用者可重试整个操作。
+- 可以发出独立信号；接收者和闭环返回遇锁等待。持锁期间不能等待独立信号完成，以免信号反过来等待解锁。
+- 模块安装、卸载与整体替换网络属于生命周期操作，不混入节点数据事务。
+
+同步宿主线程可使用受保护的同步入口。同步入口在事件循环中遇锁时要求改用异步入口，不会硬阻塞事件循环。
+
+## 节点记录和拼接
+
+取得锁后，在短临界区复制旧记录；如节点绑定 Agent，再捕获原生日志游标。核心先将旧记录通过现有增量日志持久化，再进入业务代码，不依赖其他节点随后触发存档。准备游标期间到来的存档请求等待旧记录完整可用。
+
+旧记录包含节点配置和出边、模块状态、登记工具、发布元数据、Agent 四路输入与绑定、日志游标，以及编解码器声明的框架资源文件。共用一个资源文件的节点必须一起锁定。目录型或外部存储需要事务适配器。
+
+其他节点提交时，核心用锁前记录替换锁定节点的实时记录，保留其余节点的变化。持锁者查看自己的工作状态；其他请求的路由使用锁前拓扑，实际进入节点时等待并在解锁后重验。
+
+`Backend.capture_node_records(ids)` 捕获已提交的指定节点记录；`datanet.core.node_records.merge_records(document, records)` 按节点 ID 拼接记录。边界链接原样保留，最终完整网络仍经过序列化检查。
+
+成功时，本组全部新状态一次写入既有增量日志，然后解锁；其他未完成锁组继续使用旧记录。失败先结束访问子任务，再恢复本组内部状态。提交或恢复失败使核心停止接受新动作。
+
+## Agent 上下文
+
+Agent 的 context_cursor 保存适配器、会话 ID、事件数量和前缀校验信息。复用增量持久化与 Harness NativePositions，不复制整份日志。日志未变化时复用游标，纯上下文变化也形成节点增量。
+
+组件开发客户端已接入上下文端口。其他宿主绑定会话时，需提供 `context_port.capture(bindings)` 和 `context_port.restore(cursors)`；没有端口时在业务执行前拒绝。
+
+锁事务允许捕获等待工具返回的日志前缀。失败恢复使用原生前缀 fork，保留原 append-only 日志，关闭未完成工具和轮次，不重放工具；旧会话回调被隔离。重启后执行器对比保存游标和日志头，必要时恢复保存的前缀。
+
+终端、网络服务等外部效果不属于节点回滚。Python 组件仍是可信代码，原始宿主对象的任意操作不自动成为事务行为。

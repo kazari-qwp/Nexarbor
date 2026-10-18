@@ -13,6 +13,13 @@ class NativeExecutor:
         self.seen={}
         from datanet.core.module_tools import ModuleTools
         self.module_tools=ModuleTools(backend)
+        if transport is not None:
+            class ContextPort:
+                async def capture(self,bindings):
+                    return await asyncio.to_thread(transport.host,'agent-context-capture',dict(bindings=bindings))
+                async def restore(self,cursors):
+                    return await asyncio.to_thread(transport.host,'agent-context-restore',dict(contexts=cursors))
+            backend.context_port=ContextPort()
         backend.agent_executor=self.run
         for method,mutation in [('prepare',True),('invoke',True),('ack',True),('bind',True),('prune',True),('visit',True)]:
             backend.components.rpc('executor_'+method,lambda b,p,method=method:getattr(self,method)(p),mutation=mutation)
@@ -26,13 +33,22 @@ class NativeExecutor:
         from datanet.core.json_values import names
         names(binding.get('channels',[]),'executor channels')
         return node,binding
+    def _check_session(self,p):
+        expected=p.get('executor_session_id')
+        if expected is not None and self.backend.agents.get(p['actor'],{}).get('session_id')!=expected:
+            raise PermissionError('Executor session was replaced; discard this stale callback')
     async def run(self,node_id,message='',**options):
+        async with self.backend.node_locks.access([node_id]):
+            return await self._run_owned(node_id,message,**options)
+
+    async def _run_owned(self,node_id,message='',**options):
         node,binding=self.binding(node_id)
         timeout=options.get('timeout_seconds',binding.get('timeout_seconds',90))
         if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('Invalid executor timeout')
-        request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=binding.get('max_steps',12),session_id=self.backend.agents.get(node_id,{}).get('session_id'))
+        request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=binding.get('max_steps',12),session_id=self.backend.agents.get(node_id,{}).get('session_id'),context_cursor=node.context_cursor)
         try:
-            result=await asyncio.to_thread(self.transport.host,'agent-run',request)
+            with self.backend.node_locks.export_owner(node_id) as ticket:
+                result=await asyncio.to_thread(self.transport.host,'agent-run',dict(request,node_access_ticket=ticket))
             if result.get('status')!='completed':raise RuntimeError(result.get('error') or 'Agent did not complete')
             self.backend.agents.setdefault(node_id,{}).update(session_id=result['session_id'],executor='harness')
             return result
@@ -63,6 +79,11 @@ class NativeExecutor:
             if callback:return str(callback(actor,reason))
         return reason
     def prepare(self,p):
+        with self.backend.node_locks.access_sync([p['actor']]):
+            return self._prepare_owned(p)
+
+    def _prepare_owned(self,p):
+        self._check_session(p)
         actor=p['actor'];node,binding=self.binding(actor)
         if self.backend.agents.get(actor,{}).get('module_tool_sources'):
             self.backend.runtime.run(self.module_tools.refresh(actor,strength=binding.get('strength',0),channels=binding.get('channels',[])))
@@ -75,6 +96,11 @@ class NativeExecutor:
             inputs=[dict(source=s,**e) for s,e in node.inputs.pending()],tail=node.inputs.tail(),tools=definitions,retained_tools=[v['definition'] for v in self.backend.agents[actor]['tool_history'].values()],
             unavailable={name:self.refusal(actor,name) for name in self.seen.get(actor,{}) if name not in {d['name'] for d in definitions}})
     def invoke(self,p):
+        with self.backend.node_locks.access_sync([p['actor']]):
+            return self._invoke_owned(p)
+
+    def _invoke_owned(self,p):
+        self._check_session(p)
         actor=p['actor'];node,binding=self.binding(actor);definitions,routes=self.definitions(actor)
         if p['name'] not in routes:return dict(status='forbidden',errors=[self.refusal(actor,p['name'])])
         route=routes[p['name']];arguments=p.get('arguments',{})
@@ -96,23 +122,47 @@ class NativeExecutor:
             return asdict(value) if is_dataclass(value) else value
         finally:active_agent.reset(identity)
     def visit(self,p):
+        with self.backend.node_locks.access_sync([p['actor']]):
+            return self._visit_owned(p)
+
+    def _visit_owned(self,p):
+        self._check_session(p)
         actor=p['actor'];node,binding=self.binding(actor)
         strength=binding.get('strength',0);channels=binding.get('channels',[])
         target=p.get('target')
         if target is None:
-            return dict(nodes=[n.get_metadata() for n,_,_ in self.backend.network.walk_states(actor,strength=strength,channels=channels)])
-        tools=self.backend.external_tools.visit(actor,target,strength=strength,channels=channels)
-        tools.extend(self.backend.runtime.run(self.module_tools.visit(actor,target,strength=strength,channels=channels)))
-        return dict(metadata=self.backend.network.nodes[target].get_metadata(),tools=tools)
+            while True:
+                targets=[n.node_id for n,_,_ in self.backend.network.walk_states(actor,strength=strength,channels=channels)]
+                with self.backend.node_locks.access_sync(targets,mutable=False):
+                    with self.backend._transaction_lock:
+                        reached=list(self.backend.network.walk_states(actor,strength=strength,channels=channels))
+                        if {n.node_id for n,_,_ in reached}!=set(targets):continue
+                        return dict(nodes=[n.get_metadata() for n,_,_ in reached])
+        with self.backend.node_locks.access_sync([target],mutable=False):
+            tools=self.backend.external_tools.visit(actor,target,strength=strength,channels=channels)
+            tools.extend(self.backend.runtime.run(self.module_tools.visit(actor,target,strength=strength,channels=channels)))
+            return dict(metadata=self.backend.network.nodes[target].get_metadata(),tools=tools)
     def ack(self,p):
+        with self.backend.node_locks.access_sync([p['actor']]):
+            return self._ack_owned(p)
+
+    def _ack_owned(self,p):
+        self._check_session(p)
         node,_=self.binding(p['actor'])
         for event in p.get('events',[]):node.inputs.acknowledge(event['source'],event['id'])
         return {'ok':True}
     def bind(self,p):
-        self.binding(p['actor'])
-        self.backend.agents.setdefault(p['actor'],{}).update(session_id=p['session_id'],executor='harness')
-        return {'ok':True}
+        with self.backend.node_locks.access_sync([p['actor']]):
+            self.binding(p['actor'])
+            self.backend.agents.setdefault(p['actor'],{}).update(session_id=p['session_id'],executor='harness')
+            if p.get('context_cursor') is not None: self.backend.network.nodes[p['actor']].context_cursor=p['context_cursor']
+            return {'ok':True}
     def prune(self,p):
+        with self.backend.node_locks.access_sync([p['actor']]):
+            return self._prune_owned(p)
+
+    def _prune_owned(self,p):
+        self._check_session(p)
         actor=p['actor'];definitions,_=self.definitions(actor)
         retained=set(p.get('referenced',[]))|{d['name'] for d in definitions}
         history=self.backend.agents[actor]['tool_history']

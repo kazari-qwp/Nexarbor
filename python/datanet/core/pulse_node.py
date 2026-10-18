@@ -2,6 +2,7 @@
 import asyncio
 import inspect
 import time
+from contextlib import asynccontextmanager
 from copy import deepcopy
 from .node import Node
 from .signals import Signal
@@ -10,6 +11,16 @@ from .interface import validate_strength
 
 class PulseNode(Node):
     signal_type='pulse'
+
+    @asynccontextmanager
+    async def _access(self,runtime):
+        locks=getattr(runtime.network,'node_locks',None)
+        if locks:
+            async with locks.access([self.node_id]):yield
+        else:yield
+
+    async def _update(self,runtime,**values):
+        async with self._access(runtime):self.state.update(values)
 
     def __init__(self,node_id,name,data_kind=None,*,channels=('pulse',),strength=3,content=None,signal_options=None,state=None,description=''):
         super().__init__(node_id,name,'pulse',description=description)
@@ -44,41 +55,52 @@ class PulseNode(Node):
         if not 0<timeout_seconds<=3600:raise ValueError('Invalid pulse runtime deadline')
         if type(allow_partial) is not bool:raise ValueError('allow_partial must be boolean')
         if runtime.network.nodes.get(self.node_id) is not self:raise ValueError('Pulse must belong to the runtime network')
-        if self._running:raise RuntimeError('Pulse is already running')
-        if self.state['phase']=='interrupted':raise RuntimeError('Reconcile the interrupted pulse before restarting')
         if cycle_complete is not None and not callable(cycle_complete):raise TypeError('Invalid cycle completion handler')
-        deadline=time.monotonic()+timeout_seconds;reports=[];self._running=True
+        async with self._access(runtime):
+            if self._running:raise RuntimeError('Pulse is already running')
+            if self.state['phase']=='interrupted':raise RuntimeError('Reconcile the interrupted pulse before restarting')
+            self._running=True
+        deadline=time.monotonic()+timeout_seconds;reports=[]
         try:
             for _ in range(cycles):
                 left=deadline-time.monotonic()
                 if left<=0:
-                    self.state.update(phase='blocked',error='Pulse runtime deadline exceeded')
+                    await self._update(runtime,phase='blocked',error='Pulse runtime deadline exceeded')
                     break
-                options=thaw(self.signal_options)
-                options['timeout_seconds']=min(options.get('timeout_seconds',180),left)
-                signal=Signal(self.node_id,self.channels,self.strength,content=self.content,
-                              kind='pulse',close_loop=True,parent_id=self.state['last_signal'],sequence=self.state['sequence']+1,**options)
-                runtime._authorize(signal)
-                self.state.pop('error',None)
-                self.state.update(sequence=signal.sequence,phase='propagating',active_signal=signal.signal_id)
+                async with self._access(runtime):
+                    options=thaw(self.signal_options)
+                    options['timeout_seconds']=min(options.get('timeout_seconds',180),left)
+                    signal=Signal(self.node_id,self.channels,self.strength,content=self.content,
+                                  kind='pulse',close_loop=True,parent_id=self.state['last_signal'],sequence=self.state['sequence']+1,**options)
+                    runtime._authorize(signal)
+                    self.state.pop('error',None)
+                    self.state.update(sequence=signal.sequence,phase='propagating',active_signal=signal.signal_id)
                 await runtime._save()
                 remaining=deadline-time.monotonic()
                 if remaining<=0:raise TimeoutError('Pulse runtime deadline exceeded')
                 report=await asyncio.wait_for(runtime.propagate(signal),remaining);reports.append(report)
-                self.state.update(last_signal=signal.signal_id,last_status=report['status'])
+                await self._update(runtime,last_signal=signal.signal_id,last_status=report['status'])
                 if not report['returned'] or report['status'] not in (('completed','partial') if allow_partial else ('completed',)):
-                    self.state.update(phase='blocked',active_signal=None);await runtime._save();break
-                self.state['phase']='finalizing';await runtime._save()
+                    await self._update(runtime,phase='blocked',active_signal=None);await runtime._save();break
+                await self._update(runtime,phase='finalizing');await runtime._save()
                 if cycle_complete:
                     remaining=deadline-time.monotonic()
                     if remaining<=0:raise TimeoutError('Pulse completion deadline exceeded')
-                    result=cycle_complete(self,deepcopy(report))
-                    if not inspect.isawaitable(result):raise TypeError('Cycle completion handler must be asynchronous')
-                    await asyncio.wait_for(result,remaining)
-                self.state.update(phase='completed',active_signal=None)
+                    async with self._access(runtime):
+                        result=cycle_complete(self,deepcopy(report))
+                        if not inspect.isawaitable(result):raise TypeError('Cycle completion handler must be asynchronous')
+                        await asyncio.wait_for(result,remaining)
+                await self._update(runtime,phase='completed',active_signal=None)
                 await runtime._save()
         except BaseException:
-            if self.state['active_signal'] is not None:self.state['phase']='interrupted'
+            active=self.state['active_signal']
+            # Pulse owns this wave. Cancelling only its shielded waiter would
+            # leave receivers working after the pulse has reported failure.
+            if active and await runtime.cancel(active):
+                try:await runtime.wait(active)
+                except asyncio.CancelledError:pass
+            async with self._access(runtime):
+                if self.state['active_signal'] is not None:self.state['phase']='interrupted'
             await runtime._save()
             raise
         finally:self._running=False

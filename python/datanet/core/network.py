@@ -31,6 +31,15 @@ class Network:
 
     def get_metadata(self, node_id):return self.nodes[node_id].get_metadata()
 
+    def routing_snapshot(self):
+        locks = getattr(self, 'node_locks', None)
+        from contextlib import nullcontext
+        with locks.condition if locks else nullcontext():
+            nodes = dict(self.nodes)
+            routes = {key: locks.routing(key) if locks else (tuple(node.interfaces),node.divergence)
+                      for key,node in nodes.items()}
+            return nodes, {key:value[0] for key,value in routes.items()}, {key:value[1] for key,value in routes.items()}
+
     def use_metadata_registry(self, registry):
         self.metadata_registry = registry
         for node in self.nodes.values():node._metadata_registry = registry
@@ -64,25 +73,25 @@ class Network:
                     raise ValueError('Agent 主动访问必须从所属节点出发')
                 if strength > agent.max_signal_strength:
                     raise ValueError(f'主动请求强度 {strength} 超过 Agent 上限 {agent.max_signal_strength}')
+        nodes, links, divergences = self.routing_snapshot()
         layer = [(node_id, [node_id], strength)]
         visited = set()
         while layer:
             layer = [(current, path, remaining) for current, path, remaining in layer if current not in visited]
             visited.update((current for current, _, _ in layer))
             for current, path, remaining in layer:
-                node = self.nodes[current]
+                node = nodes[current]
                 yield (node, path, remaining)
             if scope == 'local':
                 return
             pending = {}
             for current, path, remaining in layer:
-                node = self.nodes[current]
-                for interface in node.interfaces:
+                for interface in links[current]:
                     if interface.target_node_id in visited:
                         continue
                     if not interface.allows(strength=remaining,channels=channels):
                         continue
-                    target = self.nodes.get(interface.target_node_id)
+                    target = nodes.get(interface.target_node_id)
                     if target is None:
                         raise ValueError(f'接口目标不存在：{interface.target_node_id}')
                     signal = remaining * interface.metadata.multiplier
@@ -93,6 +102,6 @@ class Network:
                     validate_strength(pending[target.node_id][0])
             layer = []
             for target_id, (total, path) in pending.items():
-                remaining = total + self.nodes[target_id].divergence
+                remaining = total + divergences[target_id]
                 validate_signal(remaining)
                 if remaining>=0:layer.append((target_id,path,remaining))

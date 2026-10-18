@@ -50,6 +50,12 @@ class ExternalTools:
             if item['ref'] not in self._catalog: raise ValueError('Unregistered external tool: ' + item['ref'])
 
     def _resolve(self, actor, target, ref, strength, channels):
+        from contextlib import nullcontext
+        locks = getattr(self.backend,'node_locks',None)
+        with locks.access_sync([target],mutable=False) if locks else nullcontext():
+            return self._resolve_owned(actor,target,ref,strength,channels)
+
+    def _resolve_owned(self, actor, target, ref, strength, channels):
         validate_strength(strength); channels = names(channels, 'tool access channels')
         node = self.backend.network.nodes.get(target)
         descriptor = self._catalog.get(ref)
@@ -65,6 +71,12 @@ class ExternalTools:
         return descriptor
 
     def visit(self, actor, target, *, strength, channels, acquire=True):
+        from contextlib import nullcontext
+        locks = getattr(self.backend,'node_locks',None)
+        with locks.access_sync([actor,target],mutable=acquire) if locks else nullcontext():
+            return self._visit_owned(actor,target,strength=strength,channels=channels,acquire=acquire)
+
+    def _visit_owned(self, actor, target, *, strength, channels, acquire):
         # Validate the visit even if the node offers no tools.
         if not any(n.node_id == target for n, _, _ in self.backend.network.walk_states(actor, strength=strength, channels=channels)):
             raise PermissionError('Visit target is outside the current graph view')
@@ -92,6 +104,13 @@ class ExternalTools:
         return result
 
     async def invoke(self, actor, target, ref, arguments, *, strength, channels):
+        locks = getattr(self.backend,'node_locks',None)
+        if locks:
+            async with locks.access([target]):
+                return await self._invoke_owned(actor,target,ref,arguments,strength=strength,channels=channels)
+        return await self._invoke_owned(actor,target,ref,arguments,strength=strength,channels=channels)
+
+    async def _invoke_owned(self, actor, target, ref, arguments, *, strength, channels):
         descriptor = self._resolve(actor, target, ref, strength, channels)
         arguments = thaw(freeze(arguments))
         Draft202012Validator(thaw(descriptor['parameters'])).validate(arguments)

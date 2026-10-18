@@ -55,6 +55,9 @@ class ModuleNetwork:
         return self._request('visit', target=target, channels=channels, strength=strength)
     def tool_sources(self, target, *, channels=None, strength=None):
         return self._request('tool_sources', target=target, channels=channels, strength=strength)
+    def lock_nodes(self, nodes, *, channels=None, strength=None, timeout=30):
+        """async with this scope: commit on success, restore internal state on error."""
+        return self._request('lock_nodes', nodes=nodes, channels=channels, strength=strength, timeout=timeout)
     def signal_status(self, signal_id): return self._request('signal_status', signal_id=signal_id)
     def wait_signal(self, signal_id): return self._request('signal_wait', signal_id=signal_id)
     def cancel_signal(self, signal_id): return self._request('signal_cancel', signal_id=signal_id)
@@ -70,7 +73,11 @@ class ModuleContext:
     node_id = property(lambda self: self._node_id)
     module_id = property(lambda self: self._module_id)
     config = property(lambda self: self._config)
-    state = property(lambda self: self._state)
+    @property
+    def state(self):
+        from .node_locks import require_transaction_node
+        require_transaction_node(self._node_id)
+        return self._state
     network = property(lambda self: self._network)
     caller_id = property(lambda self: self._request('caller'))
     def metadata(self): return self._request('local_metadata')

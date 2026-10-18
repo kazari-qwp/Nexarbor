@@ -31,6 +31,8 @@ def host_operation(backend, owner, policy, operation, arguments):
     if set(arguments) - {'source', 'target', 'channels', 'threshold', 'multiplier'}:
         raise ValueError('Unknown network edit parameter')
     source = target_node(arguments.get('source'))
+    backend.node_locks.require_mutable(source.node_id)
+    backend.node_locks.require_mutable(node.node_id)
     channels = names(arguments.get('channels'), 'edited channels', allow_empty=False)
     with backend._transaction_lock:
         if operation == 'connect':
@@ -52,7 +54,7 @@ def host_operation(backend, owner, policy, operation, arguments):
 
 
 async def execute(ctx, activation):
-    return ComponentResult(data=ctx.extended(activation.operation, dict(activation.parameters)))
+    return ComponentResult(data=await ctx.extended(activation.operation, dict(activation.parameters)))
 
 
 def register(services):

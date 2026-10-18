@@ -39,6 +39,10 @@ class ModuleTools:
         return entries
 
     async def visit(self, actor, target, *, strength, channels):
+        async with self.backend.node_locks.access([actor,target]):
+            return await self._visit_owned(actor,target,strength=strength,channels=channels)
+
+    async def _visit_owned(self, actor, target, *, strength, channels):
         sources = self.backend.modules.tool_sources(actor, target, strength=strength, channels=channels)
         results = await asyncio.gather(*(self._list(actor, source, strength, channels) for source in sources))
         memory = self.backend.agents.setdefault(actor, {})
@@ -64,6 +68,10 @@ class ModuleTools:
             if self._source(actor, entry['node_id'], entry['module'], strength, channels)]
 
     async def invoke(self, actor, entry, arguments, *, strength, channels):
+        async with self.backend.node_locks.access([entry['node_id']]):
+            return await self._invoke_owned(actor,entry,arguments,strength=strength,channels=channels)
+
+    async def _invoke_owned(self, actor, entry, arguments, *, strength, channels):
         source = self._source(actor, entry['node_id'], entry['module'], strength, channels)
         if source is None: raise PermissionError('Tool provider is no longer accessible')
         response = await self.backend.modules.access(actor, entry['node_id'], entry['module'], source['invoke'],

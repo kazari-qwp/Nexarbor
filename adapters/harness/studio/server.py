@@ -19,7 +19,13 @@ class StudioTransport(Transport):
             self.backend.external_tools.register('harness',p['tools'],execute)
             return self.backend.external_tools.catalog()
         if method in ('executor_invoke','executor_prepare','executor_visit'):
-            result=getattr(self.executor,method.removeprefix('executor_'))(p)
+            with self.backend.node_locks.import_owner(p.get('node_access_ticket'),p.get('actor')):
+                result=getattr(self.executor,method.removeprefix('executor_'))(p)
+            self.backend.dispatch('save',{})
+            return result
+        if method in ('executor_ack','executor_bind','executor_prune'):
+            with self.backend.node_locks.import_owner(p.get('node_access_ticket'),p.get('actor')):
+                result=getattr(self.executor,method.removeprefix('executor_'))(p)
             self.backend.dispatch('save',{})
             return result
         if method=='module_access':
@@ -29,8 +35,10 @@ class StudioTransport(Transport):
         if method=='studio_pulse':return self.backend.studio.pulse(p)
         if method=='executor_run':return asyncio.run(self.backend.execute_agent(p['actor'],p.get('text','')))
         if method=='executor_read':
-            node=self.backend.network.nodes[p['actor']]
-            return self.host('agent-read',dict(actor=node.node_id,name=node.name,session_id=self.backend.agents.get(node.node_id,{}).get('session_id')))
+            with self.backend.node_locks.access_sync([p['actor']]):
+                node=self.backend.network.nodes[p['actor']]
+                with self.backend.node_locks.export_owner(node.node_id) as ticket:
+                    return self.host('agent-read',dict(actor=node.node_id,name=node.name,session_id=self.backend.agents.get(node.node_id,{}).get('session_id'),context_cursor=node.context_cursor,node_access_ticket=ticket))
         return super().dispatch(method,p)
 
 def main():

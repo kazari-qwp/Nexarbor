@@ -26,6 +26,7 @@ class Node:
         self.agent: Any = None
         self.agent_config: dict | None = None
         self.execution_binding: dict | None = None
+        self.context_cursor: dict | None = None
         self.management_parent_id: str | None = None
         self.interfaces: list[Interface] = []
         self.tools: dict[str, Callable[..., Any]] = {}
