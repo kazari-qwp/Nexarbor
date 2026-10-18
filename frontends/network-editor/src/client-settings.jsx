@@ -1,7 +1,14 @@
 import React,{useState} from 'react';
-import {X} from 'lucide-react';
+import {X,ChevronDown,Settings2} from 'lucide-react';
 import {defaultShortcuts,shortcuts,keyName} from './shortcuts.js';
 const modifiers=[['None','无'],['Shift','Shift'],['Control','Ctrl'],['Alt','Alt'],['Meta','Meta']];
+export function ClientMenu({onShortcuts}){
+ const [open,setOpen]=useState(false);
+ return <div className="client-menu" onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOpen(false);}} onKeyDown={e=>{if(e.key==='Escape')setOpen(false);if(e.key==='ArrowDown')setOpen(true);}}>
+  <button aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><Settings2 size={15}/>设置<ChevronDown size={12}/></button>
+  {open&&<div role="menu" aria-label="设置菜单"><button role="menuitem" onClick={()=>{setOpen(false);onShortcuts();}}>自定义快捷键</button></div>}
+ </div>;
+}
 export function ClientSettings({value,onSave,onClose}){
  const [draft,setDraft]=useState(()=>shortcuts(value)),[error,setError]=useState('');
  const update=(key,value)=>setDraft(d=>({...d,[key]:value}));

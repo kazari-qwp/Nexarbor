@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {bookmarkChanges,copySubnet,pasteSubnet,selectionKey} from './subnets.js';
+import {bookmarkChanges,copySubnet,pasteSubnet,selectionKey,historyBookmark} from './subnets.js';
 import {shortcuts} from './shortcuts.js';
 import {textPrompt} from './text-prompt.js';
 const clone=value=>structuredClone(value);
@@ -51,29 +51,35 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,note,u
   }
   record(entries);
  };
- const usedBook=book=>record([{kind:'bookmark',id:book.id,label:book.name,snapshot:clone(book.snapshot)}]);
- const drop=(id,point)=>{
-  const book=current.current.bookmarks.find(b=>b.id===id);if(!book)throw Error('书签已不存在');
+ const usedBook=book=>record([{kind:'bookmark',id:book.id,label:book.name,mode:book.mode,snapshot:clone(book.snapshot)}]);
+ const historyEntry=ref=>current.current.history.find(e=>e.kind===ref.kind&&e.id===ref.id);
+ const usedHistory=ref=>{const entry=historyEntry(ref);if(entry)record([entry]);};
+ const place=(book,point,usage)=>{
   const ctx=latest.current.context(),result=pasteSubnet(ctx.document,book,ctx.flow.screenToFlowPosition(point),ctx.catalog,ctx.layout);
+  const used=()=>usage.usedBookmark?usedBook(book):usedHistory(usage.usedHistory);
   if(result.edges){
    const source=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id??'';
    const missing=result.edges.some(e=>!ctx.document.network.nodes.some(n=>n.node_id===e.target));
-   if(source&&!missing){const next=clone(ctx.document),n=next.network.nodes.find(n=>n.node_id===source);for(const e of result.edges)n.connections.interfaces.push({target_node_id:e.target,metadata:clone(e.metadata)});latest.current.onPaste({document:next,layout:ctx.layout,nodes:[source]});usedBook(book);}
-   else{const templates=result.edges.map(e=>({source,target:ctx.document.network.nodes.some(n=>n.node_id===e.target)?e.target:'',...e.metadata,usedBookmark:book.id}));latest.current.onEdgeTemplate({...templates[0],queue:templates.slice(1)});}
-  }else{latest.current.onPaste(result);usedBook(book);}
+   if(source&&!missing){const next=clone(ctx.document),n=next.network.nodes.find(n=>n.node_id===source);for(const e of result.edges)n.connections.interfaces.push({target_node_id:e.target,metadata:clone(e.metadata)});latest.current.onPaste({document:next,layout:ctx.layout,nodes:[source]});used();}
+   else{const templates=result.edges.map(e=>({source,target:ctx.document.network.nodes.some(n=>n.node_id===e.target)?e.target:'',...e.metadata,...usage}));latest.current.onEdgeTemplate({...templates[0],queue:templates.slice(1)});}
+  }else{latest.current.onPaste(result);used();}
  };
+ const drop=(id,point)=>{const book=current.current.bookmarks.find(b=>b.id===id);if(!book)throw Error('书签已不存在');place(book,point,{usedBookmark:id});};
+ const dropHistory=(ref,point)=>{const entry=historyEntry(ref);if(!entry)throw Error('该历史条目已移除');const ctx=latest.current.context();place(historyBookmark(entry,current.current.bookmarks,ctx.document,ctx.layout),point,{usedHistory:ref});};
  const locate=entry=>{
   if(entry.kind==='bookmark'){const book=current.current.bookmarks.find(b=>b.id===entry.id);if(!book){note('该书签已移除');return;}setCategory(book.category??'default');setFocus(book.id);return;}
   latest.current.onLocate(entry);
  };
  return {library,category,setCategory,focus,open,setOpen,hover,pending,afterPending:enqueue,
   copy:mode=>{const ctx=latest.current.context(),frame={area:hover.current?clone(hover.current):null,category:latest.current.category,ctx:{...ctx,document:clone(ctx.document),selection:clone(ctx.selection),layout:clone(ctx.layout)}};return enqueue(()=>copy(mode,frame));},
-  remove:id=>enqueue(()=>remove(id)),created,drop,locate,record,
+  remove:id=>enqueue(()=>remove(id)),created,drop,dropHistory,locate,record,usedHistory,
   bindings:shortcuts(library.settings.shortcuts),resetCopy:()=>{lastCopy.current=null;},
   async restore(frame,back){await patch(bookmarkChanges(back?frame.booksAfter:frame.booksBefore,back?frame.booksBefore:frame.booksAfter),false);lastCopy.current=null;},
   async rename(book){const name=(await textPrompt('书签名称',book.name))?.trim();if(!name||name===book.name)return;await patch([{id:book.id,expected:book,value:{...book,name}}]);},
   async newCategory(){const name=(await textPrompt('新分类名称'))?.trim();if(!name)return;const item={id:crypto.randomUUID(),name};await update({action:'category.add',category:item});setCategory(item.id);},
-  saveSettings:value=>update({action:'settings.save',settings:{...current.current.settings,shortcuts:value}}),
+  saveSettings:value=>enqueue(()=>update({action:'settings.save',settings:{...current.current.settings,shortcuts:value}})),
+  saveView:value=>enqueue(()=>update({action:'settings.save',settings:{...current.current.settings,bookmarkView:value}})),
+  togglePanel:side=>enqueue(()=>{const panels={...current.current.settings.panels};panels[side]=!panels[side];return update({action:'settings.save',settings:{...current.current.settings,panels}});}),
   usedBookmark:id=>{const book=current.current.bookmarks.find(b=>b.id===id);if(book)usedBook(book);},
  };
 }

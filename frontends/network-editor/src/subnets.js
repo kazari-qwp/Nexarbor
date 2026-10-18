@@ -63,3 +63,13 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
 export function bookmarkChanges(before,after){
  return [...new Set([...before,...after].map(b=>b.id))].flatMap(id=>{const a=before.find(b=>b.id===id)??null,b=after.find(b=>b.id===id)??null;return JSON.stringify(a)===JSON.stringify(b)?[]:[{id,expected:a,value:b}];});
 }
+
+// 历史复用与书签共用粘贴逻辑。单边只带终点，起点由落点决定。
+export function historyBookmark(entry,bookmarks=[],document,layout={}){
+ const existing=entry.kind==='bookmark'?bookmarks.find(b=>b.id===entry.id):null;
+ let snapshot=existing?.snapshot??entry.snapshot;
+ if(entry.kind==='edge')snapshot={nodes:[],edges:[{metadata:clone(entry.metadata),target:entry.target}],files:{},positions:{}};
+ else if(entry.kind==='node'&&document?.network.nodes.some(n=>n.node_id===entry.id))snapshot=copySubnet(document,[entry.id],'external',layout);
+ if(!snapshot)throw Error('该历史条目没有可复用的副本');
+ return {id:entry.id,name:entry.label,mode:existing?.mode??entry.mode??'external',snapshot:clone(snapshot)};
+}

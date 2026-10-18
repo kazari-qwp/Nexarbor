@@ -34,6 +34,7 @@ try{
  await node('a').click();await page.getByRole('button',{name:'属性',exact:true}).click();await page.getByRole('button',{name:'新增连接',exact:true}).click();
  await page.getByLabel('连接终点',{exact:true}).selectOption('root');await page.getByLabel('连接频道',{exact:true}).fill('new');await page.getByRole('button',{name:'建立连接',exact:true}).click();
  await expect(page.locator('.react-flow__edge')).toHaveCount(3);
+ await page.locator('.react-flow__controls-zoomout').click();
  const a=await node('a').boundingBox(),b=await node('b').boundingBox();
  await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down({button:'right'});await page.mouse.move(a.x+a.width/2,a.y+a.height/2,{steps:12});await page.mouse.up({button:'right'});
  await expect(page.getByLabel('连接起点',{exact:true})).toHaveValue('b');await expect(page.getByLabel('连接终点',{exact:true})).toHaveValue('a');
@@ -56,6 +57,7 @@ try{
  await page.keyboard.press('Control+z');await expect.poll(async()=>(await books()).bookmarks.length).toBe(1);
  await page.getByRole('button',{name:'新增书签分类',exact:true}).click();await page.getByRole('dialog',{name:'新分类名称',exact:true}).getByRole('textbox').fill('实验分类');await page.getByRole('dialog',{name:'新分类名称',exact:true}).getByRole('button',{name:'确定',exact:true}).click();
  await expect(page.getByLabel('书签分类',{exact:true})).not.toHaveValue('default');
+ await page.getByRole('button',{name:'切换为文字视图',exact:true}).click();await expect(page.locator('.bookmark-dock')).toHaveClass(/text-view/);
  const category=await page.getByLabel('书签分类',{exact:true}).inputValue();await node('a').hover();
  for(const key of ['a','b','a','b','a','b','a']){await page.keyboard.press(key);await page.waitForTimeout(80);}
  await expect.poll(async()=>(await books()).bookmarks.filter(b=>b.category===category).length).toBe(7);
@@ -78,7 +80,7 @@ try{
  await expect(page.getByLabel('连接起点',{exact:true})).toHaveValue('a');await expect(page.getByLabel('连接终点',{exact:true})).toHaveValue('');
  await page.getByLabel('连接终点',{exact:true}).selectOption('root');await page.getByRole('button',{name:'建立连接',exact:true}).click();await expect(page.locator('.react-flow__edge')).toHaveCount(6);
  // 历史中的边和节点使用同一组复制键；复制本身不改历史顺序。
- const edgeHistory=page.locator('.bookmark-history button').filter({has:page.locator('i').filter({hasText:'边'})}).first();await edgeHistory.hover();
+ const edgeHistory=page.locator('.history-card[data-history-kind="edge"]').first();await edgeHistory.hover();
  const beforeHistory=(await books()).history.map(e=>e.kind+e.id),beforeBooks=(await books()).bookmarks.length;
  await page.keyboard.press('a');await expect.poll(async()=>(await books()).bookmarks.length).toBe(beforeBooks+1);
  expect((await books()).history.map(e=>e.kind+e.id)).toEqual(beforeHistory);
@@ -88,7 +90,7 @@ try{
  await page.keyboard.press('Control+y');await expect(page.locator('.react-flow__node')).toHaveCount(5);
  await page.keyboard.press('Control+s');await expect.poll(async()=>(await api('state')).draft.document.network.nodes.length).toBe(5);
  await page.screenshot({path:path.join(directory,'02-bookmarks-history.png')});
- await page.getByRole('button',{name:'客户端设置',exact:true}).click();const settings=page.getByRole('dialog',{name:'客户端设置',exact:true});
+ await page.getByRole('button',{name:'设置',exact:true}).hover();await page.getByRole('menuitem',{name:'自定义快捷键',exact:true}).click();const settings=page.getByRole('dialog',{name:'客户端设置',exact:true});
  await settings.getByLabel('内部复制／A 模式',{exact:true}).press('F6');await settings.getByLabel('保留外联／B 模式',{exact:true}).press('F7');
  await settings.getByLabel('累加点选修饰键',{exact:true}).selectOption('Control');await settings.getByLabel('滚轮扩缩选区修饰键',{exact:true}).selectOption('Alt');
  await settings.getByLabel('拖动建立连接鼠标键',{exact:true}).selectOption('0');await settings.getByLabel('拖动建立连接修饰键',{exact:true}).selectOption('Alt');
@@ -103,7 +105,7 @@ try{
  await page.getByRole('button',{name:'应用网络',exact:true}).click();await expect(page.getByRole('button',{name:'应用网络',exact:true})).toBeDisabled({timeout:10000});
  await client.close();client=null;await host.close();host=await startStudio({directory});
  client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));
- await page.getByRole('button',{name:'客户端设置',exact:true}).click();await expect(page.getByRole('dialog',{name:'客户端设置',exact:true}).getByLabel('内部复制／A 模式',{exact:true})).toHaveValue('F6');
+ await page.getByRole('button',{name:'设置',exact:true}).hover();await page.getByRole('menuitem',{name:'自定义快捷键',exact:true}).click();await expect(page.getByRole('dialog',{name:'客户端设置',exact:true}).getByLabel('内部复制／A 模式',{exact:true})).toHaveValue('F6');
  expect((await books()).bookmarks.length).toBeGreaterThan(0);expect((await books()).categories.some(c=>c.name==='实验分类')).toBe(true);expect(errors).toEqual([]);
  await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify({passed:true,filesSeparated:true,deleteArchives:true,nodeLinkButton:true,rightDrag:true,shiftSelection:true,oneUnitWheel:true,bookmarkToggle:true,renameHoverOnly:true,categories:true,pagination:true,pureEdgeRules:true,dragPaste:true,undoRedo:true,historyCopy:true,historyOrder:true,customShortcuts:true,customMouse:true,restartRestores:true,modelCalls:0,errors},null,2));
  console.log('PASS 编辑器完整交互：'+directory);

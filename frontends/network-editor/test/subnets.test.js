@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {copySubnet,pasteSubnet,selectionStep,bookmarkChanges} from '../src/subnets.js';
+import {copySubnet,pasteSubnet,selectionStep,bookmarkChanges,historyBookmark} from '../src/subnets.js';
 import {keyMatches,pointerMatches} from '../src/shortcuts.js';
 const edge=target=>({target_node_id:target,metadata:{channels:['tools'],threshold:1,multiplier:1,attributes:{label:'边参数'}}});
 const node=id=>({node_id:id,name:id,type:'agent',parameters:{file_path:id+'.md'},management_parent_id:null,context_cursor:{session_id:'old'},connections:{interfaces:[]},modules:{}});
@@ -29,4 +29,15 @@ test('bookmark undo patch touches only changed entries and key bindings match mo
  const x={id:'x',name:'x'},y={id:'y',name:'y'};assert.deepEqual(bookmarkChanges([x],[x,y]),[{id:'y',expected:null,value:y}]);
  assert.equal(keyMatches({key:'z',ctrlKey:true},'Ctrl+Z'),true);assert.equal(keyMatches({key:'z',ctrlKey:true,shiftKey:true},'Ctrl+Z'),false);
  assert.equal(pointerMatches({button:2,altKey:true},{button:2,modifier:'Alt'}),true);
+});
+test('history drag preserves bookmark mode and drops an edge source while keeping its target',()=>{
+ const entry={kind:'edge',id:'a|0',label:'a → b',source:'a',target:'b',metadata:edge('b').metadata};
+ const book=historyBookmark(entry);assert.deepEqual(book.snapshot.edges,[{metadata:entry.metadata,target:'b'}]);
+ assert.equal(Object.hasOwn(book.snapshot.edges[0],'source'),false);
+ const internal=copySubnet(document,['a','b'],'internal');
+ const saved=historyBookmark({kind:'bookmark',id:'removed',label:'旧书签',mode:'internal',snapshot:internal});
+ assert.equal(saved.mode,'internal');assert.equal(saved.snapshot.nodes.length,2);
+ const live=historyBookmark({kind:'node',id:'a',label:'a',snapshot:copySubnet(document,['a'],'internal')},[],document);
+ assert.equal(live.snapshot.nodes[0].connections.interfaces.length,2);
+ assert.throws(()=>historyBookmark({kind:'node',id:'missing',label:'不存在'}),/没有可复用/);
 });
