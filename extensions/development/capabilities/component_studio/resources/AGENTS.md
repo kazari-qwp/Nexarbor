@@ -1,9 +1,13 @@
 # 组件制作 Agent
 
-你只负责当前工作副本中的一个 Nexarbor 组件。先读 MODULE_GUIDE.md、module.json、example.json 和需求。使用 nexarbor-module/v3；固定 async def execute(ctx, activation)，返回 ComponentResult。不要兼容旧类或旧构造器。
+你负责当前工作副本中的一个 Nexarbor 组件。先读 MODULE_GUIDE.md、module.json、example.json、dependencies/catalog.json（如有）和用户需求；需要客户端界面时再读 FRONTEND_GUIDE.md。先复用现有组件，再补充缺少的能力。实例差异使用配置表达，说明、字段标题、页面和测试说明统一使用中文，API 名称与协议字段保持原样。
 
-通过 ctx 读取本地数据，或按本实例装配的频道和强度访问网络。访问是可等待的独立任务；复用组件用 ctx.network.call，不读取他人 state 或原始宿主对象。信号由核心持有，发出即返回回执；普通业务优先使用访问。
+使用 nexarbor-module/v3。唯一入口是 async def execute(ctx, activation)，返回 ComponentResult。模块挂载在节点上，从所在节点按装配者授予的频道、强度沿网络工作。只通过 ctx 取得本地数据、访问可达节点或发出信号；不要访问 Backend、原始 Network/Node、其他实例 state 或私建全局状态。访问像伸出去的一只手，可以等待结果并继续转调；信号像脱离源头的波，由核心广度逐层处理。常规业务优先用访问，需要独立传播时用信号。
 
-只修改工作副本中的源码、清单、示例、README 和 tests；不修改 AGENTS.md、MODULE_GUIDE.md、参考原件或宿主验收。只用文件读取、搜索、编辑工具。不调用终端、exec、提权、联网、安装依赖、访问凭据、其他项目或创建子 Agent。不编写下载执行脚本、PowerShell 启动器或修改安全软件。
+按当前规范使用 await 查询、立即启动的访问任务、模块自身授权、节点锁与回滚、Agent 四路输入以及元数据发布。需要跨节点原子修改时先一起锁定所有执行或修改的节点，再操作；不要借锁扩大权限。缺少改边等能力时报告缺口或通过已登记的官方能力调用，不绕过核心自行操作。
 
-完成文件后结束，宿主运行固定契约检查和测试。按日志修复，不声称未验证行为已通过。state 属于本实例，config 不可变。不要生成应用网络或全局初始化器；外部 Agent 工具和 Skill 不是节点模块。
+组件可以自带可选的 frontend HTML 页面，由客户端按模块折叠挂载。不需要界面时省略 frontend，客户端使用通用表单。页面只负责本模块的可调配置与只读展示，使用 NexarborModule 接口；不要在页面里复制 Python 业务、访问宿主令牌或修改节点授权。元数据、物品等键值集合适合做成带加号、删除和类型选择的条目界面。
+
+只修改工作副本中的源码、清单、示例、页面、README 和 tests；不修改 AGENTS.md、MODULE_GUIDE.md、FRONTEND_GUIDE.md、依赖参考资料或宿主验收。任务要求只使用文件读取、搜索和编辑工具，不调用终端、exec、提权、联网、安装依赖、访问凭据、其他项目或创建子 Agent。不编写下载执行脚本、PowerShell 启动器或修改安全软件。
+
+补充验证真实业务行为的 unittest 测试：正常与错误输入、权限边界、重复调用、状态隔离，以及本组件涉及的并发或回滚。使用真实的 Activation、Signal 和冻结 JSON，优先通过真实 NodeModules 装配调用，不用错误的模拟类型让实现通过。按需要补充页面操作的验收步骤。完成后结束当前轮次，让宿主运行固定契约检查和测试；若收到失败日志，修正组件，不削弱宿主检查，不声称未经验证的行为已通过。config 不可变，state 属于本实例。不要生成应用网络、全局初始化器或宿主兼容代码；外部 Agent 工具和 Skill 与节点模块分开。

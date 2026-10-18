@@ -1,0 +1,75 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "metadata.fields",
+  "version": "0.1.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent",
+    "text_file",
+    "pulse"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "title": "元数据字段配置",
+    "description": "只包含 fields：字段名称到任意 JSON 值的映射；省略时按空对象处理。",
+    "properties": {
+      "fields": {
+        "type": "object",
+        "title": "元数据字段",
+        "description": "键为字段名称，值可以是字符串、数字、布尔、对象、数组或空值。",
+        "default": {},
+        "additionalProperties": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "title": "组件状态",
+    "description": "元数据字段组件不保存实例状态。",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "read",
+      "channels": [
+        "metadata"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "读取参数",
+        "description": "read 操作不需要参数。",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "title": "读取结果",
+        "description": "返回本实例当前配置的字段映射。",
+        "properties": {
+          "fields": {
+            "type": "object",
+            "title": "元数据字段",
+            "description": "与配置 fields 完全一致的字段映射，保留各值的 JSON 类型。",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "signals": [
+    "metadata.refresh"
+  ],
+  "frontend": {
+    "entry": "ui.html",
+    "title": "元数据字段",
+    "height": 460
+  }
+}

@@ -6,6 +6,22 @@ import {randomBytes,timingSafeEqual} from 'node:crypto';
 
 export async function startEditorServer({web,directory,request,chat,recover,port=0}) {
   const token=randomBytes(32).toString('hex');let authority;
+  const pages=new Map(),pageKeys=new Map();
+  const bridge=await readFile(new URL('./module-frontend-bridge.js',import.meta.url),'utf8');
+  const frontend=page=>{
+    if(page===null)return null;
+    if(typeof page?.html!=='string'||Buffer.byteLength(page.html)>1024*1024)throw Error('模块前端必须是 1 MiB 以内的 HTML');
+    const key=page.module+'\0'+page.html;
+    let id=pageKeys.get(key);
+    if(!id){
+      id=randomBytes(24).toString('hex');pageKeys.set(key,id);
+      const script='<script>'+bridge+'</script>';
+      const html=/<head(?:\s[^>]*)?>/i.test(page.html)?page.html.replace(/<head(?:\s[^>]*)?>/i,match=>match+script):script+page.html;
+      pages.set(id,{html,key});
+      if(pages.size>128){const oldest=pages.keys().next().value;pageKeys.delete(pages.get(oldest).key);pages.delete(oldest);}
+    }
+    return {module:page.module,title:page.title,height:page.height??320,src:'/module-frontend/'+id};
+  };
   const send=(res,status,value)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store'});res.end(JSON.stringify(value));};
   const server=http.createServer(async(req,res)=>{
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -14,6 +30,13 @@ export async function startEditorServer({web,directory,request,chat,recover,port
     try{
       if(req.headers.host!==authority)return send(res,403,{error:'无效的本地地址'});
       const url=new URL(req.url,'http://'+authority);
+      if(url.pathname.startsWith('/module-frontend/')){
+        if(req.method!=='GET')return send(res,405,{error:'GET required'});
+        const page=pages.get(url.pathname.slice('/module-frontend/'.length));
+        if(!page)return send(res,404,{error:'模块页面已失效，请重新打开模块'});
+        res.setHeader('Content-Security-Policy',"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; sandbox allow-scripts");
+        res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'});res.end(page.html);return;
+      }
       if(url.pathname==='/api'){
         if(req.method!=='POST')return send(res,405,{error:'POST required'});
         if(req.headers.origin&&req.headers.origin!=='http://'+authority)return send(res,403,{error:'仅允许编辑器同源请求'});
@@ -24,7 +47,7 @@ export async function startEditorServer({web,directory,request,chat,recover,port
         for await(const chunk of req){bytes+=chunk.length;if(bytes>8_000_000)return send(res,413,{error:'请求超过8MB'});chunks.push(chunk);}
         const {operation,params={}}=JSON.parse(Buffer.concat(chunks).toString('utf8'));
         const value=operation?.startsWith('chat.')?await chat(operation,params):operation==='recover'?await recover(params):await request(operation,params);
-        return send(res,200,{value});
+        return send(res,200,{value:operation==='module.frontend'?frontend(value):value});
       }
       if(req.method!=='GET')return send(res,405,{error:'GET required'});
       const relative=decodeURIComponent(url.pathname==='/'?'index.html':url.pathname.slice(1));

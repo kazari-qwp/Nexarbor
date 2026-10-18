@@ -3,13 +3,14 @@ import path from 'node:path';
 import fs from 'node:fs/promises';
 import readline from 'node:readline';
 import {fileURLToPath} from 'node:url';
+import {harnessExecutable} from '../../framework/harness-installation.js';
 
 export class OfficialToolsRunner{
  constructor(directory){this.directory=directory;this.serial=0;this.pending=new Map();}
  async start(){
   if(this.starting)return this.starting;
   this.starting=(async()=>{
-   const executable=process.env.DATANET_HARNESS_EXE??path.join(process.env.LOCALAPPDATA,'Programs/DeepSeek Harness/DeepSeek Harness.exe');
+   const executable=await harnessExecutable();
    await fs.access(executable);await fs.mkdir(path.join(this.directory,'temp'),{recursive:true});
    const child=this.child=spawn(executable,[fileURLToPath(new URL('./official-tools.cjs',import.meta.url))],{cwd:this.directory,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,ELECTRON_RUN_AS_NODE:'1',TEMP:path.join(this.directory,'temp'),TMP:path.join(this.directory,'temp')}});
    this.errors='';child.stderr.on('data',b=>this.errors=(this.errors+b).slice(-8000));

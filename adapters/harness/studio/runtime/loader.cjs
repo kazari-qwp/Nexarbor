@@ -2,7 +2,7 @@
 const fs=require('node:fs/promises'),path=require('node:path'),vm=require('node:vm');
 const {pathToFileURL,fileURLToPath}=require('node:url');
 module.exports=async function(){
- const root=process.env.DATANET_NATIVE_MODULES??path.join(process.env.LOCALAPPDATA,'Programs/DeepSeek Harness/resources/app.asar/dsh/node_modules');
+ const root=process.env.DATANET_NATIVE_MODULES??path.join(path.dirname(process.execPath),'resources/app.asar/dsh/node_modules');
  const native=name=>require(path.join(root,'@deepseek-ai',name));
  const context=vm.createContext({process,console,Buffer,URL,AbortController,AbortSignal,structuredClone,setTimeout,clearTimeout,setInterval,clearInterval,Symbol});const cache=new Map();
  async function get(spec,parent){
@@ -14,5 +14,5 @@ module.exports=async function(){
   cache.set(key,mod);return mod;
  }
  const link=(spec,ref)=>get(spec,ref.identifier);
- return {native,load:async(file)=>{const mod=await get(pathToFileURL(path.resolve(file)).href);if(mod.status==='unlinked')await mod.link(link);if(mod.status==='linked')await mod.evaluate();return mod.namespace;}};
+ return {native,root,load:async(file)=>{const mod=await get(pathToFileURL(path.resolve(file)).href);if(mod.status==='unlinked')await mod.link(link);if(mod.status==='linked')await mod.evaluate();return mod.namespace;}};
 };

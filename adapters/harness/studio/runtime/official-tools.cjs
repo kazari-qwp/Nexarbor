@@ -3,7 +3,7 @@ const fs=require('node:fs/promises'),path=require('node:path'),readline=require(
 const {pathToFileURL}=require('node:url');
 const lines=readline.createInterface({input:process.stdin});
 let host,directory,owners=new Map(),sequence=0;
-const sdk=process.env.DATANET_NATIVE_MODULES??path.join(process.env.LOCALAPPDATA,'Programs/DeepSeek Harness/resources/app.asar/dsh/node_modules');
+const sdk=process.env.DATANET_NATIVE_MODULES??path.join(path.dirname(process.execPath),'resources/app.asar/dsh/node_modules');
 const native=async name=>import(pathToFileURL(require.resolve(path.join(sdk,'@deepseek-ai',name))).href);
 async function initialize(p){
  directory=path.resolve(p.directory);await fs.mkdir(directory,{recursive:true});

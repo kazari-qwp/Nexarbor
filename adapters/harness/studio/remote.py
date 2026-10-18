@@ -20,6 +20,14 @@ import yaml
 
 def b64(value):return base64.urlsafe_b64encode(value).decode().rstrip('=')
 
+def maker_prefix(folder):
+    """规范和依赖接口变化后，不能继续使用旧制作历史。"""
+    folder=Path(folder)
+    files=[folder/name for name in ('AGENTS.md','MODULE_GUIDE.md','FRONTEND_GUIDE.md') if (folder/name).is_file()]
+    files+=sorted(path for path in (folder/'dependencies').rglob('*') if path.is_file() and path.suffix in ('.json','.md'))
+    payload=[(path.relative_to(folder).as_posix(),path.read_text(encoding='utf-8')) for path in files]
+    return hashlib.sha256(json.dumps(payload,ensure_ascii=False,separators=(',',':')).encode()).hexdigest()
+
 class HarnessRemote:
     def __init__(self,studio):
         self.studio=studio;self.authority=None;self.home=None;self.jobs={};self.closed=False
@@ -105,7 +113,8 @@ class HarnessRemote:
         if type(seconds) is not int or not 10<=seconds<=600:raise ValueError('Agent time limit must be 10–600 seconds')
         requirement=p.get('requirement','').strip()
         if not requirement or len(requirement)>16000:raise ValueError('Describe the requested change (maximum 16000 characters)')
-        prefix=hashlib.sha256(((folder/'AGENTS.md').read_text(encoding='utf-8')+(folder/'MODULE_GUIDE.md').read_text(encoding='utf-8')).encode()).hexdigest()
+        if hasattr(self.studio,'prepare_agent'):self.studio.prepare_agent({'id':p['id']})
+        prefix=maker_prefix(folder)
         source=p.get('fork_session') or p.get('resume_session')
         after=-1;usage_baseline={}
         if source:

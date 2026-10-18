@@ -58,6 +58,7 @@ def install_viewer(profile,manifest):
 
 def main():
     from harness_test_environment import harness_test_environment
+    from harness_installation import harness_executable
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('run',type=Path);args=parser.parse_args()
     run=args.run.resolve();manifest=json.loads((run/'sessions-manifest.json').read_text(encoding='utf-8'))
     logs=Path(manifest['native_logs']).resolve()
@@ -85,7 +86,7 @@ def main():
     install_viewer(profile,manifest)
     meta=dict(home=str(home),profile=str(profile),authority='127.0.0.1:'+str(port),userData=str(run/'client-user-data'),workspace=manifest['workspace'])
     (run/'client-meta.json').write_text(json.dumps(meta,ensure_ascii=False,indent=2),encoding='utf-8')
-    executable=Path(os.environ['LOCALAPPDATA'])/'Programs/DeepSeek Harness/DeepSeek Harness.exe'
+    executable=harness_executable()
     with (run/'client.stdout.log').open('ab') as output,(run/'client.stderr.log').open('ab') as error:
         process=subprocess.Popen([str(executable),'--user-data-dir='+meta['userData']],env=harness_test_environment(DSH_HOME=str(home)),stdout=output,stderr=error,creationflags=subprocess.CREATE_NO_WINDOW)
     (run/'client-process.json').write_text(json.dumps(dict(pid=process.pid,**meta),ensure_ascii=False,indent=2),encoding='utf-8')

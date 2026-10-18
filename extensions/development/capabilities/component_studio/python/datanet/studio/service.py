@@ -20,12 +20,13 @@ from datanet.core.text_node import TextFileNode
 from datanet.core.pulse_node import PulseNode
 from datanet.core.serialization import network_document,_build
 from datanet.core.tool_access import invoke_tool
-from .contract import factory,manifest
+from .contract import factory,manifest,frontend_file
 from jsonschema import Draft202012Validator
 
 PROJECT=Path(__file__).resolve().parents[7]
 RESOURCE=Path(__file__).resolve().parents[3]/'resources'
-TEXT={'.py','.json','.md','.txt','.toml'}
+TEXT={'.py','.json','.md','.txt','.toml','.html','.css','.js'}
+GUIDES=('AGENTS.md','MODULE_GUIDE.md','FRONTEND_GUIDE.md')
 
 def read_json(path,default):return json.loads(path.read_text(encoding='utf-8')) if path.exists() else default
 def write_json(path,value):
@@ -102,8 +103,7 @@ class Studio:
             path=folder/name
             if not path.resolve().is_relative_to(folder.resolve()):raise ValueError('Invalid template')
             path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
-        (folder/'AGENTS.md').write_text((RESOURCE/'AGENTS.md').read_text(encoding='utf-8'),encoding='utf-8')
-        (folder/'MODULE_GUIDE.md').write_text((RESOURCE/'MODULE_GUIDE.md').read_text(encoding='utf-8'),encoding='utf-8')
+        self._write_guides(folder)
         if selected.get('reference'):
             source=PROJECT/selected['reference'];reference=folder/'reference';reference.mkdir()
             shutil.copyfile(source,reference/'legacy.py')
@@ -139,7 +139,7 @@ class Studio:
     def fork(self,p):
         release=self.release_read(p);workspace=self.create({'sample':'blank'});folder=self.folder(workspace['id'])
         for name,content in release['files'].items():
-            if name in ['AGENTS.md','MODULE_GUIDE.md']:continue
+            if name in GUIDES:continue
             path=folder/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
         write_json(self.root/'baselines'/f'{workspace["id"]}.json',sources(folder))
         write_json(folder/'workspace.json',{'label':release['id']+' · 修改副本','sample':'blank'})
@@ -147,13 +147,28 @@ class Studio:
     def save(self,p):
         path=self.path(p['id'],p['file'])
         relative=path.relative_to(self.folder(p['id'])).as_posix().casefold()
-        if relative in ['agents.md','module_guide.md','workspace.json'] or relative.startswith(('reference/','dependencies/')):raise PermissionError('Host guide and references are read-only')
+        if relative in [name.casefold() for name in (*GUIDES,'workspace.json')] or relative.startswith(('reference/','dependencies/')):raise PermissionError('规范文件与参考资料只读')
         current=path.read_text(encoding='utf-8') if path.exists() else ''
         if p.get('expected')!=sha256(current.encode()).hexdigest():raise ValueError('File changed outside the editor; reload before saving')
         content=p['content']
         if not isinstance(content,str) or len(content.encode())>1024*1024:raise ValueError('Source exceeds 1 MiB')
         path.parent.mkdir(parents=True,exist_ok=True);temporary=path.with_suffix(path.suffix+'.tmp');temporary.write_text(content,encoding='utf-8');temporary.replace(path)
         return self.read(p)
+    def _write_guides(self,folder):
+        for name in GUIDES:(folder/name).write_text((RESOURCE/name).read_text(encoding='utf-8'),encoding='utf-8')
+    def prepare_agent(self,p):
+        """新任务使用当前规范；历史指纹由原生会话适配器核对。"""
+        self._write_guides(self.folder(p['id']))
+    def frontend(self,p):
+        if p.get('id'):
+            folder=self.folder(p['id'])
+        else:
+            release=self.library[p['module']];folder=self.root/release['folder']
+            if digest(sources(folder))!=release['digest']:raise ValueError('已发布模块源码发生变化，请重新验证发布')
+        spec=manifest(folder);page=frontend_file(folder,spec)
+        if page is None:return None
+        return dict(html=page.read_text(encoding='utf-8'),title=spec['frontend'].get('title',spec['id']),
+                    height=spec['frontend'].get('height',320),module=spec['id'])
     def validate(self,p):
         folder=self.folder(p['id']);files=sources(folder)
         id=uuid4().hex;job=dict(id=id,workspace=p['id'],status='running',digest=digest(files),log='',started=time.time())
@@ -328,5 +343,5 @@ def register(services):
         b.studio.library={**installed,**document.get('studio_releases',b.studio.library)}
         b.studio._load_releases()
     services.restorers.append(restore)
-    methods={'catalog':False,'create':False,'read':False,'dependencies':False,'release_read':False,'fork':False,'save':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'create':False,'read':False,'dependencies':False,'release_read':False,'fork':False,'save':False,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

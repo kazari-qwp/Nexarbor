@@ -1,5 +1,6 @@
 // Generic native Harness executor; no town or other application rules.
 import {spawn} from 'node:child_process';import readline from 'node:readline';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
+import {harnessExecutable} from '../../framework/harness-installation.js';
 export class NativeRunner{
  constructor(directory,callback){this.directory=directory;this.callback=callback;this.pending=new Map();this.serial=0;this.starting=null;}
  async start(){
@@ -7,7 +8,7 @@ export class NativeRunner{
   this.starting=(async()=>{
    const connection=JSON.parse(await fs.readFile(path.join(this.directory,'studio/harness-connection.json'),'utf8'));
    const root=fileURLToPath(new URL('../../../../',import.meta.url));
-   const executable=path.join(process.env.LOCALAPPDATA,'Programs/DeepSeek Harness/DeepSeek Harness.exe');
+   const executable=await harnessExecutable();
    const child=this.child=spawn(executable,['--experimental-vm-modules',fileURLToPath(new URL('./host.cjs',import.meta.url))],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,ELECTRON_RUN_AS_NODE:'1',TEMP:path.join(this.directory,'temp'),TMP:path.join(this.directory,'temp'),TMPDIR:path.join(this.directory,'temp')}});
    this.errors='';child.stderr.on('data',b=>{this.errors=(this.errors+b).slice(-12000);});
    const fail=error=>{for(const p of this.pending.values())p.reject(error);this.pending.clear();};child.on('error',fail);child.on('exit',code=>{fail(Error('Native Harness exited '+code+' '+this.errors));this.starting=null;this.child=null;});

@@ -17,10 +17,11 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  const rpc=(method,params={})=>new Promise((resolve,reject)=>{if(closed)return reject(Error('后端已关闭'));const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('开发操作超时：'+method));},method==='studio_pulse'?660000:45000);pending.set(id,{resolve,reject,timer});child.stdin.write(JSON.stringify({id,method,params})+'\n');});
  const request=async(operation,params)=>{
   if(operation.startsWith('studio.'))return rpc('studio_'+operation.slice(7).replaceAll('.','_'),params);
+  if(operation==='module.frontend')return rpc('studio_frontend',params);
   if(['state','draft','apply','view'].includes(operation))return rpc('studio_'+operation,params);
   if(operation==='catalog'){
    const catalog=await rpc('studio_catalog');const presets=[];
-   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.id,description:'已发布 · '+m.version,schema:m.manifest.config_schema,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库'}])),presets,studio:true,tools:officialTools,toolError,contract:catalog.contract};
+   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.manifest.frontend?.title??m.id,description:'已发布 · '+m.version,schema:m.manifest.config_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库'}])),presets,studio:true,tools:officialTools,toolError,contract:catalog.contract};
   }
   if(operation==='preset'){
    if(!/^[a-zA-Z0-9_-]+$/.test(params.id))throw Error('Invalid preset');

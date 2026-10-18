@@ -54,9 +54,11 @@ def main():
         backend.modules.clear()
     sys.path.insert(0,str(folder))
     suite=unittest.defaultTestLoader.discover(str(folder/'tests'),pattern='test_*.py') if (folder/'tests').exists() else unittest.TestSuite()
+    if (folder/'tests').exists() and any((folder/'tests').glob('test_*.py')) and suite.countTestCases()==0:
+        raise ValueError('发现测试文件但未收集到测试；请使用 unittest.TestCase 或 IsolatedAsyncioTestCase，不能只写未运行的测试函数')
     result=unittest.TextTestRunner(stream=sys.stdout,verbosity=2).run(suite)
     if not result.wasSuccessful():raise SystemExit(1)
-    print('PASS: fixed v3 contract, mount, declarations, data-only signal, state schema, module tests')
+    print('PASS: v3 固定入口、装配、声明、信号封套、状态校验与组件测试；测试数量：'+str(suite.countTestCases()))
 
 
 if __name__=='__main__':main()

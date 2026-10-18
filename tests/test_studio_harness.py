@@ -1,6 +1,5 @@
 """Native session protocol regression, no model or external service calls."""
 import json
-import hashlib
 from pathlib import Path
 import sys
 import tempfile
@@ -11,7 +10,7 @@ from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'adapters/harness/studio'))
-from remote import HarnessRemote
+from remote import HarnessRemote,maker_prefix
 
 class NativeSessionTests(unittest.TestCase):
     def setUp(self):
@@ -66,7 +65,7 @@ class NativeSessionTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'loopback'):
             self.remote.connect({'authority':'example.com:1234','home':str(self.folder)})
     def test_fork_preserves_prefix_and_reports_only_new_usage(self):
-        prefix=hashlib.sha256(((self.folder/'AGENTS.md').read_text()+(self.folder/'MODULE_GUIDE.md').read_text()).encode()).hexdigest()
+        prefix=maker_prefix(self.folder)
         self.remote.sessions['source']=dict(workspace='work',prefix=prefix)
         calls=[];reads=0
         def rpc(method,args,timeout=8):
@@ -89,5 +88,21 @@ class NativeSessionTests(unittest.TestCase):
         (self.folder/'MODULE_GUIDE.md').write_text('changed contract',encoding='utf-8')
         with self.assertRaisesRegex(ValueError,'prefix'):
             self.remote.start(dict(id='work',requirement='Try again',fork_session='source'))
+
+    def test_frontend_guide_and_dependencies_invalidate_history_prefix(self):
+        initial=maker_prefix(self.folder)
+        (self.folder/'FRONTEND_GUIDE.md').write_text('页面协议',encoding='utf-8')
+        page=maker_prefix(self.folder)
+        self.assertNotEqual(initial,page)
+        dependencies=self.folder/'dependencies';dependencies.mkdir()
+        (dependencies/'catalog.json').write_text('[]',encoding='utf-8')
+        self.assertNotEqual(page,maker_prefix(self.folder))
+
+    def test_new_task_refreshes_guides_before_comparing_history(self):
+        self.studio.prepare_agent=lambda p:(self.folder/'AGENTS.md').write_text('当前规范',encoding='utf-8')
+        self.remote.sessions['old']=dict(workspace='work',prefix=maker_prefix(self.folder))
+        with self.assertRaisesRegex(ValueError,'prefix'):
+            self.remote.start(dict(id='work',requirement='继续',resume_session='old'))
+        self.assertEqual((self.folder/'AGENTS.md').read_text(encoding='utf-8'),'当前规范')
 
 if __name__=='__main__':unittest.main()

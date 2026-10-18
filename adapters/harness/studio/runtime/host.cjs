@@ -15,7 +15,7 @@ async function init(p){
  const optionsFile=path.join(p.directory,'native-model.json');let options={};try{options=JSON.parse(await fs.readFile(optionsFile,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
  await host.plugin(native('dsh-session-persistence-jsonl').default,{root:options.native_logs??path.join(p.directory,'native-logs')});
  await host.plugin((await loader.load(p.root+'/adapters/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
- const nativeRoot=path.join(process.env.LOCALAPPDATA,'Programs/DeepSeek Harness/resources/app.asar/dsh/node_modules');
+ const nativeRoot=loader.root;
  const record=require(path.join(nativeRoot,'yaml')).parse(await fs.readFile(p.credentials,'utf8')).records['deepseek-account-platform/default'];
  if(record?.kind!=='grant'||new URL(record.payload.issuer).origin!=='https://platform.deepseek.com')throw Error('Configure a supported DeepSeek account grant in Harness');
  config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:16000,contextWindow:500000,...options.model};config.maxRequests=options.max_requests??240;config.maxSeconds=options.max_seconds??1200;

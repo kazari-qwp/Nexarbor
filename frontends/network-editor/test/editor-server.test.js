@@ -31,3 +31,31 @@ test('loopback editor requires credentials, checks origin and dispatches only ex
   await server.close();const relative=path.relative(root,directory);assert.ok(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative));await fs.rm(directory,{recursive:true});
  }
 });
+
+test('module pages have a scoped capability URL, injected bridge and opaque sandbox',async()=>{
+ const root=path.join(product,'build/editor-http-tests');await fs.mkdir(root,{recursive:true});
+ const directory=await fs.mkdtemp(path.join(root,'frontend-'));
+ let page={module:'example.counter',title:'计数配置',height:320,html:'<!doctype html><html><head></head><body>组件页面</body></html>'};
+ const server=await startEditorServer({web:path.join(product,'extensions/editor/capabilities/network_editor/web'),directory,
+  request:async()=>page,chat:async()=>{},recover:async()=>{}});
+ try{
+  const base='http://'+server.authority,token=new URLSearchParams(new URL(server.url).hash.slice(1)).get('token');
+  const request=()=>fetch(base+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':token},body:JSON.stringify({operation:'module.frontend',params:{module:'example.counter'}})});
+  const result=await (await request()).json();
+  assert.match(result.value.src,/^\/module-frontend\/[a-f0-9]{48}$/);
+  assert.equal(result.value.html,undefined);assert.ok(!JSON.stringify(result).includes(token));
+  const response=await fetch(base+result.value.src),html=await response.text();
+  assert.equal(response.status,200);assert.match(html,/window.NexarborModule/);
+  assert.ok(html.indexOf('nexarbor-module-frontend/v1')<html.indexOf('</head>'));
+  assert.match(response.headers.get('content-security-policy'),/sandbox allow-scripts/);
+  assert.match(response.headers.get('content-security-policy'),/connect-src 'none'/);
+  assert.ok(!response.headers.get('content-security-policy').includes('allow-same-origin'));
+  assert.equal((await fetch(base+'/module-frontend/unknown')).status,404);
+  assert.equal((await fetch(base+result.value.src,{method:'POST'})).status,405);
+  assert.equal((await (await request()).json()).value.src,result.value.src);
+  page=null;assert.equal((await (await request()).json()).value,null);
+  page={html:'x'.repeat(1024*1024+1)};assert.equal((await request()).status,400);
+ }finally{
+  await server.close();const relative=path.relative(root,directory);assert.ok(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative));await fs.rm(directory,{recursive:true});
+ }
+});
