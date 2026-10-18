@@ -25,6 +25,7 @@ test('virtual folders persist independently of source files and reject cyclic mo
  await mutate({action:'asset.move',kind:'module',entry:{type:'item',id:'metadata.fields'},target:'b'});
  await mutate({action:'asset.rename',kind:'module',entry:{type:'item',id:'metadata.fields'},name:'元数据'});
  await assert.rejects(mutate({action:'asset.move',kind:'module',entry:{type:'folder',id:'a'},target:'b'}),/自身或子文件夹/);
+ await assert.rejects(mutate({action:'asset.move',kind:'module',entries:[{type:'item',id:'batch-first'},{type:'folder',id:'a'}],target:'b'}),/自身或子文件夹/);assert.equal((await library('editor.library')).assets.module.items['batch-first'],undefined);
  await assert.rejects(mutate({action:'asset.move',kind:'module',entry:{type:'item',id:'x'},target:'missing'}),/已不存在/);
  await mutate({action:'asset.move',kind:'module',entry:{type:'folder',id:'b'},target:null});
  const restored=await editorLibrary(folder)('editor.library');assert.equal(restored.assets.module.folders.find(f=>f.id==='b').parent,null);assert.deepEqual(restored.assets.module.items['metadata.fields'],{folder:'b',name:'元数据'});
@@ -42,4 +43,17 @@ test('resource bookmark CRUD does not reorder history; history aliases survive r
  assert.deepEqual((await library('editor.library')).history,renamed);
  await mutate({action:'history.push',entries:[entry]});const restored=await editorLibrary(folder)('editor.library');assert.equal(restored.history[0].label,'常用数据');assert.deepEqual(restored.history[0].asset.config,{fields:{年龄:18}});
  await assert.rejects(mutate({action:'history.push',entries:[{kind:'module',id:'bad',label:'bad'}]}),/无效工具或模块/);
+});
+test('archive, restore and folder deletion check recursive contents; permanent deletion requires an owned resource',async()=>{
+ const folder=await fs.mkdtemp(path.join(root,'archive-'));let deleted=0;const catalog={modules:{'example.x':{label:'模块',description:'测试',defaults:{config:{},state:{},access:{strength:0,channels:[]}}}},tools:[{ref:'harness:Read',name:'Read'}]};
+ const library=editorLibrary(folder,{catalog:async()=>catalog,inspect:async p=>({canDelete:p.kind==='module',reason:'官方工具不可删除'}),purge:async()=>{deleted++;}}),mutate=p=>library('editor.library.update',p);
+ await mutate({action:'asset.folder.create',kind:'module',id:'a',name:'父'});await mutate({action:'asset.folder.create',kind:'module',id:'b',parent:'a',name:'子'});
+ await mutate({action:'asset.move',kind:'module',entries:[{type:'item',id:'example.x'}],target:'b'});
+ await assert.rejects(mutate({action:'asset.folder.delete',kind:'module',id:'a'}),/仍有资源/);
+ await mutate({action:'asset.archive',kind:'module',entries:[{id:'example.x'}]});await assert.rejects(mutate({action:'asset.folder.delete',kind:'module',id:'a'}),/仍有资源/);
+ await mutate({action:'asset.restore',kind:'module',entries:[{id:'example.x'}]});let data=await library('editor.library');assert.equal(data.assets.module.items['example.x'].folder,'b');assert.equal(data.assets.module.items['example.x'].archivedAt,undefined);
+ await mutate({action:'asset.move',kind:'module',entries:[{type:'item',id:'example.x'}],target:null});await mutate({action:'asset.folder.delete',kind:'module',ids:['a']});assert.deepEqual((await library('editor.library')).assets.module.folders,[]);
+ await mutate({action:'asset.archive',kind:'tool',entries:[{id:'harness:Read'}]});await assert.rejects(mutate({action:'asset.purge',kind:'tool',id:'harness:Read',confirm:'harness:Read'}),/官方工具/);assert.equal(deleted,0);
+ await mutate({action:'asset.archive',kind:'module',entries:[{id:'example.x'}]});await assert.rejects(mutate({action:'asset.purge',kind:'module',id:'example.x',confirm:'wrong'}),/确认/);
+ await mutate({action:'asset.purge',kind:'module',id:'example.x',confirm:'example.x'});assert.equal(deleted,1);assert.ok((await editorLibrary(folder)('editor.library')).assets.module.items['example.x'].deletedAt);
 });

@@ -1,4 +1,4 @@
-export const defaultShortcuts={copyInternal:'A',copyExternal:'B',deleteBookmark:'',save:'Ctrl+S',remove:'Delete',undo:'Ctrl+Z',redo:'Ctrl+Y',assetCut:'Ctrl+X',assetPaste:'Ctrl+V',assetRename:'F2',assetNewFolder:'Ctrl+Shift+N',multiSelect:'Shift',selectionWheel:'Shift',linkDrag:{button:2,modifier:'None'},renameBookmark:{button:1,modifier:'None'}};
+export const defaultShortcuts={copyInternal:'A',copyExternal:'B',deleteBookmark:'',save:'Ctrl+S',remove:'Delete',undo:'Ctrl+Z',redo:'Ctrl+Y',assetCut:'Ctrl+X',assetPaste:'Ctrl+V',assetRename:'F2',assetNewFolder:'Ctrl+Shift+N',assetSelectAll:'Ctrl+A',assetRemove:'Delete',multiSelect:'Shift',selectionWheel:'Shift',linkDrag:{button:2,modifier:'None'},renameBookmark:{button:1,modifier:'None'}};
 export const shortcuts=value=>({...defaultShortcuts,...value,linkDrag:{...defaultShortcuts.linkDrag,...value?.linkDrag},renameBookmark:{...defaultShortcuts.renameBookmark,...value?.renameBookmark}});
 export function keyName(event){
  const key=event.key===' '?'Space':event.key.length===1?event.key.toUpperCase():event.key;

@@ -132,5 +132,31 @@ class ModuleFrontendTests(unittest.TestCase):
         self.assertEqual(len(archive),1);self.assertTrue((archive[0]/'module.py').is_file())
         self.assertIn('module.py',self.studio.release_read({'module':release['id']})['files'])
 
+    def deletion_backend(self):
+        backend=self.studio.backend
+        backend.network=SimpleNamespace(nodes={},signals=SimpleNamespace(_active=False))
+        backend.modules.executing=0;backend.node_locks=SimpleNamespace(lifecycle=lambda:None)
+        return backend
+
+    def test_delete_release_removes_owned_files_and_suppresses_standard_reinstall(self):
+        self.assertEqual(self.check()['status'],'passed');release=self.studio.publish({'id':self.work['id']});backend=self.deletion_backend();name=release['id']
+        backend.components.standard_modules={name:dict(folder=self.folder,manifest=release['manifest'])}
+        path=self.studio.root/release['folder'];self.assertTrue(path.exists())
+        info=self.studio.release_delete_info({'module':name});self.assertTrue(info['canDelete']);self.assertGreater(len(info['files']),0)
+        result=self.studio.delete_release({'module':name,'confirm':name});self.assertGreater(result['filesDeleted'],0);self.assertFalse(path.exists());self.assertTrue((self.folder/'module.py').exists())
+        self.studio.close();self.studio=Studio(backend);self.assertNotIn(name,self.studio.library);self.assertNotIn(name,backend.components.module_types)
+
+    def test_delete_release_refuses_live_draft_dependency_and_external_folder(self):
+        self.assertEqual(self.check()['status'],'passed');release=self.studio.publish({'id':self.work['id']});backend=self.deletion_backend();name=release['id'];path=self.studio.root/release['folder']
+        backend.network.nodes={'a':SimpleNamespace(node_id='a',modules={name:{}})}
+        with self.assertRaisesRegex(ValueError,'运行节点'):self.studio.delete_release({'module':name,'confirm':name})
+        backend.network.nodes={};(self.studio.root/'draft.json').write_text(json.dumps({'document':{'network':{'nodes':[dict(node_id='b',modules={name:{}})]}}}),encoding='utf-8')
+        self.assertIn('待应用草稿',self.studio.release_delete_info({'module':name})['reason']);(self.studio.root/'draft.json').unlink()
+        self.studio.library['dependent']={'manifest':{'requires':[name]}}
+        self.assertIn('依赖模块',self.studio.release_delete_info({'module':name})['reason']);self.studio.library.pop('dependent')
+        old=release['folder'];release['folder']='../outside'
+        with self.assertRaisesRegex(ValueError,'不一致'):self.studio.release_delete_info({'module':name})
+        release['folder']=old;self.assertTrue((path/'module.py').exists())
+
 
 if __name__=='__main__':unittest.main()

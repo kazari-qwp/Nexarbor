@@ -58,15 +58,18 @@ class Studio:
     def __init__(self,backend):
         self.backend=backend;self.root=backend.directory/'studio';self.root.mkdir(exist_ok=True)
         self.work=self.root/'work';self.work.mkdir(exist_ok=True)
-        self.library=read_json(self.root/'library.json',{})
+        self.removed=set(read_json(self.root/'removed-modules.json',[]))
+        self.library={name:release for name,release in read_json(self.root/'library.json',{}).items() if name not in self.removed}
         for name,source in getattr(backend.components,'standard_modules',{}).items():
-            if name in self.library:continue
+            if name in self.library or name in self.removed:continue
             files=sources(source['folder']);fingerprint=digest(files);spec=source['manifest']
             destination=self.root/'releases'/name/spec['version']/fingerprint
             for file,content in files.items():
                 path=destination/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
             self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}))
         write_json(self.root/'library.json',self.library)
+        for name in self.removed:
+            backend.components.module_types.pop(name,None);backend.components.module_owners.pop(name,None)
         self.jobs={};self.processes={};self.pool=ThreadPoolExecutor(max_workers=2)
         self.lock=threading.RLock();self.running=False;self.bindings={}
         self.run_state=dict(status='idle',completed=0,requested=0)
@@ -274,6 +277,7 @@ class Studio:
         self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}))
         try:self._load_releases()
         except BaseException:self.library=old;raise
+        self.removed.discard(name);write_json(self.root/'removed-modules.json',sorted(self.removed))
         write_json(self.root/'library.json',self.library)
         return self.library[name]
     def mount(self,p):
@@ -283,6 +287,50 @@ class Studio:
         defaults=read_json(folder/'example.json',{})
         self.backend.modules.mount(p['node'],p['module'],config,defaults.get('state',{}),access=p.get('access',defaults.get('access')))
         self._bind();return self.state()
+    def release_delete_info(self,p):
+        """只检查本工作区发布目录；永远不接受来自页面的文件路径。"""
+        name=p.get('module');release=self.library.get(name)
+        if release is None:raise ValueError('组件已不在发布库中')
+        root=(self.root/'releases').resolve();target=(root/name).resolve()
+        if target==root or not target.is_relative_to(root) or not target.is_dir():raise ValueError('组件文件不属于本工作区发布目录')
+        registered=(self.root/release['folder']).resolve()
+        if not registered.is_relative_to(target):raise ValueError('组件登记目录与组件编号不一致')
+        files=[]
+        for file in target.rglob('*'):
+            if not file.resolve().is_relative_to(target):raise ValueError('组件发布目录含外部链接，不能删除')
+            if file.is_file():files.append(str(file.relative_to(self.root)))
+        blockers=[]
+        for node in getattr(self.backend.network,'nodes',{}).values():
+            if name in node.modules:blockers.append('运行节点：'+node.node_id)
+        draft=read_json(self.root/'draft.json',{})
+        if not draft.get('applied',False):
+            for node in draft.get('document',{}).get('network',{}).get('nodes',[]):
+                if name in node.get('modules',{}):blockers.append('待应用草稿：'+node['node_id'])
+        for id,other in self.library.items():
+            if id!=name and name in other['manifest']['requires']:blockers.append('依赖模块：'+id)
+        if self.running or self.backend.modules.executing or self.backend.network.signals._active:blockers.append('网络中仍有组件或信号执行')
+        return dict(canDelete=not blockers,reason='；'.join(blockers),blockers=blockers,ownership='workspace-release',path=str(target),files=files,
+                    scope='删除本工作区此模块的全部发布版本；独立工作副本和项目共享源码保留。')
+    def delete_release(self,p):
+        self.backend.node_locks.lifecycle()
+        name=p.get('module')
+        if p.get('confirm')!=name:raise ValueError('组件删除确认不匹配')
+        with self.lock:
+            info=self.release_delete_info(p)
+            if not info['canDelete']:raise ValueError(info['reason'])
+            target=Path(info['path']);root=(self.root/'releases').resolve();temporary=(root/('.deleting-'+uuid4().hex)).resolve()
+            if not target.is_relative_to(root) or not temporary.is_relative_to(root):raise ValueError('删除目标越出工作区')
+            target.rename(temporary);old=self.library.copy();removed=self.removed.copy()
+            try:
+                self.library.pop(name);self.removed.add(name)
+                write_json(self.root/'removed-modules.json',sorted(self.removed));write_json(self.root/'library.json',self.library)
+            except BaseException:
+                self.library=old;self.removed=removed
+                write_json(self.root/'removed-modules.json',sorted(removed));write_json(self.root/'library.json',old);temporary.rename(target);raise
+            self.backend.components.module_types.pop(name,None);self.backend.components.module_owners.pop(name,None)
+            # 两个绝对路径均已核实在本工作区 releases 内；不删除共享扩展或工作副本。
+            shutil.rmtree(temporary)
+            return dict(deleted=name,filesDeleted=len(info['files']))
     def unmount(self,p):
         if self.running:raise ValueError('Wait until the signal completes')
         self.backend.modules.unmount(p['node'],p['module']);self._bind();return self.state()
@@ -377,8 +425,8 @@ def register(services):
     services.snapshotters.append(lambda b:{'studio_releases':b.studio.library})
     def restore(b,document):
         installed={name:release for name,release in b.studio.library.items() if name in getattr(b.components,'standard_modules',{})}
-        b.studio.library={**installed,**document.get('studio_releases',b.studio.library)}
+        b.studio.library={name:release for name,release in {**installed,**document.get('studio_releases',b.studio.library)}.items() if name not in b.studio.removed}
         b.studio._load_releases()
     services.restorers.append(restore)
-    methods={'catalog':False,'create':False,'read':False,'dependencies':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'create':False,'read':False,'dependencies':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

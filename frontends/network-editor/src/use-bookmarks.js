@@ -75,7 +75,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  const usedHistory=ref=>{const entry=historyEntry(ref);if(entry)record([entry]);};
  const place=(book,point,usage)=>{
   const ctx=latest.current.context();
-  if(isAsset(book)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach(book,nodeId);if(usage.usedBookmark)usedBook(book);else usedHistory(usage.usedHistory);return;}
+  if(isAsset(book)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach([book],nodeId);if(usage.usedBookmark)usedBook(book);else usedHistory(usage.usedHistory);return;}
   const result=pasteSubnet(ctx.document,book,ctx.flow.screenToFlowPosition(point),ctx.catalog,ctx.layout);
   const used=()=>usage.usedBookmark?usedBook(book):usedHistory(usage.usedHistory);
   if(result.edges){
@@ -87,7 +87,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  };
  const drop=(id,point)=>{const book=current.current.bookmarks.find(b=>b.id===id);if(!book)throw Error('书签已不存在');place(book,point,{usedBookmark:id});};
  const dropHistory=(ref,point)=>{const entry=historyEntry(ref);if(!entry)throw Error('该历史条目已移除');const ctx=latest.current.context();place(historyBookmark(entry,current.current.bookmarks,ctx.document,ctx.layout),point,{usedHistory:ref});};
- const dropResource=(ref,point)=>{const ctx=latest.current.context(),preset=resource(ctx.assetsCatalog,ref.kind,ref.id,current.current.assets),nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach(preset,nodeId);record([assetHistory(preset)]);};
+ const dropResource=(ref,point)=>{const ctx=latest.current.context(),presets=[...new Set(ref.ids??[ref.id])].map(id=>resource(ctx.assetsCatalog,ref.kind,id,current.current.assets)),nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach(presets,nodeId);record(presets.map(assetHistory));};
  const openAsset=value=>latest.current.onOpenAsset({...clone(value),detailKey:crypto.randomUUID()});
  const saveAsset=value=>enqueue(async()=>{
   const old=value.sourceBookmark?current.current.bookmarks.find(b=>b.id===value.sourceBookmark):null;

@@ -16,6 +16,11 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  child.on('error',fail);child.on('exit',code=>fail(Error('开发后端已退出 '+code+'\n'+diagnostics)));
  const rpc=(method,params={})=>new Promise((resolve,reject)=>{if(closed)return reject(Error('后端已关闭'));const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('开发操作超时：'+method));},method==='studio_pulse'?660000:45000);pending.set(id,{resolve,reject,timer});child.stdin.write(JSON.stringify({id,method,params})+'\n');});
  const request=async(operation,params)=>{
+  if(operation==='resource.inspect'||operation==='resource.purge'){
+   if(params.kind==='module')return rpc(operation==='resource.inspect'?'studio_release_delete_info':'studio_delete_release',{module:params.id,confirm:params.confirm});
+   if(params.kind==='tool'&&officialTools.some(t=>t.ref===params.id)){if(operation==='resource.purge')throw Error('Harness 官方工具不可彻底删除');return {canDelete:false,reason:'Harness 官方工具属于共享安装，只可归档和恢复。',ownership:'official'};}
+   throw Error('该工具尚未登记项目自有的文件来源');
+  }
   if(operation.startsWith('studio.'))return rpc('studio_'+operation.slice(7).replaceAll('.','_'),params);
   if(operation==='module.frontend')return rpc('studio_frontend',params);
   if(['state','draft','apply','view'].includes(operation))return rpc('studio_'+operation,params);

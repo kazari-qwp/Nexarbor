@@ -2,7 +2,7 @@ import React,{useEffect,useRef,useState} from 'react';
 import {Bookmark,History,Plus,LayoutGrid,List} from 'lucide-react';
 import {pointerMatches} from './shortcuts.js';
 import {historyBookmark} from './subnets.js';
-import {isAsset,matchesType,resourceTitle} from './resources.js';
+import {isAsset,matchesType,resourceTitle,resourceAvailable} from './resources.js';
 import './bookmark-dock.css';
 
 export const bookmarkType=book=>isAsset(book)?book.asset.kind:book.snapshot.nodes.length===0?'edge':book.snapshot.nodes.length===1?'node':book.mode;
@@ -27,7 +27,8 @@ function historyPreview(entry,books){
 export function BookmarkDock({library,catalog,category,onCategory,onNewCategory,onHover,onLocate,onRename,onRenameHistory,onOpenBook,bindings,focus,view='thumbnail',onView}){
  const [type,setType]=useState('all'),[historyType,setHistoryType]=useState('all'),[page,setPage]=useState(0),[capacity,setCapacity]=useState(6);
  const items=useRef(),compact=view==='thumbnail',pageSize=compact?capacity:6;
- const books=library.bookmarks.filter(b=>(b.category??'default')===category&&matchesType(b,type)),pages=Math.max(1,Math.ceil(books.length/pageSize)),current=Math.min(page,pages-1);
+ const available=b=>!isAsset(b)||resourceAvailable(catalog,library.assets,b.asset.kind,b.asset.id);
+ const books=library.bookmarks.filter(b=>(b.category??'default')===category&&matchesType(b,type)&&available(b)),pages=Math.max(1,Math.ceil(books.length/pageSize)),current=Math.min(page,pages-1);
  useEffect(()=>{const element=items.current;const observer=new ResizeObserver(()=>{const cols=Math.max(1,Math.floor((element.clientWidth-14+6)/54)),rows=Math.max(1,Math.floor((element.clientHeight-14+6)/46));setCapacity(cols*rows);});observer.observe(element);return()=>observer.disconnect();},[]);
  useEffect(()=>{setPage(0);},[category,type,view]);
  useEffect(()=>{if(!focus)return;setType('all');const all=library.bookmarks.filter(b=>(b.category??'default')===category);setPage(Math.max(0,Math.floor(all.findIndex(b=>b.id===focus)/pageSize)));},[focus,category,pageSize]);
@@ -41,7 +42,7 @@ export function BookmarkDock({library,catalog,category,onCategory,onNewCategory,
   </div><footer><span>{books.length} 项 · {current+1}/{pages}</span>{pages>1&&<><button aria-label="上一页书签" disabled={!current} onClick={()=>setPage(current-1)}>上一页</button><button aria-label="下一页书签" disabled={current>=pages-1} onClick={()=>setPage(current+1)}>下一页</button></>}</footer></section>
   <section aria-label="历史区" onPointerLeave={()=>onHover(null)}><header><History size={14}/><strong>历史区</strong><span title="复制键可复用；拖入画布使用">最近 100 项</span><select aria-label="历史类型" value={historyType} onChange={e=>setHistoryType(e.target.value)}>{filters.map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></header><div className="bookmark-history">
    {!library.history.length&&<p>创建或使用节点、边、书签时记录。</p>}
-   {library.history.map(entry=>({entry,book:historyPreview(entry,library.bookmarks)})).filter(({book})=>matchesType(book,historyType)).map(({entry,book})=><button className={'history-card '+(isAsset(book)?'asset-card '+book.asset.kind:book.mode)} draggable key={entry.kind+entry.id} data-history-kind={entry.kind} data-history-id={entry.id} aria-label={'历史 '+entry.label} title={isAsset(book)?resourceTitle(book):entry.label} onPointerEnter={()=>onHover({kind:'history',entry})} onClick={()=>onLocate(entry)} onMouseDown={e=>{if(pointerMatches(e,bindings.renameBookmark)){e.preventDefault();onRenameHistory?.(entry);}}} onAuxClick={e=>e.preventDefault()} onDragStart={e=>{e.dataTransfer.setData('application/x-nexarbor-history',JSON.stringify({kind:entry.kind,id:entry.id}));e.dataTransfer.effectAllowed='copy';}}>{isAsset(book)?<AssetPreview book={book} catalog={catalog}/>:compact?<Thumbnail book={book}/>:<><i>{entry.kind==='node'?'点':entry.kind==='edge'?'边':'签'}</i><span>{entry.kind==='bookmark'?'子网书签':entry.label}</span></>}</button>)}
+   {library.history.map(entry=>({entry,book:historyPreview(entry,library.bookmarks)})).filter(({book})=>matchesType(book,historyType)&&available(book)).map(({entry,book})=><button className={'history-card '+(isAsset(book)?'asset-card '+book.asset.kind:book.mode)} draggable key={entry.kind+entry.id} data-history-kind={entry.kind} data-history-id={entry.id} aria-label={'历史 '+entry.label} title={isAsset(book)?resourceTitle(book):entry.label} onPointerEnter={()=>onHover({kind:'history',entry})} onClick={()=>onLocate(entry)} onMouseDown={e=>{if(pointerMatches(e,bindings.renameBookmark)){e.preventDefault();onRenameHistory?.(entry);}}} onAuxClick={e=>e.preventDefault()} onDragStart={e=>{e.dataTransfer.setData('application/x-nexarbor-history',JSON.stringify({kind:entry.kind,id:entry.id}));e.dataTransfer.effectAllowed='copy';}}>{isAsset(book)?<AssetPreview book={book} catalog={catalog}/>:compact?<Thumbnail book={book}/>:<><i>{entry.kind==='node'?'点':entry.kind==='edge'?'边':'签'}</i><span>{entry.kind==='bookmark'?'子网书签':entry.label}</span></>}</button>)}
   </div></section>
  </div>;
 }
