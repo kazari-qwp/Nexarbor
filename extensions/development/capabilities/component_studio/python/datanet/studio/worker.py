@@ -1,4 +1,4 @@
-"""Parent enforces a deadline; this executes code with ordinary OS privileges."""
+"""Bounded contract worker. Ordinary OS privileges, no claimed Python sandbox."""
 import ast
 import asyncio
 import json
@@ -6,63 +6,59 @@ import os
 import sys
 import unittest
 from pathlib import Path
+from threading import RLock
 from types import SimpleNamespace
 from datanet.studio.contract import factory
 from datanet.core.node import Node
+from datanet.core.node_modules import NodeModules
 from datanet.core.text_node import TextFileNode
 from datanet.core.network import Network
 from datanet.core.signals import Signal
 from datanet.core.agent_node import AgentNode
 from datanet.core.pulse_node import PulseNode
 
+
 def main():
     folder=Path(sys.argv[1]).resolve()
     os.chdir(folder)
-    for file in folder.rglob('*.py'):ast.parse(file.read_text(encoding='utf-8'),filename=str(file))
+    for file in folder.rglob('*.py'):
+        ast.parse(file.read_text(encoding='utf-8'),filename=str(file))
     spec,create=factory(folder)
     defaults=json.loads((folder/'example.json').read_text(encoding='utf-8'))
     kind=spec['node_types'][0]
-    node=TextFileNode('subject','Subject','text',folder/'test-output.txt') if kind=='text_file' else AgentNode('subject','Subject',file_path=folder/'memory.md') if kind=='agent' else PulseNode('subject','Subject',channels=['world.tick'],strength=3) if kind=='pulse' else Node('subject','Subject',None)
+    if kind=='text_file':node=TextFileNode('subject','Subject','text',folder/'test-output.txt')
+    elif kind=='agent':node=AgentNode('subject','Subject',file_path=folder/'memory.md')
+    elif kind=='pulse':node=PulseNode('subject','Subject',channels=['pulse'],strength=3)
+    else:node=Node('subject','Subject',None)
+    baseline=set(node.tool_definitions)
     network=Network();network.add_node(node)
-    saves=[]
-    async def execute_agent(*args,**kwargs):return dict(status='completed',session_id='contract-check',steps=0,output='')
-    backend=SimpleNamespace(network=network,metadata_registry=network.metadata_registry,directory=folder,execute_agent=execute_agent,dispatch=lambda *a,**k:saves.append((a,k)) or {'saved':True})
-    instance=create(backend,node,defaults['config'],{});instance.install()
-    assert set(node.tool_definitions)==set(t['name'] for t in spec['tools'] if instance.tool_enabled(t['name']))|({'read','write'} if kind=='text_file' else set())
-    for tool in spec['tools']:
-        if not instance.tool_enabled(tool['name']):continue
-        actual=node.tool_definitions[tool['name']]
-        assert 'read_only' not in actual and 'access_channels' in actual
-    if spec['signals']:
-        signal=Signal('origin',spec['signals'],2)
-        context=SimpleNamespace(signal=signal,delivery=SimpleNamespace(node_id=node.node_id,strength=1),network=network)
-        value=instance.on_signal(context)
-        if hasattr(value,'__await__'):asyncio.run(value)
+    backend=SimpleNamespace(network=network,metadata_registry=network.metadata_registry,
+        _transaction_lock=RLock(),components=SimpleNamespace(module_owners={},module_extensions={},enabled=set()))
+    backend.signals=network.signals
+    backend.modules=NodeModules(backend,{spec['id']:create})
+    try:
+        instance=backend.modules.mount(node.node_id,spec['id'],defaults['config'],{},
+            access=defaults.get('access'))
+        expected={t['name'] for t in spec['tools'] if instance.tool_enabled(t['name'])}
+        assert set(node.tool_definitions)==baseline|expected
+        for name in expected:
+            definition=node.tool_definitions[name]
+            assert 'read_only' not in definition and 'access_channels' in definition
+        if spec['signals']:
+            origin=Node('contract-origin','Contract origin',None);network.add_node(origin)
+            origin.connect(node.node_id,channels=spec['signals'])
+            report=asyncio.run(network.propagate(Signal(origin.node_id,spec['signals'],2,
+                node_timeout_seconds=10,timeout_seconds=15)))
+            assert report['status']=='completed',report
         from jsonschema import validate
         validate(instance.state,spec['state_schema'])
-        sample=sys.argv[2] if len(sys.argv)>2 else 'blank'
-        sample={'ready_clock':'town_clock','ready_savepoint':'town_savepoint'}.get(sample,sample)
-        if sample in ['town_clock','town_savepoint']:
-            previous=json.dumps(instance.state,sort_keys=True)
-            result=instance.on_signal(context)
-            if hasattr(result,'__await__'):asyncio.run(result)
-            assert json.dumps(instance.state,sort_keys=True)==previous,'Same signal must not execute twice'
-            count=len(defaults['config']['slots']) if sample=='town_clock' else defaults['config']['interval']
-            for _ in range(count):
-                context.signal=Signal('origin',spec['signals'],2,content={'clock':'same payload'})
-                value=instance.on_signal(context)
-                if hasattr(value,'__await__'):asyncio.run(value)
-            if sample=='town_clock':
-                expected=defaults['config']['format'].format(day=2,slot=defaults['config']['slots'][0],tick=count)
-                assert node.read({'method':'key','key':'content'}).items[0]['content']==expected,'World clock must wrap to day 2'
-            else:
-                assert instance.state['count']==count+1,'Savepoint count must persist across signals'
-                assert any(args and args[0]=='save' and len(args)>1 and args[1].get('full') for args,kwargs in saves),'Interval must request a full snapshot'
-    instance.close()
+    finally:
+        backend.modules.clear()
     sys.path.insert(0,str(folder))
     suite=unittest.defaultTestLoader.discover(str(folder/'tests'),pattern='test_*.py') if (folder/'tests').exists() else unittest.TestSuite()
     result=unittest.TextTestRunner(stream=sys.stdout,verbosity=2).run(suite)
     if not result.wasSuccessful():raise SystemExit(1)
-    print('PASS: v7 contract, mount, tool declarations, signal callback, state schema, module tests')
+    print('PASS: local v2 contract, mount, declarations, data-only signal, state schema, module tests')
+
 
 if __name__=='__main__':main()

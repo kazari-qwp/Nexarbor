@@ -11,7 +11,9 @@ def current_agent_id():
 @contextmanager
 def access_context(network, node_id, strength, path, *, channels=None):
     previous = current_access.get()
-    visited = previous['visited'] if previous is not None and previous['network'] is network else set()
+    # A call stack, not a global blacklist: siblings can reuse an endpoint after
+    # return, while recursive calls cannot walk back through their ancestors.
+    visited = set(previous['visited']) if previous is not None and previous['network'] is network else set()
     if channels is None:channels=previous['channels'] if previous is not None and previous['network'] is network else ()
     if previous is not None and previous['network'] is network and not set(channels)<=set(previous['channels']):raise ValueError('嵌套访问不能扩大访问频道')
     visited.update(path)

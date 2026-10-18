@@ -54,7 +54,7 @@ class Network:
         if inherited:
             if node_id != frame['node_id']:
                 raise ValueError('嵌套访问必须从当前执行节点出发')
-            strength = frame['strength']
+            strength = min(strength, frame['strength'])
             if not set(channels)<=set(frame['channels']):raise ValueError('嵌套访问不能扩大访问频道')
         else:
             acting = active_agent.get()

@@ -37,10 +37,11 @@ class SignalRuntime:
     def _authorize(self,signal):
         if signal.origin not in self.network.nodes:raise ValueError('Signal origin does not exist')
         acting=active_agent.get()
-        if acting and (acting[1]!=signal.origin or signal.strength>acting[0].max_signal_strength):raise PermissionError('Signal exceeds sender identity or strength')
         frame=current_access.get()
         if frame and frame['network'] is self.network:
             if signal.origin!=frame['node_id'] or signal.strength>frame['strength']:raise PermissionError('Nested signal exceeds current access budget')
+            if not set(signal.channels)<=set(frame['channels']):raise PermissionError('Nested signal exceeds current channel grant')
+        elif acting and (acting[1]!=signal.origin or signal.strength>acting[0].max_signal_strength):raise PermissionError('Signal exceeds sender identity or strength')
 
     def _snapshot(self,signal):
         # Snapshot nodes and interfaces before any handler runs. New topology applies next signal.

@@ -15,6 +15,7 @@ class ComponentServices:
         self.statusters = []
         self.module_types = {}
         self.module_owners = {}
+        self.module_extensions = {}
         self.loading_component = None
         self.routes = {}
         self.mutations = set()
@@ -40,10 +41,13 @@ class ComponentServices:
                 key='network_presets/'+name
                 if key in self.catalog and key not in self.enabled:entries.pop(name)
 
-    def node_module(self, name, factory):
+    def node_module(self, name, factory, *, extension=None):
         if name in self.module_types:raise ValueError("Duplicate node module: "+name)
+        if extension is not None and not callable(extension):raise TypeError('Module extension must be a host handler')
         self.module_types[name]=factory
         self.module_owners[name]=self.loading_component
+        if extension is not None:
+            self.module_extensions[name]=(factory,extension)
 
     def rpc(self, name, function, mutation=False):
         if name in self.routes:

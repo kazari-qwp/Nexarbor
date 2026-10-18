@@ -1,4 +1,4 @@
-"""Versioned development contract layered on the existing NodeModule API."""
+"""Local-only v2 contract; old modules fail before their source is imported."""
 import importlib.util
 import json
 import re
@@ -12,7 +12,7 @@ from datanet.core.json_values import names
 
 SCHEMA={'type':'object','required':['format','id','version','entry','node_types','requires','config_schema','state_schema','tools','signals'],
  'additionalProperties':False,'properties':{
- 'format':{'const':'nexarbor-module/v1'},'id':{'type':'string','pattern':r'^[a-z][a-z0-9_.-]+$'},
+ 'format':{'const':'nexarbor-module/v2'},'id':{'type':'string','pattern':r'^[a-z][a-z0-9_.-]+$'},
  'version':{'type':'string','pattern':r'^\d+\.\d+\.\d+$'},'entry':{'const':'module.py:Module'},
  'node_types':{'type':'array','minItems':1,'uniqueItems':True,'items':{'enum':['node','text_file','agent','pulse']}},
  'requires':{'type':'array','uniqueItems':True,'items':{'type':'string'}},
@@ -21,11 +21,12 @@ SCHEMA={'type':'object','required':['format','id','version','entry','node_types'
    'properties':{'name':{'type':'string','pattern':r'^[a-z][a-z0-9_]*$'},'description':{'type':'string'},'parameters':{'type':'object'},
       'channels':{'oneOf':[{'type':'array','items':{'type':'string','minLength':1}},{'type':'object','required':['config'],'additionalProperties':False,'properties':{'config':{'type':'string'}}}]}}}},
  'signals':{'type':'array','items':{'type':'string','minLength':1}},
- 'operations':{'type':'array','items':{'type':'object','required':['name','parameters'],'additionalProperties':False,'properties':{'name':{'type':'string','pattern':r'^[a-z][a-z0-9_]*$'},'parameters':{'type':'object'}}}}
+ 'operations':{'type':'array','items':{'type':'object','required':['name','parameters','channels'],'additionalProperties':False,'properties':{'name':{'type':'string','pattern':r'^[a-z][a-z0-9_]*$'},'parameters':{'type':'object'},'channels':{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}}}}}
 }}
 
 def manifest(folder):
     result=json.loads((Path(folder)/'module.json').read_text(encoding='utf-8'))
+    if result.get('format')!='nexarbor-module/v2':raise ValueError('Only local nexarbor-module/v2 is supported; migrate the old module explicitly')
     Draft202012Validator(SCHEMA).validate(result)
     for key in ['config_schema','state_schema']:Draft202012Validator.check_schema(result[key])
     if len({t['name'] for t in result['tools']})!=len(result['tools']):raise ValueError('Duplicate tool names')
@@ -44,33 +45,42 @@ class StudioModule(NodeModule):
     def tool_description(self,name,default):return default
     def tool_enabled(self,name):return True
     def on_tool_denied(self,name,actor,reason):return reason
-    def invoke_operation(self,name,arguments):
-        spec=next((s for s in self.manifest.get('operations',[]) if s['name']==name),None)
-        if spec is None:raise ValueError('Module operation is not declared: '+name)
-        Draft202012Validator(spec['parameters']).validate(arguments)
-        value=getattr(self,name)(**arguments)
-        if hasattr(value,'__await__'):
-            async def checked():
-                result=await value;Draft202012Validator(self.manifest['state_schema']).validate(self.state);return result
-            return checked()
-        Draft202012Validator(self.manifest['state_schema']).validate(self.state)
-        return value
+    def _checked(self,function,schema):
+        import inspect
+        if inspect.iscoroutinefunction(function):
+            async def checked(**arguments):
+                Draft202012Validator(schema).validate(arguments)
+                value=await function(**arguments)
+                Draft202012Validator(self.manifest['state_schema']).validate(self.state)
+                return value
+        else:
+            def checked(**arguments):
+                Draft202012Validator(schema).validate(arguments)
+                value=function(**arguments)
+                Draft202012Validator(self.manifest['state_schema']).validate(self.state)
+                return value
+        return checked
     def install(self):
-        if self.node.signal_type not in self.manifest['node_types']:raise ValueError('Module does not support this node type')
-        Draft202012Validator(self.manifest['config_schema']).validate(self.config)
+        if self.context.metadata()['node_type'] not in self.manifest['node_types']:raise ValueError('Module does not support this node type')
+        from datanet.core.json_values import thaw
+        Draft202012Validator(self.manifest['config_schema']).validate(thaw(self.config))
         self.setup()
         Draft202012Validator(self.manifest['state_schema']).validate(self.state)
+        for operation in self.manifest.get('operations',[]):
+            self.operation(operation['name'],self._checked(getattr(self,operation['name']),operation['parameters']),channels=operation['channels'])
+        if self.manifest['signals']:
+            async def receive(context):
+                value=self.on_signal(context)
+                if hasattr(value,'__await__'):value=await value
+                Draft202012Validator(self.manifest['state_schema']).validate(self.state)
+                return value
+            self.receive(self.manifest['signals'],receive)
         for tool in self.manifest['tools']:
             if not self.tool_enabled(tool['name']):continue
             channels=tool['channels']
             if isinstance(channels,dict):channels=self.config[channels['config']]
             channels=names(channels,'tool channels')
-            function=getattr(self,tool['name'])
-            def checked(_function=function,_schema=tool['parameters'],**arguments):
-                Draft202012Validator(_schema).validate(arguments)
-                value=_function(**arguments)
-                Draft202012Validator(self.manifest['state_schema']).validate(self.state)
-                return value
+            checked=self._checked(getattr(self,tool['name']),tool['parameters'])
             def refusal(actor,reason,_name=tool['name']):return self.on_tool_denied(_name,actor,reason)
             self.tool(tool['name'],checked,description=self.tool_description(tool['name'],tool['description']),parameters=tool['parameters'],access_channels=channels,refusal=refusal)
 
@@ -85,6 +95,6 @@ def factory(folder):
     except BaseException:sys.modules.pop(key,None);raise
     cls=getattr(module,'Module',None)
     if not isinstance(cls,type) or not issubclass(cls,StudioModule):raise TypeError('Module must extend StudioModule')
-    def create(backend,node,config,state):
-        result=cls(backend,node,config,state);result.manifest=deepcopy(specification);return result
+    def create(context):
+        result=cls(context);result.manifest=deepcopy(specification);return result
     return specification,create

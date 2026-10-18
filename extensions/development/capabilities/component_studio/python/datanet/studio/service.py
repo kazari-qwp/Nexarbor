@@ -91,7 +91,7 @@ class Studio:
     def catalog(self,p=None):
         samples=read_json(RESOURCE/'samples.json',[])
         return dict(workspaces=[dict(id=p.name,**read_json(p/'workspace.json',{})) for p in self.work.iterdir() if p.is_dir()],
-                    samples=samples,library=self.library,jobs=list(self.jobs.values()),contract='nexarbor-module/v1')
+                    samples=samples,library=self.library,jobs=list(self.jobs.values()),contract='nexarbor-module/v2')
     def create(self,p):
         sample=p.get('sample','blank');definitions=read_json(RESOURCE/'samples.json',[])
         selected=next((s for s in definitions if s['id']==sample),None)
@@ -228,7 +228,7 @@ class Studio:
         if self.running:raise ValueError('Wait until the signal completes')
         module=self.library[p['module']];folder=self.root/module['folder']
         config=p.get('config',read_json(folder/'example.json',{}).get('config',{}))
-        self.backend.modules.mount(p['node'],p['module'],config,{},bind=False)
+        self.backend.modules.mount(p['node'],p['module'],config,{},access=p.get('access'))
         self._bind();return self.state()
     def unmount(self,p):
         if self.running:raise ValueError('Wait until the signal completes')

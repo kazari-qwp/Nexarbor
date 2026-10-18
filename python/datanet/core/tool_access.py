@@ -3,6 +3,8 @@ from copy import deepcopy
 from datanet.core.node import NodeResult
 from datanet.core.access_budget import access_context, current_access, active_agent
 from types import SimpleNamespace
+import asyncio
+import inspect
 
 def reachable(network,node_id,scope='network',strength=0,channels=()):
     yield from network.walk(node_id,scope=scope,strength=strength,channels=channels)
@@ -50,6 +52,16 @@ def validate_arguments(value, schema):
             validate_arguments(item, schema['items'])
 
 def invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope='network',strength=0):
+    """Synchronous host entry; asynchronous tools also complete before returning."""
+    return _invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope,strength,asynchronous=False)
+
+
+async def invoke_tool_async(network,node_id,target_node_id,tool_name,arguments,scope='network',strength=0):
+    result=_invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope,strength,asynchronous=True)
+    return await result if inspect.isawaitable(result) else result
+
+
+def _invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope,strength,*,asynchronous):
     if not isinstance(target_node_id,str) or not isinstance(tool_name,str) or not isinstance(arguments,dict):raise TypeError('目标和工具名必须为字符串，arguments 必须为字典')
     frame=current_access.get()
     if frame is not None and frame['network'] is network and target_node_id in frame['visited']:return NodeResult(status='forbidden',errors=['本次访问不允许重复调用已访问节点'])
@@ -65,14 +77,33 @@ def invoke_tool(network,node_id,target_node_id,tool_name,arguments,scope='networ
     for target,path,remaining in network.walk_states(node_id,scope=scope,strength=strength,channels=channels):
         if target.node_id!=target_node_id:continue
         validate_arguments(arguments,definition['parameters'])
+        if not asynchronous and inspect.iscoroutinefunction(node.tools[tool_name]):
+            try:asyncio.get_running_loop()
+            except RuntimeError:pass
+            else:raise RuntimeError('Use await invoke_tool_async inside an event loop')
         identity=active_agent.set(active_agent.get() or (SimpleNamespace(max_signal_strength=strength),node_id))
         try:
             with access_context(network,target_node_id,remaining,path,channels=channels):result=node.invoke_tool(tool_name,**arguments)
         finally:active_agent.reset(identity)
         source={'node_id':target_node_id,'tool_name':tool_name,'retrieval_path':path.copy(),'remaining_strength':remaining,'access_channels':list(channels)}
-        if isinstance(result,NodeResult):
-            result=deepcopy(result);result.sources=[{**s,'tool_name':tool_name,'tool_path':path.copy()} for s in result.sources];result.sources.append(source);return result
-        return NodeResult(items=[{'result':result}],sources=[source])
+        def finish(value):
+            if isinstance(value,NodeResult):
+                value=deepcopy(value);value.sources=[{**s,'tool_name':tool_name,'tool_path':path.copy()} for s in value.sources];value.sources.append(source);return value
+            return NodeResult(items=[{'result':value}],sources=[source])
+        if inspect.isawaitable(result):
+            if not asynchronous:
+                try:asyncio.get_running_loop()
+                except RuntimeError:pass
+                else:
+                    if inspect.iscoroutine(result):result.close()
+                    raise RuntimeError('Use await invoke_tool_async inside an event loop')
+            async def complete():
+                token=active_agent.set(active_agent.get() or (SimpleNamespace(max_signal_strength=strength),node_id))
+                try:
+                    with access_context(network,target_node_id,remaining,path,channels=channels):return finish(await result)
+                finally:active_agent.reset(token)
+            return complete() if asynchronous else asyncio.run(complete())
+        return finish(result)
     return NodeResult(status='forbidden',errors=['目标工具所需频道不可达'])
 
 def discovery_definitions():
