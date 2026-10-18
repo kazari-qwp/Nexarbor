@@ -56,7 +56,10 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
   node.management_parent_id=mapping[node.management_parent_id]??(ids.has(node.management_parent_id)?node.management_parent_id:'root');
   if(node.management_parent_id===node.node_id)node.management_parent_id='root';
   node.connections.interfaces=node.connections.interfaces.map(link=>({...link,target_node_id:mapping[link.target_node_id]??link.target_node_id})).filter(link=>ids.has(link.target_node_id));
-  for(const [id,spec] of Object.entries(node.modules))spec.config=schemaRefs(spec.config,catalog[id]?.schema,mapping);
+  for(const [id,spec] of Object.entries(node.modules)){
+   spec.config=schemaRefs(spec.config,catalog[id]?.schema,mapping);
+   spec.state=schemaRefs(spec.state,catalog[id]?.state_schema,mapping);
+  }
   nodes.push(node);
  }
  next.network.nodes.push(...nodes);next.files??={};for(const [name,content] of Object.entries(bookmark.snapshot.files))next.files[paths[name]]=content;

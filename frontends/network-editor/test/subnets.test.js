@@ -41,8 +41,8 @@ test('history drag preserves bookmark mode and drops an edge source while keepin
  assert.throws(()=>historyBookmark({kind:'node',id:'missing',label:'不存在'}),/没有可复用/);
 });
 test('every A/B placement allocates collision-free IDs and remaps all internal links while B retains original external targets',()=>{
- const schema={reference:{schema:{type:'object',properties:{target:{type:'string',format:'node-id'}}}}};
- const source=structuredClone(document);source.network.nodes[0].modules.reference={config:{target:'b'},state:{}};
+ const schema={reference:{schema:{type:'object',properties:{target:{type:'string',format:'node-id'}}},state_schema:{type:'object',properties:{location:{type:'string',format:'node-id'},visitors:{type:'array',items:{type:'string',format:'node-id'}},external:{type:'string',format:'node-id'}}}}};
+ const source=structuredClone(document);source.network.nodes[0].modules.reference={config:{target:'b'},state:{location:'b',visitors:['a','b'],external:'c'}};
  for(const mode of ['internal','external']){
   const snapshot=copySubnet(source,['a','b'],mode);let current=source;
   for(let i=0;i<4;i++){
@@ -50,6 +50,7 @@ test('every A/B placement allocates collision-free IDs and remaps all internal l
    assert.equal(first.name,'a');assert.equal(second.name,'b');
    assert.equal(first.connections.interfaces[0].target_node_id,second.node_id);assert.equal(second.connections.interfaces[0].target_node_id,first.node_id);
    assert.equal(first.modules.reference.config.target,second.node_id);
+   assert.deepEqual(first.modules.reference.state,{location:second.node_id,visitors:[first.node_id,second.node_id],external:'c'});
    assert.deepEqual(first.connections.interfaces.slice(1).map(l=>l.target_node_id),mode==='external'?['c']:[]);
    assert.equal(new Set(result.document.network.nodes.map(n=>n.node_id)).size,result.document.network.nodes.length);current=result.document;
   }

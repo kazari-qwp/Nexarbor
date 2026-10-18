@@ -31,18 +31,22 @@
             ],
             "properties": {
               "type": {
-                "const": "call"
+                "const": "call",
+                "title": "步骤类型"
               },
               "id": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "title": "步骤编号"
               },
               "operation": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "title": "操作"
               },
               "arguments": {
-                "type": "object"
+                "type": "object",
+                "title": "参数"
               }
             }
           },
@@ -58,13 +62,15 @@
                 "enum": [
                   "sequence",
                   "parallel"
-                ]
+                ],
+                "title": "步骤类型"
               },
               "steps": {
                 "type": "array",
                 "items": {
                   "$ref": "#/$defs/plan"
-                }
+                },
+                "title": "执行步骤"
               }
             }
           },
@@ -79,7 +85,8 @@
             ],
             "properties": {
               "type": {
-                "const": "branch"
+                "const": "branch",
+                "title": "步骤类型"
               },
               "select": {
                 "type": "object",
@@ -92,17 +99,20 @@
                     "type": "string",
                     "pattern": "^/"
                   }
-                }
+                },
+                "title": "分支依据"
               },
               "cases": {
                 "type": "object",
                 "minProperties": 1,
                 "additionalProperties": {
                   "$ref": "#/$defs/plan"
-                }
+                },
+                "title": "分支映射"
               },
               "default": {
-                "$ref": "#/$defs/plan"
+                "$ref": "#/$defs/plan",
+                "title": "默认分支"
               }
             }
           }
@@ -122,15 +132,18 @@
           "properties": {
             "node": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "title": "目标节点"
             },
             "module": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "title": "模块"
             },
             "operation": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "title": "操作"
             },
             "channels": {
               "type": "array",
@@ -138,29 +151,35 @@
               "items": {
                 "type": "string",
                 "minLength": 1
-              }
+              },
+              "title": "频道"
             },
             "strength": {
               "type": "number",
-              "minimum": 0
+              "minimum": 0,
+              "title": "强度"
             },
             "require_success": {
               "type": "boolean",
-              "default": true
+              "default": true,
+              "title": "要求执行成功"
             }
           }
-        }
+        },
+        "title": "操作映射"
       },
       "graphs": {
         "type": "object",
         "minProperties": 1,
         "additionalProperties": {
           "$ref": "#/$defs/plan"
-        }
+        },
+        "title": "执行图"
       },
       "default_graph": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "title": "默认执行图"
       },
       "signal_channels": {
         "type": "array",
@@ -168,13 +187,15 @@
         "items": {
           "type": "string",
           "minLength": 1
-        }
+        },
+        "title": "响应频道"
       },
       "timeout_seconds": {
         "type": "number",
         "minimum": 0.01,
         "maximum": 300,
-        "default": 60
+        "default": 60,
+        "title": "执行超时（秒）"
       },
       "on_signal": {
         "type": "array",
@@ -188,11 +209,13 @@
           "properties": {
             "graph": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "title": "执行图名称"
             },
             "kind": {
               "type": "string",
-              "minLength": 1
+              "minLength": 1,
+              "title": "信号种类"
             },
             "channels": {
               "type": "array",
@@ -200,22 +223,27 @@
               "items": {
                 "type": "string",
                 "minLength": 1
-              }
+              },
+              "title": "频道"
             },
             "where": {
               "type": "object",
               "propertyNames": {
                 "pattern": "^/"
-              }
+              },
+              "title": "匹配条件"
             }
           }
-        }
+        },
+        "title": "信号执行规则"
       }
-    }
+    },
+    "title": "模块流程配置"
   },
   "state_schema": {
     "type": "object",
-    "additionalProperties": false
+    "additionalProperties": false,
+    "title": "模块状态"
   },
   "signals": {
     "config": "signal_channels"
@@ -232,14 +260,19 @@
         "properties": {
           "graph": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "title": "执行图名称"
           },
-          "input": {}
+          "input": {
+            "title": "输入内容"
+          }
         }
       },
       "result": {
         "type": "object"
       }
     }
-  ]
+  ],
+  "name": "模块流程执行器",
+  "description": "通过可配置执行图按顺序、分支或并行调用模块。"
 }

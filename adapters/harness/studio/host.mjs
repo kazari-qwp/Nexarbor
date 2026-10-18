@@ -18,6 +18,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  const rpc=(method,params={})=>new Promise((resolve,reject)=>{if(closed)return reject(Error('后端已关闭'));const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('开发操作超时：'+method));},method==='studio_pulse'?660000:45000);pending.set(id,{resolve,reject,timer});child.stdin.write(JSON.stringify({id,method,params})+'\n');});
  const request=async(operation,params)=>{
   if(operation==='resource.inspect'||operation==='resource.purge'){
+   if(params.kind==='tool'&&params.id.startsWith('module:')){if(operation==='resource.purge')throw Error('模块携带工具应随实现模块管理');return {canDelete:false,reason:'工具由模块提供，请到对应模块查看实现。独立书签和历史缓存保留。',ownership:'module'};}
    if(params.kind==='module')return rpc(operation==='resource.inspect'?'studio_release_delete_info':'studio_delete_release',{module:params.id,confirm:params.confirm});
    if(params.kind==='tool'&&officialTools.some(t=>t.ref===params.id)){if(operation==='resource.purge')throw Error('Harness 官方工具不可彻底删除');return {canDelete:false,reason:'Harness 官方工具属于共享安装，只可归档和恢复。',ownership:'official'};}
    throw Error('该工具尚未登记项目自有的文件来源');
@@ -26,8 +27,8 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(operation==='module.frontend')return rpc('studio_frontend',params);
   if(['state','draft','apply','view'].includes(operation))return rpc('studio_'+operation,params);
   if(operation==='catalog'){
-   const catalog=await rpc('studio_catalog');const presets=[];
-   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库',display_folder:m.display_folder}])),nodes:editorNodes(),presets,studio:true,tools:officialTools,toolError,contract:catalog.contract};
+   const catalog=await rpc('studio_catalog');const presets=[];const moduleTools=Object.values(catalog.library).flatMap(m=>(m.manifest.agent_tools??[]).map(t=>{const operation=m.manifest.operations.find(o=>o.name===t.operation);return {ref:'module:'+m.id+'/'+t.id,name:t.name,description:t.description,parameters:operation.parameters,channels:operation.channels,provider:'module',module:m.id,requires:[m.id],tools:[]};}));
+   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.name??m.manifest.name??m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,requires:m.manifest.requires??[],tools:(m.manifest.agent_tools??[]).map(t=>'module:'+m.id+'/'+t.id),version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,state_schema:m.manifest.state_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库',display_folder:m.display_folder}])),nodes:editorNodes(),presets,studio:true,tools:[...officialTools,...moduleTools],toolError,contract:catalog.contract};
   }
   if(operation==='preset'){
    if(!/^[a-zA-Z0-9_-]+$/.test(params.id))throw Error('Invalid preset');

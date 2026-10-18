@@ -14,6 +14,8 @@ SCHEMA = {'type':'object', 'additionalProperties':False,
  'format':{'const':'nexarbor-module/v3'},
  'id':{'type':'string','pattern':r'^[a-z][a-z0-9_.-]+$'},
  'version':{'type':'string','pattern':r'^\d+\.\d+\.\d+$'},
+ 'name':{'type':'string','minLength':1,'maxLength':160},
+ 'agent_tools':{'type':'array','items':{'type':'object','additionalProperties':False,'required':['id','name','description','operation'],'properties':{key:{'type':'string','minLength':1} for key in ('id','name','description','operation')}}},
  'description':{'type':'string','maxLength':4000},
  'preview':{'type':'string','maxLength':350000,'pattern':r'^data:image/(png|jpeg|webp|svg\+xml)(;base64)?,[^\r\n]+$'},
  'entry':{'const':'module.py:execute'},
@@ -44,6 +46,11 @@ def manifest(folder):
         seen.add(operation['name'])
         for key in ('parameters','result'): Draft202012Validator.check_schema(operation[key])
         if operation['parameters'].get('type')!='object': raise ValueError('Parameters must be an object')
+    tools=set()
+    for tool in result.get('agent_tools',[]):
+        if tool['id'] in tools or tool['operation'] not in seen:raise ValueError('模块工具重复或引用未声明操作')
+        tools.add(tool['id'])
+    if tools and result.get('tool_provider'):raise ValueError('静态工具与动态工具提供器不能同时声明')
     frontend_file(folder,result)
     return result
 
@@ -70,7 +77,7 @@ def factory(folder):
     module=importlib.util.module_from_spec(spec);sys.modules[key]=module
     try:
         spec.loader.exec_module(module)
-        definition=ModuleDefinition(module.execute, tool_provider=specification.get('tool_provider'),
+        definition=ModuleDefinition(module.execute, tool_provider=specification.get('tool_provider'),agent_tools=specification.get('agent_tools',[]),
             **{key:specification[key] for key in ('operations','signals','node_types','config_schema','state_schema')})
     except BaseException:
         sys.modules.pop(key,None);raise

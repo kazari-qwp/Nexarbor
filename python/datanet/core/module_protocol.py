@@ -37,7 +37,7 @@ class ComponentResult:
 class ModuleDefinition:
     """Registration accepts this definition, not arbitrary factories/classes."""
     def __init__(self, execute, *, operations=(), signals=(), node_types=('node', 'text_file', 'agent', 'pulse'),
-                 config_schema=None, state_schema=None, tool_provider=None):
+                 config_schema=None, state_schema=None, tool_provider=None, agent_tools=()):
         if not iscoroutinefunction(execute): raise TypeError('Component entry must be async execute(ctx, activation)')
         params = list(signature(execute).parameters.values())
         if len(params) != 2 or [p.name for p in params] != ['ctx', 'activation'] or any(
@@ -67,6 +67,13 @@ class ModuleDefinition:
         self.state_schema = state_schema or {'type': 'object'}
         for schema in (self.config_schema, self.state_schema): Draft202012Validator.check_schema(schema)
         self.tool_provider = None
+        self.agent_tools={}
+        for raw in agent_tools:
+            tool=thaw(freeze(raw))
+            if set(tool)!={'id','name','description','operation'} or any(not isinstance(v,str) or not v for v in tool.values()):raise ValueError('模块工具需要非空 id、name、description、operation')
+            if tool['id'] in self.agent_tools or tool['operation'] not in self.operations:raise ValueError('模块工具重复或引用未声明操作')
+            self.agent_tools[tool['id']]=freeze(tool)
+        if self.agent_tools and tool_provider is not None:raise ValueError('静态工具与动态工具提供器不能同时声明')
         if tool_provider is not None:
             if not isinstance(tool_provider, dict) or set(tool_provider) != {'list', 'invoke'}:
                 raise ValueError('Tool provider requires list and invoke operation names')

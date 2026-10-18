@@ -13,10 +13,16 @@ class ModuleTools:
             strength=strength, channels=channels) if source['module'] == module), None)
 
     async def _list(self, actor, source, strength, channels):
-        response = await self.backend.modules.access(actor, source['node_id'], source['module'], source['list'],
-            strength=strength, channels=channels)
-        if response['status'] != 'ok': raise RuntimeError(response['error'])
-        data = response['data']
+        if source.get('static'):
+            instance=self.backend.modules._check((source['node_id'],source['module']));data=[]
+            for tool in instance.definition.agent_tools.values():
+                try:self.backend.modules._accessible(actor,source['node_id'],source['module'],tool['operation'],strength,channels)
+                except PermissionError:continue
+                data.append(dict(id=tool['id'],name=tool['name'],description=tool['description'],parameters=thaw(instance.definition.operations[tool['operation']]['parameters'])))
+        else:
+            response = await self.backend.modules.access(actor, source['node_id'], source['module'], source['list'],strength=strength, channels=channels)
+            if response['status'] != 'ok': raise RuntimeError(response['error'])
+            data = response['data']
         if not isinstance(data, list): raise ValueError('Tool provider must return a list')
         entries = []; seen = set()
         for item in data:
@@ -74,7 +80,12 @@ class ModuleTools:
     async def _invoke_owned(self, actor, entry, arguments, *, strength, channels):
         source = self._source(actor, entry['node_id'], entry['module'], strength, channels)
         if source is None: raise PermissionError('Tool provider is no longer accessible')
-        response = await self.backend.modules.access(actor, entry['node_id'], entry['module'], source['invoke'],
-            dict(tool_id=entry['tool_id'], arguments=arguments), strength=strength, channels=channels)
+        if source.get('static'):
+            tool=self.backend.modules._check((entry['node_id'],entry['module'])).definition.agent_tools.get(entry['tool_id'])
+            if tool is None:raise PermissionError('模块已不再提供此工具')
+            operation=tool['operation'];payload=arguments
+        else:operation=source['invoke'];payload=dict(tool_id=entry['tool_id'],arguments=arguments)
+        response = await self.backend.modules.access(actor, entry['node_id'], entry['module'], operation,
+            payload, strength=strength, channels=channels)
         if response['status'] != 'ok': raise PermissionError(response['error'])
         return response['data']

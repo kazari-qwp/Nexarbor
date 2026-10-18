@@ -1,0 +1,151 @@
+{
+  "format": "nexarbor-module/v3",
+  "version": "0.1.0",
+  "entry": "module.py:execute",
+  "signals": [],
+  "id": "place.info",
+  "name": "位置资料",
+  "description": "地点说明、访客与 NPC 当前位置；只修改所在节点。",
+  "node_types": [
+    "node",
+    "agent",
+    "text_file",
+    "pulse"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "title": "位置资料配置",
+    "properties": {
+      "description": {
+        "type": "string",
+        "title": "地点说明",
+        "default": ""
+      },
+      "location": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "初始所在地点",
+        "format": "node-id",
+        "default": null
+      },
+      "visitors": {
+        "type": "array",
+        "title": "初始访客",
+        "items": {
+          "type": "string",
+          "format": "node-id"
+        },
+        "default": []
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "location": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "format": "node-id"
+      },
+      "visitors": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "format": "node-id"
+        },
+        "uniqueItems": true
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "read",
+      "channels": [
+        "movement"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "arrive",
+      "channels": [
+        "movement"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "visitor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "visitor"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "leave",
+      "channels": [
+        "movement"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "visitor": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "visitor"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "set_location",
+      "channels": [
+        "movement"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "location",
+          "description"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ]
+}

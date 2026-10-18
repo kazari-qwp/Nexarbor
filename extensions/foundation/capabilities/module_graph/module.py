@@ -1,4 +1,4 @@
-"""Configurable module workflows; LangGraph schedules, the core authorizes."""
+"""可配置的模块流程；LangGraph 负责调度，核心检查权限。"""
 import asyncio
 from dataclasses import asdict
 from datanet.core.json_values import thaw
@@ -10,12 +10,12 @@ async def execute(ctx, activation):
     operations = ctx.config['operations']
     graphs = {name: validate(plan, operations) for name, plan in ctx.config['graphs'].items()}
     for rule in ctx.config.get('on_signal', ()):
-        if rule['graph'] not in graphs: raise ValueError('Unknown signal execution graph: '+rule['graph'])
+        if rule['graph'] not in graphs: raise ValueError('未找到信号执行图：'+rule['graph'])
 
     if activation.kind == 'access':
-        if activation.operation != 'run': return ComponentResult(status='error', error='Unknown executor operation')
+        if activation.operation != 'run': return ComponentResult(status='error', error='未知流程执行操作')
         graph = activation.parameters.get('graph', ctx.config.get('default_graph', 'main'))
-        if graph not in graphs: return ComponentResult(status='error', error='Unknown execution graph: '+graph)
+        if graph not in graphs: return ComponentResult(status='error', error='未找到执行图：'+graph)
         selected = [graph]
         event = dict(kind='access', source=activation.source, input=thaw(activation.parameters.get('input', {})), signal=None, delivery=None)
     else:
@@ -34,7 +34,7 @@ async def execute(ctx, activation):
         result = await ctx.network.call(spec.get('node', ctx.node_id), spec['module'], spec['operation'], arguments,
             channels=spec.get('channels'), strength=spec.get('strength'))
         if spec.get('require_success', True) and result['status'] != 'ok':
-            raise RuntimeError('Operation '+name+' failed: '+str(result['error']))
+            raise RuntimeError('操作 '+name+' 执行失败：'+str(result['error']))
         return result
 
     async def run():

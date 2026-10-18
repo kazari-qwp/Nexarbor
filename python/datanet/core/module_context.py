@@ -40,6 +40,10 @@ class ModuleNetwork:
         return self._request('nodes', channels=channels, strength=strength)
     def metadata(self, target, *, channels=None, strength=None):
         return self._request('metadata', target=target, channels=channels, strength=strength)
+    def edges(self, target, *, channels=None, strength=None):
+        return self._request('edges', target=target, channels=channels, strength=strength)
+    def patch_edges(self, changes, *, channels=None, strength=None):
+        return self._request('patch_edges', changes=changes, channels=channels, strength=strength)
     def tools(self, target, *, channels=None, strength=None):
         return self._request('tools', target=target, channels=channels, strength=strength)
     def invoke(self, target, tool, arguments=None, *, channels=None, strength=None):
@@ -80,6 +84,7 @@ class ModuleContext:
         return self._state
     network = property(lambda self: self._network)
     caller_id = property(lambda self: self._request('caller'))
+    requester_id = property(lambda self: self._request('requester'))
     def metadata(self): return self._request('local_metadata')
     def publish_metadata(self, fields): return self._request('publish_metadata', fields=fields)
     def read(self, request): return self._request('read', request=request)

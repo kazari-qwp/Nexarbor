@@ -22,6 +22,7 @@ from datanet.core.serialization import network_document,_build
 from datanet.core.tool_access import invoke_tool
 from .contract import factory,manifest,frontend_file
 from jsonschema import Draft202012Validator
+from .assembly import assemble,assemble_document
 
 PROJECT=Path(__file__).resolve().parents[7]
 RESOURCE=Path(__file__).resolve().parents[3]/'resources'
@@ -105,8 +106,9 @@ class Studio:
         return target
     def catalog(self,p=None):
         samples=read_json(RESOURCE/'samples.json',[])
+        library={name:dict(release,name=release['manifest'].get('name') or getattr(self.backend.components,'standard_modules',{}).get(name,{}).get('manifest',{}).get('name') or release['manifest'].get('frontend',{}).get('title') or name) for name,release in self.library.items()}
         return dict(workspaces=[dict(id=p.name,**read_json(p/'workspace.json',{})) for p in self.work.iterdir() if p.is_dir()],
-                    samples=samples,library=self.library,jobs=list(self.jobs.values()),contract='nexarbor-module/v3')
+                    samples=samples,library=library,jobs=list(self.jobs.values()),contract='nexarbor-module/v3')
     def create(self,p):
         sample=p.get('sample','blank');definitions=read_json(RESOURCE/'samples.json',[])
         selected=next((s for s in definitions if s['id']==sample),None)
@@ -285,7 +287,19 @@ class Studio:
         module=self.library[p['module']];folder=self.root/module['folder']
         config=p.get('config',read_json(folder/'example.json',{}).get('config',{}))
         defaults=read_json(folder/'example.json',{})
-        self.backend.modules.mount(p['node'],p['module'],config,defaults.get('state',{}),access=p.get('access',defaults.get('access')))
+        node=self.backend.network.nodes[p['node']]
+        proposed=dict(node.modules);proposed.setdefault(p['module'],dict(config=config,state=defaults.get('state',{}),access=p.get('access',defaults.get('access',dict(strength=0,channels=[])))))
+        expanded=assemble(dict(type=node.signal_type,modules=proposed),self.library,self.backend.components.module_types)
+        for name,spec in expanded.items():
+            definition=self.backend.components.module_types[name];definition.validate(spec['config'],definition.config_schema);definition.validate(spec['state'],definition.state_schema)
+        added=[]
+        try:
+            for name,spec in expanded.items():
+                if name in node.modules:continue
+                self.backend.modules.mount(p['node'],name,spec['config'],spec['state'],access=spec['access']);added.append(name)
+        except BaseException:
+            for name in reversed(added):self.backend.modules.unmount(p['node'],name)
+            raise
         self._bind();return self.state()
     def release_delete_info(self,p):
         """只检查本工作区发布目录；永远不接受来自页面的文件路径。"""
@@ -333,9 +347,14 @@ class Studio:
             return dict(deleted=name,filesDeleted=len(info['files']))
     def unmount(self,p):
         if self.running:raise ValueError('Wait until the signal completes')
+        dependants=[name for name in self.backend.network.nodes[p['node']].modules if p['module'] in self.library.get(name,{}).get('manifest',{}).get('requires',[])]
+        if dependants:raise ValueError('模块仍被以下实例依赖，请先卸载：'+ '、'.join(dependants))
         self.backend.modules.unmount(p['node'],p['module']);self._bind();return self.state()
     def _bind(self):
         from .sdk_services import bind_modules
+        for node in self.backend.network.nodes.values():
+            for name,spec in assemble(dict(type=node.signal_type,modules=node.modules),self.library,self.backend.components.module_types).items():
+                if name not in node.modules:self.backend.modules.mount(node.node_id,name,spec['config'],spec['state'],access=spec['access'])
         bind_modules(self.backend)
     def town(self,p):
         raise ValueError('The previous town preset has not been migrated to component v3')
@@ -371,7 +390,7 @@ class Studio:
         if self.running or self.backend.modules.executing or self.backend.network.signals._active:
             raise ValueError('Wait until component access and detached signals complete before replacing the graph')
         if p.get('base_commit')!=self.backend.store.head:raise ValueError('Network changed; reload before applying')
-        document=p['document'];candidate=_build(document['network'],self.backend.directory)
+        document=assemble_document(p['document'],self.library,self.backend.components.module_types);candidate=_build(document['network'],self.backend.directory)
         for node in candidate.nodes.values():
             self.backend.external_tools.validate_node(node)
             if hasattr(node,'file_path') and not node.file_path.is_relative_to(self.backend.directory):raise ValueError('Data files must stay in the network directory')
@@ -399,7 +418,7 @@ class Studio:
         return dict(actor=actor,paths=paths,tools=tools)
     def graph_validate(self,p):
         try:
-            candidate=_build(p['document']['network'],self.backend.directory)
+            candidate=_build(assemble_document(p['document'],self.library,self.backend.components.module_types)['network'],self.backend.directory)
             from jsonschema import validate
             for node in candidate.nodes.values():
                 self.backend.external_tools.validate_node(node)

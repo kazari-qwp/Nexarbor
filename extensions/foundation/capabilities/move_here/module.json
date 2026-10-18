@@ -1,0 +1,59 @@
+{
+  "format": "nexarbor-module/v3",
+  "version": "0.1.0",
+  "entry": "module.py:execute",
+  "signals": [],
+  "id": "movement.here",
+  "name": "移动到此",
+  "description": "锁定 NPC、旧地点和目的地，原子更新双向位置连接及地点资料。",
+  "node_types": [
+    "node",
+    "text_file"
+  ],
+  "requires": [
+    "place.info"
+  ],
+  "config_schema": {
+    "type": "object",
+    "title": "移动到此配置",
+    "properties": {
+      "timeout_seconds": {
+        "type": "number",
+        "minimum": 1,
+        "maximum": 120,
+        "default": 15,
+        "title": "移动超时（秒）"
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "move",
+      "channels": [
+        "movement"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "agent_tools": [
+    {
+      "id": "move_here",
+      "name": "移动到此",
+      "description": "沿相邻道路移动到提供此工具的地点。",
+      "operation": "move"
+    }
+  ]
+}

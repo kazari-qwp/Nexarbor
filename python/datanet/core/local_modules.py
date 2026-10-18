@@ -112,7 +112,7 @@ class NodeModules:
         trace = parent['trace'] if parent and parent['lease']['active'] else dict(calls=0, deadline=time.monotonic()+180)
         lease = {'active': True}
         token = _executing.set(dict(key=key, generation=generation, lease=lease, strength=strength, channels=channels,
-                                   caller=caller, children=[], trace=trace, scopes=[]))
+                                   caller=caller, requester=parent['requester'] if parent and parent['lease']['active'] else caller, children=[], trace=trace, scopes=[]))
         self.executing += 1
         try:
             with access_context(self.backend.network, key[0], strength, [key[0]], channels=channels): yield
@@ -236,6 +236,13 @@ class NodeModules:
             if node != target: continue
             try:
                 instance = self._check((node, module)); provider = instance.definition.tool_provider
+                if instance.definition.agent_tools:
+                    allowed=[]
+                    for tool in instance.definition.agent_tools.values():
+                        try:self._accessible(actor,target,module,tool['operation'],strength,channels);allowed.append(tool['id'])
+                        except PermissionError:continue
+                    if allowed:result.append(dict(node_id=node,module=module,static=True))
+                    continue
                 if not provider: continue
                 for operation in provider.values(): self._accessible(actor, target, module, operation, strength, channels)
             except PermissionError: continue
@@ -287,7 +294,26 @@ class NodeModules:
                 timeout=p['timeout'],validate=lambda:self._budget(key,p),finish=finish)
             frame['scopes'].append(scope)
             return scope
-        if operation in ('nodes','metadata','tools','visit','tool_sources'):
+        if operation == 'patch_edges':
+            from .edge_changes import edge_changes
+            changes=edge_changes(json_copy(p['changes']));p=dict(p);p['strength'],p['channels']=self._budget(key,p)
+            targets=tuple(dict.fromkeys(n for change in changes for n in (change['source'],change['edge'].target_node_id)))
+            async def patch():
+                async with self.backend.node_locks.access(targets):
+                    strength,channels=self._budget(key,p)
+                    with self.backend._transaction_lock:
+                        for target in targets:self._route(key,target,strength,channels)
+                        for change in changes:
+                            if not set(change['edge'].metadata.channels)<=set(channels):raise PermissionError('连接频道不能超过模块授权')
+                        pending={source:list(network.nodes[source].interfaces) for source in {c['source'] for c in changes}}
+                        for change in changes:
+                            edges=pending[change['source']];edge=change['edge']
+                            if change['action']=='remove':edges[:]=[old for old in edges if old!=edge]
+                            elif edge not in edges:edges.append(edge)
+                        for source,edges in pending.items():network.nodes[source].interfaces=edges
+                    return dict(changed=len(changes))
+            request=AccessRequest(patch());frame['children'].append(request);return request
+        if operation in ('nodes','metadata','edges','tools','visit','tool_sources'):
             p = dict(p); p['strength'],p['channels'] = self._budget(key,p)
             async def query():
                 while True:
@@ -304,6 +330,7 @@ class NodeModules:
                                 return [dict(metadata=json_copy(n.get_metadata()),path=path,strength=left) for n,path,left in current]
                             target,path,left = self._route(key,p['target'],strength,channels)
                             if operation == 'metadata': return json_copy(target.get_metadata())
+                            if operation == 'edges': return [json_copy(edge) for edge in target.interfaces]
                             if operation == 'tool_sources': return self._tool_sources(key[0],p['target'],strength=strength,channels=channels)
                             offers = getattr(self.backend,'external_tools',None)
                             if operation == 'visit':
@@ -328,6 +355,7 @@ class NodeModules:
             frame['children'].append(request)
             return request
         if operation == 'caller': return frame['caller']
+        if operation == 'requester': return frame['requester']
         if operation == 'local_metadata': return json_copy(node.get_metadata())
         if operation == 'publish_metadata':
             self.backend.node_locks.require_mutable(key[0])
@@ -384,6 +412,12 @@ class NodeModules:
                     if entry is None: raise PermissionError('No accessible module operation')
                     function, declared = entry
                 else:
+                    if p['tool'].startswith('module:'):
+                        from .module_tools import ModuleTools
+                        module,separator,tool_id=p['tool'][7:].partition('/')
+                        if not separator:raise ValueError('模块工具引用无效')
+                        value=await ModuleTools(self.backend).invoke(key[0],dict(node_id=p['target'],module=module,tool_id=tool_id),p['arguments'],strength=strength,channels=channels)
+                        self._scope(key);return value
                     if ':' in p['tool']:
                         value = await self.backend.external_tools.invoke(key[0], p['target'], p['tool'],
                             p['arguments'], strength=strength, channels=channels)
@@ -435,6 +469,13 @@ class NodeModules:
             result.append(dict(**json_copy(definition), path=path, remaining_strength=remaining))
         if getattr(self.backend, 'external_tools', None):
             result.extend(self.backend.external_tools.visit(key[0], target.node_id, strength=strength, channels=channels, acquire=False))
+        for (node_id,module),instance in self.instances.items():
+            if node_id!=target_id:continue
+            for tool in instance.definition.agent_tools.values():
+                try:self._accessible(key[0],target_id,module,tool['operation'],strength,channels)
+                except PermissionError:continue
+                operation=instance.definition.operations[tool['operation']]
+                result.append(dict(ref='module:'+module+'/'+tool['id'],name=tool['name'],description=tool['description'],parameters=thaw(operation['parameters'])))
         return result
 
     @contextmanager

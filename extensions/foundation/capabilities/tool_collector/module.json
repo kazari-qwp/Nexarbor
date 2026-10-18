@@ -12,11 +12,13 @@
   "requires": [],
   "config_schema": {
     "type": "object",
-    "additionalProperties": false
+    "additionalProperties": false,
+    "title": "工具收集配置"
   },
   "state_schema": {
     "type": "object",
-    "additionalProperties": false
+    "additionalProperties": false,
+    "title": "模块状态"
   },
   "signals": [],
   "tool_provider": {
@@ -48,7 +50,8 @@
           ],
           "properties": {
             "id": {
-              "type": "string"
+              "type": "string",
+              "title": "工具编号"
             },
             "name": {
               "type": "string"
@@ -99,14 +102,18 @@
         ],
         "properties": {
           "tool_id": {
-            "type": "string"
+            "type": "string",
+            "title": "工具编号"
           },
           "arguments": {
-            "type": "object"
+            "type": "object",
+            "title": "参数"
           }
         }
       },
       "result": {}
     }
-  ]
+  ],
+  "name": "工具收集器",
+  "description": "按可达范围收集工具，支持串联与来源去重。"
 }

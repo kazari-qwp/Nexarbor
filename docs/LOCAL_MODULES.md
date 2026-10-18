@@ -41,6 +41,10 @@ async def execute(ctx, activation):
 
 清单声明 `id/version/node_types/requires/config_schema/state_schema/operations/signals`。每项 operation 声明 `name/channels/parameters/result`；其中 result 校验返回的 data。配置、状态和结果都经校验，跨实例交换 JSON 副本。旧清单在导入源码前拒绝；新版源码的入口签名不合规则不能登记。
 
+可选 `name` 提供中文显示名称，程序 ID 保持稳定。`requires` 声明同节点直接依赖，工作台装配、应用和加载时递归补齐；已存在实例复用原配置、状态与授权，不重复挂载。缺少发布模块、依赖成环或节点类型不符时拒绝装配。客户端的依赖数字只统计一层，不递归累计。
+
+`ctx.caller_id` 是直接调用者，`ctx.requester_id` 是访问链最初发起者，转调不会覆盖最初身份。它们均由核心绑定，不能用参数中的节点编号代替；身份也不授予额外访问权限。
+
 ## 普通组件能力
 
 核心节点锁提供 `async with ctx.network.lock_nodes([...])`，支持重入、异步等待、旧节点记录拼接存档和内部回滚。网络查询 nodes/metadata/tools/visit/tool_sources 使用 await。见 [节点锁与节点持久化](NODE_LOCKS.md)。
@@ -59,6 +63,8 @@ async def execute(ctx, activation):
 | `ctx.publish_metadata(fields)` | 在本节点、本模块 ID 下发布字段；卸载撤销 |
 | `ctx.update_inputs(patch)` | 更新所在 Agent 的四路输入；不加载任意文件路径 |
 | `ctx.network.nodes/metadata` | 从本节点按频道和强度取得可达信息快照 |
+| `ctx.network.edges` | 异步读取可达节点的出边快照 |
+| `ctx.network.patch_edges` | 校验整批后修改可达节点出边；两端和频道均受授权限制 |
 | `ctx.network.visit/tools` | 访问可达节点，取得其提供的已登记工具引用 |
 | `ctx.network.tool_sources` | 查询可达节点明确声明的工具提供模块；返回操作名，不暴露实例 |
 | `ctx.network.call/invoke` | 立即启动可等待的组件／工具调用 |
@@ -66,6 +72,8 @@ async def execute(ctx, activation):
 | `signal_status/wait_signal/cancel_signal` | 查询、等待、取消本节点发出的信号 |
 
 没有 Backend、原始 Network/Node、任意起点、全局扫描、其他组件 state 或任意宿主 RPC。接口只能在本组件的有效回调中使用；卸载、禁用、重装使旧授权失效。长业务不应私自启动脱离回调的后台任务，独立传播交给核心信号。
+
+出边修改格式为 `[{"source":"起点","target":"终点","action":"add","metadata":{"channels":["movement"],"threshold":1,"multiplier":1,"attributes":{"relation":"location"}}}]`。每项固定四个字段，action 为 add 或 remove。两端都要在当前可达范围，连接频道不得超过本实例授权；add 对完全相同的边去重，remove 按完整连接数据精确匹配。整批先预检再写入，不会因后项失败只写入前半批。包含资料与输入修改的多步骤业务仍需先锁住相关节点，锁本身不增加权限。固定步骤直接依次 await；可配置流程才需要执行图。
 
 ## 可选官方网关
 
@@ -94,6 +102,10 @@ Agent 的 execution 设置 `channels:["tools"]` 与足够 strength，调用内�
 可选的标准模块 `tools.collector` 按自身授权收集工具，并调用可达的同类收集器合并结果，按原始节点＋工具引用去重。串联调用保持各实例自己的权限，远端工具通过收集器链执行。当前不添加收集器环检测。见 [组件说明与六节点验收图](../extensions/foundation/capabilities/tool_collector/README.md)。
 
 需要向 Agent 提供工具列表的组件可在清单声明 `tool_provider:{"list":"collect","invoke":"invoke"}`，两个值必须是已声明的操作。list 无参数并返回含 id/name/description/parameters 的数组；invoke 接收 tool_id 和 arguments。Agent 访问后，通用适配器装配带来源的工具，执行时重新访问该提供模块。普通模块不会仅因有 operations 就成为 Agent 工具。`network.tools` 仅查询，不自动装配，避免收集过程重复登记。
+
+固定的模块工具可声明 `agent_tools:[{"id":"move_here","name":"移动到此","description":"移动到此地点。","operation":"move"}]`，参数模式直接复用公开操作。框架登记为 `module:模块ID/工具ID`，执行时仍检查当前路径与操作授权。拖工具自动装配实现模块和递归依赖，拖模块即提供所携带工具；模块工具不重复写入 offered_tools，卸载模块后停止提供。静态 agent_tools 与动态 tool_provider 不在同一模块混用。工具收集器同时支持宿主工具和静态模块工具。
+
+“移动到此”示例见 [模块说明](../extensions/foundation/capabilities/move_here/README.md) 和 [三节点网络](../examples/move_here/README.md)。它依赖最小的“位置资料”模块，以 NPC、旧地点、新地点的节点锁保护位置边、访客和 Agent 输入更新，异常回滚；不经过 LangGraph。
 
 ## 验证范围
 
