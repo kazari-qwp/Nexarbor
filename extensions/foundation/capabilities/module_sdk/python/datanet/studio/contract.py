@@ -18,6 +18,8 @@ SCHEMA = {'type':'object', 'additionalProperties':False,
  'node_types':{'type':'array','minItems':1,'uniqueItems':True,'items':{'enum':['node','text_file','agent','pulse']}},
  'requires':{'type':'array','uniqueItems':True,'items':{'type':'string'}},
  'config_schema':{'type':'object'}, 'state_schema':{'type':'object'},
+ 'tool_provider':{'type':'object','additionalProperties':False,'required':['list','invoke'],
+    'properties':{'list':{'type':'string','minLength':1},'invoke':{'type':'string','minLength':1}}},
  'operations':{'type':'array','items':{'type':'object','additionalProperties':False,
    'required':['name','channels','parameters','result'], 'properties':{
     'name':{'type':'string','minLength':1}, 'channels':{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}},
@@ -47,8 +49,8 @@ def factory(folder):
     module=importlib.util.module_from_spec(spec);sys.modules[key]=module
     try:
         spec.loader.exec_module(module)
-        definition=ModuleDefinition(module.execute, **{key:specification[key] for key in
-            ('operations','signals','node_types','config_schema','state_schema')})
+        definition=ModuleDefinition(module.execute, tool_provider=specification.get('tool_provider'),
+            **{key:specification[key] for key in ('operations','signals','node_types','config_schema','state_schema')})
     except BaseException:
         sys.modules.pop(key,None);raise
     return specification,definition

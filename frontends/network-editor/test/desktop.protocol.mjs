@@ -29,6 +29,7 @@ try{
  await page.getByLabel('添加节点工具').selectOption('harness:read');
  await page.getByRole('button',{name:'应用网络',exact:true}).click();
  await expect(page.getByRole('button',{name:'应用网络',exact:true})).toBeDisabled({timeout:10000});
+ await expect.poll(async()=>((await api('state')).live.document.network.nodes.find(n=>n.node_id==='tools').offered_tools),{timeout:10000}).toEqual([{ref:'harness:read',channels:['tools']}]);
  const visited=await api('tools.visit',{actor:'root',target:'tools'});expect(visited.tools[0].ref).toBe('harness:read');
  const prepared=await host.rpc('executor_prepare',{actor:'root'});
  const tool=prepared.tools.find(t=>t.name.startsWith('ext_'));expect(tool).toBeTruthy();

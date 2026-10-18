@@ -18,7 +18,7 @@ class StudioTransport(Transport):
                 return await asyncio.to_thread(self.host,'official-tool-invoke',dict(actor=actor,name=name,arguments=arguments))
             self.backend.external_tools.register('harness',p['tools'],execute)
             return self.backend.external_tools.catalog()
-        if method in ('executor_invoke','executor_prepare'):
+        if method in ('executor_invoke','executor_prepare','executor_visit'):
             result=getattr(self.executor,method.removeprefix('executor_'))(p)
             self.backend.dispatch('save',{})
             return result

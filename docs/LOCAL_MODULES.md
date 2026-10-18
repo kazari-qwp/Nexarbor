@@ -58,6 +58,7 @@ async def execute(ctx, activation):
 | `ctx.update_inputs(patch)` | 更新所在 Agent 的四路输入；不加载任意文件路径 |
 | `ctx.network.nodes/metadata` | 从本节点按频道和强度取得可达信息快照 |
 | `ctx.network.visit/tools` | 访问可达节点，取得其提供的已登记工具引用 |
+| `ctx.network.tool_sources` | 查询可达节点明确声明的工具提供模块；返回操作名，不暴露实例 |
 | `ctx.network.call/invoke` | 立即启动可等待的组件／工具调用 |
 | `ctx.network.emit` | 交付核心持有的波，返回回执 |
 | `signal_status/wait_signal/cancel_signal` | 查询、等待、取消本节点发出的信号 |
@@ -87,6 +88,10 @@ async def execute(ctx, activation):
 Agent 的 execution 设置 `channels:["tools"]` 与足够 strength，调用内置 `network_visit` 后取得工具，适配层将其装配到 Agent。每次执行重新检查引用、提供节点、当前图路径、频道、强度和参数 Schema。断开连接或移除 offer 后，即使 Harness 历史中仍有旧声明，也不能继续执行。伪造工具描述 JSON 不会登记新执行能力。
 
 目前工作台提供本机 Harness SDK 的十个真实工具：read、write、edit、read_image、glob、grep、pwsh、job_output、job_list、job_kill。它们通过官方文件／终端／任务服务执行，不是我们重新实现的工具；属于显式外部宿主能力，外部效果由宿主权限控制。模型、凭据、需要交互或其他服务的工具及通用 MCP/Skill 导入不在本轮范围。
+
+可选的标准模块 `tools.collector` 按自身授权收集工具，并调用可达的同类收集器合并结果，按原始节点＋工具引用去重。串联调用保持各实例自己的权限，远端工具通过收集器链执行。当前不添加收集器环检测。见 [组件说明与六节点验收图](../extensions/foundation/capabilities/tool_collector/README.md)。
+
+需要向 Agent 提供工具列表的组件可在清单声明 `tool_provider:{"list":"collect","invoke":"invoke"}`，两个值必须是已声明的操作。list 无参数并返回含 id/name/description/parameters 的数组；invoke 接收 tool_id 和 arguments。Agent 访问后，通用适配器装配带来源的工具，执行时重新访问该提供模块。普通模块不会仅因有 operations 就成为 Agent 工具。`network.tools` 仅查询，不自动装配，避免收集过程重复登记。
 
 ## 验证范围
 

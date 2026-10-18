@@ -12,4 +12,6 @@ Activation has kind (`access`/`signal`), operation, immutable parameters, core-b
 
 Node offered_tools are registered external tool references, separate from component operations. An Agent visit acquires them; execution rechecks current graph access. Terminal tools are explicit host capabilities, not ordinary local modules.
 
+An explicit `tool_provider` manifest entry maps `list` and `invoke` to declared operations. `list({})` returns descriptors with id/name/description/parameters; `invoke({tool_id,arguments})` executes through the component's own network authority. The Agent adapter installs only these explicitly provided tools. `ctx.network.tool_sources(target,...)` discovers accessible providers without exposing instances. `network.tools` is a read-only query; it does not install tools. The standard `tools.collector` demonstrates chaining and origin-based deduplication; it currently adds no collector cycle detection.
+
 Module code is trusted Python. Contract checks and API locality do not create an OS sandbox. Missing authority is reported, never bypassed with filesystem/import/process tricks.

@@ -11,6 +11,8 @@ class NativeExecutor:
     def __init__(self,backend,transport):
         self.backend,self.transport=backend,transport
         self.seen={}
+        from datanet.core.module_tools import ModuleTools
+        self.module_tools=ModuleTools(backend)
         backend.agent_executor=self.run
         for method,mutation in [('prepare',True),('invoke',True),('ack',True),('bind',True),('prune',True),('visit',True)]:
             backend.components.rpc('executor_'+method,lambda b,p,method=method:getattr(self,method)(p),mutation=mutation)
@@ -47,19 +49,23 @@ class NativeExecutor:
         routes['network_visit']=dict(private=True,visit=True)
         for item in self.backend.external_tools.acquired(actor,strength=binding.get('strength',0),channels=binding.get('channels',[])):
             definitions.append(item['definition']);routes[item['alias']]=dict(private=False,external=True,**{k:item[k] for k in ('target','ref','channels','strength')})
+        for item in self.module_tools.acquired(actor,strength=binding.get('strength',0),channels=binding.get('channels',[])):
+            definitions.append(item['definition']);routes[item['alias']]=dict(private=False,module_tool=True,entry=item)
         self.seen.setdefault(actor,{}).update(routes)
         for definition in definitions:history[definition['name']]=dict(definition=definition,route=routes[definition['name']])
         return definitions,routes
     def refusal(self,actor,name):
         route=self.seen.get(actor,{}).get(name)
         reason='这个工具已离开你当前可达的范围，不能执行。'
-        if route and not route['private'] and not route.get('external'):
+        if route and not route['private'] and not route.get('external') and not route.get('module_tool'):
             target=self.backend.network.nodes.get(route['target'])
             callback=target.tool_refusals.get(route['tool']) if target else None
             if callback:return str(callback(actor,reason))
         return reason
     def prepare(self,p):
         actor=p['actor'];node,binding=self.binding(actor)
+        if self.backend.agents.get(actor,{}).get('module_tool_sources'):
+            self.backend.runtime.run(self.module_tools.refresh(actor,strength=binding.get('strength',0),channels=binding.get('channels',[])))
         for reference in binding.get('prepare',[]):
             value=self.backend.modules.call(reference.get('node',actor),reference['module'],reference['operation'],reference.get('arguments',{}))
             if hasattr(value,'__await__'):self.backend.runtime.run(value)
@@ -76,6 +82,9 @@ class NativeExecutor:
         identity=active_agent.set((SimpleNamespace(max_signal_strength=binding.get('strength',0)),actor))
         try:
             if route.get('visit'):return self.visit(dict(actor=actor,**arguments))
+            if route.get('module_tool'):
+                return self.backend.runtime.run(self.module_tools.invoke(actor,route['entry'],arguments,
+                    strength=binding.get('strength',0),channels=binding.get('channels',[])))
             if route.get('external'):
                 return self.backend.runtime.run(self.backend.external_tools.invoke(actor,route['target'],route['ref'],arguments,
                     strength=min(binding.get('strength',0),route['strength']),
@@ -93,6 +102,7 @@ class NativeExecutor:
         if target is None:
             return dict(nodes=[n.get_metadata() for n,_,_ in self.backend.network.walk_states(actor,strength=strength,channels=channels)])
         tools=self.backend.external_tools.visit(actor,target,strength=strength,channels=channels)
+        tools.extend(self.backend.runtime.run(self.module_tools.visit(actor,target,strength=strength,channels=channels)))
         return dict(metadata=self.backend.network.nodes[target].get_metadata(),tools=tools)
     def ack(self,p):
         node,_=self.binding(p['actor'])

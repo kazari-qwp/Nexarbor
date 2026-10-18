@@ -53,6 +53,8 @@ class ModuleNetwork:
                                    content=content, options=options)
     def visit(self, target, *, channels=None, strength=None):
         return self._request('visit', target=target, channels=channels, strength=strength)
+    def tool_sources(self, target, *, channels=None, strength=None):
+        return self._request('tool_sources', target=target, channels=channels, strength=strength)
     def signal_status(self, signal_id): return self._request('signal_status', signal_id=signal_id)
     def wait_signal(self, signal_id): return self._request('signal_wait', signal_id=signal_id)
     def cancel_signal(self, signal_id): return self._request('signal_cancel', signal_id=signal_id)

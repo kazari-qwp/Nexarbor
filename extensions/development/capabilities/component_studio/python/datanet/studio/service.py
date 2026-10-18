@@ -322,7 +322,9 @@ def register(services):
     services.graph_loaders.append(lambda b:b.studio._bind())
     services.snapshotters.append(lambda b:{'studio_releases':b.studio.library})
     def restore(b,document):
-        b.studio.library=document.get('studio_releases',b.studio.library);b.studio._load_releases()
+        installed={name:release for name,release in b.studio.library.items() if name in getattr(b.components,'standard_modules',{})}
+        b.studio.library={**installed,**document.get('studio_releases',b.studio.library)}
+        b.studio._load_releases()
     services.restorers.append(restore)
     methods={'catalog':False,'create':False,'read':False,'dependencies':False,'release_read':False,'fork':False,'save':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

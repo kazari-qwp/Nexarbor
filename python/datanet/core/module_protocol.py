@@ -37,7 +37,7 @@ class ComponentResult:
 class ModuleDefinition:
     """Registration accepts this definition, not arbitrary factories/classes."""
     def __init__(self, execute, *, operations=(), signals=(), node_types=('node', 'text_file', 'agent', 'pulse'),
-                 config_schema=None, state_schema=None):
+                 config_schema=None, state_schema=None, tool_provider=None):
         if not iscoroutinefunction(execute): raise TypeError('Component entry must be async execute(ctx, activation)')
         params = list(signature(execute).parameters.values())
         if len(params) != 2 or [p.name for p in params] != ['ctx', 'activation'] or any(
@@ -62,6 +62,13 @@ class ModuleDefinition:
         self.config_schema = config_schema or {'type': 'object'}
         self.state_schema = state_schema or {'type': 'object'}
         for schema in (self.config_schema, self.state_schema): Draft202012Validator.check_schema(schema)
+        self.tool_provider = None
+        if tool_provider is not None:
+            if not isinstance(tool_provider, dict) or set(tool_provider) != {'list', 'invoke'}:
+                raise ValueError('Tool provider requires list and invoke operation names')
+            if any(name not in self.operations for name in tool_provider.values()):
+                raise ValueError('Tool provider operations must be declared')
+            self.tool_provider = freeze(tool_provider)
 
     def __call__(self, context):
         from .local_modules import NodeModule

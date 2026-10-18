@@ -64,7 +64,7 @@ class ExternalTools:
         if not node_enabled(node): raise PermissionError('Tool provider is disabled')
         return descriptor
 
-    def visit(self, actor, target, *, strength, channels):
+    def visit(self, actor, target, *, strength, channels, acquire=True):
         # Validate the visit even if the node offers no tools.
         if not any(n.node_id == target for n, _, _ in self.backend.network.walk_states(actor, strength=strength, channels=channels)):
             raise PermissionError('Visit target is outside the current graph view')
@@ -76,7 +76,7 @@ class ExternalTools:
             alias = 'ext_' + sha256((target+'\0'+offer['ref']).encode()).hexdigest()[:24]
             entry = dict(alias=alias, target=target, ref=offer['ref'], channels=list(channels), strength=strength)
             result.append(dict(**thaw(descriptor), alias=alias, node_id=target))
-            if isinstance(self.backend.network.nodes[actor], AgentNode):
+            if acquire and isinstance(self.backend.network.nodes[actor], AgentNode):
                 self.backend.agents.setdefault(actor, {}).setdefault('external_tools', {})[alias] = entry
         return result
 

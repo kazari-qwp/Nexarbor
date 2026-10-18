@@ -200,6 +200,39 @@ class NodeModules:
         function, _ = instance.operations[operation]
         return self._run(key, function, **json_copy({} if arguments is None else arguments))
 
+    def _accessible(self, actor, target, module, operation, strength, channels):
+        instance = self._check((target, module))
+        declared = instance.operations[operation][1]
+        selected = tuple(c for c in names(channels, 'access channels') if c in declared)
+        if (declared or actor != target) and not selected: raise PermissionError('Operation channel is not granted')
+        route = next(((path, left) for node, path, left in self.backend.network.walk_states(
+            actor, strength=strength, channels=selected) if node.node_id == target), None)
+        if route is None: raise PermissionError('Component is outside the current graph view')
+        return selected, route
+
+    def tool_sources(self, actor, target, *, strength, channels):
+        """Expose only reachable, active declared tool provider endpoints."""
+        result = []
+        for node, module in self.instances:
+            if node != target: continue
+            try:
+                instance = self._check((node, module)); provider = instance.definition.tool_provider
+                if not provider: continue
+                for operation in provider.values(): self._accessible(actor, target, module, operation, strength, channels)
+            except PermissionError: continue
+            result.append(dict(node_id=node, module=module, **thaw(provider)))
+        return result
+
+    async def access(self, actor, target, module, operation, arguments=None, *, strength, channels):
+        """Trusted host adapter entry; module code uses its scoped network.call."""
+        from types import SimpleNamespace
+        selected, (path, left) = self._accessible(actor, target, module, operation, strength, channels)
+        identity = active_agent.set((SimpleNamespace(max_signal_strength=strength), actor))
+        try:
+            with access_context(self.backend.network, target, left, path, channels=selected):
+                return await self.call(target, module, operation, arguments)
+        finally: active_agent.reset(identity)
+
     def _budget(self, key, params):
         frame = self._scope(key)
         strength = frame['strength'] if params.get('strength') is None else validate_strength(params['strength'])
@@ -236,6 +269,10 @@ class NodeModules:
             offers = getattr(self.backend, 'external_tools', None)
             return dict(metadata=json_copy(target.get_metadata()), path=path, strength=remaining,
                 tools=offers.visit(key[0], target.node_id, strength=strength, channels=channels) if offers else [])
+        if operation == 'tool_sources':
+            strength, channels = self._budget(key, p)
+            self._route(key, p['target'], strength, channels)
+            return self.tool_sources(key[0], p['target'], strength=strength, channels=channels)
         if operation == 'caller': return frame['caller']
         if operation == 'local_metadata': return json_copy(node.get_metadata())
         if operation == 'publish_metadata':
@@ -324,7 +361,7 @@ class NodeModules:
                 except PermissionError: continue
                 result.append(dict(**json_copy(definition), path=path, remaining_strength=remaining))
             if getattr(self.backend, 'external_tools', None):
-                result.extend(self.backend.external_tools.visit(key[0], target.node_id, strength=strength, channels=channels))
+                result.extend(self.backend.external_tools.visit(key[0], target.node_id, strength=strength, channels=channels, acquire=False))
             return result
         if operation == 'emit':
             from .signals import Signal
