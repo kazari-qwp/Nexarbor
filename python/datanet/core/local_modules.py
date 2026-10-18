@@ -4,6 +4,10 @@ from contextvars import ContextVar
 from copy import deepcopy
 from dataclasses import asdict, is_dataclass
 import inspect
+import asyncio
+import time
+from .access_request import AccessRequest
+from .module_protocol import Activation, ComponentResult, require_definition
 from .json_values import freeze, thaw, names
 from .module_context import ModuleContext, ExtendedModuleContext, ModuleSignalContext, validate_access
 from .access_budget import current_access, active_agent, access_context
@@ -30,18 +34,38 @@ def validate_modules(value):
 
 
 class NodeModule:
-    def __init__(self, context):
-        if not isinstance(context, ModuleContext): raise TypeError('NodeModule requires a local ModuleContext')
-        self.context = context
+    """Core-owned bound instance. Component code provides only execute()."""
+    def __init__(self, context, definition):
+        self.context, self.definition = context, definition
         self.config, self.state = context.config, context.state
         self.active = True
         self.owned_tools, self.operations, self.receivers = set(), {}, []
-    def install(self): pass
+
     def close(self): self.active = False
     def unmount(self): self.close()
-    def tool(self, name, function, **definition): self.context.register_tool(name, function, **definition)
-    def operation(self, name, function, *, channels=()): self.context.register_operation(name, function, channels=channels)
-    def receive(self, channels, function): self.context.receive(channels, function)
+    def install(self):
+        definition = self.definition
+        if self.context.metadata()['node_type'] not in definition.node_types:
+            raise ValueError('Component does not support this node type')
+        definition.validate(self.config, definition.config_schema)
+        definition.validate(self.state, definition.state_schema)
+        for name, spec in definition.operations.items():
+            async def call(_name=name, _spec=spec, **parameters):
+                definition.validate(parameters, _spec['parameters'])
+                return await self.execute(Activation('access', _name, parameters, self.context.caller_id), _spec['result'])
+            self.operations[name] = (call, tuple(spec['channels']))
+        if definition.signals:
+            async def receive(delivered):
+                return await self.execute(Activation('signal', delivered.signal.kind, {}, delivered.signal.origin,
+                    request_id=delivered.receipt_id, signal=delivered.signal, delivery=delivered.delivery))
+            self.receivers.append((definition.signals, receive))
+
+    async def execute(self, activation, schema=None):
+        value = await self.definition.execute(self.context, activation)
+        if type(value) is not ComponentResult: raise TypeError('execute must return ComponentResult')
+        self.definition.validate(self.state, self.definition.state_schema)
+        if value.status == 'ok' and schema is not None: self.definition.validate(value.data, schema)
+        return dict(status=value.status, data=thaw(value.data), error=value.error)
 
 
 class NodeModules:
@@ -50,6 +74,7 @@ class NodeModules:
         self.instances, self._access, self._published, self._generations = {}, {}, {}, {}
         self._owners, self._nodes = {}, {}
         self._bindings = []
+        self.executing = 0
 
     def _check(self, key, generation=None):
         if generation is not None and self._generations.get(key) is not generation:
@@ -72,30 +97,48 @@ class NodeModules:
     @contextmanager
     def _enter(self, key, generation):
         self._check(key, generation)
-        grant, incoming = self._access[key], current_access.get()
+        grant = self._access[key]
         strength, channels = grant['strength'], grant['channels']
-        if incoming is not None and incoming['network'] is self.backend.network:
-            if incoming['node_id'] != key[0]: raise PermissionError('Module must enter through an authorized endpoint')
-            strength = min(strength, incoming['strength'])
-            channels = tuple(c for c in channels if c in incoming['channels'])
+        # A callee enters with its own grant, after the caller's path was checked.
+        incoming_token = current_access.set(None)
         identity = active_agent.get()
         parent = _executing.get()
-        caller = identity[1] if identity else parent['caller'] if parent and parent['lease']['active'] else key[0]
+        caller = parent['key'][0] if parent and parent['lease']['active'] else identity[1] if identity else key[0]
+        trace = parent['trace'] if parent and parent['lease']['active'] else dict(calls=0, deadline=time.monotonic()+180)
         lease = {'active': True}
         token = _executing.set(dict(key=key, generation=generation, lease=lease, strength=strength, channels=channels,
-                                   caller=caller))
+                                   caller=caller, children=[], trace=trace))
+        self.executing += 1
         try:
             with access_context(self.backend.network, key[0], strength, [key[0]], channels=channels): yield
         finally:
             lease['active'] = False
+            self.executing -= 1
             _executing.reset(token)
+            current_access.reset(incoming_token)
 
     def _run(self, key, function, *args, **kwargs):
         generation = self._generations.get(key)
         if inspect.iscoroutinefunction(function):
             async def run():
                 with self._enter(key, generation):
-                    result = await function(*args, **kwargs)
+                    try:
+                        result = await function(*args, **kwargs)
+                        children = _executing.get()['children']
+                        index = 0
+                        while index < len(children):
+                            batch = children[index:]; index = len(children)
+                            outcomes = await asyncio.gather(*(child.task for child in batch), return_exceptions=True)
+                            for child, outcome in zip(batch, outcomes):
+                                if isinstance(outcome, BaseException) and not child.observed: raise outcome
+                        instance = self._check(key, generation)
+                        instance.definition.validate(instance.state, instance.definition.state_schema)
+                    except BaseException:
+                        children = _executing.get()['children']
+                        for child in children:
+                            if not child.done(): child.cancel()
+                        await asyncio.gather(*(child.task for child in children), return_exceptions=True)
+                        raise
                     self._check(key, generation)
                     return json_copy(result)
             return run()
@@ -111,6 +154,7 @@ class NodeModules:
         return json_copy(result)
 
     def create(self, name, node, spec):
+        require_definition(self.factories[name])
         key = (node.node_id, name)
         extension = self._extension(name)
         if spec['access'].get('extension') is not None and extension is None:
@@ -166,9 +210,6 @@ class NodeModules:
 
     def _route(self, key, target, strength, channels):
         if not isinstance(target, str): raise TypeError('Target must be a node ID')
-        incoming = current_access.get()
-        if target != key[0] and incoming and target in incoming['visited']:
-            raise PermissionError('Cannot revisit a node in a nested module call')
         for node, path, remaining in self.backend.network.walk_states(key[0], strength=strength, channels=channels):
             if node.node_id == target: return node, path, remaining
         raise PermissionError('Target is outside this module network view')
@@ -176,6 +217,25 @@ class NodeModules:
     def _request(self, key, operation, p):
         frame = self._scope(key); instance = self._check(key)
         node, network = self.backend.network.nodes[key[0]], self.backend.network
+        if operation in ('signal_status', 'signal_wait', 'signal_cancel'):
+            signal_id = p['signal_id']
+            record = network.signal_runs.get(signal_id)
+            if not record or record['signal']['origin'] != key[0]:
+                raise PermissionError('Only the emitting node can manage its signal receipt')
+            if operation == 'signal_status': return self.backend.signals.status(signal_id)
+            async def manage():
+                self._scope(key)
+                if operation == 'signal_wait':return await self.backend.signals.wait(signal_id)
+                return await self.backend.signals.cancel(signal_id)
+            request = AccessRequest(manage())
+            frame['children'].append(request)
+            return request
+        if operation == 'visit':
+            strength, channels = self._budget(key, p)
+            target, path, remaining = self._route(key, p['target'], strength, channels)
+            offers = getattr(self.backend, 'external_tools', None)
+            return dict(metadata=json_copy(target.get_metadata()), path=path, strength=remaining,
+                tools=offers.visit(key[0], target.node_id, strength=strength, channels=channels) if offers else [])
         if operation == 'caller': return frame['caller']
         if operation == 'local_metadata': return json_copy(node.get_metadata())
         if operation == 'publish_metadata':
@@ -196,36 +256,6 @@ class NodeModules:
             patch = json_copy(p['patch']); reject_files(patch)
             if not hasattr(node, 'inputs'): raise TypeError('Only Agent nodes have input surfaces')
             return json_copy(node.inputs.update('module:' + key[1], patch))
-        if operation == 'register_tool':
-            name, function, definition = p['name'], p['function'], dict(p['definition'])
-            if name in node.tools: raise ValueError('Module tool conflicts: ' + name)
-            refusal = definition.pop('refusal', None)
-            generation = self._generations[key]
-            if inspect.iscoroutinefunction(function):
-                async def guarded(**args):
-                    self._check(key, generation)
-                    return await self._run(key, function, **args)
-            else:
-                def guarded(**args):
-                    self._check(key, generation)
-                    return self._run(key, function, **args)
-            def guarded_refusal(actor, reason):
-                self._check(key, generation)
-                return self._run(key, refusal, actor, reason)
-            node.register_tool(name, guarded, refusal=guarded_refusal if refusal else None, **definition)
-            instance.owned_tools.add(name)
-            if name not in node.expose: node.expose.append(name)
-            return None
-        if operation == 'register_operation':
-            name = p['name']
-            if not isinstance(name, str) or not name or name in instance.operations or not callable(p['function']):
-                raise ValueError('Invalid or duplicate module operation')
-            instance.operations[name] = (p['function'], names(p['channels'], 'operation channels'))
-            return None
-        if operation == 'receive':
-            if not callable(p['function']): raise TypeError('Signal receiver must be callable')
-            instance.receivers.append((names(p['channels'], 'signal channels', allow_empty=False), p['function']))
-            return None
         if operation == 'extended':
             handler = self._extension(key[1])
             policy = self._access[key].get('extension')
@@ -233,7 +263,10 @@ class NodeModules:
                 raise PermissionError('Extended operation was not explicitly granted')
             return json_copy(handler(self.backend, key[0], policy, p['operation'], json_copy(p['arguments'])))
         if operation in ('call', 'invoke'):
-            # Defer the whole authorization and endpoint lookup until actually awaited.
+            p = dict(p)
+            p['arguments'] = json_copy(p['arguments'])
+            p['strength'], p['channels'] = self._budget(key, p)
+            # Schedule immediately: independent requests overlap even before awaited.
             async def invoke():
                 strength, channels = self._budget(key, p)
                 target, _, _ = self._route(key, p['target'], strength, channels)
@@ -244,6 +277,11 @@ class NodeModules:
                     if entry is None: raise PermissionError('No accessible module operation')
                     function, declared = entry
                 else:
+                    if ':' in p['tool']:
+                        value = await self.backend.external_tools.invoke(key[0], p['target'], p['tool'],
+                            p['arguments'], strength=strength, channels=channels)
+                        self._scope(key)
+                        return value
                     if p['tool'] not in target.expose or p['tool'] not in target.tool_definitions:
                         raise PermissionError('No accessible node tool')
                     definition = target.tool_definitions[p['tool']]
@@ -261,7 +299,13 @@ class NodeModules:
                     if inspect.isawaitable(result): result = await result
                     self._scope(key)
                     return json_copy(result)
-            return invoke()
+            trace = frame['trace']
+            if trace['calls'] >= 1000 or time.monotonic() >= trace['deadline']:
+                raise RuntimeError('Access request resource budget exhausted')
+            trace['calls'] += 1
+            task = AccessRequest(invoke())
+            frame['children'].append(task)
+            return task
         strength, channels = self._budget(key, p)
         if operation in ('nodes', 'metadata'):
             if operation == 'metadata':
@@ -279,6 +323,8 @@ class NodeModules:
                 try: _, path, remaining = self._route(key, p['target'], strength, selected)
                 except PermissionError: continue
                 result.append(dict(**json_copy(definition), path=path, remaining_strength=remaining))
+            if getattr(self.backend, 'external_tools', None):
+                result.extend(self.backend.external_tools.visit(key[0], target.node_id, strength=strength, channels=channels))
             return result
         if operation == 'emit':
             from .signals import Signal
@@ -286,11 +332,7 @@ class NodeModules:
                        'timeout_seconds', 'node_timeout_seconds', 'parent_id'}
             if set(p['options']) - allowed: raise PermissionError('Module cannot override signal identity')
             signal = Signal(key[0], channels, strength, content=p['content'], **p['options'])
-            async def emit():
-                self._budget(key, p)
-                result = await self.backend.signals.propagate(signal)
-                return dict(signal_id=signal.signal_id, status=result['status'], returned=result['returned'])
-            return emit()
+            return self.backend.signals.emit(signal)
         raise ValueError('Unknown local module request: ' + operation)
 
     @contextmanager
@@ -401,14 +443,12 @@ class NodeModules:
             if node.node_id in runtime.bindings: raise ValueError('Node already has a host signal handler')
             generations = {key:self._generations[key] for key in keys}
             async def receive(context, keys=tuple(keys), generations=generations):
-                results = []; delivered = ModuleSignalContext(context.signal, context.delivery)
+                jobs = []; delivered = ModuleSignalContext(context.signal, context.delivery)
                 for key in keys:
                     module = self._check(key, generations[key])
                     for channels, function in tuple(module.receivers):
                         if set(channels).intersection(context.signal.channels):
-                            result = self._run(key, function, delivered)
-                            if inspect.isawaitable(result): result = await result
-                            results.append(result)
-                return results
+                            jobs.append(self._run(key, function, delivered))
+                return await asyncio.gather(*jobs)
             runtime.bind(node.node_id, receive, access_strength=max(self._access[key]['strength'] for key in keys))
             self._bindings.append((node.node_id, runtime))

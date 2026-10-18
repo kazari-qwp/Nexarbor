@@ -42,6 +42,8 @@ class ComponentServices:
                 if key in self.catalog and key not in self.enabled:entries.pop(name)
 
     def node_module(self, name, factory, *, extension=None):
+        from .module_protocol import require_definition
+        require_definition(factory)
         if name in self.module_types:raise ValueError("Duplicate node module: "+name)
         if extension is not None and not callable(extension):raise TypeError('Module extension must be a host handler')
         self.module_types[name]=factory

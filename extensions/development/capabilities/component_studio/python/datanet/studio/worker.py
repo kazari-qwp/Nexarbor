@@ -37,13 +37,10 @@ def main():
     backend.signals=network.signals
     backend.modules=NodeModules(backend,{spec['id']:create})
     try:
-        instance=backend.modules.mount(node.node_id,spec['id'],defaults['config'],{},
+        instance=backend.modules.mount(node.node_id,spec['id'],defaults['config'],defaults.get('state',{}),
             access=defaults.get('access'))
-        expected={t['name'] for t in spec['tools'] if instance.tool_enabled(t['name'])}
-        assert set(node.tool_definitions)==baseline|expected
-        for name in expected:
-            definition=node.tool_definitions[name]
-            assert 'read_only' not in definition and 'access_channels' in definition
+        assert set(instance.operations) == {op['name'] for op in spec['operations']}
+        assert set(node.tool_definitions) == baseline
         if spec['signals']:
             origin=Node('contract-origin','Contract origin',None);network.add_node(origin)
             origin.connect(node.node_id,channels=spec['signals'])
@@ -58,7 +55,7 @@ def main():
     suite=unittest.defaultTestLoader.discover(str(folder/'tests'),pattern='test_*.py') if (folder/'tests').exists() else unittest.TestSuite()
     result=unittest.TextTestRunner(stream=sys.stdout,verbosity=2).run(suite)
     if not result.wasSuccessful():raise SystemExit(1)
-    print('PASS: local v2 contract, mount, declarations, data-only signal, state schema, module tests')
+    print('PASS: fixed v3 contract, mount, declarations, data-only signal, state schema, module tests')
 
 
 if __name__=='__main__':main()

@@ -54,10 +54,10 @@ class Studio:
             destination=self.root/'releases'/name/spec['version']/fingerprint
             for file,content in files.items():
                 path=destination/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
-            self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}))
+            self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}))
         write_json(self.root/'library.json',self.library)
         self.jobs={};self.processes={};self.pool=ThreadPoolExecutor(max_workers=2)
-        self.lock=threading.RLock();self.running=False;self.loop=asyncio.new_event_loop();self.bindings={}
+        self.lock=threading.RLock();self.running=False;self.bindings={}
         self.run_state=dict(status='idle',completed=0,requested=0)
         self._load_releases()
     def _load_releases(self):
@@ -91,7 +91,7 @@ class Studio:
     def catalog(self,p=None):
         samples=read_json(RESOURCE/'samples.json',[])
         return dict(workspaces=[dict(id=p.name,**read_json(p/'workspace.json',{})) for p in self.work.iterdir() if p.is_dir()],
-                    samples=samples,library=self.library,jobs=list(self.jobs.values()),contract='nexarbor-module/v2')
+                    samples=samples,library=self.library,jobs=list(self.jobs.values()),contract='nexarbor-module/v3')
     def create(self,p):
         sample=p.get('sample','blank');definitions=read_json(RESOURCE/'samples.json',[])
         selected=next((s for s in definitions if s['id']==sample),None)
@@ -219,7 +219,7 @@ class Studio:
             path=destination/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
         old=self.library.copy()
         manifest(destination)
-        self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}))
+        self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}))
         try:self._load_releases()
         except BaseException:self.library=old;raise
         write_json(self.root/'library.json',self.library)
@@ -228,7 +228,8 @@ class Studio:
         if self.running:raise ValueError('Wait until the signal completes')
         module=self.library[p['module']];folder=self.root/module['folder']
         config=p.get('config',read_json(folder/'example.json',{}).get('config',{}))
-        self.backend.modules.mount(p['node'],p['module'],config,{},access=p.get('access'))
+        defaults=read_json(folder/'example.json',{})
+        self.backend.modules.mount(p['node'],p['module'],config,defaults.get('state',{}),access=p.get('access',defaults.get('access')))
         self._bind();return self.state()
     def unmount(self,p):
         if self.running:raise ValueError('Wait until the signal completes')
@@ -237,11 +238,7 @@ class Studio:
         from .sdk_services import bind_modules
         bind_modules(self.backend)
     def town(self,p):
-        if self.running:raise ValueError('Signal is active')
-        if any(id.startswith('town/') for id in self.backend.network.nodes):return self.state()
-        document=read_json(RESOURCE/'presets/module_test.json',{})
-        self.apply(dict(document=document,base_commit=self.backend.store.head,layout={}))
-        return self.state()
+        raise ValueError('The previous town preset has not been migrated to component v3')
     def pulse(self,p):
         if self.running:raise ValueError('Signal is active')
         self.running=True;cycles=p.get('cycles',1)
@@ -250,7 +247,7 @@ class Studio:
             runtime=self.backend.network.signals
             runtime.checkpoint=lambda:self.backend.dispatch('save',{})
             async def completed(pulse,report):self.run_state['completed']+=1
-            report=self.loop.run_until_complete(self.backend.network.nodes[p.get('pulse','town/pulse')].run(runtime,cycles=cycles,timeout_seconds=p.get('timeout_seconds',min(3600,300*cycles)),cycle_complete=completed))
+            report=self.backend.runtime.run(self.backend.network.nodes[p.get('pulse','town/pulse')].run(runtime,cycles=cycles,timeout_seconds=p.get('timeout_seconds',min(3600,300*cycles)),cycle_complete=completed))
             self.run_state['status']='idle' if report['status']=='completed' else 'failed'
             if report['status']!='completed':self.run_state['error']='信号未完成闭环：'+report['status']
             self.running=False
@@ -269,10 +266,12 @@ class Studio:
         value=dict(document=p['document'],layout=p.get('layout',{}),version=previous['version']+1,base_commit=p.get('base_commit'),applied=False)
         write_json(self.root/'draft.json',value);return value
     def apply(self,p):
-        if self.running:raise ValueError('Wait until execution completes')
+        if self.running or self.backend.modules.executing or self.backend.network.signals._active:
+            raise ValueError('Wait until component access and detached signals complete before replacing the graph')
         if p.get('base_commit')!=self.backend.store.head:raise ValueError('Network changed; reload before applying')
         document=p['document'];candidate=_build(document['network'],self.backend.directory)
         for node in candidate.nodes.values():
+            self.backend.external_tools.validate_node(node)
             if hasattr(node,'file_path') and not node.file_path.is_relative_to(self.backend.directory):raise ValueError('Data files must stay in the network directory')
         for name,content in document.get('files',{}).items():
             if not (self.backend.directory/name).resolve().is_relative_to(self.backend.directory.resolve()) or not isinstance(content,str):raise ValueError('Invalid network document path')
@@ -301,6 +300,7 @@ class Studio:
             candidate=_build(p['document']['network'],self.backend.directory)
             from jsonschema import validate
             for node in candidate.nodes.values():
+                self.backend.external_tools.validate_node(node)
                 for name,spec in node.modules.items():
                     if name not in self.library:raise ValueError('Unknown published module: '+name)
                     definition=self.library[name]['manifest']
@@ -314,12 +314,6 @@ class Studio:
         for process in list(self.processes.values()):self._kill(process)
         self.pool.shutdown(wait=True,cancel_futures=True)
         # A Backend can also be hosted by an existing asyncio application.
-        # Only drive our private loop when no other loop owns this thread.
-        try:asyncio.get_running_loop()
-        except RuntimeError:self.loop.run_until_complete(self.backend.network.signals.close())
-        # An external async host owns its runtime shutdown. Do not queue a save
-        # after Backend.close has already closed the checkpoint database.
-        self.loop.close()
 
 def register(services):
     def install(backend):backend.studio=Studio(backend)

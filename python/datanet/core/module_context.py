@@ -40,17 +40,22 @@ class ModuleNetwork:
         return self._request('nodes', channels=channels, strength=strength)
     def metadata(self, target, *, channels=None, strength=None):
         return self._request('metadata', target=target, channels=channels, strength=strength)
-    def tools(self, target, *, strength=None):
-        return self._request('tools', target=target, strength=strength)
-    async def invoke(self, target, tool, arguments=None, *, strength=None):
-        return await self._request('invoke', target=target, tool=tool,
-                             arguments={} if arguments is None else arguments, strength=strength)
-    async def call(self, target, module, operation, arguments=None, *, strength=None):
-        return await self._request('call', target=target, module=module, operation=operation,
-                             arguments={} if arguments is None else arguments, strength=strength)
-    async def emit(self, *, channels=None, strength=None, content=None, **options):
-        return await self._request('emit', channels=channels, strength=strength,
+    def tools(self, target, *, channels=None, strength=None):
+        return self._request('tools', target=target, channels=channels, strength=strength)
+    def invoke(self, target, tool, arguments=None, *, channels=None, strength=None):
+        return self._request('invoke', target=target, tool=tool,
+                             arguments={} if arguments is None else arguments, channels=channels, strength=strength)
+    def call(self, target, module, operation, arguments=None, *, channels=None, strength=None):
+        return self._request('call', target=target, module=module, operation=operation,
+                             arguments={} if arguments is None else arguments, channels=channels, strength=strength)
+    def emit(self, *, channels=None, strength=None, content=None, **options):
+        return self._request('emit', channels=channels, strength=strength,
                                    content=content, options=options)
+    def visit(self, target, *, channels=None, strength=None):
+        return self._request('visit', target=target, channels=channels, strength=strength)
+    def signal_status(self, signal_id): return self._request('signal_status', signal_id=signal_id)
+    def wait_signal(self, signal_id): return self._request('signal_wait', signal_id=signal_id)
+    def cancel_signal(self, signal_id): return self._request('signal_cancel', signal_id=signal_id)
 
 
 class ModuleContext:
@@ -72,12 +77,6 @@ class ModuleContext:
     def write(self, key, value, *, mode='upsert'):
         return self._request('write', key=key, value=value, mode=mode)
     def update_inputs(self, patch): return self._request('inputs', patch=patch)
-    def register_tool(self, name, function, **definition):
-        return self._request('register_tool', name=name, function=function, definition=definition)
-    def register_operation(self, name, function, *, channels=()):
-        return self._request('register_operation', name=name, function=function, channels=channels)
-    def receive(self, channels, function):
-        return self._request('receive', channels=channels, function=function)
 
 
 class ExtendedModuleContext(ModuleContext):

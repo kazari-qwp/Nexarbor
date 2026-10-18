@@ -1,6 +1,6 @@
 """Optional trusted host bridge, never a generic backend/RPC escape hatch."""
 from dataclasses import asdict, replace
-from datanet.core.node_modules import NodeModule
+from datanet.core.module_protocol import ModuleDefinition, ComponentResult
 from datanet.core.json_values import names
 
 OPERATIONS = ('nodes', 'metadata', 'incoming', 'interfaces', 'connect', 'disconnect')
@@ -51,15 +51,11 @@ def host_operation(backend, owner, policy, operation, arguments):
         return result
 
 
-class NetworkGateway(NodeModule):
-    def install(self):
-        channels = names(self.config.get('channels', ['network.extended']), 'gateway channels', allow_empty=False)
-        def handler(operation):
-            def call(**arguments): return self.context.extended(operation, arguments)
-            return call
-        for operation in OPERATIONS:
-            self.operation(operation, handler(operation), channels=channels)
+async def execute(ctx, activation):
+    return ComponentResult(data=ctx.extended(activation.operation, dict(activation.parameters)))
 
 
 def register(services):
-    services.node_module('network.gateway', NetworkGateway, extension=host_operation)
+    definition = ModuleDefinition(execute, operations=[dict(name=name, channels=['network.extended'],
+        parameters={'type':'object'}, result={}) for name in OPERATIONS])
+    services.node_module('network.gateway', definition, extension=host_operation)

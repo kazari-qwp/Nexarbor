@@ -51,13 +51,13 @@ class ValueTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             path=Path(folder)/'network.json';save_network(network,path)
             document=json.loads(path.read_text(encoding='utf-8'))
-            self.assertEqual(document['version'],7)
+            self.assertEqual(document['version'],8)
             self.assertEqual(set(document['nodes'][0]['connections']['interfaces'][0]),{'target_node_id','metadata'})
             restored=load_network(path)
             self.assertIsInstance(restored.nodes['pulse'],PulseNode)
             self.assertEqual(restored.nodes['pulse'].channels,('tick',))
             self.assertEqual(restored.nodes['pulse'].interfaces[0].metadata.attributes['purpose'],'clock')
-            for old_version in [3,4,5,6]:
+            for old_version in [3,4,5,6,7]:
                 document['version']=old_version
                 with self.assertRaises(ValueError):_build(document,Path(folder))
 

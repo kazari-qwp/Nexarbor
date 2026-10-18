@@ -66,8 +66,6 @@ class Network:
                     raise ValueError(f'主动请求强度 {strength} 超过 Agent 上限 {agent.max_signal_strength}')
         layer = [(node_id, [node_id], strength)]
         visited = set()
-        if inherited:
-            visited.update(frame['visited'] - {node_id})
         while layer:
             layer = [(current, path, remaining) for current, path, remaining in layer if current not in visited]
             visited.update((current for current, _, _ in layer))

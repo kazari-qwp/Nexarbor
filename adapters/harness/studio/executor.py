@@ -12,7 +12,7 @@ class NativeExecutor:
         self.backend,self.transport=backend,transport
         self.seen={}
         backend.agent_executor=self.run
-        for method,mutation in [('prepare',True),('invoke',True),('ack',True),('bind',True),('prune',True)]:
+        for method,mutation in [('prepare',True),('invoke',True),('ack',True),('bind',True),('prune',True),('visit',True)]:
             backend.components.rpc('executor_'+method,lambda b,p,method=method:getattr(self,method)(p),mutation=mutation)
     def binding(self,actor):
         node=self.backend.network.nodes[actor]
@@ -21,6 +21,8 @@ class NativeExecutor:
         if binding.get('executor')!='harness':raise ValueError('Configure this node with executor=harness')
         strength=binding.get('strength',0)
         if type(strength) not in (int,float) or not 0<=strength<=32:raise ValueError('Invalid executor strength')
+        from datanet.core.json_values import names
+        names(binding.get('channels',[]),'executor channels')
         return node,binding
     async def run(self,node_id,message='',**options):
         node,binding=self.binding(node_id)
@@ -40,18 +42,18 @@ class NativeExecutor:
         self.seen.setdefault(actor,{}).update({name:value['route'] for name,value in history.items()})
         for name,spec in node.agent_tool_definitions.items():
             definitions.append(spec['function']);routes[name]=dict(private=True,tool=name)
-        for target in self.backend.network.nodes.values():
-            for spec in list_tools(self.backend.network,actor,target.node_id,strength=binding.get('strength',0)).items:
-                alias=spec['name'][:32]+'_'+sha256((target.node_id+'\0'+spec['name']).encode()).hexdigest()[:16]
-                definitions.append(dict(name=alias,description=target.name+' · '+spec['description'],parameters=spec['parameters']))
-                routes[alias]=dict(private=False,target=target.node_id,tool=spec['name'])
+        definitions.append(dict(name='network_visit',description='沿自身授权频道访问网络。省略 target 查看可达节点；填写节点编号取得其信息和提供的外部工具。',
+            parameters={'type':'object','properties':{'target':{'type':'string'}},'additionalProperties':False}))
+        routes['network_visit']=dict(private=True,visit=True)
+        for item in self.backend.external_tools.acquired(actor,strength=binding.get('strength',0),channels=binding.get('channels',[])):
+            definitions.append(item['definition']);routes[item['alias']]=dict(private=False,external=True,**{k:item[k] for k in ('target','ref','channels','strength')})
         self.seen.setdefault(actor,{}).update(routes)
         for definition in definitions:history[definition['name']]=dict(definition=definition,route=routes[definition['name']])
         return definitions,routes
     def refusal(self,actor,name):
         route=self.seen.get(actor,{}).get(name)
         reason='这个工具已离开你当前可达的范围，不能执行。'
-        if route and not route['private']:
+        if route and not route['private'] and not route.get('external'):
             target=self.backend.network.nodes.get(route['target'])
             callback=target.tool_refusals.get(route['tool']) if target else None
             if callback:return str(callback(actor,reason))
@@ -60,24 +62,38 @@ class NativeExecutor:
         actor=p['actor'];node,binding=self.binding(actor)
         for reference in binding.get('prepare',[]):
             value=self.backend.modules.call(reference.get('node',actor),reference['module'],reference['operation'],reference.get('arguments',{}))
-            if hasattr(value,'__await__'):raise ValueError('Preparation operations must be synchronous')
+            if hasattr(value,'__await__'):self.backend.runtime.run(value)
         sources=node.inputs.snapshot();definitions,_=self.definitions(actor)
         return dict(actor=actor,system_prompt='你有一份私有的记忆，根据你的需要主动维护和阅读，适时清除过时和无用记忆。\n\n'+'\n\n'.join(v['system_prompt'] for _,v in sorted(sources.items())),
             context=[dict(id=s+'/'+d['id'],text=d['text']) for s,v in sorted(sources.items()) for d in v['context']],
             inputs=[dict(source=s,**e) for s,e in node.inputs.pending()],tail=node.inputs.tail(),tools=definitions,retained_tools=[v['definition'] for v in self.backend.agents[actor]['tool_history'].values()],
             unavailable={name:self.refusal(actor,name) for name in self.seen.get(actor,{}) if name not in {d['name'] for d in definitions}})
     def invoke(self,p):
-        actor=p['actor'];node,binding=self.binding(actor);_,routes=self.definitions(actor)
+        actor=p['actor'];node,binding=self.binding(actor);definitions,routes=self.definitions(actor)
         if p['name'] not in routes:return dict(status='forbidden',errors=[self.refusal(actor,p['name'])])
         route=routes[p['name']];arguments=p.get('arguments',{})
+        validate_arguments(arguments,next(d['parameters'] for d in definitions if d['name']==p['name']))
         identity=active_agent.set((SimpleNamespace(max_signal_strength=binding.get('strength',0)),actor))
         try:
+            if route.get('visit'):return self.visit(dict(actor=actor,**arguments))
+            if route.get('external'):
+                return self.backend.runtime.run(self.backend.external_tools.invoke(actor,route['target'],route['ref'],arguments,
+                    strength=min(binding.get('strength',0),route['strength']),
+                    channels=[c for c in route['channels'] if c in binding.get('channels',[])]))
             if route['private']:
                 validate_arguments(arguments,node.agent_tool_definitions[route['tool']]['function']['parameters'])
                 value=node.invoke_tool(route['tool'],**arguments)
             else:value=invoke_tool(self.backend.network,actor,route['target'],route['tool'],arguments,strength=binding.get('strength',0))
             return asdict(value) if is_dataclass(value) else value
         finally:active_agent.reset(identity)
+    def visit(self,p):
+        actor=p['actor'];node,binding=self.binding(actor)
+        strength=binding.get('strength',0);channels=binding.get('channels',[])
+        target=p.get('target')
+        if target is None:
+            return dict(nodes=[n.get_metadata() for n,_,_ in self.backend.network.walk_states(actor,strength=strength,channels=channels)])
+        tools=self.backend.external_tools.visit(actor,target,strength=strength,channels=channels)
+        return dict(metadata=self.backend.network.nodes[target].get_metadata(),tools=tools)
     def ack(self,p):
         node,_=self.binding(p['actor'])
         for event in p.get('events',[]):node.inputs.acknowledge(event['source'],event['id'])

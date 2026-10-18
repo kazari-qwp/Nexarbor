@@ -2,6 +2,7 @@
 import asyncio
 import inspect
 import time
+from contextvars import Context
 from dataclasses import dataclass
 from copy import deepcopy
 from types import SimpleNamespace
@@ -86,15 +87,41 @@ class SignalRuntime:
         except asyncio.CancelledError:raise
         except Exception as error:return dict(status='failed',error=str(error))
 
-    async def propagate(self,signal):
-        if not isinstance(signal,Signal):raise TypeError('Expected Signal')
+    def emit(self, signal):
+        if not isinstance(signal, Signal): raise TypeError('Expected Signal')
         self._authorize(signal)
-        existing=self.network.signal_runs.get(signal.signal_id)
+        existing = self.network.signal_runs.get(signal.signal_id)
         if existing:
-            if existing['signal']!=signal.to_dict():raise ValueError('Signal ID was reused with different content')
-            if signal.signal_id in self._active:raise RuntimeError('Signal is already running')
-            if existing['status'] in ('running','interrupted'):raise RuntimeError('Interrupted signal requires reconciliation; it is not replayed automatically')
-            return deepcopy(existing)
+            if existing['signal'] != signal.to_dict(): raise ValueError('Signal ID was reused with different content')
+            if existing['status'] in ('running', 'queued', 'interrupted'):
+                raise RuntimeError('Signal already running or requires reconciliation')
+            return dict(signal_id=signal.signal_id, status=existing['status'])
+        self.network.signal_runs[signal.signal_id] = dict(signal=signal.to_dict(), status='queued',
+            returned=False, deliveries=[], layers=[], started_at=time.time())
+        # A new context severs the originating callback's lease and caller cancellation.
+        task = asyncio.create_task(self._propagate(signal), context=Context())
+        self._active[signal.signal_id] = task
+        def finished(done):
+            record = self.network.signal_runs[signal.signal_id]
+            if done.cancelled() and record['status'] == 'queued':
+                record.update(status='cancelled', finished_at=time.time())
+            if not done.cancelled(): done.exception()  # retrieve detached failures
+            self._active.pop(signal.signal_id, None)
+        task.add_done_callback(finished)
+        return dict(signal_id=signal.signal_id, status='queued')
+
+    def status(self, signal_id): return deepcopy(self.network.signal_runs[signal_id])
+
+    async def wait(self, signal_id):
+        task = self._active.get(signal_id)
+        if task: await asyncio.shield(task)
+        return self.status(signal_id)
+
+    async def propagate(self, signal):
+        self.emit(signal)
+        return await self.wait(signal.signal_id)
+
+    async def _propagate(self,signal):
         nodes,links,divergences=self._snapshot(signal)
         record=dict(signal=signal.to_dict(),status='running',returned=False,deliveries=[],layers=[],started_at=time.time())
         self.network.signal_runs[signal.signal_id]=record

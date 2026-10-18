@@ -24,6 +24,7 @@ class Backend:
 
     def __init__(self, directory, *, snapshot_interval=100,initial_document=None):
         self._transaction_lock = RLock()
+        self._runtime = None
         self.directory = storage_path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
         self.store = Checkpoints(self.directory,snapshot_interval=snapshot_interval)
@@ -37,6 +38,8 @@ class Backend:
         self.root = AgentNode('root', 'DataNet根节点', file_path=self.directory / 'root-memory.md')
         self.network.add_node(self.root)
         self.extension_state = {}
+        from .external_tools import ExternalTools
+        self.external_tools = ExternalTools(self)
         self.components = ComponentServices()
         from .node_modules import NodeModules
         self.modules = NodeModules(self,self.components.module_types)
@@ -54,6 +57,7 @@ class Backend:
             if previous is None:
                 self.store.commit(self.snapshot())
         except Exception:
+            if self._runtime is not None:self._runtime.close()
             self.store.close()
             raise
 
@@ -84,6 +88,14 @@ class Backend:
         return files
 
     @property
+    def runtime(self):
+        if self._runtime is None:
+            from .async_runtime import AsyncRuntime
+            with self._transaction_lock:
+                if self._runtime is None:self._runtime = AsyncRuntime()
+        return self._runtime
+
+    @property
     def signals(self):
         runtime=self.network.signals
         runtime.checkpoint=lambda:self.dispatch('save',{})
@@ -95,6 +107,7 @@ class Backend:
         return await self.agent_executor(node_id,message,**options)
 
     def close(self):
+        if self._runtime is not None:self._runtime.close()
         try:
             self.modules.clear()
         finally:

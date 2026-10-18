@@ -65,13 +65,13 @@ class SignalContext:
 def restore_records(records):
     if not isinstance(records,dict):raise ValueError('signals must be an execution-record object')
     result=deepcopy(records)
-    valid={'running','completed','partial','failed','timed_out','cancelled','interrupted','budget_exhausted'}
+    valid={'queued','running','completed','partial','failed','timed_out','cancelled','interrupted','budget_exhausted'}
     for key,record in result.items():
         if not isinstance(record,dict) or record.get('status') not in valid:raise ValueError('Invalid signal record')
         signal=Signal.from_dict(record['signal'])
         if key!=signal.signal_id:raise ValueError('Signal record ID mismatch')
         freeze(record)
-        if record['status']=='running':
+        if record['status'] in ('queued','running'):
             record['status']='interrupted'
             record['error']='Runtime stopped before all processing was recorded; explicit reconciliation required'
             for delivery in record.get('deliveries',[]):
