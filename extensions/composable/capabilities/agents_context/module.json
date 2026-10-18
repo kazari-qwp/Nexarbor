@@ -1,7 +1,9 @@
 {
   "format": "nexarbor-module/v3",
   "id": "agents.context",
-  "version": "0.1.0",
+  "name": "角色上下文与私人记忆",
+  "description": "装配角色人格、地图、情境知识与公开资料，刷新位置邻域和时钟，并维护仅本人可读写的私人记忆。",
+  "version": "0.2.0",
   "entry": "module.py:execute",
   "node_types": [
     "agent"
@@ -51,6 +53,48 @@
         "default": 100,
         "title": "最多记忆条数",
         "description": "私人记忆的保留上限，超出后丢弃最早的记忆。"
+      },
+      "public_fields": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": ["name", "gender", "profession", "age_group"],
+        "title": "公开资料字段",
+        "description": "只把这些自己记录中的字段发布到本模块命名空间供同地其他角色查看；默认公开姓名、性别、职业和年龄段。"
+      },
+      "knowledge": {
+        "type": "array",
+        "default": [],
+        "title": "情境知识",
+        "description": "按自己记录字段匹配后加入模型上下文的稳定知识条目；记录变化后下次准备会自动更新。",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "title": "知识标识",
+              "description": "本配置内稳定且唯一的标识，用于生成区别于地图的上下文条目 id。"
+            },
+            "when": {
+              "type": "object",
+              "additionalProperties": true,
+              "default": {},
+              "title": "匹配条件",
+              "description": "普通字段等值条件；只有全部字段都与自己记录中的值一致时才提供这段知识。"
+            },
+            "text": {
+              "type": "string",
+              "title": "知识文本",
+              "description": "条件匹配时放入模型上下文的原生文档内容。"
+            }
+          },
+          "required": ["id", "when", "text"]
+        }
       }
     }
   },
@@ -124,9 +168,10 @@
                 "id": {"type": "string"},
                 "name": {"type": "string"},
                 "path": {"type": "array", "items": {"type": "string"}},
-                "strength": {"type": "number"}
+                "strength": {"type": "number"},
+                "profile": {"type": "object", "additionalProperties": true}
               },
-              "required": ["id", "name", "path", "strength"]
+              "required": ["id", "name", "path", "strength", "profile"]
             }
           },
           "clock": {
@@ -190,9 +235,10 @@
                 "id": {"type": "string"},
                 "name": {"type": "string"},
                 "path": {"type": "array", "items": {"type": "string"}},
-                "strength": {"type": "number"}
+                "strength": {"type": "number"},
+                "profile": {"type": "object", "additionalProperties": true}
               },
-              "required": ["id", "name", "path", "strength"]
+              "required": ["id", "name", "path", "strength", "profile"]
             }
           },
           "clock": {

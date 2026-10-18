@@ -193,6 +193,12 @@ def _find_agreement(state, agreement_id):
 
 
 def _check_prerequisites(rule, left_values, right_values, left_id, right_id):
+    eligible_field = rule.get("eligible_field")
+    if eligible_field and not (
+        left_values.get(eligible_field) is True
+        or right_values.get(eligible_field) is True
+    ):
+        raise AgreementError("双方均不具备协议所需资格：" + str(eligible_field))
     for field, expected in _plain(rule.get("require_values") or {}).items():
         if left_values.get(field) != expected or right_values.get(field) != expected:
             raise AgreementError("双方尚未满足协议前提：" + str(field))
@@ -230,6 +236,57 @@ def _fee_key(ctx, agreement, participant, step):
     )
 
 
+def _effect_key(ctx, agreement, participant, stage, index):
+    return "%s:%s:agreements.pair:effect:%s:%s:%s:%s:%s" % (
+        ctx.module_id,
+        ctx.node_id,
+        agreement.get("id"),
+        agreement.get("rule"),
+        participant,
+        stage,
+        index,
+    )
+
+
+def _matches_when(values, when):
+    for field, expected in _plain(when or {}).items():
+        if values.get(field) != expected:
+            return False
+    return True
+
+
+def _check_fulfill_requirements(rule, values):
+    for field, expected in _plain(rule.get("fulfill_require_values") or {}).items():
+        if values.get(field) != expected:
+            raise AgreementError("兑现者尚未满足兑现前提：" + str(field))
+
+
+async def _apply_effects_for_participant(ctx, rule, agreement, participant, stage):
+    effects = _plain(rule.get("participant_effects") or [])
+    for index, effect in enumerate(effects):
+        if not isinstance(effect, dict):
+            continue
+        values = await _node_values(ctx, participant)
+        if not _matches_when(values, effect.get("when") or {}):
+            continue
+        settings = _plain(effect.get(stage) or {})
+        if not settings:
+            continue
+        await _apply(
+            ctx,
+            participant,
+            {"set": settings},
+            _effect_key(ctx, agreement, participant, stage, index),
+        )
+
+
+async def _apply_effects_stage(ctx, rule, agreement, stage):
+    for participant in agreement.get("participants") or []:
+        await _apply_effects_for_participant(
+            ctx, rule, agreement, participant, stage
+        )
+
+
 async def _complete_records(ctx, rule, agreement, tick):
     pair_field = rule.get("pair_field")
     for participant in agreement.get("participants") or []:
@@ -252,6 +309,9 @@ async def _complete_records(ctx, rule, agreement, tick):
                 payload,
                 _fee_key(ctx, agreement, participant, "complete"),
             )
+        await _apply_effects_for_participant(
+            ctx, rule, agreement, participant, "on_finish"
+        )
     agreement["status"] = "completed"
     agreement["completed_tick"] = tick
 
@@ -272,22 +332,37 @@ async def _add_child_references(ctx, agreement, node_ids):
 
 
 def _extract_node_ids(result):
-    if isinstance(result, dict):
-        data = result.get("data") if isinstance(result.get("data"), dict) else result
-        values = data.get("node_ids")
-        if values is None and isinstance(data.get("returned"), dict):
-            values = data["returned"].get("node_ids")
-        if values is None:
-            values = data.get("returned_node_ids")
-        if values is not None:
-            node_ids = []
-            for item in _as_list(values):
-                if isinstance(item, str):
-                    node_ids.append(item)
-                elif isinstance(item, dict) and isinstance(item.get("node_id"), str):
-                    node_ids.append(item["node_id"])
-            return node_ids
-    return []
+    """从官方模板端口返回中提取真实节点 ID。
+
+    官方 templates:instantiate 返回 {node_ids: {角色: 新节点ID}, duplicate: ...}，
+    其中 node_ids 是字典；旧版数组形式也保留支持。只接受非空字符串节点 ID。
+    """
+    if not isinstance(result, dict):
+        return []
+    data = result.get("data") if isinstance(result.get("data"), dict) else result
+    values = data.get("node_ids")
+    if values is None and isinstance(data.get("returned"), dict):
+        values = data["returned"].get("node_ids")
+    if values is None:
+        values = data.get("returned_node_ids")
+    if isinstance(values, dict):
+        candidates = list(values.values())
+    elif isinstance(values, (list, tuple)):
+        candidates = list(values)
+    elif values is None:
+        candidates = []
+    else:
+        candidates = [values]
+    node_ids = []
+    for item in candidates:
+        node_id = None
+        if isinstance(item, str):
+            node_id = item
+        elif isinstance(item, dict):
+            node_id = item.get("node_id")
+        if isinstance(node_id, str) and node_id and node_id not in node_ids:
+            node_ids.append(node_id)
+    return node_ids
 
 
 def _truncate(state):
@@ -307,8 +382,16 @@ async def _inspect(ctx, config):
                 "id": item.get("id"),
                 "title": item.get("title"),
                 "cost": item.get("cost", 1),
+                "fulfill_cost": item.get("fulfill_cost", 0),
                 "delay_ticks": item.get("delay_ticks", 0),
                 "template": item.get("template"),
+                "eligible_field": item.get("eligible_field"),
+                "fulfill_require_values": _plain(
+                    item.get("fulfill_require_values") or {}
+                ),
+                "participant_effects": _plain(
+                    item.get("participant_effects") or []
+                ),
             }
         )
     agreements = []
@@ -459,6 +542,7 @@ async def _agree(ctx, config, parameters):
             if set(agreement.get("participants") or []).issubset(approved):
                 agreement["due_tick"] = tick + delay
                 agreement["stable_key"] = _stable_template_key(ctx, agreement)
+                await _apply_effects_stage(ctx, rule, agreement, "on_start")
                 if delay == 0 and not template:
                     await _complete_records(ctx, rule, agreement, tick)
                 else:
@@ -519,6 +603,8 @@ async def _fulfill_one(ctx, config, parameters):
             rule = _rule_by_id(config, agreement.get("rule"))
             if rule is None:
                 raise AgreementError("协议规则已不存在")
+            requester_values = await _node_values(ctx, requester)
+            _check_fulfill_requirements(rule, requester_values)
             template = rule.get("template")
             if not template:
                 await _complete_records(ctx, rule, agreement, tick)
@@ -534,6 +620,16 @@ async def _fulfill_one(ctx, config, parameters):
                 raise AgreementError("双方住所不一致，无法创建家庭")
             pending = agreement.get("pending")
             if pending is None:
+                fulfill_cost = int(rule.get("fulfill_cost", 0))
+                if fulfill_cost > 0:
+                    if requester_values.get("ap", 0) < fulfill_cost:
+                        raise AgreementError("行动点不足，无法兑现协议")
+                    await _apply(
+                        ctx,
+                        requester,
+                        {"deltas": {"ap": -fulfill_cost}},
+                        _fee_key(ctx, agreement, requester, "fulfill-cost"),
+                    )
                 stable_key = agreement.get("stable_key") or _stable_template_key(
                     ctx, agreement
                 )
@@ -571,6 +667,8 @@ async def _fulfill_one(ctx, config, parameters):
         raise AgreementError("模板兑现失败，可稍后重试：" + str(error))
 
     node_ids = _extract_node_ids(result)
+    if not node_ids:
+        raise AgreementError("模板未返回有效节点 ID，协议未完成，可重试")
     try:
         completed_hint = _find_agreement(ctx.state, agreement_id)
         completed_participants = list((completed_hint or {}).get("participants") or [])

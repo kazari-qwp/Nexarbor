@@ -67,7 +67,9 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
 }
 export async function startStudioProfile(file,overrides={}){
  const base=path.dirname(path.resolve(file)),profile=JSON.parse(await fs.readFile(file,'utf8'));
- return startStudio({directory:path.resolve(base,profile.runtime_directory??'runtime'),initialNetwork:profile.network?path.resolve(base,profile.network):undefined,components:profile.components??[],templates:profile.templates?JSON.parse(await fs.readFile(path.resolve(base,profile.templates),'utf8')):[],...overrides});
+ const directory=path.resolve(base,profile.runtime_directory??'runtime'),relative=path.relative(path.join(root,'build'),directory);
+ if(!overrides.directory&&(!relative||relative.startsWith('..')||path.isAbsolute(relative)))throw Error('应用运行目录须位于项目 build 内；其他目录请显式指定 --workspace');
+ return startStudio({directory,initialNetwork:profile.network?path.resolve(base,profile.network):undefined,components:profile.components??[],templates:profile.templates?JSON.parse(await fs.readFile(path.resolve(base,profile.templates),'utf8')):[],...overrides});
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const value=process.argv[2]==='--profile'?await startStudioProfile(process.argv[3]):await startStudio({directory:process.argv[2]});console.log(JSON.stringify({connection_file:path.join(value.directory,'editor-connection.json')}));

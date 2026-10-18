@@ -132,8 +132,14 @@ class Studio:
             spec=read_json(folder/'module.json',{});spec['agent_tools']=[dict(id='increment',name='计数',description='增加计数并返回结果。',operation='increment')]
             write_json(folder/'module.json',spec)
         self._write_guides(folder)
+        references=p.get('reference_files',{})
+        if not isinstance(references,dict) or sum(len(v.encode('utf-8')) for v in references.values() if isinstance(v,str))>1024*1024:raise ValueError('参考资料必须为总计不超过1MiB的文本字典')
+        for name,content in references.items():
+            target=(folder/'reference'/name).resolve()
+            if not isinstance(content,str) or not target.is_relative_to((folder/'reference').resolve()) or target.suffix not in TEXT:raise ValueError('参考资料路径或格式无效')
+            target.parent.mkdir(parents=True,exist_ok=True);target.write_text(content,encoding='utf-8')
         if selected.get('reference'):
-            source=PROJECT/selected['reference'];reference=folder/'reference';reference.mkdir()
+            source=PROJECT/selected['reference'];reference=folder/'reference';reference.mkdir(exist_ok=True)
             shutil.copyfile(source,reference/'legacy.py')
         available=[]
         for name in p.get('dependencies',list(self.library)):
@@ -152,7 +158,10 @@ class Studio:
         original=read_json(self.root/'baselines'/f'{p["id"]}.json',{})
         owned,references=split_files(files)
         if (folder/'reference').exists():
-            references.update({f.relative_to(folder).as_posix():f.read_text(encoding='utf-8') for f in (folder/'reference').glob('*.py')})
+            for f in (folder/'reference').rglob('*'):
+                if f.is_file() and f.suffix in TEXT:
+                    if not f.resolve().is_relative_to(folder.resolve()) or f.stat().st_size>1024*1024:raise ValueError('参考资料越界或超过1MiB')
+                    references[f.relative_to(folder).as_posix()]=f.read_text(encoding='utf-8')
         return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files),**{k:read_json(folder/'workspace.json',{}).get(k,default) for k,default in [('display_folder',None),('kind','module')]})
     def dependencies(self,p):
         folder=self.folder(p['id']);catalog=read_json(folder/'dependencies/catalog.json',[])
@@ -188,6 +197,18 @@ class Studio:
                 details=dict(config_schema=spec['config_schema'],state_schema=spec['state_schema']) if args.get('details') or query==id.lower() else {}
                 result.append(dict(id=id,name=release['name'],description=spec.get('description',''),node_types=spec['node_types'],requires=spec['requires'],operations=spec['operations'],agent_tools=spec.get('agent_tools',[]),defaults=release.get('mount_defaults',{}),frontend=bool(spec.get('frontend')),**details))
             return dict(modules=result[:30],total=len(result))
+        if name=='network_patch':
+            if read_json(folder/'workspace.json',{}).get('kind')!='network':raise ValueError('只有网络制作副本可分批合并网络')
+            file=folder/'network.json';old=file.read_text(encoding='utf-8');document=json.loads(old)
+            if args.get('replace'):document=dict(network=dict(version=8,nodes=[],signals={},delegations=[]),files={})
+            nodes={n['node_id']:n for n in document['network']['nodes']}
+            for id in args.get('remove_nodes',[]):nodes.pop(id,None)
+            for node in args['nodes']:
+                if not isinstance(node,dict) or not isinstance(node.get('node_id'),str):raise ValueError('每个节点必须声明node_id')
+                nodes[node['node_id']]=node
+            document['network']['nodes']=list(nodes.values());document['files'].update(args.get('files',{}))
+            self.save(dict(id=p['id'],file='network.json',content=json.dumps(document,ensure_ascii=False,indent=2),expected=sha256(old.encode()).hexdigest()))
+            return dict(saved='network.json',nodes=len(nodes),files=len(document['files']))
         raise ValueError('未知制作工具：'+name)
     def release_read(self,p):
         release=self.library[p['module']];files=sources(self.root/release['folder']);files.pop('workspace.json',None)
@@ -279,6 +300,10 @@ class Studio:
             Path(env['TEMP']).mkdir(exist_ok=True)
             log_path=snapshot/'validation.log'
             try:
+                if (snapshot/'presets.json').exists() and read_json(folder/'workspace.json',{}).get('kind')!='network':
+                    from .preset_work import check
+                    result=check(snapshot,self.library)
+                    job.update(status='passed',exit_code=0,log='PASS：复用已发布组件的配置方案、配置Schema；配置数量：'+str(len(result['presets']))+'。行为验证另看独立网络副本。');log_path.write_text(job['log'],encoding='utf-8');return
                 if read_json(folder/'workspace.json',{}).get('kind')=='network':
                     from .network_work import check_work
                     result=check_work(snapshot,self.backend,self.library)
@@ -329,6 +354,9 @@ class Studio:
         folder=self.folder(p['id']);files=sources(folder);fingerprint=digest(files)
         if not any(j['workspace']==p['id'] and j['status']=='passed' and j['digest']==fingerprint for j in self.jobs.values()):raise ValueError('Test the current source before publishing')
         metadata=read_json(folder/'workspace.json',{})
+        if (folder/'presets.json').exists() and metadata.get('kind')!='network':
+            from .preset_work import check
+            return dict(kind='component-presets',workspace=p['id'],**check(folder,self.library))
         if metadata.get('kind')=='network':
             from .network_work import check_work
             return dict(kind='network',id=p['id'],document=check_work(folder,self.backend,self.library)['document'],name=p.get('name') or metadata['label'],display_folder=metadata.get('display_folder'),digest=fingerprint)

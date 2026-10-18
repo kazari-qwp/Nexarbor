@@ -11,11 +11,11 @@
 ```json
 {
   "strength": 3,
-  "channels": ["social", "records", "movement"]
+  "channels": ["self", "records", "movement", "social"]
 }
 ```
 
-其中 `social` 用于公开操作入口，`records` 用于内部记账，`movement` 用于读取双方地点。网络连接也要允许这些频道，且收件人必须能从发起者当前可达。
+其中 `self` 用于本 Agent 自己的公开操作入口；`records` 用于内部记账，`movement` 用于读取双方地点，`social` 保留给内部读取和转交路径。网络连接按内部访问需要允许 `records`、`movement`、`social` 等频道，且收件人必须能从发起者当前可达。无需为其他 Agent 铺设 `self` 出边：赠送工具只应出现在资源所有者自己的工具列表中。
 
 ## 配置
 
@@ -28,14 +28,14 @@
 
 ## 调用
 
-公开操作 `give` 使用 `social` 频道，参数为：
+公开操作 `give` 使用 `self` 频道，参数为：
 
 - `recipient`：另一位真实 Agent 的节点 ID，必须当前可达。
 - `resource`：自己记录仓中要转交的数字字段名，例如 `gold`、`wood` 或 `ap`。
 - `quantity`：正整数数量。
 - `key`：可选非空幂等键。相同键和相同参数重试会返回旧结果并标记 `duplicate: true`；相同键换参数会被拒绝。
 
-Agent 工具“赠送物品或资源”直接调用该操作。
+Agent 工具“赠送物品或资源”直接调用该操作。工具只能由模块所在 Agent 本人使用；其他 Agent 即使拿到工具入口，转调时也会因请求者不是资源所有者而被拒绝，不能替你赠送。
 
 成功结果为：
 

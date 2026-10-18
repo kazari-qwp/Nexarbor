@@ -2,8 +2,8 @@
   "format": "nexarbor-module/v3",
   "id": "service.actions",
   "name": "可配置业务服务",
-  "version": "0.1.0",
-  "description": "用同一份组件按配置提供采集、买卖、修理、休息和饮料等业务；库存、钱财和行动点分别保存在场所与请求者 Agent 的记录仓中，支持成本、住所限制、随机事件和幂等重试。",
+  "version": "0.2.0",
+  "description": "用同一份组件按配置提供采集、买卖、借贷、修理、休息和饮料等业务；库存、钱财和行动点分别保存在场所与请求者 Agent 的记录仓中，支持值/物品门槛、最终上限、字段设置、成本、住所限制、随机事件和幂等重试。",
   "entry": "module.py:execute",
   "node_types": [
     "node"
@@ -92,6 +92,59 @@
               "description": "可选。填写后请求者记录的 home 字段必须与之相等。",
               "format": "node-id",
               "default": null
+            },
+            "require_values": {
+              "type": "object",
+              "title": "必需记录值",
+              "description": "可选。请求者当前记录的每个字段都必须与给定值严格相等，缺失或不一致时拒绝；例如 {\"adult\": true}。",
+              "additionalProperties": true,
+              "default": {},
+              "examples": [
+                {
+                  "adult": true
+                }
+              ]
+            },
+            "require_items": {
+              "type": "object",
+              "title": "必需物品（按数量倍数）",
+              "description": "可选。请求者当前持有量必须至少为“配置值 × quantity”；只校验、不自动消耗，例如 {\"pickaxe\": 1}。",
+              "additionalProperties": {
+                "type": "number",
+                "minimum": 0
+              },
+              "default": {},
+              "examples": [
+                {
+                  "pickaxe": 1
+                }
+              ]
+            },
+            "actor_maximums": {
+              "type": "object",
+              "title": "请求者最终上限",
+              "description": "可选。动作增减与全部事件奖励计算完后，请求者这些字段的最终值不得超过上限；例如 {\"debt\": 8}。",
+              "additionalProperties": {
+                "type": "number"
+              },
+              "default": {},
+              "examples": [
+                {
+                  "debt": 8
+                }
+              ]
+            },
+            "actor_set": {
+              "type": "object",
+              "title": "请求者字段设置",
+              "description": "可选。成功时直接设置请求者字段，可包含任意 JSON；该对象不乘 quantity，写入顺序为先 set 后 deltas；修好工具可设置 {\"pickaxe_state\": \"良好\"}。",
+              "additionalProperties": true,
+              "default": {},
+              "examples": [
+                {
+                  "pickaxe_state": "良好"
+                }
+              ]
             }
           },
           "required": [

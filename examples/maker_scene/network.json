@@ -1,0 +1,436 @@
+{
+  "network": {
+    "version": 8,
+    "nodes": [
+      {
+        "type": "agent",
+        "node_id": "root",
+        "name": "制作测试入口",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "data/root.md"
+        },
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {},
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "node",
+        "node_id": "square",
+        "name": "办公室",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "alice",
+              "metadata": {
+                "channels": [
+                  "movement",
+                  "tools",
+                  "records",
+                  "info",
+                  "service",
+                  "chat",
+                  "social",
+                  "agreements"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {
+                  "relation": "location"
+                }
+              }
+            },
+            {
+              "target_node_id": "bob",
+              "metadata": {
+                "channels": [
+                  "movement",
+                  "tools",
+                  "records",
+                  "info",
+                  "service",
+                  "chat",
+                  "social",
+                  "agreements"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {
+                  "relation": "location"
+                }
+              }
+            },
+            {
+              "target_node_id": "market",
+              "metadata": {
+                "channels": [
+                  "movement",
+                  "tools",
+                  "records",
+                  "info"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {
+                  "relation": "road"
+                }
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "place.info": {
+            "config": {
+              "visitors": [
+                "alice",
+                "bob"
+              ]
+            },
+            "state": {},
+            "access": {
+              "strength": 0,
+              "channels": [
+                "movement"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "node",
+        "node_id": "market",
+        "name": "隔壁房间",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "cara",
+              "metadata": {
+                "channels": [
+                  "movement",
+                  "tools",
+                  "records",
+                  "info",
+                  "service",
+                  "chat",
+                  "social",
+                  "agreements"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {
+                  "relation": "location"
+                }
+              }
+            },
+            {
+              "target_node_id": "square",
+              "metadata": {
+                "channels": [
+                  "movement",
+                  "tools",
+                  "records",
+                  "info"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {
+                  "relation": "road"
+                }
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "place.info": {
+            "config": {
+              "visitors": [
+                "cara"
+              ]
+            },
+            "state": {},
+            "access": {
+              "strength": 0,
+              "channels": [
+                "movement"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "agent",
+        "node_id": "alice",
+        "name": "小林",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "data/alice.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "square",
+              "metadata": {
+                "channels": [
+                  "movement",
+                  "tools",
+                  "records",
+                  "info",
+                  "service",
+                  "chat",
+                  "social",
+                  "agreements"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {
+                  "relation": "location"
+                }
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "records.store": {
+            "config": {
+              "initial": {
+                "name": "小林",
+                "ap": 3,
+                "gold": 10
+              },
+              "minimum": {
+                "ap": 0,
+                "gold": 0
+              }
+            },
+            "state": {},
+            "access": {
+              "strength": 0,
+              "channels": [
+                "records"
+              ]
+            }
+          },
+          "place.info": {
+            "config": {
+              "location": "square"
+            },
+            "state": {},
+            "access": {
+              "strength": 0,
+              "channels": [
+                "movement"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "agent",
+        "node_id": "bob",
+        "name": "小陈",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "data/bob.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "square",
+              "metadata": {
+                "channels": [
+                  "movement",
+                  "tools",
+                  "records",
+                  "info",
+                  "service",
+                  "chat",
+                  "social",
+                  "agreements"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {
+                  "relation": "location"
+                }
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "records.store": {
+            "config": {
+              "initial": {
+                "name": "小陈",
+                "ap": 3,
+                "gold": 10
+              },
+              "minimum": {
+                "ap": 0,
+                "gold": 0
+              }
+            },
+            "state": {},
+            "access": {
+              "strength": 0,
+              "channels": [
+                "records"
+              ]
+            }
+          },
+          "place.info": {
+            "config": {
+              "location": "square"
+            },
+            "state": {},
+            "access": {
+              "strength": 0,
+              "channels": [
+                "movement"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "agent",
+        "node_id": "cara",
+        "name": "小王",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "data/cara.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "market",
+              "metadata": {
+                "channels": [
+                  "movement",
+                  "tools",
+                  "records",
+                  "info",
+                  "service",
+                  "chat",
+                  "social",
+                  "agreements"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {
+                  "relation": "location"
+                }
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "records.store": {
+            "config": {
+              "initial": {
+                "name": "小王",
+                "ap": 3,
+                "gold": 10
+              },
+              "minimum": {
+                "ap": 0,
+                "gold": 0
+              }
+            },
+            "state": {},
+            "access": {
+              "strength": 0,
+              "channels": [
+                "records"
+              ]
+            }
+          },
+          "place.info": {
+            "config": {
+              "location": "market"
+            },
+            "state": {},
+            "access": {
+              "strength": 0,
+              "channels": [
+                "movement"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "context_cursor": null
+      }
+    ],
+    "signals": {},
+    "delegations": []
+  },
+  "files": {
+    "data/root.md": "独立测试用私人记忆，尚未写入。",
+    "data/alice.md": "独立测试用私人记忆，尚未写入。",
+    "data/bob.md": "独立测试用私人记忆，尚未写入。",
+    "data/cara.md": "独立测试用私人记忆，尚未写入。"
+  }
+}

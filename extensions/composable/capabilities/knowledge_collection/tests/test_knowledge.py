@@ -3,6 +3,7 @@ import unittest
 from pathlib import Path
 
 from datanet.studio.testing import ModuleHarness
+from jsonschema.exceptions import ValidationError
 
 
 class KnowledgeCollectionTests(unittest.IsolatedAsyncioTestCase):
@@ -22,10 +23,12 @@ class KnowledgeCollectionTests(unittest.IsolatedAsyncioTestCase):
             access={'strength': 3, 'channels': ['knowledge']},
         )
 
-    async def put(self, doc_id, title, text, tags, key=None, actor=None):
+    async def put(self, doc_id, title, text, tags, key=None, actor=None, expected_revision=None):
         parameters = {'id': doc_id, 'title': title, 'text': text, 'tags': tags}
         if key is not None:
             parameters['key'] = key
+        if expected_revision is not None:
+            parameters['expected_revision'] = expected_revision
         return await self.h.call(
             'vault', 'put', parameters, actor=actor, strength=3, channels=['knowledge']
         )
@@ -213,6 +216,142 @@ class KnowledgeCollectionTests(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(direct['status'], 'ok', direct)
         self.assertEqual(direct['data']['document']['title'], '工具记录')
+
+    async def test_two_agents_with_same_expected_revision_only_one_claims(self):
+        module = self.mount(config={'history_limit': 20})
+        self.h.add_node('npc2', agent=True, name='另一名研究员')
+        self.h.connect('npc', 'vault', channels=['knowledge'], threshold=1)
+        self.h.connect('npc2', 'vault', channels=['knowledge'], threshold=1)
+        await self.put('shared', '待领取任务', '初始内容', ['任务'])
+
+        results = await asyncio.gather(
+            self.put('shared', '领取者甲', '甲的占位内容', ['任务'], actor='npc', expected_revision=1),
+            self.put('shared', '领取者乙', '乙的占位内容', ['任务'], actor='npc2', expected_revision=1),
+        )
+        succeeded = [result for result in results if result['status'] == 'ok']
+        conflicted = [result for result in results if result['status'] == 'error']
+        self.assertEqual(len(succeeded), 1, results)
+        self.assertEqual(len(conflicted), 1, results)
+        self.assertIn('版本冲突', conflicted[0]['error'])
+
+        read = await self.h.call('vault', 'get', {'id': 'shared'}, channels=['knowledge'])
+        self.assertEqual(read['status'], 'ok', read)
+        self.assertEqual(read['data']['document']['revision'], 2)
+        self.assertIn(read['data']['document']['title'], ('领取者甲', '领取者乙'))
+        document = module.state['documents']['shared']
+        self.assertEqual([item['revision'] for item in document['history']], [1, 2])
+
+    async def test_expected_revision_zero_only_creates_new_document(self):
+        module = self.mount(config={'history_limit': 20})
+        created = await self.put('fresh', '新文档', '第一版', ['新建'], expected_revision=0)
+        self.assertEqual(created['status'], 'ok', created)
+        self.assertTrue(created['data']['created'])
+        self.assertEqual(created['data']['revision'], 1)
+
+        rejected = await self.put('fresh', '覆盖文档', '不该写入', ['新建'], expected_revision=0)
+        self.assertEqual(rejected['status'], 'error', rejected)
+        self.assertIn('版本冲突', rejected['error'])
+        document = module.state['documents']['fresh']
+        self.assertEqual(document['title'], '新文档')
+        self.assertEqual(document['text'], '第一版')
+        self.assertEqual(document['revision'], 1)
+        self.assertEqual([item['revision'] for item in document['history']], [1])
+
+        self.h.add_node('npc2', agent=True, name='另一名研究员')
+        self.h.connect('npc', 'vault', channels=['knowledge'], threshold=1)
+        self.h.connect('npc2', 'vault', channels=['knowledge'], threshold=1)
+        racing = await asyncio.gather(
+            self.put('brand-new', '甲新建', '甲正文', ['并发'], actor='npc', expected_revision=0),
+            self.put('brand-new', '乙新建', '乙正文', ['并发'], actor='npc2', expected_revision=0),
+        )
+        self.assertEqual(sum(1 for result in racing if result['status'] == 'ok'), 1, racing)
+        self.assertEqual(sum(1 for result in racing if result['status'] == 'error'), 1, racing)
+        self.assertEqual(module.state['documents']['brand-new']['revision'], 1)
+        self.assertEqual(
+            [item['revision'] for item in module.state['documents']['brand-new']['history']],
+            [1],
+        )
+
+    async def test_remove_and_restore_conflicts_keep_body_history_and_revision(self):
+        module = self.mount(config={'history_limit': 20})
+        await self.put('note', '第一版', '第一版正文', ['草稿'])
+
+        remove_conflict = await self.h.call(
+            'vault', 'remove', {'id': 'note', 'expected_revision': 0}, channels=['knowledge']
+        )
+        self.assertEqual(remove_conflict['status'], 'error', remove_conflict)
+        self.assertIn('版本冲突', remove_conflict['error'])
+        document = module.state['documents']['note']
+        self.assertFalse(document['deleted'])
+        self.assertEqual(document['revision'], 1)
+        self.assertEqual([item['revision'] for item in document['history']], [1])
+
+        removed = await self.h.call(
+            'vault', 'remove', {'id': 'note', 'expected_revision': 1}, channels=['knowledge']
+        )
+        self.assertEqual(removed['status'], 'ok', removed)
+        self.assertEqual(removed['data']['revision'], 2)
+        self.assertTrue(removed['data']['deleted'])
+
+        restore_conflict = await self.h.call(
+            'vault', 'restore', {'id': 'note', 'revision': 1, 'expected_revision': 1},
+            channels=['knowledge'],
+        )
+        self.assertEqual(restore_conflict['status'], 'error', restore_conflict)
+        self.assertIn('版本冲突', restore_conflict['error'])
+        document = module.state['documents']['note']
+        self.assertTrue(document['deleted'])
+        self.assertEqual(document['revision'], 2)
+        self.assertEqual(document['text'], '第一版正文')
+        self.assertEqual([item['revision'] for item in document['history']], [1, 2])
+
+        restored = await self.h.call(
+            'vault', 'restore', {'id': 'note', 'revision': 1, 'expected_revision': 2},
+            channels=['knowledge'],
+        )
+        self.assertEqual(restored['status'], 'ok', restored)
+        self.assertEqual(restored['data']['revision'], 3)
+        document = module.state['documents']['note']
+        self.assertFalse(document['deleted'])
+        self.assertEqual(document['text'], '第一版正文')
+        self.assertEqual([item['revision'] for item in document['history']], [1, 2, 3])
+
+    async def test_idempotent_put_returns_old_result_before_revision_check(self):
+        module = self.mount(config={'history_limit': 20})
+        first = await self.put(
+            'idem', '幂等任务', '原始正文', ['键'], key='claim-1', expected_revision=0
+        )
+        self.assertEqual(first['status'], 'ok', first)
+        self.assertEqual(first['data']['revision'], 1)
+        self.assertFalse(first['data']['idempotent'])
+
+        await self.put('idem', '后续更新', '后续正文', ['键'])
+
+        repeated = await self.put(
+            'idem', '幂等任务', '原始正文', ['键'], key='claim-1', expected_revision=0
+        )
+        self.assertEqual(repeated['status'], 'ok', repeated)
+        self.assertTrue(repeated['data']['idempotent'])
+        # 幂等命中沿用原规则：返回当前文档，不因 expected_revision 已过期而失败。
+        self.assertEqual(repeated['data']['revision'], 2)
+        document = module.state['documents']['idem']
+        self.assertEqual(document['revision'], 2)
+        self.assertEqual(document['text'], '后续正文')
+        self.assertEqual([item['revision'] for item in document['history']], [1, 2])
+
+    async def test_negative_expected_revision_is_rejected_by_schema(self):
+        self.mount()
+        with self.assertRaises(ValidationError):
+            await self.put('bad', '非法版本', '正文', [], expected_revision=-1)
+        with self.assertRaises(ValidationError):
+            await self.h.call(
+                'vault', 'remove', {'id': 'bad', 'expected_revision': -1}, channels=['knowledge']
+            )
+        with self.assertRaises(ValidationError):
+            await self.h.call(
+                'vault', 'restore', {'id': 'bad', 'revision': 1, 'expected_revision': -1},
+                channels=['knowledge'],
+            )
 
 
 if __name__ == '__main__':

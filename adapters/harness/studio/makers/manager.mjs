@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises';import path from 'node:path';import {createHash,randomUUID} from 'node:crypto';
 import {makerTools} from './tools.mjs';import {editorNode} from '../../framework/editor-nodes.js';import {storedNetworks} from '../../framework/stored-networks.js';
+import {editorLibrary} from '../../framework/editor-library.js';
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex'),pause=ms=>new Promise(r=>setTimeout(r,ms));
 export class MakerManager{
  constructor(directory,rpc,{runnerFactory}={}){this.directory=directory;this.rpc=rpc;this.runnerFactory=runnerFactory;this.jobs=new Map();this.sessions=new Map();this.root=path.join(directory,'studio');this.connected=false;this.closed=false;}
@@ -53,13 +54,19 @@ export class MakerManager{
   if(p.tool==='request_component'){
    const key=hash(p.arguments),old=job.children.map(id=>this.jobs.get(id)).find(j=>j.request_key===key);if(old)return {task:old.id,status:old.status,release:old.release};
    if(job.children.length>=6)throw Error('本次预设最多委托 6 个组件；先复用已发布能力');
-   const workspace=await this.rpc('studio_create',{kind:p.arguments.kind,name:p.arguments.name,sample:'blank'}),child=await this.start({id:workspace.id,name:p.arguments.name,requirement:p.arguments.requirement,auto_publish:true,timeout:Math.max(10,Math.min(600,Math.floor((job.deadline-Date.now())/1000)))});this.jobs.get(child.id).request_key=key;job.children.push(child.id);return {task:child.id,status:child.status};
+   const workspace=await this.rpc('studio_create',{kind:p.arguments.kind,name:p.arguments.name,sample:'blank'}),child=await this.start({id:workspace.id,name:p.arguments.name,requirement:p.arguments.requirement,allow_network_testing:job.allow_network_testing,auto_publish:true,timeout:Math.max(10,Math.min(600,Math.floor((job.deadline-Date.now())/1000)))});this.jobs.get(child.id).request_key=key;job.children.push(child.id);return {task:child.id,status:child.status};
   }
   if(p.tool==='component_status'){if(!job.children.includes(p.arguments.task))throw Error('只能查看当前预设委托的组件');const child=this.jobs.get(p.arguments.task),end=Date.now()+Math.min(30,Math.max(0,p.arguments.wait_seconds??15))*1000;while(child.status==='running'&&job.status==='running'&&Date.now()<end)await pause(500);return {task:child.id,status:child.status,release:child.release,validation_log:child.validation_log,error:child.error};}
   return this.rpc('studio_maker_tool',{id:job.workspace,tool:p.tool,arguments:p.arguments,hidden:job.hidden_modules});
  }
  async publish(p){
-  const release=await this.rpc('studio_publish',p);if(release.kind!=='network')return release;
+  const release=await this.rpc('studio_publish',p);
+  if(release.kind==='component-presets'){
+   const library=editorLibrary(this.directory),before=await library('editor.library'),bookmarks=release.presets.map((preset,index)=>({id:'maker-preset-'+hash({workspace:release.workspace,index}).slice(0,24),kind:'module',name:preset.name,description:preset.description,asset:{kind:'module',id:preset.module,config:preset.config},category:'default',createdAt:Date.now(),originMaker:release.workspace}));
+   await library('editor.library.update',{action:'bookmark.patch',changes:bookmarks.map(value=>({id:value.id,expected:before.bookmarks.find(b=>b.id===value.id)??null,value}))});
+   return {...release,bookmarks:bookmarks.map(b=>b.id)};
+  }
+  if(release.kind!=='network')return release;
   let tree={folders:[]};try{tree=JSON.parse(await fs.readFile(path.join(this.directory,'editor-library.json'),'utf8')).assets?.preset??tree;}catch(e){if(e.code!=='ENOENT')throw e;}
   const folder=release.display_folder??null;if(folder!=null&&!tree.folders.some(f=>f.id===folder))throw Error('预设目标目录已不存在');
   const ancestors=new Set();for(let id=folder;id!=null&&!ancestors.has(id);id=tree.folders.find(f=>f.id===id)?.parent)ancestors.add(id);

@@ -44,6 +44,10 @@ class StudioTransport(Transport):
 def main():
     initial=os.environ.get('DATANET_INITIAL_NETWORK')
     document=json.loads(Path(initial).read_text(encoding='utf-8')) if initial else None
+    if document:
+        for node in document['network']['nodes']:
+            file=node.get('parameters',{}).get('file_path')
+            if file is not None and (Path(file).is_absolute() or '..' in Path(file).parts):raise ValueError('应用初始网络的文本与记忆路径必须在运行目录内')
     backend=Backend(sys.argv[1],initial_document=document);remote=HarnessRemote(backend.studio)
     backend.studio.workspace_busy=lambda id:any(j['workspace']==id and j['status']=='running' for j in remote.jobs.values())
     for method in ['connect','start','read','cancel','status']:

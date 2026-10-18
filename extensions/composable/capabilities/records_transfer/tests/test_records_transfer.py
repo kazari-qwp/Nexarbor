@@ -4,7 +4,8 @@ from pathlib import Path
 
 from datanet.studio.testing import ModuleHarness
 
-CHANNELS = ["social", "records", "movement"]
+CHANNELS = ["self", "social", "records", "movement"]
+EDGE_CHANNELS = ["social", "records", "movement"]
 
 
 class RecordsTransferTests(unittest.IsolatedAsyncioTestCase):
@@ -38,11 +39,11 @@ class RecordsTransferTests(unittest.IsolatedAsyncioTestCase):
             access={"strength": 1, "channels": ["movement"]},
         )
 
-        self.h.connect("a", "b", channels=CHANNELS, threshold=1)
-        self.h.connect("b", "a", channels=CHANNELS, threshold=1)
-        self.h.connect("c", "b", channels=CHANNELS, threshold=1)
-        self.h.connect("a", "d", channels=CHANNELS, threshold=1)
-        self.h.connect("a", "e", channels=CHANNELS, threshold=1)
+        self.h.connect("a", "b", channels=EDGE_CHANNELS, threshold=1)
+        self.h.connect("b", "a", channels=EDGE_CHANNELS, threshold=1)
+        self.h.connect("c", "b", channels=EDGE_CHANNELS, threshold=1)
+        self.h.connect("a", "d", channels=EDGE_CHANNELS, threshold=1)
+        self.h.connect("a", "e", channels=EDGE_CHANNELS, threshold=1)
 
     async def asyncTearDown(self):
         await self.h.close()
@@ -76,7 +77,7 @@ class RecordsTransferTests(unittest.IsolatedAsyncioTestCase):
         if key is not None:
             parameters["key"] = key
         return await self.h.call(
-            node, "give", parameters, actor=actor, channels=["social"], strength=2
+            node, "give", parameters, actor=actor, channels=["self"], strength=2
         )
 
     async def _records(self, node):
@@ -121,6 +122,7 @@ class RecordsTransferTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(a_values["gold"], 10)
 
     async def test_rejects_non_owner_and_ordinary_recipient(self):
+        self.h.connect("b", "a", channels=["self"], threshold=1)
         non_owner = await self._give("a", "b", "gold", 1, actor="b")
         self.assertEqual(non_owner["status"], "error", non_owner)
         self.assertIn("本人", non_owner["error"])
@@ -226,6 +228,65 @@ class RecordsTransferTests(unittest.IsolatedAsyncioTestCase):
         self.assertIn("不同参数", changed["error"])
         self.assertEqual((await self._records("a"))["gold"], 8)
         self.assertEqual((await self._records("b"))["gold"], 5)
+
+    async def test_each_agent_only_discovers_own_give_and_cannot_give_for_other(self):
+        a_entries = await self.h.tools.visit("a", "a", strength=1, channels=["self"])
+        b_entries = await self.h.tools.visit("b", "b", strength=1, channels=["self"])
+        a_gives = [entry for entry in a_entries if entry.get("tool_id") == "give"]
+        b_gives = [entry for entry in b_entries if entry.get("tool_id") == "give"]
+        self.assertEqual(len(a_gives), 1, a_entries)
+        self.assertEqual(len(b_gives), 1, b_entries)
+
+        # 常见网络没有 self 出边，因此不能经 self 频道看到另一位 Agent 的赠送工具。
+        a_sees_b = await self.h.tools.visit("a", "b", strength=1, channels=["self"])
+        b_sees_a = await self.h.tools.visit("b", "a", strength=1, channels=["self"])
+        self.assertEqual([entry for entry in a_sees_b if entry.get("tool_id") == "give"], [])
+        self.assertEqual([entry for entry in b_sees_a if entry.get("tool_id") == "give"], [])
+
+        from_a = await self.h.tools.invoke(
+            "a",
+            a_gives[0],
+            {"recipient": "b", "resource": "gold", "quantity": 2},
+            strength=1,
+            channels=["self"],
+        )
+        self.assertEqual(from_a["from"], "a")
+        self.assertEqual(from_a["to"], "b")
+        self.assertFalse(from_a["duplicate"])
+
+        from_b = await self.h.tools.invoke(
+            "b",
+            b_gives[0],
+            {"recipient": "a", "resource": "ap", "quantity": 1},
+            strength=1,
+            channels=["self"],
+        )
+        self.assertEqual(from_b["from"], "b")
+        self.assertEqual(from_b["to"], "a")
+        self.assertFalse(from_b["duplicate"])
+
+        a_values = await self._records("a")
+        b_values = await self._records("b")
+        self.assertEqual(a_values["gold"], 8)
+        self.assertEqual(b_values["gold"], 2)
+        self.assertEqual(a_values["ap"], 5)
+        self.assertEqual(b_values["ap"], 3)
+
+        # 即使显式铺出 self 边，让另一位 Agent 拿到工具入口并转调，也必须被本人校验拒绝。
+        self.h.connect("b", "a", channels=["self"], threshold=1)
+        before_a = await self._records("a")
+        before_b = await self._records("b")
+        with self.assertRaises(Exception) as caught:
+            await self.h.tools.invoke(
+                "b",
+                a_gives[0],
+                {"recipient": "b", "resource": "gold", "quantity": 1},
+                strength=1,
+                channels=["self"],
+            )
+        self.assertIn("本人", str(caught.exception))
+        self.assertEqual((await self._records("a"))["gold"], before_a["gold"])
+        self.assertEqual((await self._records("b"))["gold"], before_b["gold"])
 
 
 if __name__ == "__main__":

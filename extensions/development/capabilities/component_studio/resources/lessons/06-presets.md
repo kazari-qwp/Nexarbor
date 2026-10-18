@@ -2,6 +2,8 @@
 
 catalog_modules 查职责和参数，node_template 取合法单节点骨架，组合 network.json。成品仅 {network,files}，network.version=8，nodes/signals/delegations 都存在，保留 root。files 放人格、常识、地图等文本，相对路径在网络内部。
 
+大网络优先分批调用network_patch，每批提供完整节点对象和需要的files，按node_id合并；不必反复读取或重写所有节点。replace=true用于首次清空空白草稿，之后继续合并。root的management_parent_id必须为null，其他节点通常为root；不要写屏幕坐标等非协议字段。
+
 流程：列角色数据 → 查复用组件 → 分配本地职责 → 配频道和有向边 → 填配置/状态/授权 → validate。不写全局 Python 启动器。
 
 装配 modules:{'模块ID':{config:{},state:{},access:{strength:2,channels:['tools']}}}；从目录复制 defaults 再改。框架递归补 requires。模块工具自动提供，外部工具才放 offered_tools:[{ref,channels}]。

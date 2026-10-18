@@ -5,7 +5,7 @@
   "signals": [],
   "id": "movement.here",
   "name": "移动到此",
-  "description": "锁定 NPC、旧地点和目的地，原子更新双向位置连接及地点资料；可配置移动前钩子。",
+  "description": "锁定 NPC、旧地点和目的地，原子更新双向位置连接及地点资料；可配置移动前钩子与新位置边频道，并在结果中按序返回钩子观察。",
   "node_types": [
     "node",
     "text_file"
@@ -23,6 +23,27 @@
         "maximum": 120,
         "default": 15,
         "title": "移动超时（秒）"
+      },
+      "location_channels": {
+        "type": "array",
+        "title": "新位置边频道",
+        "description": "移动成功后，NPC 与目的地之间新建双向位置边使用的访问频道。必须是非空、不重复的字符串数组，且包含 movement；默认只保留 movement、tools。需要到达后继续访问本地业务时，按模块访问授权填写 records、info、service 等频道。不要填写仅供节点自身的 self 频道。",
+        "default": [
+          "movement",
+          "tools"
+        ],
+        "minItems": 1,
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "const": "self"
+          }
+        },
+        "contains": {
+          "const": "movement"
+        }
       },
       "before_hooks": {
         "type": "array",
@@ -92,7 +113,70 @@
         "additionalProperties": false
       },
       "result": {
-        "type": "object"
+        "type": "object",
+        "title": "移动结果",
+        "properties": {
+          "moved": {
+            "type": "boolean",
+            "title": "是否发生移动"
+          },
+          "from_location": {
+            "type": "string",
+            "title": "原地点"
+          },
+          "location": {
+            "type": "string",
+            "title": "当前地点"
+          },
+          "description": {
+            "type": "string",
+            "title": "目的地说明"
+          },
+          "before_results": {
+            "type": "array",
+            "title": "移动前钩子结果",
+            "description": "按配置顺序记录每个成功调用的目标、模块、操作和原样 JSON 数据；没有钩子或未发生移动时为空数组。任一项失败则整次移动回滚，不返回部分结果。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "type": "string",
+                  "enum": [
+                    "requester",
+                    "origin",
+                    "destination"
+                  ],
+                  "title": "钩子目标"
+                },
+                "module": {
+                  "type": "string",
+                  "title": "模块标识"
+                },
+                "operation": {
+                  "type": "string",
+                  "title": "操作名称"
+                },
+                "data": {
+                  "title": "调用结果",
+                  "description": "目标操作成功返回的 JSON 数据副本。"
+                }
+              },
+              "required": [
+                "target",
+                "module",
+                "operation",
+                "data"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "moved",
+          "location",
+          "before_results"
+        ],
+        "additionalProperties": false
       }
     }
   ],

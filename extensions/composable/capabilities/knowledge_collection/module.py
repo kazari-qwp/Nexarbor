@@ -90,6 +90,19 @@ def _active_count(documents):
     return sum(1 for document in documents.values() if not document.get('deleted'))
 
 
+def _check_expected_revision(parameters, document):
+    """在本地锁内核验调用者看到的最新 revision；文档不存在时当前版本为 0。"""
+    expected = parameters.get('expected_revision')
+    if expected is None:
+        return
+    current = 0 if document is None else int(document['revision'])
+    expected = int(expected)
+    if expected != current:
+        raise BusinessError(
+            '文档版本冲突：当前 revision 为 %d，期望 %d，请先重新读取后再写入' % (current, expected)
+        )
+
+
 def _handle_put(ctx, activation, config):
     parameters = activation.parameters or {}
     doc_id = parameters['id']
@@ -123,6 +136,7 @@ def _handle_put(ctx, activation, config):
                 }
 
     existing = documents.get(doc_id)
+    _check_expected_revision(parameters, existing)
     max_entries = int(_setting(config, 'max_entries', 1000))
     history_limit = int(_setting(config, 'history_limit', 20))
     if existing is None:
@@ -219,6 +233,7 @@ def _handle_remove(ctx, activation, config):
     doc_id = parameters['id']
     documents = _documents(ctx)
     document = documents.get(doc_id)
+    _check_expected_revision(parameters, document)
     if document is None:
         raise BusinessError('文档不存在')
     if document.get('deleted'):
@@ -253,6 +268,7 @@ def _handle_restore(ctx, activation, config):
     revision = int(parameters['revision'])
     documents = _documents(ctx)
     document = documents.get(doc_id)
+    _check_expected_revision(parameters, document)
     if document is None:
         raise BusinessError('文档不存在')
     target = next(

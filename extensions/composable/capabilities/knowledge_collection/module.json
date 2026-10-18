@@ -111,7 +111,8 @@
           "title": {"type": "string", "title": "标题"},
           "text": {"type": "string", "title": "正文"},
           "tags": {"type": "array", "title": "标签", "items": {"type": "string"}},
-          "key": {"type": "string", "title": "幂等键", "description": "同一请求者重复提交相同 key 与内容时返回原文档；内容不同则拒绝。"}
+          "key": {"type": "string", "title": "幂等键", "description": "同一请求者重复提交相同 key 与内容时返回原文档；内容不同则拒绝。"},
+          "expected_revision": {"type": "integer", "title": "期望的当前 revision", "description": "可选。带上 get 读到的当前 revision 做乐观并发校验；文档不存在时当前 revision 为 0，不匹配则返回版本冲突且不修改任何数据。", "minimum": 0}
         },
         "additionalProperties": false
       },
@@ -209,7 +210,8 @@
         "title": "软删除文档",
         "required": ["id"],
         "properties": {
-          "id": {"type": "string", "title": "文档标识", "minLength": 1}
+          "id": {"type": "string", "title": "文档标识", "minLength": 1},
+          "expected_revision": {"type": "integer", "title": "期望的当前 revision", "description": "可选。带上 get 读到的当前 revision 做乐观并发校验；文档不存在时当前 revision 为 0，不匹配则返回版本冲突且不修改任何数据。", "minimum": 0}
         },
         "additionalProperties": false
       },
@@ -268,7 +270,8 @@
         "required": ["id", "revision"],
         "properties": {
           "id": {"type": "string", "title": "文档标识", "minLength": 1},
-          "revision": {"type": "integer", "title": "历史修订号", "minimum": 1}
+          "revision": {"type": "integer", "title": "历史修订号", "minimum": 1},
+          "expected_revision": {"type": "integer", "title": "期望的当前 revision", "description": "可选。带上 get 读到的当前 revision 做乐观并发校验；文档不存在时当前 revision 为 0，不匹配则返回版本冲突且不修改任何数据。", "minimum": 0}
         },
         "additionalProperties": false
       },
@@ -290,7 +293,7 @@
     {
       "id": "knowledge_put",
       "name": "写入知识",
-      "description": "新增或更新一条知识文档并产生新修订；可用 key 防止同一请求者重复写入。",
+      "description": "新增或更新一条知识文档并产生新修订；协作写入前先用 knowledge_get 读取当前 revision，再把它作为 expected_revision 传入以避免覆盖他人修改；文档不存在时期望值为 0。也可用 key 防止同一请求者重复写入。",
       "operation": "put"
     },
     {
@@ -308,7 +311,7 @@
     {
       "id": "knowledge_remove",
       "name": "删除知识",
-      "description": "软删除知识文档，保留历史修订；只读模式下拒绝。",
+      "description": "软删除知识文档，保留历史修订；先 knowledge_get 读取当前 revision 并作为 expected_revision 传入可防止误删他人刚改过的内容；只读模式下拒绝。",
       "operation": "remove"
     },
     {
@@ -320,7 +323,7 @@
     {
       "id": "knowledge_restore",
       "name": "恢复知识修订",
-      "description": "从保留的历史修订创建新的当前修订，原历史内容不被改写；只读模式下拒绝。",
+      "description": "从保留的历史修订创建新的当前修订，原历史内容不被改写；先 knowledge_get 读取当前 revision 并作为 expected_revision 传入可避免覆盖并发修改；只读模式下拒绝。",
       "operation": "restore"
     }
   ]

@@ -4,6 +4,12 @@ from collections.abc import Mapping
 from datanet.core.module_protocol import ComponentResult
 
 OPENING_INPUT_ID = "agents.context.opening"
+PUBLIC_FIELD_LABELS = {
+    "name": "姓名",
+    "gender": "性别",
+    "profession": "职业",
+    "age_group": "年龄段",
+}
 
 
 def _error(message):
@@ -41,35 +47,76 @@ async def _place_values(ctx):
     return place
 
 
+def _public_fields(config):
+    fields = config.get("public_fields")
+    if not isinstance(fields, (list, tuple)):
+        fields = ["name", "gender", "profession", "age_group"]
+    return [field for field in fields if isinstance(field, str) and field]
+
+
+def _public_profile(records, config):
+    """只从自己的记录中挑选配置的公开字段，其他记录一律不发布。"""
+    profile = {}
+    for field in _public_fields(config):
+        if field in records:
+            profile[field] = _plain(records[field])
+    return profile
+
+
+def _profile_from_metadata(metadata, config):
+    """只采集其他节点在本模块命名空间发布的配置字段。"""
+    if not isinstance(metadata, Mapping):
+        return {}
+    extensions = metadata.get("extensions")
+    if not isinstance(extensions, Mapping):
+        return {}
+    namespace = extensions.get("agents.context")
+    if not isinstance(namespace, Mapping):
+        return {}
+    profile = {}
+    for field in _public_fields(config):
+        if field in namespace:
+            profile[field] = _plain(namespace[field])
+    return profile
+
+
 async def _nearby_values(ctx):
     raw = await ctx.network.nodes(channels=["movement"])
-    if isinstance(raw, Mapping):
-        raw = raw.get("nodes", [])
     entries = list(raw or [])
     nearby = []
     for entry in entries:
         item = _plain(entry)
         if not isinstance(item, dict):
             continue
-        metadata = item.get("metadata")
-        if not isinstance(metadata, dict):
-            metadata = {}
         path = item.get("path")
         if not isinstance(path, list):
             path = []
         node_id = item.get("id") or item.get("node_id") or (path[-1] if path else "")
         if not node_id or str(node_id) == ctx.node_id:
             continue
-        name = metadata.get("name") or metadata.get("title") or str(node_id)
+        metadata = item.get("metadata")
+        if not isinstance(metadata, dict):
+            metadata = {}
+        profile = _profile_from_metadata(metadata, ctx.config)
+        host_name = ""
+        # Agent 的名称只能来自其公开资料；地点等普通节点可显示宿主节点名。
+        if metadata.get("node_type") != "agent":
+            node_name = metadata.get("name")
+            if isinstance(node_name, str):
+                host_name = node_name
+        profile_name = profile.get("name")
+        if not isinstance(profile_name, str):
+            profile_name = ""
         strength = item.get("strength", 0)
         if not isinstance(strength, (int, float)) or isinstance(strength, bool):
             strength = 0
         nearby.append(
             {
                 "id": str(node_id),
-                "name": str(name),
+                "name": profile_name or host_name,
                 "path": [str(part) for part in path],
                 "strength": strength,
+                "profile": profile,
             }
         )
     nearby.sort(key=lambda item: (item["name"], item["id"]))
@@ -100,11 +147,55 @@ def _system_prompt(config):
     return "\n\n".join(parts)
 
 
-def _context(config):
+def _knowledge_context(config, records):
+    knowledge = config.get("knowledge")
+    if not isinstance(knowledge, (list, tuple)):
+        return []
+    entries = []
+    seen = set()
+    for entry in knowledge:
+        if not isinstance(entry, Mapping):
+            continue
+        knowledge_id = entry.get("id")
+        if not isinstance(knowledge_id, str) or not knowledge_id or knowledge_id in seen:
+            continue
+        when = entry.get("when")
+        if not isinstance(when, Mapping):
+            continue
+        text = entry.get("text")
+        if not isinstance(text, str):
+            continue
+        if all(field in records and records[field] == value for field, value in when.items()):
+            # 前缀保证与固定地图条目区分，同时保持配置 id 稳定可追踪。
+            entries.append({"id": f"knowledge:{knowledge_id}", "text": text})
+            seen.add(knowledge_id)
+    return entries
+
+
+def _context(config, records):
+    context = []
     map_text = config.get("map") or ""
     if isinstance(map_text, str) and map_text.strip():
-        return [{"id": "map", "text": map_text}]
-    return []
+        context.append({"id": "map", "text": map_text})
+    context.extend(_knowledge_context(config, records))
+    return context
+
+
+def _display_value(value):
+    if isinstance(value, str):
+        return value
+    try:
+        return json.dumps(_plain(value), ensure_ascii=False, sort_keys=True)
+    except (TypeError, ValueError):
+        return "无法显示"
+
+
+def _display_profile(profile):
+    parts = []
+    for field, value in profile.items():
+        label = PUBLIC_FIELD_LABELS.get(field, field)
+        parts.append(f"{label}：{_display_value(value)}")
+    return "；".join(parts)
 
 
 def _tail(records, place, nearby, clock):
@@ -124,9 +215,16 @@ def _tail(records, place, nearby, clock):
         descriptions = []
         for item in nearby:
             path_text = "→".join(item["path"]) if item["path"] else item["id"]
-            descriptions.append(
-                f"{item['name']}（{item['id']}，路径 {path_text}，强度 {item['strength']}）"
-            )
+            label = item["name"] or item["id"]
+            profile_text = _display_profile(item.get("profile") or {})
+            if profile_text:
+                descriptions.append(
+                    f"{label}（{profile_text}；路径 {path_text}，强度 {item['strength']}）"
+                )
+            else:
+                descriptions.append(
+                    f"{label}（公开资料未提供；路径 {path_text}，强度 {item['strength']}）"
+                )
         tail.append("附近可达：" + "；".join(descriptions))
     else:
         tail.append("附近可达：无可达地点")
@@ -147,7 +245,7 @@ async def _snapshot(ctx):
         memories = []
     return {
         "system_prompt": _system_prompt(config),
-        "context": _context(config),
+        "context": _context(config, records),
         "tail": _tail(records, place, nearby, clock),
         "location": place.get("location") if isinstance(place.get("location"), str) else None,
         "nearby": nearby,
@@ -186,6 +284,7 @@ async def execute(ctx, activation):
     if operation == "prepare":
         try:
             snapshot = await _snapshot(ctx)
+            ctx.publish_metadata(_public_profile(snapshot["records"], ctx.config))
             inputs = None
             if not ctx.state.get("opening_queued", False):
                 opening = ctx.config.get("opening") or ""

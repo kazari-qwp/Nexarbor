@@ -39,3 +39,13 @@ test('current-network test copies own state and files, isolate edits and reject 
  const next=await api('studio.environment',{id:w.id,action:'reset'});assert.notEqual(next.directory,copy.directory);assert.ok(await fs.stat(copy.directory));
  const network=await api('studio.create',{kind:'network',dependencies:[]});await api('studio.copy_current',{id:network.id});const draft=await api('studio.read',{id:network.id});assert.equal(JSON.parse(draft.files['network.json']).network.nodes[0].context_cursor,null);assert.deepEqual((await api('state')).live.document,original);
 });
+
+test('a configuration wish can reuse an existing component and publish bookmarks without generating implementation',async t=>{
+ const {api}=await fixture(t);const before=(await api('studio.catalog')).library['metadata.fields'];const work=await api('studio.create',{sample:'blank',dependencies:[]});
+ const presets={format:'nexarbor-component-presets/v1',presets:[{module:'metadata.fields',name:'商店资料',description:'现有字段组件的配置方案',config:{fields:{类型:'商店'}}}]};
+ await api('studio.save',{id:work.id,file:'presets.json',content:JSON.stringify(presets),expected:checksum('')});let check=await api('studio.validate',{id:work.id});assert.equal((await finished(api,check.id)).status,'passed');
+ const published=await api('studio.publish',{id:work.id});assert.equal(published.kind,'component-presets');assert.equal(published.bookmarks.length,1);
+ let library=await api('editor.library');const book=library.bookmarks.find(b=>b.id===published.bookmarks[0]);assert.deepEqual(book.asset,{kind:'module',id:'metadata.fields',config:{fields:{类型:'商店'}}});assert.deepEqual(library.history,[]);
+ await api('studio.publish',{id:work.id});library=await api('editor.library');assert.equal(library.bookmarks.length,1);assert.deepEqual((await api('studio.catalog')).library['metadata.fields'],before);
+ const old=JSON.stringify(presets);presets.presets[0].module='missing';await api('studio.save',{id:work.id,file:'presets.json',content:JSON.stringify(presets),expected:checksum(old)});check=await api('studio.validate',{id:work.id});assert.equal((await finished(api,check.id)).status,'failed');await assert.rejects(api('studio.publish',{id:work.id}));
+});

@@ -33,6 +33,8 @@ class AgentsContextTests(unittest.IsolatedAsyncioTestCase):
         initial=None,
         location="town",
         name=None,
+        public_fields=None,
+        knowledge=None,
     ):
         self.h.add_node(node_id, name=name or node_id, agent=True)
         self.h.mount(
@@ -57,6 +59,10 @@ class AgentsContextTests(unittest.IsolatedAsyncioTestCase):
                 "opening": opening,
                 "clock": clock,
                 "max_memories": max_memories,
+                "public_fields": public_fields
+                if public_fields is not None
+                else ["name", "gender", "profession", "age_group"],
+                "knowledge": knowledge or [],
             },
             access={"strength": 2, "channels": ["self", "records", "movement", "info"]},
         )
@@ -222,6 +228,163 @@ class AgentsContextTests(unittest.IsolatedAsyncioTestCase):
         looked = await self.h.call("a", "look", {}, actor="a", channels=SELF)
         self.assertEqual(looked["status"], "ok", looked)
         self.assertEqual(looked["data"]["clock"], result["data"]["clock"])
+
+    async def test_only_configured_public_fields_are_published(self):
+        await self.mount_agent(
+            "a",
+            opening="只属于甲的开场秘密",
+            initial={
+                "name": "阿岚",
+                "gender": "女",
+                "profession": "农夫",
+                "age_group": "成年",
+                "gold": 99,
+                "secret": "不可公开的账目",
+            },
+            public_fields=["name", "profession"],
+            name="阿岚",
+        )
+        await self.mount_agent("b", name="乙")
+        self.h.connect("b", "a", channels=["movement"], threshold=1)
+        saved = await self.h.call("a", "remember", {"text": "私人记忆不可发布"}, actor="a", channels=SELF)
+        self.assertEqual(saved["status"], "ok", saved)
+
+        prepared_a = await self.h.call("a", "prepare", {}, actor="a", channels=SELF)
+        self.assertEqual(prepared_a["status"], "ok", prepared_a)
+        prepared_b = await self.h.call("b", "prepare", {}, actor="b", channels=SELF)
+        self.assertEqual(prepared_b["status"], "ok", prepared_b)
+
+        entry = next(item for item in prepared_b["data"]["nearby"] if item["id"] == "a")
+        self.assertEqual(entry["profile"], {"name": "阿岚", "profession": "农夫"})
+        serialized = repr(entry) + repr(prepared_b["data"]["tail"])
+        for leaked in ("99", "gold", "不可公开的账目", "私人记忆不可发布", "开场秘密"):
+            self.assertNotIn(leaked, serialized)
+
+    async def test_same_location_profile_shows_in_tail_and_disappears_after_disconnect(self):
+        await self.mount_agent(
+            "a",
+            initial={"name": "阿岚", "gender": "女", "profession": "农夫", "age_group": "成年"},
+        )
+        await self.mount_agent(
+            "b",
+            initial={"name": "小北", "gender": "男", "profession": "铁匠", "age_group": "青年"},
+        )
+        self.h.connect("b", "a", channels=["movement"], threshold=1)
+        first_a = await self.h.call("a", "prepare", {}, actor="a", channels=SELF)
+        self.assertEqual(first_a["status"], "ok", first_a)
+        first_b = await self.h.call("b", "prepare", {}, actor="b", channels=SELF)
+        self.assertEqual(first_b["status"], "ok", first_b)
+
+        entry = next(item for item in first_b["data"]["nearby"] if item["id"] == "a")
+        self.assertEqual(
+            entry["profile"],
+            {"name": "阿岚", "gender": "女", "profession": "农夫", "age_group": "成年"},
+        )
+        tail_text = "\n".join(first_b["data"]["tail"])
+        for expected in ("阿岚", "姓名：阿岚", "性别：女", "职业：农夫", "年龄段：成年"):
+            self.assertIn(expected, tail_text)
+
+        self.h.disconnect("b", "a")
+        second_b = await self.h.call("b", "prepare", {}, actor="b", channels=SELF)
+        self.assertEqual(second_b["status"], "ok", second_b)
+        self.assertNotIn("a", [item["id"] for item in second_b["data"]["nearby"]])
+        self.assertNotIn("阿岚", "\n".join(second_b["data"]["tail"]))
+
+    async def test_knowledge_matches_own_records_and_other_agent_cannot_prepare(self):
+        knowledge = [
+            {"id": "farmer", "when": {"profession": "农夫"}, "text": "农夫懂得看节气。"},
+            {"id": "doctor", "when": {"profession": "医生"}, "text": "医生熟悉药房。"},
+            {"id": "female", "when": {"gender": "女"}, "text": "女性生理知识。"},
+            {"id": "pregnant", "when": {"pregnant": True}, "text": "怀孕护理知识。"},
+            {"id": "parent", "when": {"children": 2}, "text": "养育两个孩子的知识。"},
+        ]
+        await self.mount_agent(
+            "a",
+            initial={"profession": "农夫", "gender": "女", "pregnant": False, "children": 1},
+            knowledge=knowledge,
+        )
+        await self.mount_agent(
+            "b",
+            initial={"profession": "医生", "gender": "男", "pregnant": False, "children": 0},
+            knowledge=knowledge,
+        )
+        self.h.connect("b", "a", channels=["self"], threshold=1)
+
+        first = await self.h.call("a", "prepare", {}, actor="a", channels=SELF)
+        self.assertEqual(first["status"], "ok", first)
+        texts = [item["text"] for item in first["data"]["context"]]
+        self.assertIn("农夫懂得看节气。", texts)
+        self.assertIn("女性生理知识。", texts)
+        self.assertNotIn("医生熟悉药房。", texts)
+        self.assertNotIn("怀孕护理知识。", texts)
+        self.assertNotIn("养育两个孩子的知识。", texts)
+        ids = [item["id"] for item in first["data"]["context"]]
+        self.assertEqual(ids, ["knowledge:farmer", "knowledge:female"])
+        self.assertNotIn("map", ids)
+
+        second = await self.h.call("a", "prepare", {}, actor="a", channels=SELF)
+        self.assertEqual(second["data"]["context"], first["data"]["context"])
+
+        doctor = await self.h.call("b", "prepare", {}, actor="b", channels=SELF)
+        self.assertEqual(doctor["status"], "ok", doctor)
+        doctor_texts = [item["text"] for item in doctor["data"]["context"]]
+        self.assertIn("医生熟悉药房。", doctor_texts)
+        self.assertNotIn("农夫懂得看节气。", doctor_texts)
+
+        denied = await self.h.call("a", "prepare", {}, actor="b", channels=SELF)
+        self.assertEqual(denied["status"], "error", denied)
+        self.assertIn("自己", denied["error"])
+
+    async def test_record_change_refreshes_knowledge_keeps_map_and_opening(self):
+        knowledge = [
+            {"id": "farmer", "when": {"profession": "农夫"}, "text": "农夫懂得看节气。"},
+            {"id": "doctor", "when": {"profession": "医生"}, "text": "医生熟悉药房。"},
+        ]
+        await self.mount_agent(
+            "a",
+            map_text="镇广场北接北林。",
+            opening="唯一开场。",
+            initial={"profession": "农夫"},
+            knowledge=knowledge,
+        )
+        first = await self.h.call("a", "prepare", {}, actor="a", channels=SELF)
+        self.assertEqual(first["status"], "ok", first)
+        self.assertEqual(
+            first["data"]["context"],
+            [
+                {"id": "map", "text": "镇广场北接北林。"},
+                {"id": "knowledge:farmer", "text": "农夫懂得看节气。"},
+            ],
+        )
+        self.assertTrue(first["data"]["opening_queued"])
+
+        changed = await self.h.call(
+            "a",
+            "apply",
+            {"set": {"profession": "医生"}},
+            actor="a",
+            module="records.store",
+            channels=["records"],
+        )
+        self.assertEqual(changed["status"], "ok", changed)
+
+        second = await self.h.call("a", "prepare", {}, actor="a", channels=SELF)
+        self.assertEqual(second["status"], "ok", second)
+        self.assertEqual(
+            second["data"]["context"],
+            [
+                {"id": "map", "text": "镇广场北接北林。"},
+                {"id": "knowledge:doctor", "text": "医生熟悉药房。"},
+            ],
+        )
+        self.assertTrue(second["data"]["opening_queued"])
+        opening_items = [
+            item
+            for item in self.inputs("a")["inputs"]
+            if item.get("id") == "agents.context.opening"
+        ]
+        self.assertEqual(len(opening_items), 1)
+        self.assertEqual(opening_items[0]["text"], "唯一开场。")
 
 
 if __name__ == "__main__":

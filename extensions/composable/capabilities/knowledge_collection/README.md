@@ -36,14 +36,25 @@
 
 | 操作 | Agent 工具 | 参数 | 结果 |
 |---|---|---|---|
-| `put` | 写入知识 | `id` 非空字符串、`title`、`text`、`tags` 字符串数组、可选 `key` | 当前 `id`、`revision`、`deleted`、`created`、`idempotent` |
+| `put` | 写入知识 | `id` 非空字符串、`title`、`text`、`tags` 字符串数组、可选 `key`、可选 `expected_revision` | 当前 `id`、`revision`、`deleted`、`created`、`idempotent` |
 | `get` | 读取知识 | `id` | `document` 当前内容，包括软删除状态 |
 | `search` | 检索知识 | `query` 默认空、`tags` 默认空数组、`limit` 1～50 默认 10 | `items`、`total`；只返回未删除文档 |
-| `remove` | 删除知识 | `id` | 软删除，产生新修订并保留历史 |
+| `remove` | 删除知识 | `id`、可选 `expected_revision` | 软删除，产生新修订并保留历史 |
 | `history` | 查看知识历史 | `id` | 有限修订摘要，仅 `revision`、`title`、`deleted` |
-| `restore` | 恢复知识修订 | `id`、`revision` 正整数 | 从保留历史创建新的当前修订，原历史条目不被改写 |
+| `restore` | 恢复知识修订 | `id`、`revision` 正整数、可选 `expected_revision` | 从保留历史创建新的当前修订，原历史条目不被改写 |
 
-`put` 以“请求者 + key”幂等：同一请求者用相同 `key` 重复提交相同内容时返回原文档且不新增修订；相同 `key` 提交不同内容会被拒绝。没有 `key` 时按普通新增或更新处理。
+`put` 以“请求者 + key”幂等：同一请求者用相同 `key` 重复提交相同内容时返回原文档且不新增修订；相同 `key` 提交不同内容会被拒绝。没有 `key` 时按普通新增或更新处理。幂等命中会先按原规则返回旧结果，即使当前 revision 已经变化也仍然成功。
+
+### 安全领取与乐观并发
+
+去中心化协作时没有中央任务调度器，调用者按“先读后写”自行协调：
+
+1. 先用 `get` 读取文档，记下返回的 `revision`。
+2. 把该值作为 `expected_revision` 传给 `put`、`remove` 或 `restore`。
+3. 模块在持本地锁后重新读取当前 revision 并比较；相等才执行修改，不等则返回 `status: "error"` 的版本冲突，正文、历史、幂等回执都不会改变。
+4. 冲突后重新 `get`，确认任务是否已被他人领取；需要时再决定是否重试。
+
+`expected_revision` 必须是非负整数。文档不存在时当前 revision 视为 `0`，因此 `put` 带 `expected_revision: 0` 只会新建文档，不会覆盖已有文档。不传该参数时保持原有行为。两个 Agent 同时用同一 `expected_revision` 领取同一文档时，本地锁会把写入串行化，只有先到者成功，后到者收到冲突，版本只增加一次。
 
 ## 检索边界
 
@@ -51,8 +62,8 @@
 
 ## 并发与失败
 
-写操作在锁内重新读取状态后修改本节点，多个并发 `put` 会串行生成连续修订，不丢更新。业务错误返回 `status: "error"`；参数 Schema 错误、错误频道和断边由框架在执行前拒绝。锁内异常会恢复本节点状态，不会提交半成品修订。
+写操作在锁内重新读取状态后修改本节点，多个并发 `put` 会串行生成连续修订，不丢更新。传入 `expected_revision` 时，revision 校验也在同一把本地锁内完成，因此并发领取只有一个能成功，另一个以业务错误返回且不留下半成品修订。业务错误返回 `status: "error"`；参数 Schema 错误、错误频道和断边由框架在执行前拒绝。锁内异常会恢复本节点状态，不会提交半成品修订。
 
 ## 测试
 
-`tests/test_knowledge.py` 使用真实 `ModuleHarness` 覆盖：写入/读取/标签关键词检索、软删除默认隐藏、历史恢复与新修订、只读拒绝、容量与历史上限、并发修订、错误频道与断边、幂等与冲突，以及通过真实 Agent 权限路由访问节点工具。运行宿主 `validate` 即可执行。
+`tests/test_knowledge.py` 使用真实 `ModuleHarness` 覆盖：写入/读取/标签关键词检索、软删除默认隐藏、历史恢复与新修订、只读拒绝、容量与历史上限、并发修订、错误频道与断边、幂等与冲突，以及通过真实 Agent 权限路由访问节点工具。追加的版本校验测试覆盖：两个 Agent 同时以同一 `expected_revision` 领取时只有一个成功且版本只增一次、`expected_revision: 0` 只能新建、`remove`/`restore` 冲突不改正文/历史/版本、幂等重放不受当前版本变化影响，以及负数 `expected_revision` 被参数 Schema 拒绝。运行宿主 `validate` 即可执行。

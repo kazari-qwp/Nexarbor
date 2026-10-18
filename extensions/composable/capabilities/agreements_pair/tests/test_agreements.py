@@ -516,6 +516,317 @@ class AgreementTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(agreement["status"], "completed")
         self.assertTrue((await self.values("a"))["source_done"])
 
+    async def test_eligible_field_rejects_when_neither_participant_eligible(self):
+        self.mount_hall(
+            rules=[
+                {
+                    "id": "carry",
+                    "title": "共同孕育",
+                    "cost": 1,
+                    "delay_ticks": 5,
+                    "eligible_field": "can_carry",
+                    "participant_effects": [
+                        {
+                            "when": {"can_carry": True},
+                            "on_start": {"pregnant": True},
+                            "on_finish": {"pregnant": False},
+                        }
+                    ],
+                    "set_values": {"is_parent": True},
+                }
+            ]
+        )
+        result = await self.agree("a", "b", "carry", "carry-a")
+        self.assertEqual(result["status"], "error", result)
+        self.assertIn("资格", result["error"])
+        self.assertEqual((await self.values("a"))["ap"], 10)
+        self.assertEqual(len(self.hall.state.get("agreements") or []), 0)
+
+    async def test_only_eligible_participant_receives_on_start(self):
+        await self.set_records("b", {"set": {"can_carry": True}})
+        self.mount_hall(
+            rules=[
+                {
+                    "id": "carry",
+                    "title": "共同孕育",
+                    "cost": 1,
+                    "delay_ticks": 5,
+                    "eligible_field": "can_carry",
+                    "participant_effects": [
+                        {
+                            "when": {"can_carry": True},
+                            "on_start": {"pregnant": True},
+                            "on_finish": {"pregnant": False},
+                        }
+                    ],
+                    "set_values": {"is_parent": True},
+                }
+            ]
+        )
+        first = await self.agree("a", "b", "carry", "only-a")
+        self.assertEqual(first["status"], "ok", first)
+        self.assertIsNone((await self.values("a")).get("pregnant"))
+        self.assertIsNone((await self.values("b")).get("pregnant"))
+        second = await self.agree("b", "a", "carry", "only-b")
+        self.assertEqual(second["status"], "ok", second)
+        self.assertEqual(second["data"]["status"], "pending")
+        a_values = await self.values("a")
+        b_values = await self.values("b")
+        self.assertIsNone(a_values.get("pregnant"))
+        self.assertTrue(b_values.get("pregnant"))
+        self.assertEqual(a_values["ap"], 9)
+        self.assertEqual(b_values["ap"], 9)
+
+    async def test_fulfill_require_values_uses_only_requester_records(self):
+        self.mount_hall(
+            rules=[
+                {
+                    "id": "handover",
+                    "title": "条件交接",
+                    "cost": 0,
+                    "delay_ticks": 2,
+                    "fulfill_require_values": {"ready": True},
+                    "set_values": {"handed": True},
+                }
+            ]
+        )
+        await self.agree("a", "b", "handover", "req-a")
+        second = await self.agree("b", "a", "handover", "req-b")
+        agreement_id = second["data"]["id"]
+        self.clock.state["tick"] = 2
+        await self.set_records("b", {"set": {"ready": True}})
+        rejected = await self.fulfill("a", agreement_id)
+        self.assertEqual(rejected["status"], "error", rejected)
+        self.assertIn("兑现前提", rejected["error"])
+        self.assertIsNone((await self.values("a")).get("handed"))
+        self.assertEqual(self.hall.state["agreements"][0]["status"], "pending")
+        await self.set_records("a", {"set": {"ready": True}})
+        done = await self.fulfill("a", agreement_id)
+        self.assertEqual(done["status"], "ok", done)
+        self.assertEqual(done["data"]["status"], "completed")
+        self.assertTrue((await self.values("a"))["handed"])
+
+    async def test_delayed_on_finish_runs_only_at_actual_completion(self):
+        await self.set_records("b", {"set": {"can_carry": True}})
+        self.mount_hall(
+            rules=[
+                {
+                    "id": "carry",
+                    "title": "共同孕育",
+                    "cost": 1,
+                    "delay_ticks": 5,
+                    "eligible_field": "can_carry",
+                    "participant_effects": [
+                        {
+                            "when": {"can_carry": True},
+                            "on_start": {"pregnant": True},
+                            "on_finish": {"pregnant": False},
+                        }
+                    ],
+                    "set_values": {"is_parent": True},
+                }
+            ]
+        )
+        await self.agree("a", "b", "carry", "finish-a")
+        second = await self.agree("b", "a", "carry", "finish-b")
+        agreement_id = second["data"]["id"]
+        self.assertTrue((await self.values("b")).get("pregnant"))
+        early = await self.fulfill("a", agreement_id)
+        self.assertEqual(early["status"], "error", early)
+        self.assertIn("尚未到", early["error"])
+        self.assertTrue((await self.values("b")).get("pregnant"))
+        self.assertIsNone((await self.values("a")).get("is_parent"))
+        self.clock.state["tick"] = 5
+        done = await self.fulfill("a", agreement_id)
+        self.assertEqual(done["status"], "ok", done)
+        self.assertEqual(done["data"]["status"], "completed")
+        a_values = await self.values("a")
+        b_values = await self.values("b")
+        self.assertFalse(b_values.get("pregnant"))
+        self.assertTrue(a_values.get("is_parent"))
+        self.assertTrue(b_values.get("is_parent"))
+
+    async def test_start_effect_failure_rolls_back_second_approval_and_fee(self):
+        await self.set_records("b", {"set": {"can_carry": True}})
+        self.mount_hall(
+            rules=[
+                {
+                    "id": "carry",
+                    "title": "共同孕育",
+                    "cost": 1,
+                    "delay_ticks": 5,
+                    "eligible_field": "can_carry",
+                    "participant_effects": [
+                        {
+                            "when": {},
+                            "on_start": {"start_marker": True},
+                            "on_finish": {},
+                        },
+                        {
+                            "when": {"can_carry": True},
+                            "on_start": {"ap": -5},
+                            "on_finish": {"done": True},
+                        },
+                    ],
+                }
+            ]
+        )
+        first = await self.agree("a", "b", "carry", "rollback-a")
+        self.assertEqual(first["status"], "ok", first)
+        second = await self.agree("b", "a", "carry", "rollback-b")
+        self.assertEqual(second["status"], "error", second)
+        a_values = await self.values("a")
+        b_values = await self.values("b")
+        self.assertEqual(a_values["ap"], 9)
+        self.assertEqual(b_values["ap"], 10)
+        self.assertIsNone(a_values.get("start_marker"))
+        self.assertIsNone(b_values.get("start_marker"))
+        agreement = self.hall.state["agreements"][0]
+        self.assertEqual(agreement["status"], "open")
+        self.assertEqual(
+            [item["participant"] for item in agreement["approvals"]], ["a"]
+        )
+
+    async def test_on_start_and_on_finish_not_repeated_on_retries(self):
+        self.mount_hall(
+            rules=[
+                {
+                    "id": "effect_once",
+                    "title": "效果幂等",
+                    "cost": 1,
+                    "delay_ticks": 5,
+                    "participant_effects": [
+                        {
+                            "when": {},
+                            "on_start": {"started": True},
+                            "on_finish": {"finished": True},
+                        }
+                    ],
+                    "set_values": {"both_done": True},
+                }
+            ]
+        )
+        first = await self.agree("a", "b", "effect_once", "once-a")
+        self.assertEqual(first["status"], "ok", first)
+        self.assertIsNone((await self.values("a")).get("started"))
+        second = await self.agree("b", "a", "effect_once", "once-b")
+        agreement_id = second["data"]["id"]
+        self.assertEqual(second["data"]["status"], "pending")
+        self.assertTrue((await self.values("a")).get("started"))
+        self.assertTrue((await self.values("b")).get("started"))
+        repeat = await self.agree("a", "b", "effect_once", "once-a")
+        self.assertEqual(repeat["status"], "ok", repeat)
+        self.assertTrue(repeat["data"]["duplicate"])
+        self.assertEqual((await self.values("a"))["ap"], 9)
+        self.assertEqual((await self.values("b"))["ap"], 9)
+        self.clock.state["tick"] = 5
+        done = await self.fulfill("a", agreement_id)
+        self.assertEqual(done["status"], "ok", done)
+        self.assertEqual(done["data"]["status"], "completed")
+        self.assertTrue((await self.values("a")).get("finished"))
+        self.assertTrue((await self.values("b")).get("finished"))
+        repeated = await self.fulfill("a", agreement_id)
+        self.assertEqual(repeated["status"], "ok", repeated)
+        self.assertTrue(repeated["data"]["duplicate"])
+        self.assertEqual((await self.values("a"))["ap"], 9)
+        self.assertEqual((await self.values("b"))["ap"], 9)
+
+    async def _mount_birth_rule(self, fulfill_cost=0):
+        self.mount_hall(
+            delivery_address="office",
+            rules=[
+                {
+                    "id": "birth",
+                    "title": "共同家庭计划",
+                    "cost": 1,
+                    "fulfill_cost": fulfill_cost,
+                    "equal_fields": ["home"],
+                    "delay_ticks": 0,
+                    "template": "family_member",
+                }
+            ],
+        )
+        await self.agree("a", "b", "birth", "dict-a")
+        second = await self.agree("b", "a", "birth", "dict-b")
+        self.assertEqual(second["status"], "ok", second)
+        return second["data"]["id"]
+
+    async def test_template_official_dict_response_creates_typed_child_references(self):
+        async def behaviour(actor, name, arguments):
+            return {
+                "node_ids": {"child": "child-dict"},
+                "duplicate": False,
+                "created": 1,
+            }
+
+        await self._install_template_port(behaviour)
+        agreement_id = await self._mount_birth_rule()
+        done = await self.fulfill("a", agreement_id, name="宝宝")
+        self.assertEqual(done["status"], "ok", done)
+        self.assertEqual(done["data"]["status"], "completed")
+        self.assertEqual(
+            done["data"]["returned_node_ids"], [{"node_id": "child-dict"}]
+        )
+        self.assertEqual((await self.values("a"))["child"], "child-dict")
+        self.assertEqual((await self.values("b"))["child"], "child-dict")
+        for node_id in ("a", "b"):
+            references = self.records[node_id].state.get("references") or []
+            self.assertIn(
+                {"key": "child", "node_id": "child-dict"}, references
+            )
+
+    async def test_template_failure_retry_charges_fulfill_cost_once(self):
+        attempts = {"count": 0}
+
+        async def behaviour(actor, name, arguments):
+            attempts["count"] += 1
+            if attempts["count"] == 1:
+                raise RuntimeError("临时失败")
+            return {"node_ids": {"child": "child-cost"}, "duplicate": False}
+
+        await self._install_template_port(behaviour)
+        agreement_id = await self._mount_birth_rule(fulfill_cost=2)
+        self.assertEqual((await self.values("a"))["ap"], 9)
+        self.assertEqual((await self.values("b"))["ap"], 9)
+        failed = await self.fulfill("a", agreement_id, name="宝宝")
+        self.assertEqual(failed["status"], "error", failed)
+        self.assertEqual((await self.values("a"))["ap"], 7)
+        self.assertEqual((await self.values("b"))["ap"], 9)
+        self.assertEqual(self.hall.state["agreements"][0]["status"], "pending")
+        done = await self.fulfill("a", agreement_id, name="宝宝")
+        self.assertEqual(done["status"], "ok", done)
+        self.assertEqual(done["data"]["status"], "completed")
+        self.assertEqual((await self.values("a"))["ap"], 7)
+        self.assertEqual((await self.values("b"))["ap"], 9)
+        self.assertEqual(len(self.template_calls), 2)
+        repeat = await self.fulfill("a", agreement_id, name="宝宝")
+        self.assertEqual(repeat["status"], "ok", repeat)
+        self.assertTrue(repeat["data"]["duplicate"])
+        self.assertEqual((await self.values("a"))["ap"], 7)
+
+    async def test_template_empty_node_ids_cannot_complete(self):
+        responses = [
+            {"node_ids": {}, "duplicate": False},
+            {"node_ids": {"child": "child-late"}, "duplicate": False},
+        ]
+
+        async def behaviour(actor, name, arguments):
+            return responses.pop(0)
+
+        await self._install_template_port(behaviour)
+        agreement_id = await self._mount_birth_rule()
+        failed = await self.fulfill("a", agreement_id, name="宝宝")
+        self.assertEqual(failed["status"], "error", failed)
+        self.assertIn("节点 ID", failed["error"])
+        agreement = self.hall.state["agreements"][0]
+        self.assertEqual(agreement["status"], "pending")
+        self.assertEqual(agreement["returned_node_ids"], [])
+        self.assertIsNone((await self.values("a")).get("child"))
+        done = await self.fulfill("a", agreement_id, name="宝宝")
+        self.assertEqual(done["status"], "ok", done)
+        self.assertEqual(done["data"]["status"], "completed")
+        self.assertEqual((await self.values("a"))["child"], "child-late")
+
     async def test_framework_schema_rejects_bad_types(self):
         self.mount_hall()
         with self.assertRaises(ValidationError):

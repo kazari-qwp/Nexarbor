@@ -1,0 +1,139 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "events.chance",
+  "name": "地点概率事件",
+  "version": "0.1.0",
+  "description": "在已经验证道路、扣完预算的同一节点事务中，按配置概率抽取本地事件，累计每项成功次数并给真实 Agent 请求者发放记录仓奖励；不提供 Agent 工具。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [
+    "records.store"
+  ],
+  "config_schema": {
+    "type": "object",
+    "title": "地点概率事件配置",
+    "additionalProperties": false,
+    "properties": {
+      "events": {
+        "type": "array",
+        "title": "事件列表",
+        "description": "按数组顺序逐个独立抽取；每项事件标识必须唯一。",
+        "default": [],
+        "items": {
+          "type": "object",
+          "title": "概率事件",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "title": "事件标识",
+              "description": "用于累计成功次数的稳定唯一标识，例如 coin-found。",
+              "minLength": 1
+            },
+            "text": {
+              "type": "string",
+              "title": "事件文字",
+              "description": "触发时写入 observations 的中文描述。",
+              "minLength": 1
+            },
+            "probability": {
+              "type": "number",
+              "title": "触发概率",
+              "description": "0 到 1 之间的独立抽取概率；0 永不触发，1 必定触发。",
+              "minimum": 0,
+              "maximum": 1,
+              "default": 0
+            },
+            "limit": {
+              "type": ["integer", "null"],
+              "title": "成功次数上限",
+              "description": "正整数表示该事件最多成功触发的次数；null 表示不限次数。",
+              "minimum": 1,
+              "default": null
+            },
+            "rewards": {
+              "type": "object",
+              "title": "事件奖励",
+              "description": "触发后叠加给请求者记录仓的数字字段，例如 {\"金币\": 3}；非负数字。",
+              "additionalProperties": {
+                "type": "number",
+                "minimum": 0
+              },
+              "default": {}
+            }
+          },
+          "required": ["id", "text"]
+        }
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "title": "地点概率事件状态",
+    "additionalProperties": false,
+    "properties": {
+      "counts": {
+        "type": "object",
+        "title": "事件成功次数",
+        "description": "按事件标识记录已成功触发的次数。",
+        "additionalProperties": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "default": {}
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "sample",
+      "channels": ["events"],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "title": "抽取结果",
+        "additionalProperties": false,
+        "properties": {
+          "observations": {
+            "type": "array",
+            "title": "本次事件文字",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rewards": {
+            "type": "object",
+            "title": "本次奖励合计",
+            "description": "本次触发事件奖励按字段汇总后的数字映射；未中奖为空对象。",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "title": "事件累计成功次数",
+            "description": "本次成功后各事件标识的累计成功次数。",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "required": ["observations", "rewards", "counts"]
+      }
+    }
+  ],
+  "agent_tools": [],
+  "signals": [],
+  "frontend": {
+    "entry": "ui.html",
+    "title": "地点概率事件配置",
+    "height": 520
+  }
+}

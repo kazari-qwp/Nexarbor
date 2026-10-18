@@ -2,11 +2,11 @@
   "format": "nexarbor-module/v3",
   "id": "agreements.pair",
   "name": "双人协议与延后兑现",
-  "description": "让两位真实 Agent 在同一时刻同意同一份可配置协议；支持婚姻、共同家庭计划和其他双方约定，可配置前提、费用、记录变更、延后兑现与官方模板创建。",
-  "version": "0.1.0",
+  "description": "让两位真实 Agent 在同一时刻同意同一份可配置协议；支持婚姻、共同家庭计划和其他双方约定，可配置资格、前提、费用、按参与者匹配的开始/完成效果、延后兑现与官方模板创建。",
+  "version": "0.3.0",
   "entry": "module.py:execute",
   "node_types": ["node", "agent"],
-  "requires": ["records.store", "place.info", "clock.counter"],
+  "requires": [],
   "config_schema": {
     "type": "object",
     "additionalProperties": false,
@@ -53,7 +53,25 @@
             "id": {"type": "string", "minLength": 1, "title": "规则标识", "description": "稳定规则 ID，例如 marriage、family_plan。"},
             "title": {"type": "string", "minLength": 1, "title": "规则名称", "description": "展示给 Agent 的中文名称。"},
             "cost": {"type": "integer", "minimum": 0, "default": 1, "title": "行动点成本", "description": "每位参与者每次新同意从自己的 ap 字段扣除的行动点。"},
+            "fulfill_cost": {"type": "integer", "minimum": 0, "default": 0, "title": "兑现行动点成本", "description": "带模板协议首次准备待兑现模板请求时，从兑现者自己的 ap 字段扣除一次；端口失败后同参数重试或完成后重复调用都不再扣除。没有模板的协议不扣此项。"},
             "require_values": {"type": "object", "additionalProperties": true, "default": {}, "title": "双方前提值", "description": "普通字典。每个字段要求双方记录中的值都等于给定值，例如 age 为 18。"},
+            "eligible_field": {"type": ["string", "null"], "default": null, "title": "资格字段", "description": "可选。填写后，双方记录中该字段至少有一位为 true 才允许同意；不按性别等固定字段判断。"},
+            "fulfill_require_values": {"type": "object", "additionalProperties": true, "default": {}, "title": "兑现者前提值", "description": "兑现者本人记录中的字段必须逐项等于给定值，才允许兑现。"},
+            "participant_effects": {
+              "type": "array",
+              "default": [],
+              "title": "参与者效果",
+              "description": "按每位参与者自己的记录值匹配 when，在协议开始或完成时分别写入 on_start、on_finish 中的普通字段；可配置多项并按数组顺序执行。",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "when": {"type": "object", "additionalProperties": true, "default": {}, "title": "匹配条件", "description": "参与者本人记录中的每个字段都等于给定值时才应用本项效果。"},
+                  "on_start": {"type": "object", "additionalProperties": true, "default": {}, "title": "开始时设置值", "description": "两份同意达成时写入匹配参与者记录；即使协议延后兑现也会立即执行。"},
+                  "on_finish": {"type": "object", "additionalProperties": true, "default": {}, "title": "完成时设置值", "description": "协议实际完成时写入匹配参与者记录，与本规则的 set_values 一起生效。"}
+                }
+              }
+            },
             "equal_fields": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true, "default": [], "title": "双方同值字段", "description": "这些字段在双方记录中必须相同且非空。"},
             "pair_field": {"type": ["string", "null"], "default": null, "title": "双方关系字段", "description": "用于 require_pair 或 forbid_existing_pair 的记录字段，例如 spouse。"},
             "require_pair": {"type": "boolean", "default": false, "title": "要求已有双方关系", "description": "为真时，双方该关系字段必须各自等于对方节点 ID。"},

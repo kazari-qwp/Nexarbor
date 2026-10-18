@@ -491,5 +491,246 @@ class ServiceActionsTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sum(values["wood"] for values in totals.values()), 20)
 
 
+    async def test_require_values_and_items_allow_adult_with_pickaxe(self):
+        self.add_actor("alice", {"adult": True, "pickaxe": 1, "wood": 0, "ap": 5})
+        self.add_actor("child", {"adult": False, "pickaxe": 1, "wood": 0, "ap": 5})
+        self.add_service(
+            {
+                "actions": [
+                    {
+                        "id": "mine",
+                        "title": "采矿",
+                        "require_values": {"adult": True},
+                        "require_items": {"pickaxe": 1},
+                        "actor_deltas": {"wood": 2},
+                        "local_deltas": {"wood": -2},
+                        "cost": 1,
+                    }
+                ]
+            },
+            {"wood": 10},
+        )
+        self.connect_actor("alice")
+        self.connect_actor("child")
+
+        mined = await self.call("alice", {"action": "mine", "key": "adult-mine"})
+        self.assertEqual(mined["status"], "ok", mined)
+        alice = await self.values("alice")
+        self.assertEqual((alice["wood"], alice["pickaxe"], alice["ap"]), (2, 1, 4))
+        self.assertEqual((await self.values("shop"))["wood"], 8)
+
+        before_child = await self.values("child")
+        before_shop = await self.values("shop")
+        refused = await self.call("child", {"action": "mine", "key": "child-mine"})
+        self.assertEqual(refused["status"], "error", refused)
+        self.assertIn("adult", refused["error"])
+        self.assertEqual(await self.values("child"), before_child)
+        self.assertEqual(await self.values("shop"), before_shop)
+
+    async def test_require_items_scales_with_quantity_and_does_not_consume(self):
+        self.add_actor("alice", {"pickaxe": 1, "wood": 0, "ap": 5})
+        self.add_service(
+            {
+                "actions": [
+                    {
+                        "id": "mine",
+                        "title": "采矿",
+                        "require_items": {"pickaxe": 1},
+                        "actor_deltas": {"wood": 1},
+                        "local_deltas": {"wood": -1},
+                        "cost": 0,
+                    }
+                ]
+            },
+            {"wood": 10},
+        )
+        self.connect_actor("alice")
+
+        refused = await self.call(
+            "alice", {"action": "mine", "quantity": 2, "key": "need-two"}
+        )
+        self.assertEqual(refused["status"], "error", refused)
+        self.assertIn("pickaxe", refused["error"])
+        self.assertEqual((await self.values("alice"))["wood"], 0)
+        self.assertEqual((await self.values("shop"))["wood"], 10)
+
+        await self.h.call(
+            "alice",
+            "apply",
+            {"set": {"pickaxe": 2}},
+            module="records.store",
+            actor="alice",
+            strength=1,
+            channels=["records"],
+        )
+        mined = await self.call(
+            "alice", {"action": "mine", "quantity": 2, "key": "have-two"}
+        )
+        self.assertEqual(mined["status"], "ok", mined)
+        alice = await self.values("alice")
+        self.assertEqual((alice["wood"], alice["pickaxe"]), (2, 2))
+        self.assertEqual((await self.values("shop"))["wood"], 8)
+
+    async def test_borrow_and_repay_are_configuration_with_debt_cap(self):
+        self.add_actor("alice", {"wood": 0, "gold": 5, "debt": 0, "ap": 6})
+        self.add_service(
+            {
+                "actions": [
+                    {
+                        "id": "borrow",
+                        "title": "借贷购买木材",
+                        "actor_deltas": {"wood": 1, "debt": 2},
+                        "local_deltas": {"wood": -1, "receivable": 2},
+                        "actor_maximums": {"debt": 8},
+                        "cost": 1,
+                    },
+                    {
+                        "id": "repay",
+                        "title": "还款",
+                        "actor_deltas": {"gold": -2, "debt": -2},
+                        "local_deltas": {"gold": 2, "receivable": -2},
+                        "cost": 1,
+                    },
+                ]
+            },
+            {"wood": 10, "gold": 0, "receivable": 0},
+        )
+        self.connect_actor("alice")
+
+        for index in range(4):
+            borrowed = await self.call(
+                "alice", {"action": "borrow", "key": f"borrow-{index}"}
+            )
+            self.assertEqual(borrowed["status"], "ok", borrowed)
+
+        alice = await self.values("alice")
+        shop = await self.values("shop")
+        self.assertEqual((alice["wood"], alice["gold"], alice["debt"], alice["ap"]), (4, 5, 8, 2))
+        self.assertEqual((shop["wood"], shop["gold"], shop["receivable"]), (6, 0, 8))
+
+        before_actor = await self.values("alice")
+        before_shop = await self.values("shop")
+        over_limit = await self.call(
+            "alice", {"action": "borrow", "key": "borrow-over-limit"}
+        )
+        self.assertEqual(over_limit["status"], "error", over_limit)
+        self.assertIn("上限", over_limit["error"])
+        self.assertEqual(await self.values("alice"), before_actor)
+        self.assertEqual(await self.values("shop"), before_shop)
+
+        repaid = await self.call("alice", {"action": "repay", "key": "repay-1"})
+        self.assertEqual(repaid["status"], "ok", repaid)
+        alice = await self.values("alice")
+        shop = await self.values("shop")
+        self.assertEqual((alice["gold"], alice["debt"], alice["ap"]), (3, 6, 1))
+        self.assertEqual((shop["gold"], shop["receivable"]), (2, 6))
+
+    async def test_event_rewards_cannot_bypass_actor_maximum(self):
+        self.add_actor("alice", {"wood": 0, "debt": 0, "ap": 5})
+        self.add_service(
+            {
+                "actions": [
+                    {
+                        "id": "capped",
+                        "title": "额度二",
+                        "actor_deltas": {"debt": 2},
+                        "local_deltas": {"wood": -1},
+                        "actor_maximums": {"debt": 2},
+                        "cost": 1,
+                    },
+                    {
+                        "id": "exact",
+                        "title": "额度三",
+                        "actor_deltas": {"debt": 2},
+                        "local_deltas": {"wood": -1},
+                        "actor_maximums": {"debt": 3},
+                        "cost": 1,
+                    },
+                ],
+                "events": [
+                    {
+                        "id": "debt-bonus",
+                        "text": "额外债务奖励",
+                        "probability": 1,
+                        "limit": 1,
+                        "rewards": {"debt": 1},
+                    }
+                ],
+            },
+            {"wood": 5},
+        )
+        self.connect_actor("alice")
+
+        before_actor = await self.values("alice")
+        before_shop = await self.values("shop")
+        failed = await self.call("alice", {"action": "capped", "key": "max-fail"})
+        self.assertEqual(failed["status"], "error", failed)
+        self.assertIn("debt", failed["error"])
+        self.assertIn("上限", failed["error"])
+        self.assertEqual(await self.values("alice"), before_actor)
+        self.assertEqual(await self.values("shop"), before_shop)
+        service = self.h.modules.get("shop", "service.actions")
+        self.assertEqual(service.state.get("event_counts", {}), {})
+        self.assertEqual(service.state.get("receipts", []), [])
+
+        succeeded = await self.call("alice", {"action": "exact", "key": "max-ok"})
+        self.assertEqual(succeeded["status"], "ok", succeeded)
+        self.assertEqual((await self.values("alice"))["debt"], 3)
+        self.assertEqual(service.state["event_counts"], {"debt-bonus": 1})
+
+        before_actor = await self.values("alice")
+        before_shop = await self.values("shop")
+        second = await self.call("alice", {"action": "exact", "key": "max-again"})
+        self.assertEqual(second["status"], "error", second)
+        self.assertIn("上限", second["error"])
+        self.assertEqual(await self.values("alice"), before_actor)
+        self.assertEqual(await self.values("shop"), before_shop)
+        self.assertEqual(service.state["event_counts"], {"debt-bonus": 1})
+
+    async def test_repair_uses_actor_set_without_multiplying_and_set_before_delta(self):
+        self.add_actor(
+            "alice",
+            {"gold": 5, "pickaxe_state": "磨损", "repair_count": 0, "score": 0, "ap": 5},
+        )
+        self.add_service(
+            {
+                "actions": [
+                    {
+                        "id": "repair",
+                        "title": "修理",
+                        "require_values": {"pickaxe_state": "磨损"},
+                        "actor_set": {"pickaxe_state": "良好", "repair_count": 1},
+                        "actor_deltas": {"gold": -1},
+                        "local_deltas": {"gold": 1},
+                        "cost": 0,
+                    },
+                    {
+                        "id": "adjust",
+                        "title": "调整分数",
+                        "actor_set": {"score": 10},
+                        "actor_deltas": {"score": 2},
+                        "cost": 0,
+                    },
+                ]
+            },
+            {"gold": 0},
+        )
+        self.connect_actor("alice")
+
+        repaired = await self.call(
+            "alice", {"action": "repair", "quantity": 2, "key": "repair-2"}
+        )
+        self.assertEqual(repaired["status"], "ok", repaired)
+        alice = await self.values("alice")
+        self.assertEqual(alice["pickaxe_state"], "良好")
+        self.assertEqual(alice["repair_count"], 1)
+        self.assertEqual(alice["gold"], 3)
+        self.assertEqual((await self.values("shop"))["gold"], 2)
+
+        adjusted = await self.call("alice", {"action": "adjust", "key": "adjust-1"})
+        self.assertEqual(adjusted["status"], "ok", adjusted)
+        self.assertEqual((await self.values("alice"))["score"], 12)
+
+
 if __name__ == "__main__":
     unittest.main()

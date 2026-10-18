@@ -9,7 +9,7 @@ try{
  for(let i=0;i<spec.tasks.length;i+=spec.parallel??1){
   const batch=spec.tasks.slice(i,i+(spec.parallel??1));
   await Promise.all(batch.map(async task=>{
-   const work=task.workspace?await host.rpc('studio_read',{id:task.workspace}):task.fork_module?await host.rpc('studio_fork',{module:task.fork_module}):await host.rpc('studio_create',{sample:'blank',kind:task.kind??'module',name:task.name,dependencies:task.dependencies??[]});
+   const work=task.workspace?await host.rpc('studio_read',{id:task.workspace}):task.fork_module?await host.rpc('studio_fork',{module:task.fork_module}):await host.rpc('studio_create',{sample:'blank',kind:task.kind??'module',name:task.name,dependencies:task.dependencies??[],reference_files:task.reference_files??{}});
    const source=task.fork_from?evidence.results.find(r=>r.name===task.fork_from):null;
    const job=await host.rpc('studio_agent_start',{...task,id:work.id,timeout:task.timeout??1000,max_steps:task.max_steps??90,max_repairs:task.max_repairs??3,auto_publish:task.auto_publish!==false,...(source?{fork_session:source.session_id,seed_only:task.seed_only!==false}:{})});
    let result;console.log(JSON.stringify({name:task.name,workspace:work.id,task:job.id,session_id:job.session_id}));
@@ -17,5 +17,7 @@ try{
    evidence.results.push({name:task.name,...result});await checkpoint();
   }));
  }
+ // 人工附加的复审任务也属于本轮，不能在主列表结束时取消它们。
+ for(;;){const state=await host.rpc('studio_agent_status'),running=state.jobs.filter(j=>j.status==='running');if(!running.length){evidence.attached=state.jobs.filter(j=>!evidence.results.some(r=>r.id===j.id));break;}console.log(JSON.stringify({waiting_attached:running.map(j=>({id:j.id,workspace:j.workspace,steps:j.steps}))}));await new Promise(r=>setTimeout(r,10000));}
  evidence.finished=Date.now();await checkpoint();console.log(JSON.stringify({evidence:output,results:evidence.results.map(r=>({name:r.name,status:r.status,error:r.error,release:r.release?.id,steps:r.steps}))}));process.exitCode=evidence.results.every(r=>r.status==='completed')?0:1;
 }finally{await host.close();}
