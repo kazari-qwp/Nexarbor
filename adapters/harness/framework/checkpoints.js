@@ -18,6 +18,15 @@ function updatePending(pending,event){
 
 export class NativePositions{
   constructor(ctx){this.ctx=ctx;this.cache=new WeakMap();}
+  async restore(cursor,current,{onDiverged}={}){
+    if(current?.id===cursor.session_id){
+      const head=await this.capture(current,{allowPending:true});
+      const keys=['adapter','version','session_id','header_hash','event_count','prefix_hash','inherited_event_count'];
+      if(keys.every(key=>head[key]===cursor[key]))return {cursor:head,reused:true};
+    }
+    await onDiverged?.();const id=await this.fork(cursor);
+    return {cursor:await this.captureStored(id),reused:false};
+  }
   async capture(session,{allowPending=false}={}){
     const persistence=this.ctx.get('sessionPersistence');
     if(!persistence)throw new Error('Native session persistence is not mounted');

@@ -55,7 +55,7 @@ export class MakerManager{
    if(job.children.length>=6)throw Error('本次预设最多委托 6 个组件；先复用已发布能力');
    const workspace=await this.rpc('studio_create',{kind:p.arguments.kind,name:p.arguments.name,sample:'blank'}),child=await this.start({id:workspace.id,name:p.arguments.name,requirement:p.arguments.requirement,auto_publish:true,timeout:Math.max(10,Math.min(600,Math.floor((job.deadline-Date.now())/1000)))});this.jobs.get(child.id).request_key=key;job.children.push(child.id);return {task:child.id,status:child.status};
   }
-  if(p.tool==='component_status'){if(!job.children.includes(p.arguments.task))throw Error('只能查看当前预设委托的组件');const child=this.jobs.get(p.arguments.task);return {task:child.id,status:child.status,release:child.release,validation_log:child.validation_log,error:child.error};}
+  if(p.tool==='component_status'){if(!job.children.includes(p.arguments.task))throw Error('只能查看当前预设委托的组件');const child=this.jobs.get(p.arguments.task),end=Date.now()+Math.min(30,Math.max(0,p.arguments.wait_seconds??15))*1000;while(child.status==='running'&&job.status==='running'&&Date.now()<end)await pause(500);return {task:child.id,status:child.status,release:child.release,validation_log:child.validation_log,error:child.error};}
   return this.rpc('studio_maker_tool',{id:job.workspace,tool:p.tool,arguments:p.arguments,hidden:job.hidden_modules});
  }
  async publish(p){

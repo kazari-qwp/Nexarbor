@@ -5,7 +5,7 @@
   "signals": [],
   "id": "movement.here",
   "name": "移动到此",
-  "description": "锁定 NPC、旧地点和目的地，原子更新双向位置连接及地点资料。",
+  "description": "锁定 NPC、旧地点和目的地，原子更新双向位置连接及地点资料；可配置移动前钩子。",
   "node_types": [
     "node",
     "text_file"
@@ -23,6 +23,54 @@
         "maximum": 120,
         "default": 15,
         "title": "移动超时（秒）"
+      },
+      "before_hooks": {
+        "type": "array",
+        "title": "移动前钩子",
+        "description": "位置与道路检查通过后、修改任何位置数据前，按顺序调用已锁定目标上的模块操作；任一步失败则整次移动回滚。默认空数组，不产生额外依赖。",
+        "default": [],
+        "items": {
+          "type": "object",
+          "title": "移动前钩子项",
+          "properties": {
+            "target": {
+              "type": "string",
+              "title": "目标节点",
+              "description": "requester 表示发起移动的 Agent，origin 表示旧地点，destination 表示目的地。",
+              "enum": [
+                "requester",
+                "origin",
+                "destination"
+              ],
+              "default": "requester"
+            },
+            "module": {
+              "type": "string",
+              "title": "模块标识",
+              "description": "要调用的模块 ID，例如 records.store。",
+              "minLength": 1
+            },
+            "operation": {
+              "type": "string",
+              "title": "操作名称",
+              "description": "目标模块公开的操作名称，例如 apply。",
+              "minLength": 1
+            },
+            "arguments": {
+              "type": "object",
+              "title": "调用参数",
+              "description": "传给目标模块操作的 JSON 对象。",
+              "additionalProperties": true,
+              "default": {}
+            }
+          },
+          "required": [
+            "target",
+            "module",
+            "operation"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     "additionalProperties": false

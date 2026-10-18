@@ -1,0 +1,39 @@
+{
+  "config": {
+    "clock": "clock",
+    "address": null,
+    "delivery_address": null,
+    "sources": [],
+    "rules": [
+      {
+        "id": "marriage",
+        "title": "婚姻登记",
+        "cost": 1,
+        "require_values": {"age": 18},
+        "pair_field": "spouse",
+        "forbid_existing_pair": true,
+        "set_values": {"married": true},
+        "delay_ticks": 0
+      },
+      {
+        "id": "family_plan",
+        "title": "共同家庭计划",
+        "cost": 1,
+        "require_values": {"age": 18},
+        "equal_fields": ["home"],
+        "set_values": {"planning": true},
+        "delay_ticks": 10,
+        "template": "family_member"
+      }
+    ]
+  },
+  "state": {
+    "sequence": 0,
+    "agreements": [],
+    "agree_receipts": []
+  },
+  "access": {
+    "strength": 3,
+    "channels": ["agreements", "records", "movement", "info", "runtime.template", "tools"]
+  }
+}

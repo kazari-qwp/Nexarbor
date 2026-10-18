@@ -6,7 +6,7 @@ const copy=value=>JSON.parse(JSON.stringify(value));
 
 export function enrichSchema(schema,nodes=[]){
   const result=copy(schema);
-  if(result.format==='node-id'){delete result.format;result.enum=nodes.map(n=>n.node_id);result.enumNames=nodes.map(n=>n.name+' · '+n.node_id);}
+  if(result.format==='node-id'){delete result.format;const nullable=result.type==='null'||Array.isArray(result.type)&&result.type.includes('null');result.enum=[...(nullable?[null]:[]),...nodes.map(n=>n.node_id)];result.enumNames=[...(nullable?['未指定']:[]),...nodes.map(n=>n.name+' · '+n.node_id)];}
   if(result.format==='textarea')delete result.format;
   if(result.properties)for(const key in result.properties)result.properties[key]=enrichSchema(result.properties[key],nodes);
   if(result.items&&typeof result.items==='object')result.items=enrichSchema(result.items,nodes);

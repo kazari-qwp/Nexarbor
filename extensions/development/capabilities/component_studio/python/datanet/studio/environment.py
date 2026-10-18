@@ -21,12 +21,13 @@ def prepare(studio,p):
     from .service import sources,digest,write_json,read_json
     work=studio.folder(p['id']);metadata=read_json(work/'workspace.json',{})
     current=sources(work);fingerprint=digest(current)
+    publications={}
     if p.get('source','current')=='candidate':
         if metadata.get('kind')!='network':raise ValueError('只有网络制作副本可使用候选网络')
         from .network_work import validate_network
         document=validate_network(read_json(work/'network.json',{}),studio.backend,studio.library)
     else:
-        snapshot=studio.backend.snapshot();document={key:snapshot[key] for key in ['network','files']}
+        snapshot=studio.backend.snapshot();document={key:snapshot[key] for key in ['network','files']};publications=snapshot.get('node_publications',{})
     document=sanitized(document)
     home=studio.root/'environments'/p['id']/uuid4().hex;home.mkdir(parents=True)
     write_json(home/'initial.json',document)
@@ -43,7 +44,7 @@ def prepare(studio,p):
         defaults=read_json(work/'example.json',{})
         library[spec['id']]=dict(id=spec['id'],version=spec['version'],folder=str(destination.relative_to(home/'runtime/studio')),digest=fingerprint,manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults)
     write_json(home/'runtime/studio/library.json',library)
-    setup=dict(fingerprint=fingerprint,source=p.get('source','current'),external_tools=studio.backend.external_tools.catalog(),module=None if metadata.get('kind')=='network' else spec['id'])
+    setup=dict(fingerprint=fingerprint,source=p.get('source','current'),external_tools=studio.backend.external_tools.catalog(),publications=publications,module=None if metadata.get('kind')=='network' else spec['id'])
     write_json(home/'setup.json',setup);write_json(studio.root/'environments'/p['id']/'active.json',dict(home=str(home)))
     return home
 
@@ -71,6 +72,14 @@ def worker(home,request):
     from datanet.core.serialization import network_document
     from .assembly import assemble
     setup=read_json(home/'setup.json',{});backend=Backend(home/'runtime',initial_document=read_json(home/'initial.json',{}))
+    if not (home/'seeded.json').exists():
+        for node,modules in setup.get('publications',{}).items():
+            for module,fields in modules.items():
+                key=(node,module)
+                if key in backend.modules.instances:
+                    backend.modules._published[key]=deepcopy(fields)
+                    backend.network.metadata_registry.register('module:'+repr(key),lambda target,key=key:backend.modules._metadata_fields(key,target))
+        write_json(home/'seeded.json',{'seeded':True})
     async def denied(actor,name,args):raise PermissionError('测试环境禁用模型、外部工具及不可逆副作用')
     groups={}
     for item in setup['external_tools']:groups.setdefault(item['provider'],[]).append({key:item[key] for key in ['name','description','parameters']})
@@ -82,7 +91,9 @@ def worker(home,request):
             defaults=release.get('mount_defaults',{});mount={key:deepcopy(request.get(key,defaults.get(key,{} if key!='access' else dict(strength=0,channels=[])))) for key in ['config','state','access']}
             modules=assemble(dict(type=node.signal_type,modules={**node.modules,name:mount}),backend.studio.library,backend.components.module_types)
             for module,spec in modules.items():
-                if module==name or module not in node.modules:backend.modules.mount(node.node_id,module,spec['config'],spec['state'],access=spec['access'])
+                if module==name or module not in node.modules:
+                    if module in node.modules:backend.modules.unmount(node.node_id,module)
+                    backend.modules.mount(node.node_id,module,spec['config'],spec['state'],access=spec['access'])
             result=dict(mounted=name,node=node.node_id)
         elif action=='call':
             result=backend.runtime.run(backend.modules.access(request['actor'],request['node'],request.get('module') or setup['module'],request['operation'],request.get('arguments',{}),strength=request.get('strength',2),channels=request.get('channels',[])))

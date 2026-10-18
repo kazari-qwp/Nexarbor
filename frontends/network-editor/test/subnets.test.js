@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';
 import {copySubnet,pasteSubnet,selectionStep,historyBookmark} from '../src/subnets.js';
 import {keyMatches,pointerMatches} from '../src/shortcuts.js';
 const edge=target=>({target_node_id:target,metadata:{channels:['tools'],threshold:1,multiplier:1,attributes:{label:'边参数'}}});
@@ -72,4 +72,16 @@ test('even a repeated UUID cannot overwrite an existing node or its associated d
  assert.equal(a2.connections.interfaces[0].target_node_id,b2.node_id);assert.equal(b2.connections.interfaces[0].target_node_id,a2.node_id);
  assert.notEqual(a2.parameters.file_path,first.document.network.nodes.at(-2).parameters.file_path);assert.equal(second.document.files[a2.parameters.file_path],'a记忆');
  const long=structuredClone(book);long.snapshot.nodes[0].node_id='a'.repeat(180);assert.ok(pasteSubnet(document,long,{x:0,y:0}).nodes.every(id=>id.length<=180));
+});
+
+test('real record-store node references in configuration, state and receipts follow copied internal nodes',()=>{
+ const spec=JSON.parse(readFileSync(new URL('../../../extensions/composable/capabilities/records_store/module.json',import.meta.url),'utf8'));
+ const source=structuredClone(document),references=[{key:'home',node_id:'b'},{key:'outside',node_id:'c'}];
+ source.network.nodes[0].modules['records.store']={config:{initial:{label:'b'},references},state:{values:{label:'b'},references,receipts:[{key:'old-request',fingerprint:'not-authority',values:{label:'b'},references}]},access:{strength:0,channels:['records']}};
+ for(const mode of ['internal','external']){
+  const result=pasteSubnet(source,{mode,snapshot:copySubnet(source,['a','b'],mode)},{x:0,y:0},{'records.store':{schema:spec.config_schema,state_schema:spec.state_schema}});
+  const [first,second]=result.document.network.nodes.slice(-2),record=first.modules['records.store'];
+  for(const refs of [record.config.references,record.state.references,record.state.receipts[0].references])assert.deepEqual(refs,[{key:'home',node_id:second.node_id},{key:'outside',node_id:'c'}]);
+  assert.equal(record.config.initial.label,'b');assert.equal(record.state.values.label,'b');
+ }
 });

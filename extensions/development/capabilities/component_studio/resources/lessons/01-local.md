@@ -19,4 +19,6 @@ ctx.node_id/module_id 是本实例身份；metadata() 读本地资料，publish_
 
 config、parameters、signal.content 是冻结 JSON：对象 FrozenDict，数组 tuple。可变副本用 datanet.core.json_values.thaw，不修改 config，不把数组只当 list。
 
+文本节点的本地正文键固定为 content：`ctx.read({'method':'key','key':'content'})` 返回 NodeResult 的 JSON 副本（status/items/sources/errors）；`ctx.write('content','新正文')` 写入，同样检查 status 是否为 ok。不是 __text__，也不能猜其他键。普通 node/agent 并不自动具有文本写入能力；文本写入要声明 text_file。
+
 反例：execute(backend,node,amount)、backend.network.nodes 查别人、open 会话日志。正确：只经 ctx，需要其他节点时读 02。

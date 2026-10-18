@@ -1,0 +1,288 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "records.store",
+  "name": "局部记录仓",
+  "version": "0.2.0",
+  "description": "保存 NPC 财产、行动点、身份、库存或任务状态等任意 JSON 记录，并把住所、配偶、父母等节点关系保存为可随完整网络拷贝（如 A 到 B）自动映射的显式引用；支持按字段比较、增减、最低值和请求去重。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "initial": {
+        "type": "object",
+        "title": "初始数据",
+        "description": "首次使用时的普通 JSON 记录；节点关系请改用 references，不要在这里写节点 ID 字符串。",
+        "additionalProperties": true,
+        "default": {}
+      },
+      "references": {
+        "type": "array",
+        "title": "初始显式引用",
+        "description": "首次初始化时深拷贝到状态。每项把一个字段名显式声明为节点引用；完整网络拷贝时可按节点身份自动映射到新节点，普通字符串不会被猜成节点 ID。",
+        "default": [],
+        "items": {
+          "type": "object",
+          "title": "显式引用",
+          "properties": {
+            "key": {
+              "type": "string",
+              "title": "引用字段名",
+              "description": "例如 home、spouse、parent；不能为空，也不能与 initial 的同名普通字段冲突。",
+              "minLength": 1
+            },
+            "node_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "node-id",
+              "title": "目标节点",
+              "description": "引用指向的节点 ID；null 表示暂时没有目标。",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "key",
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "minimum": {
+        "type": "object",
+        "title": "字段最低值",
+        "description": "按普通数字字段给出的下限，默认为空；显式引用字段不参与数字下限校验。",
+        "additionalProperties": {
+          "type": "number"
+        },
+        "default": {}
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "values": {
+        "type": "object",
+        "title": "普通记录",
+        "description": "只保存普通 JSON 值；节点关系单独保存在 references。",
+        "additionalProperties": true
+      },
+      "references": {
+        "type": "array",
+        "title": "显式节点引用",
+        "description": "运行状态中的节点引用表，与 config.references 分离保存；完整网络拷贝时可自动映射。",
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "title": "引用字段名",
+              "minLength": 1
+            },
+            "node_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "node-id",
+              "title": "目标节点",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "key",
+            "node_id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "receipts": {
+        "type": "array",
+        "title": "最近请求回执",
+        "maxItems": 200,
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "fingerprint": {
+              "type": "string"
+            },
+            "values": {
+              "type": "object",
+              "title": "普通记录快照",
+              "description": "回执中的普通值，与显式引用分开保存。",
+              "additionalProperties": true
+            },
+            "references": {
+              "type": "array",
+              "title": "显式引用快照",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "node_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "format": "node-id",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "key",
+                  "node_id"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "key",
+            "fingerprint",
+            "values"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "read",
+      "channels": [
+        "records"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object",
+            "title": "合并业务视图",
+            "description": "普通 values 与显式 references 按 key 合并；其他模块仍可用 values.home 读取节点 ID 字符串。",
+            "additionalProperties": true
+          }
+        },
+        "required": [
+          "values"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "apply",
+      "channels": [
+        "records"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "set": {
+            "type": "object",
+            "title": "设置值",
+            "description": "直接写入的普通字段；已声明的引用字段会更新 references，而不是写成普通字符串。",
+            "additionalProperties": true,
+            "default": {}
+          },
+          "deltas": {
+            "type": "object",
+            "title": "增减值",
+            "description": "按普通数字字段增加或减少，字段不存在时按 0 计算；引用字段不能增减。",
+            "additionalProperties": {
+              "type": "number"
+            },
+            "default": {}
+          },
+          "expected": {
+            "type": "object",
+            "title": "期望值",
+            "description": "变更前必须与普通 values 和显式 references 合并后的业务视图逐字段一致。",
+            "additionalProperties": true,
+            "default": {}
+          },
+          "references": {
+            "type": "array",
+            "title": "显式引用",
+            "description": "新增或更新显式节点引用；可一次提交多条，但同一请求内键不能重复，也不能覆盖普通记录字段。",
+            "default": [],
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "title": "引用字段名",
+                  "description": "例如 home、spouse、child、parent；必须是非空字符串。",
+                  "minLength": 1
+                },
+                "node_id": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "format": "node-id",
+                  "title": "目标节点",
+                  "description": "节点 ID 字符串或 null；任意普通字符串不会被当作节点 ID。",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "key",
+                "node_id"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "key": {
+            "type": "string",
+            "title": "去重键",
+            "description": "相同键和相同参数只执行一次。"
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "values": {
+            "type": "object",
+            "title": "合并业务视图",
+            "description": "返回普通 values 与显式 references 合并后的视图；幂等重试返回原快照的合并视图。",
+            "additionalProperties": true
+          },
+          "duplicate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "values",
+          "duplicate"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "signals": [],
+  "frontend": {
+    "entry": "ui.html",
+    "title": "局部记录仓配置",
+    "height": 560
+  }
+}

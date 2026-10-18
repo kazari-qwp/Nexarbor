@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>局部记录仓配置</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 14px;
+      background: #15191e;
+      color: #e7edf4;
+      font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    }
+    h1 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+    h2 { margin: 0; font-size: 14px; font-weight: 600; }
+    .status { margin: 0 0 12px; min-height: 21px; color: #9fb0c2; font-size: 12px; }
+    .status.error { color: #ff9c9c; }
+    .section {
+      margin-bottom: 14px;
+      padding: 10px;
+      border: 1px solid #2c3642;
+      border-radius: 8px;
+      background: #1b2027;
+    }
+    .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .section-head h2 { flex: 1; }
+    .hint { margin: 6px 0 0; color: #8595a6; font-size: 12px; }
+    .rows { display: flex; flex-direction: column; gap: 8px; }
+    .empty { color: #788796; font-size: 12px; padding: 3px 0; }
+    .row {
+      display: grid;
+      grid-template-columns: minmax(80px, 1fr) 92px minmax(90px, 1.4fr) auto;
+      gap: 6px;
+      align-items: start;
+    }
+    .row.minimum { grid-template-columns: minmax(100px, 1.4fr) minmax(100px, 1fr) auto; }
+    .row.reference { grid-template-columns: minmax(90px, 1fr) minmax(130px, 1.6fr) auto; }
+    input, select, textarea, button {
+      min-width: 0;
+      border: 1px solid #394554;
+      border-radius: 5px;
+      background: #11161b;
+      color: #e7edf4;
+      font: inherit;
+      padding: 5px 7px;
+    }
+    input:focus, select:focus, textarea:focus { outline: 1px solid #6aa8d8; border-color: #6aa8d8; }
+    textarea { min-height: 52px; resize: vertical; font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+    button { cursor: pointer; background: #263342; }
+    button:hover:not(:disabled) { background: #304257; }
+    button:disabled, input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-allowed; }
+    button.primary { background: #2b6b58; border-color: #3d8b74; }
+    button.primary:hover:not(:disabled) { background: #347f68; }
+    button.danger { color: #ffb1b1; }
+    button.small { padding: 3px 8px; font-size: 12px; }
+    .actions { display: flex; gap: 8px; align-items: center; }
+    @media (max-width: 340px) {
+      .row { grid-template-columns: 1fr 1fr; }
+      .row textarea { grid-column: 1 / -1; }
+      .row.minimum { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <h1>局部记录仓</h1>
+  <p class="status" id="status">正在读取配置…</p>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>初始数据 initial</h2>
+      <button type="button" class="small" id="addInitial">添加字段</button>
+    </div>
+    <div class="rows" id="initialRows"></div>
+    <p class="hint">首次使用记录仓时深拷贝这些值。可保存数字、文本、布尔、对象、数组和空值。</p>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>显式节点引用 references</h2>
+      <button type="button" class="small" id="addReference">添加引用</button>
+    </div>
+    <div class="rows" id="referenceRows"></div>
+    <p class="hint">把住所 home、配偶 spouse、父母等节点关系显式写在这里，值只能是节点 ID 或留空表示 null。完整网络拷贝（例如从网络 A 复制到网络 B）时，显式引用会按节点身份自动映射到新节点；普通字符串不会被猜成节点 ID。因此请勿在 initial 中放节点关系字段。</p>
+  </section>
+
+  <section class="section">
+    <div class="section-head">
+      <h2>字段最低值 minimum</h2>
+      <button type="button" class="small" id="addMinimum">添加字段</button>
+    </div>
+    <div class="rows" id="minimumRows"></div>
+    <p class="hint">每次 apply 后，已配置最低值的字段不得低于该数字；留空表示不限制。</p>
+  </section>
+
+  <div class="actions">
+    <button type="button" class="primary" id="save">保存配置</button>
+    <span class="hint">修改写入网络草稿，点击客户端“应用网络”后生效。</span>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    const host = window.NexarborModule;
+    const statusNode = document.getElementById('status');
+    const initialRows = document.getElementById('initialRows');
+    const referenceRows = document.getElementById('referenceRows');
+    const minimumRows = document.getElementById('minimumRows');
+    const saveButton = document.getElementById('save');
+    const addInitialButton = document.getElementById('addInitial');
+    const addReferenceButton = document.getElementById('addReference');
+    const addMinimumButton = document.getElementById('addMinimum');
+    let current = null;
+    let dirty = false;
+    let readOnly = false;
+
+    const TYPE_LABELS = [
+      ['number', '数字'],
+      ['string', '文本'],
+      ['boolean', '布尔'],
+      ['json', '对象/数组'],
+      ['null', '空值']
+    ];
+
+    function setStatus(text, isError) {
+      statusNode.textContent = text;
+      statusNode.classList.toggle('error', Boolean(isError));
+    }
+
+    function make(tag, className, text) {
+      const node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text !== undefined) node.textContent = text;
+      return node;
+    }
+
+    function detectType(value) {
+      if (value === null) return 'null';
+      if (Array.isArray(value)) return 'json';
+      if (typeof value === 'object') return 'json';
+      if (typeof value === 'boolean') return 'boolean';
+      if (typeof value === 'number') return 'number';
+      return 'string';
+    }
+
+    function defaultValueFor(type) {
+      if (type === 'number') return 0;
+      if (type === 'boolean') return false;
+      if (type === 'json') return {};
+      if (type === 'null') return null;
+      return '';
+    }
+
+    function valueToText(type, value) {
+      if (type === 'json') {
+        try { return JSON.stringify(value === undefined ? {} : value, null, 2); }
+        catch (error) { return '{}'; }
+      }
+      if (type === 'number') return typeof value === 'number' && Number.isFinite(value) ? String(value) : '0';
+      if (type === 'string') return typeof value === 'string' ? value : (value === null || value === undefined ? '' : String(value));
+      return '';
+    }
+
+    function buildValueControl(type, value) {
+      if (type === 'null') {
+        const note = make('span', 'hint', 'JSON null');
+        note.dataset.role = 'null';
+        return note;
+      }
+      if (type === 'boolean') {
+        const select = make('select');
+        const yes = make('option', '', 'true');
+        yes.value = 'true';
+        const no = make('option', '', 'false');
+        no.value = 'false';
+        select.append(yes, no);
+        select.value = value === true ? 'true' : 'false';
+        select.dataset.role = 'value';
+        return select;
+      }
+      if (type === 'json') {
+        const area = make('textarea');
+        area.value = valueToText('json', value);
+        area.placeholder = '例如 {"数量": 2} 或 [1, 2]';
+        area.dataset.role = 'value';
+        return area;
+      }
+      const input = make('input');
+      input.type = type === 'number' ? 'number' : 'text';
+      if (type === 'number') input.step = 'any';
+      input.value = valueToText(type, value);
+      input.placeholder = type === 'number' ? '0' : '文本';
+      input.dataset.role = 'value';
+      return input;
+    }
+
+    function createInitialRow(name, value) {
+      const row = make('div', 'row');
+      const nameInput = make('input');
+      nameInput.placeholder = '字段名';
+      nameInput.value = name;
+      nameInput.dataset.role = 'name';
+      nameInput.dataset.kind = 'initial';
+
+      const typeSelect = make('select');
+      TYPE_LABELS.forEach(([type, label]) => {
+        const option = make('option', '', label);
+        option.value = type;
+        typeSelect.append(option);
+      });
+      typeSelect.dataset.role = 'type';
+      typeSelect.value = detectType(value);
+
+      const valueControl = buildValueControl(typeSelect.value, value);
+      const remove = make('button', 'small danger', '删除');
+      remove.type = 'button';
+      valueControl.dataset.input = '1';
+
+      typeSelect.addEventListener('change', () => {
+        const replacement = buildValueControl(typeSelect.value, defaultValueFor(typeSelect.value));
+        row.replaceChild(replacement, row.children[2]);
+        replacement.dataset.input = '1';
+        dirty = true;
+        setStatus('有未保存的修改。', false);
+      });
+      nameInput.addEventListener('input', () => {
+        dirty = true;
+        setStatus('有未保存的修改。', false);
+      });
+      valueControl.addEventListener('input', () => {
+        dirty = true;
+        setStatus('有未保存的修改。', false);
+      });
+      valueControl.addEventListener('change', () => {
+        dirty = true;
+        setStatus('有未保存的修改。', false);
+      });
+      remove.addEventListener('click', () => {
+        row.remove();
+        dirty = true;
+        setStatus('有未保存的修改。', false);
+        ensureEmptyNotes();
+      });
+
+      row.append(nameInput, typeSelect, valueControl, remove);
+      return row;
+    }
+
+    function createReferenceRow(key, nodeId) {
+      const row = make('div', 'row reference');
+      const keyInput = make('input');
+      keyInput.placeholder = '例如 home';
+      keyInput.value = key;
+      keyInput.dataset.role = 'name';
+      keyInput.dataset.kind = 'reference';
+
+      const nodeInput = make('input');
+      nodeInput.placeholder = '节点 ID，留空表示 null';
+      nodeInput.value = typeof nodeId === 'string' ? nodeId : '';
+      nodeInput.dataset.role = 'value';
+      nodeInput.dataset.kind = 'reference';
+
+      const remove = make('button', 'small danger', '删除');
+      remove.type = 'button';
+      [keyInput, nodeInput].forEach((control) => {
+        control.addEventListener('input', () => {
+          dirty = true;
+          setStatus('有未保存的修改。', false);
+        });
+      });
+      remove.addEventListener('click', () => {
+        row.remove();
+        dirty = true;
+        setStatus('有未保存的修改。', false);
+        ensureEmptyNotes();
+      });
+
+      row.append(keyInput, nodeInput, remove);
+      return row;
+    }
+
+    function createMinimumRow(name, value) {
+      const row = make('div', 'row minimum');
+      const nameInput = make('input');
+      nameInput.placeholder = '字段名';
+      nameInput.value = name;
+      nameInput.dataset.role = 'name';
+      nameInput.dataset.kind = 'minimum';
+
+      const valueInput = make('input');
+      valueInput.type = 'number';
+      valueInput.step = 'any';
+      valueInput.value = typeof value === 'number' && Number.isFinite(value) ? String(value) : '0';
+      valueInput.placeholder = '最低值';
+      valueInput.dataset.role = 'value';
+
+      const remove = make('button', 'small danger', '删除');
+      remove.type = 'button';
+
+      nameInput.addEventListener('input', () => {
+        dirty = true;
+        setStatus('有未保存的修改。', false);
+      });
+      valueInput.addEventListener('input', () => {
+        dirty = true;
+        setStatus('有未保存的修改。', false);
+      });
+      remove.addEventListener('click', () => {
+        row.remove();
+        dirty = true;
+        setStatus('有未保存的修改。', false);
+        ensureEmptyNotes();
+      });
+
+      row.append(nameInput, valueInput, remove);
+      return row;
+    }
+
+    function ensureEmptyNotes() {
+      [['initial', initialRows], ['reference', referenceRows], ['minimum', minimumRows]].forEach(([kind, container]) => {
+        const old = container.querySelector('.empty');
+        if (old) old.remove();
+        if (!container.querySelector('.row')) {
+          const text = kind === 'initial'
+            ? '暂无初始字段，可在首次使用时得到空记录。'
+            : (kind === 'reference' ? '暂无显式引用；节点关系请通过 references 声明。' : '暂无最低值限制。');
+          container.append(make('div', 'empty', text));
+        }
+      });
+    }
+
+    function render() {
+      const config = (current && current.config) || {};
+      const initial = config.initial && typeof config.initial === 'object' && !Array.isArray(config.initial) ? config.initial : {};
+      const references = Array.isArray(config.references) ? config.references : [];
+      const minimum = config.minimum && typeof config.minimum === 'object' && !Array.isArray(config.minimum) ? config.minimum : {};
+
+      initialRows.replaceChildren();
+      Object.keys(initial).forEach((key) => {
+        initialRows.append(createInitialRow(key, initial[key]));
+      });
+
+      referenceRows.replaceChildren();
+      references.forEach((item) => {
+        if (!item || typeof item !== 'object') return;
+        referenceRows.append(createReferenceRow(
+          typeof item.key === 'string' ? item.key : '',
+          item.node_id === null || item.node_id === undefined ? null : item.node_id
+        ));
+      });
+
+      minimumRows.replaceChildren();
+      Object.keys(minimum).forEach((key) => {
+        minimumRows.append(createMinimumRow(key, minimum[key]));
+      });
+
+      ensureEmptyNotes();
+      setReadOnly(Boolean(current && current.readOnly));
+      if (!readOnly) setStatus('配置就绪。', false);
+    }
+
+    function setReadOnly(next) {
+      readOnly = next;
+      [addInitialButton, addReferenceButton, addMinimumButton, saveButton].forEach((button) => { button.disabled = readOnly; });
+      document.querySelectorAll('input, select, textarea, button.danger').forEach((control) => {
+        control.disabled = readOnly;
+      });
+      if (readOnly) setStatus('当前页面为只读。', false);
+    }
+
+    function collectInitial() {
+      const result = {};
+      const rows = initialRows.querySelectorAll('.row');
+      rows.forEach((row) => {
+        const nameInput = row.querySelector('[data-role="name"]');
+        const name = nameInput.value.trim();
+        if (!name) throw new Error('初始数据中有未命名的字段，请填写字段名或删除该行。');
+        if (Object.prototype.hasOwnProperty.call(result, name)) throw new Error('初始数据字段“' + name + '”重复。');
+        const type = row.querySelector('[data-role="type"]').value;
+        const control = row.querySelector('[data-role="value"]');
+        if (type === 'null') {
+          result[name] = null;
+        } else if (type === 'boolean') {
+          result[name] = control.value === 'true';
+        } else if (type === 'number') {
+          const text = control.value.trim();
+          const number = Number(text);
+          if (!text || !Number.isFinite(number)) throw new Error('初始数据字段“' + name + '”必须是有效数字。');
+          result[name] = number;
+        } else if (type === 'json') {
+          const text = control.value.trim();
+          if (!text) throw new Error('初始数据字段“' + name + '”的对象/数组不能为空。');
+          try {
+            result[name] = JSON.parse(text);
+          } catch (error) {
+            throw new Error('初始数据字段“' + name + '”不是有效 JSON：' + error.message);
+          }
+        } else {
+          result[name] = control.value;
+        }
+      });
+      return result;
+    }
+
+    function collectReferences() {
+      const result = [];
+      const keys = new Set();
+      const rows = referenceRows.querySelectorAll('.row');
+      rows.forEach((row) => {
+        const key = row.querySelector('[data-role="name"]').value.trim();
+        if (!key) throw new Error('显式引用中有未命名的字段，请填写字段名或删除该行。');
+        if (keys.has(key)) throw new Error('显式引用字段“' + key + '”重复。');
+        const nodeId = row.querySelector('[data-role="value"]').value.trim();
+        result.push({ key: key, node_id: nodeId ? nodeId : null });
+        keys.add(key);
+      });
+      return result;
+    }
+
+    function collectMinimum() {
+      const result = {};
+      const rows = minimumRows.querySelectorAll('.row');
+      rows.forEach((row) => {
+        const name = row.querySelector('[data-role="name"]').value.trim();
+        if (!name) throw new Error('最低值中有未命名的字段，请填写字段名或删除该行。');
+        if (Object.prototype.hasOwnProperty.call(result, name)) throw new Error('最低值字段“' + name + '”重复。');
+        const text = row.querySelector('[data-role="value"]').value.trim();
+        const number = Number(text);
+        if (!text || !Number.isFinite(number)) throw new Error('最低值字段“' + name + '”必须是有效数字。');
+        result[name] = number;
+      });
+      return result;
+    }
+
+    async function save() {
+      if (!host || readOnly || !current) return;
+      try {
+        const nextConfig = Object.assign({}, current.config || {});
+        const initial = collectInitial();
+        const references = collectReferences();
+        const initialKeys = new Set(Object.keys(initial));
+        references.forEach((item) => {
+          if (initialKeys.has(item.key)) {
+            throw new Error('引用字段“' + item.key + '”与初始数据中的普通字段同名，请从 initial 移除该字段。');
+          }
+        });
+        nextConfig.initial = initial;
+        nextConfig.references = references;
+        nextConfig.minimum = collectMinimum();
+        saveButton.disabled = true;
+        await host.setConfig(nextConfig);
+        dirty = false;
+        setStatus('已写入网络草稿，应用网络后生效。', false);
+      } catch (error) {
+        setStatus('保存失败：' + (error && error.message ? error.message : String(error)), true);
+      } finally {
+        saveButton.disabled = readOnly;
+      }
+    }
+
+    addInitialButton.addEventListener('click', () => {
+      if (readOnly) return;
+      const empty = initialRows.querySelector('.empty');
+      if (empty) empty.remove();
+      initialRows.append(createInitialRow('', ''));
+      dirty = true;
+      setStatus('有未保存的修改。', false);
+    });
+
+    addReferenceButton.addEventListener('click', () => {
+      if (readOnly) return;
+      const empty = referenceRows.querySelector('.empty');
+      if (empty) empty.remove();
+      referenceRows.append(createReferenceRow('', null));
+      dirty = true;
+      setStatus('有未保存的修改。', false);
+    });
+
+    addMinimumButton.addEventListener('click', () => {
+      if (readOnly) return;
+      const empty = minimumRows.querySelector('.empty');
+      if (empty) empty.remove();
+      minimumRows.append(createMinimumRow('', 0));
+      dirty = true;
+      setStatus('有未保存的修改。', false);
+    });
+
+    saveButton.addEventListener('click', save);
+
+    if (!host || typeof host.onContext !== 'function') {
+      setStatus('客户端接口不可用，无法读取或保存配置。', true);
+      saveButton.disabled = true;
+      addInitialButton.disabled = true;
+      addReferenceButton.disabled = true;
+      addMinimumButton.disabled = true;
+      return;
+    }
+
+    host.onContext((context) => {
+      const previousConfig = current && JSON.stringify(current.config || {});
+      current = context;
+      const nextConfig = JSON.stringify(context.config || {});
+      if (!dirty) {
+        render();
+      } else if (previousConfig !== nextConfig) {
+        // 保留正在编辑的草稿，只提示外部配置已变化。
+        setStatus('检测到外部配置更新；保存当前编辑后会覆盖为页面中的值。', false);
+      }
+    });
+  })();
+  </script>
+</body>
+</html>

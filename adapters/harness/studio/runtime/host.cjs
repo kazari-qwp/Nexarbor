@@ -110,8 +110,7 @@ async function restoreContexts(p){
  const contexts={};
  for(const [actor,cursor] of Object.entries(p.contexts)){
   const entry=agents.get(actor);
-  if(entry){entry.retired=true;entry.agent.cancel('user');agents.delete(actor);}
-  const id=await checkpoints.positions.fork(cursor);contexts[actor]=await checkpoints.positions.captureStored(id);
+  const restored=await checkpoints.positions.restore(cursor,entry?.agent.session,{onDiverged:()=>{if(entry){entry.retired=true;entry.agent.cancel('user');agents.delete(actor);}}});contexts[actor]=restored.cursor;
  }
  return {contexts};
 }

@@ -14,6 +14,22 @@ def connected(edges,target,relation):
 def link(source,target,action):
     return dict(source=source,target=target,action=action,metadata=dict(channels=['movement','tools'],threshold=1,multiplier=1,attributes={'relation':'location'}))
 
+async def run_hooks(ctx,actor,old):
+    targets={'requester':actor,'origin':old,'destination':ctx.node_id}
+    for index,hook in enumerate(ctx.config.get('before_hooks',())):
+        key=hook.get('target')
+        if key not in targets:raise ValueError('第 %d 个移动前钩子的目标无效' % (index+1))
+        module=hook.get('module')
+        operation=hook.get('operation')
+        if not isinstance(module,str) or not module or not isinstance(operation,str) or not operation:
+            raise ValueError('第 %d 个移动前钩子必须填写模块和操作' % (index+1))
+        arguments=thaw(hook.get('arguments',{}))
+        if not isinstance(arguments,dict):raise ValueError('第 %d 个移动前钩子的参数必须是对象' % (index+1))
+        # 目标节点均已在本事务锁内，钩子不能自行扩大锁集合。
+        result=await ctx.network.call(targets[key],module,operation,arguments)
+        if result['status']!='ok':
+            raise RuntimeError('移动前钩子第 %d 项失败：%s' % (index+1,result['error']))
+
 async def move(ctx):
     actor=ctx.requester_id;metadata=await ctx.network.metadata(actor)
     if metadata['node_type']!='agent':raise ValueError('移动请求必须由 Agent 发起')
@@ -26,6 +42,8 @@ async def move(ctx):
         old_edges=await ctx.network.edges(old);new_edges=await ctx.network.edges(ctx.node_id);actor_edges=await ctx.network.edges(actor)
         if not connected(old_edges,ctx.node_id,'road') or not connected(new_edges,old,'road'):raise ValueError('目的地必须与旧地点有双向相邻道路')
         if not connected(actor_edges,old,'location') or not connected(old_edges,actor,'location'):raise ValueError('NPC 的位置资料与双向位置连接不一致')
+        # 前置检查全部通过后、修改位置数据前执行可配置钩子；异常穿出锁作用域触发整单回滚。
+        await run_hooks(ctx,actor,old)
         await ctx.network.patch_edges([link(actor,ctx.node_id,'add'),link(ctx.node_id,actor,'add')])
         destination=await call(ctx,ctx.node_id,'read')
         await call(ctx,ctx.node_id,'arrive',{'visitor':actor})

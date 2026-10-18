@@ -1,11 +1,26 @@
 {
-  "config": {},
+  "config": {
+    "timeout_seconds": 15,
+    "before_hooks": [
+      {
+        "target": "requester",
+        "module": "records.store",
+        "operation": "apply",
+        "arguments": {
+          "deltas": {
+            "ap": -3
+          }
+        }
+      }
+    ]
+  },
   "state": {},
   "access": {
     "strength": 2,
     "channels": [
       "movement",
-      "tools"
+      "tools",
+      "records"
     ]
   }
 }

@@ -7,7 +7,7 @@ import {editorNode,editorNodes} from '../framework/editor-nodes.js';
 import {MakerManager} from './makers/manager.mjs';
 import {nativeMakerFactory} from './makers/connection.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
-export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,components=[]}={}){
+export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,components=[],templates=[]}={}){
  await fs.mkdir(directory,{recursive:true});const temporary=path.join(directory,'temp');await fs.mkdir(temporary,{recursive:true});
  const profile=JSON.parse(await fs.readFile(path.join(root,'extensions/development/extension.json'),'utf8'));profile.select=[...new Set([...profile.select,...components])];
  const child=spawn(python,[path.join(root,'adapters/harness/studio/server.py'),directory],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1',PYTHONPATH:path.join(root,'python'),DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:path.join(root,'extensions/development'),DATANET_COMPONENT_SELECTION:JSON.stringify(profile.select),DATANET_COMPONENT_PROFILE:'{}',...(initialNetwork?{DATANET_INITIAL_NETWORK:path.resolve(initialNetwork)}:{}),TEMP:temporary,TMP:temporary,TMPDIR:temporary}});
@@ -22,6 +22,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(operation.startsWith('studio.agent.')){const method=operation.slice('studio.agent.'.length);if(!['status','connect','start','read','cancel'].includes(method))throw Error('未知制作操作');return makers[method](params);}
   if(operation==='studio.publish')return makers.publish(params);
   if(operation==='resource.inspect'||operation==='resource.purge'){
+   if(params.kind==='tool'&&runtimeTools.some(t=>t.ref===params.id)){if(operation==='resource.purge')throw Error('官方宿主端口不可删除');return {canDelete:false,reason:'官方宿主能力只可归档和恢复。',ownership:'official'};}
    if(params.kind==='tool'&&params.id.startsWith('module:')){if(operation==='resource.purge')throw Error('模块携带工具应随实现模块管理');return {canDelete:false,reason:'工具由模块提供，请到对应模块查看实现。独立书签和历史缓存保留。',ownership:'module'};}
    if(params.kind==='module')return rpc(operation==='resource.inspect'?'studio_release_delete_info':'studio_delete_release',{module:params.id,confirm:params.confirm});
    if(params.kind==='tool'&&officialTools.some(t=>t.ref===params.id)){if(operation==='resource.purge')throw Error('Harness 官方工具不可彻底删除');return {canDelete:false,reason:'Harness 官方工具属于共享安装，只可归档和恢复。',ownership:'official'};}
@@ -58,12 +59,17 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  };
  await rpc('ping');
  if(components.includes('capabilities/runtime_ports'))runtimeTools=(await rpc('runtime_catalog')).map(t=>({...t,owner:'可选宿主端口'}));
+ if(components.includes('capabilities/template_instantiation')){if(templates.length)await rpc('templates_register',{templates});runtimeTools.push(...(await rpc('templates_catalog')).map(t=>({...t,owner:'固定模板端口'})));}
  const makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory},callback))});await makers.initialize();
  try{officialTools=await official.start();await rpc('official_register',{tools:officialTools});officialTools=officialTools.map(t=>({...t,ref:'harness:'+t.name,provider:'harness'}));}catch(error){toolError=error.message;await official.close();}
  const server=await startEditorServer({web:path.join(root,'extensions/editor/capabilities/network_editor/web'),directory,request,chat:(operation,p)=>rpc(operation==='chat.read'?'executor_read':'executor_run',p),recover:()=>{throw Error('请先保存完整开发恢复点');}});
  return {...server,directory,request,rpc:(method,p={})=>method.startsWith('studio_agent_')?request('studio.agent.'+method.slice(13),p):method==='studio_publish'?makers.publish(p):rpc(method,p),async close(){if(closed)return;await server.close();await makers.close();await native.close();await official.close();closed=true;child.stdin.end();await new Promise(resolve=>{if(child.exitCode!==null)return resolve();const timer=setTimeout(()=>{child.kill();resolve();},10000);child.once('exit',()=>{clearTimeout(timer);resolve();});});fail(Error('开发后端已关闭'));}};
 }
+export async function startStudioProfile(file,overrides={}){
+ const base=path.dirname(path.resolve(file)),profile=JSON.parse(await fs.readFile(file,'utf8'));
+ return startStudio({directory:path.resolve(base,profile.runtime_directory??'runtime'),initialNetwork:profile.network?path.resolve(base,profile.network):undefined,components:profile.components??[],templates:profile.templates?JSON.parse(await fs.readFile(path.resolve(base,profile.templates),'utf8')):[],...overrides});
+}
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
- const value=await startStudio({directory:process.argv[2]});console.log(JSON.stringify({connection_file:path.join(value.directory,'editor-connection.json')}));
+ const value=process.argv[2]==='--profile'?await startStudioProfile(process.argv[3]):await startStudio({directory:process.argv[2]});console.log(JSON.stringify({connection_file:path.join(value.directory,'editor-connection.json')}));
  const close=()=>value.close().finally(()=>process.exit());process.once('SIGTERM',close);process.once('SIGINT',close);
 }

@@ -1,0 +1,305 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "agents.context",
+  "version": "0.1.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "agent"
+  ],
+  "requires": [
+    "records.store",
+    "place.info"
+  ],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "persona": {
+        "type": "string",
+        "default": "",
+        "title": "角色人格",
+        "description": "角色长期稳定的身份、性格与说话方式，会写入系统提示词。"
+      },
+      "common": {
+        "type": "string",
+        "default": "",
+        "title": "通用设定",
+        "description": "适用于该角色的世界规则、行为约束或共同背景，会与人格一起写入系统提示词。"
+      },
+      "map": {
+        "type": "string",
+        "default": "",
+        "title": "地图上下文",
+        "description": "非空时作为固定地图文本放入模型上下文，适合村落地图或工作组共享说明。"
+      },
+      "opening": {
+        "type": "string",
+        "default": "",
+        "title": "开场提示",
+        "description": "非空时只作为一次性输入投递给角色一次，不会反复写入永久人格。"
+      },
+      "clock": {
+        "type": ["string", "null"],
+        "format": "node-id",
+        "default": null,
+        "title": "时钟节点",
+        "description": "可选。填写已装配时钟与计数组件的节点，准备上下文时读取当前天数与时刻。"
+      },
+      "max_memories": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 100,
+        "title": "最多记忆条数",
+        "description": "私人记忆的保留上限，超出后丢弃最早的记忆。"
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "memories": {
+        "type": "array",
+        "maxItems": 10000,
+        "title": "私人记忆",
+        "description": "仅属于本角色的有限记忆列表。",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 4000,
+              "title": "记忆内容"
+            },
+            "key": {
+              "type": "string",
+              "title": "记忆键"
+            }
+          },
+          "required": ["text"]
+        }
+      },
+      "opening_queued": {
+        "type": "boolean",
+        "default": false,
+        "title": "开场已投递"
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "prepare",
+      "channels": ["self"],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "system_prompt": {"type": "string"},
+          "context": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {"type": "string"},
+                "text": {"type": "string"}
+              },
+              "required": ["id", "text"]
+            }
+          },
+          "tail": {"type": "array", "items": {"type": "string"}},
+          "location": {"type": ["string", "null"]},
+          "nearby": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"},
+                "path": {"type": "array", "items": {"type": "string"}},
+                "strength": {"type": "number"}
+              },
+              "required": ["id", "name", "path", "strength"]
+            }
+          },
+          "clock": {
+            "type": ["object", "null"],
+            "properties": {
+              "tick": {"type": "integer"},
+              "day": {"type": "integer"},
+              "slot": {"type": "string"}
+            }
+          },
+          "records": {"type": "object"},
+          "memories": {"type": "array", "items": {"type": "object"}},
+          "opening_queued": {"type": "boolean"}
+        },
+        "required": [
+          "system_prompt",
+          "context",
+          "tail",
+          "location",
+          "nearby",
+          "clock",
+          "records",
+          "memories",
+          "opening_queued"
+        ]
+      }
+    },
+    {
+      "name": "look",
+      "channels": ["self"],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "system_prompt": {"type": "string"},
+          "context": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {"type": "string"},
+                "text": {"type": "string"}
+              },
+              "required": ["id", "text"]
+            }
+          },
+          "tail": {"type": "array", "items": {"type": "string"}},
+          "location": {"type": ["string", "null"]},
+          "nearby": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {"type": "string"},
+                "name": {"type": "string"},
+                "path": {"type": "array", "items": {"type": "string"}},
+                "strength": {"type": "number"}
+              },
+              "required": ["id", "name", "path", "strength"]
+            }
+          },
+          "clock": {
+            "type": ["object", "null"],
+            "properties": {
+              "tick": {"type": "integer"},
+              "day": {"type": "integer"},
+              "slot": {"type": "string"}
+            }
+          },
+          "records": {"type": "object"},
+          "memories": {"type": "array", "items": {"type": "object"}},
+          "opening_queued": {"type": "boolean"}
+        },
+        "required": [
+          "system_prompt",
+          "context",
+          "tail",
+          "location",
+          "nearby",
+          "clock",
+          "records",
+          "memories",
+          "opening_queued"
+        ]
+      }
+    },
+    {
+      "name": "remember",
+      "channels": ["self"],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "title": "记忆内容",
+            "description": "要记住的内容，不能为空，最多 4000 个字符。"
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "title": "记忆键",
+            "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。"
+          }
+        },
+        "required": ["text"]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "duplicate": {"type": "boolean"},
+          "memories": {"type": "array", "items": {"type": "object"}},
+          "count": {"type": "integer"}
+        },
+        "required": ["duplicate", "memories", "count"]
+      }
+    },
+    {
+      "name": "recall",
+      "channels": ["self"],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "default": "",
+            "title": "查询词",
+            "description": "按子串匹配自己的记忆，留空返回全部记忆。"
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {"type": "string"},
+          "memories": {"type": "array", "items": {"type": "object"}},
+          "count": {"type": "integer"}
+        },
+        "required": ["query", "memories", "count"]
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "remember",
+      "name": "记住",
+      "description": "把一段个人经历或知识写入自己的私人记忆。",
+      "operation": "remember"
+    },
+    {
+      "id": "recall",
+      "name": "回忆",
+      "description": "按关键词子串检索自己的私人记忆。",
+      "operation": "recall"
+    },
+    {
+      "id": "look",
+      "name": "查看处境",
+      "description": "查看自己的当前账户、位置、附近可达地点与时间。",
+      "operation": "look"
+    }
+  ]
+}

@@ -17,3 +17,5 @@ edges(target) 返回出边副本。patch_edges([{source,target,action,metadata}]
 信号用于独立传播，如 ctx.network.emit(channels=['tick'],strength=3,content={'day':1},kind='tick')。核心广度逐层，同层并行，整层等完才继续。signals 声明频道数组或 {'config':'signal_channels'}。响应时读 activation.signal.content/channels/kind，signal 不是字符串；已有 tick 沿网络走，不必每个节点再 emit。
 
 反例：查全局状态或继承信号源所有权限。正确：每次经 ctx，参数表达需求，授权只可收窄。
+
+信号处理失败需要抛异常，传播器才会把该分支标为失败、停止向后传播；ComponentResult(status='error') 是调用者读取的业务封套，信号传播器不会替业务解释它。成功信号仍返回ComponentResult。接收模块执行使用自己的access，不是signal.channels；例如收tick后可依自身授权调用本地runtime.checkpoint，无需改用信号源提供的工具或假设继承源权限。

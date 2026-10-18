@@ -1,0 +1,218 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "agreements.pair",
+  "name": "双人协议与延后兑现",
+  "description": "让两位真实 Agent 在同一时刻同意同一份可配置协议；支持婚姻、共同家庭计划和其他双方约定，可配置前提、费用、记录变更、延后兑现与官方模板创建。",
+  "version": "0.1.0",
+  "entry": "module.py:execute",
+  "node_types": ["node", "agent"],
+  "requires": ["records.store", "place.info", "clock.counter"],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "clock": {
+        "type": ["string", "null"],
+        "format": "node-id",
+        "default": null,
+        "title": "时钟节点",
+        "description": "必填。通过该节点的 clock.counter 读取当前计数，用于判断双方是否在同一 tick 同意以及是否到达兑现时间。"
+      },
+      "address": {
+        "type": ["string", "null"],
+        "format": "node-id",
+        "default": null,
+        "title": "协议地点",
+        "description": "可选。填写后，双方同意时都必须在 place.info 报告的这个地点。"
+      },
+      "delivery_address": {
+        "type": ["string", "null"],
+        "format": "node-id",
+        "default": null,
+        "title": "兑现地点",
+        "description": "可选。带模板的协议兑现时，请求者必须在此地点；同时该地点必须提供明确的 templates:instantiate 端口。"
+      },
+      "sources": {
+        "type": "array",
+        "items": {"type": "string", "format": "node-id"},
+        "default": [],
+        "uniqueItems": true,
+        "title": "来源登记节点",
+        "description": "非空时，本节点的 fulfill 只作为转发入口，依次调用这些节点上的同模块 fulfill；不会扫描全网。"
+      },
+      "rules": {
+        "type": "array",
+        "default": [],
+        "title": "协议规则",
+        "description": "同一组件可通过配置提供婚姻登记、家庭计划或一般双方协议。",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "title"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1, "title": "规则标识", "description": "稳定规则 ID，例如 marriage、family_plan。"},
+            "title": {"type": "string", "minLength": 1, "title": "规则名称", "description": "展示给 Agent 的中文名称。"},
+            "cost": {"type": "integer", "minimum": 0, "default": 1, "title": "行动点成本", "description": "每位参与者每次新同意从自己的 ap 字段扣除的行动点。"},
+            "require_values": {"type": "object", "additionalProperties": true, "default": {}, "title": "双方前提值", "description": "普通字典。每个字段要求双方记录中的值都等于给定值，例如 age 为 18。"},
+            "equal_fields": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true, "default": [], "title": "双方同值字段", "description": "这些字段在双方记录中必须相同且非空。"},
+            "pair_field": {"type": ["string", "null"], "default": null, "title": "双方关系字段", "description": "用于 require_pair 或 forbid_existing_pair 的记录字段，例如 spouse。"},
+            "require_pair": {"type": "boolean", "default": false, "title": "要求已有双方关系", "description": "为真时，双方该关系字段必须各自等于对方节点 ID。"},
+            "forbid_existing_pair": {"type": "boolean", "default": false, "title": "禁止已有关系", "description": "为真时双方该关系字段当前必须为空；协议完成后用显式引用写为对方。"},
+            "set_values": {"type": "object", "additionalProperties": true, "default": {}, "title": "完成时设置值", "description": "协议兑现完成时分别写入双方记录仓的普通值。"},
+            "delay_ticks": {"type": "integer", "minimum": 0, "default": 0, "title": "延后兑现计数", "description": "大于 0 时，双方同意后先创建待兑现协议，不立即完成。"},
+            "template": {"type": ["string", "null"], "default": null, "title": "预登记模板 ID", "description": "可选。兑现时调用兑现地点的 templates:instantiate 端口创建官方模板实例。"}
+          }
+        }
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "sequence": {"type": "integer", "minimum": 0, "title": "协议序号"},
+      "agreements": {
+        "type": "array",
+        "maxItems": 200,
+        "title": "最近协议",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "rule", "participants", "approvals", "created_tick", "due_tick", "status", "stable_key", "pending", "returned_node_ids", "completed_tick"],
+          "properties": {
+            "id": {"type": "string", "minLength": 1, "title": "协议 ID"},
+            "rule": {"type": "string", "minLength": 1, "title": "规则标识"},
+            "stable_key": {"type": "string", "title": "稳定协议键"},
+            "participants": {"type": "array", "items": {"type": "string", "format": "node-id"}, "title": "参与者"},
+            "approvals": {
+              "type": "array",
+              "title": "同意记录",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["participant", "tick", "key"],
+                "properties": {
+                  "participant": {"type": "string", "format": "node-id"},
+                  "tick": {"type": "integer", "minimum": 0},
+                  "key": {"type": "string", "minLength": 1}
+                }
+              }
+            },
+            "created_tick": {"type": "integer", "minimum": 0, "title": "创建计数"},
+            "due_tick": {"type": ["integer", "null"], "minimum": 0, "title": "兑现计数"},
+            "status": {"type": "string", "enum": ["open", "pending", "completed"], "title": "状态"},
+            "completed_tick": {"type": ["integer", "null"], "minimum": 0, "title": "完成计数"},
+            "pending": {
+              "type": ["object", "null"],
+              "additionalProperties": false,
+              "title": "待兑现模板请求",
+              "properties": {
+                "template": {"type": "string", "minLength": 1, "title": "模板 ID"},
+                "key": {"type": "string", "minLength": 1, "title": "稳定模板键"},
+                "arguments": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["name", "parents", "home"],
+                  "properties": {
+                    "name": {"type": "string", "title": "新成员名称"},
+                    "parents": {"type": "array", "items": {"type": "string", "format": "node-id"}, "title": "父母"},
+                    "home": {"type": "string", "format": "node-id", "title": "共同住所"}
+                  }
+                },
+                "returned_node_ids": {"type": "array", "items": {"type": "string", "format": "node-id"}, "title": "模板返回节点"}
+              }
+            },
+            "returned_node_ids": {
+              "type": "array",
+              "title": "模板创建的节点",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["node_id"],
+                "properties": {
+                  "node_id": {"type": "string", "format": "node-id", "title": "节点 ID"}
+                }
+              }
+            }
+          }
+        }
+      },
+      "agree_receipts": {
+        "type": "array",
+        "maxItems": 200,
+        "title": "同意请求回执",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["key", "requester", "user_key", "partner", "rule", "agreement_id"],
+          "properties": {
+            "key": {"type": "string"},
+            "requester": {"type": "string", "format": "node-id"},
+            "user_key": {"type": "string", "minLength": 1},
+            "partner": {"type": "string", "format": "node-id"},
+            "rule": {"type": "string", "minLength": 1},
+            "agreement_id": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "inspect",
+      "channels": ["agreements"],
+      "parameters": {"type": "object", "additionalProperties": false, "properties": {}},
+      "result": {"type": "object", "additionalProperties": true}
+    },
+    {
+      "name": "agree",
+      "channels": ["agreements"],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["partner", "rule", "key"],
+        "properties": {
+          "partner": {"type": "string", "format": "node-id", "minLength": 1, "title": "协议对方", "description": "另一位当前可达的真实 Agent 节点 ID；不能代替请求者身份。"},
+          "rule": {"type": "string", "minLength": 1, "title": "规则标识", "description": "要同意的配置规则 id。"},
+          "key": {"type": "string", "minLength": 1, "title": "幂等键", "description": "请求者在当前模块实例内使用的非空幂等键；相同键与相同对象重试不会重复扣费。"}
+        }
+      },
+      "result": {"type": "object", "additionalProperties": true}
+    },
+    {
+      "name": "fulfill",
+      "channels": ["agreements"],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": {"type": "string", "minLength": 1, "title": "协议 ID", "description": "要兑现的协议 ID。"},
+          "name": {"type": "string", "default": "新成员", "title": "新成员名称", "description": "带模板协议兑现时传给模板的参数，重试必须保持一致。"}
+        }
+      },
+      "result": {"type": "object", "additionalProperties": true}
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "inspect",
+      "name": "查看协议",
+      "description": "查看当前场所可签订的协议规则，以及自己参与的最近协议状态。",
+      "operation": "inspect"
+    },
+    {
+      "id": "agree",
+      "name": "同意协议",
+      "description": "以自己的真实身份与一位可达的真实 Agent 在同一时刻同意一份配置协议；可配置费用和记录前提。",
+      "operation": "agree"
+    },
+    {
+      "id": "fulfill",
+      "name": "兑现协议",
+      "description": "在到期并到达兑现地点后完成延后协议；带模板协议会调用明确配置的官方模板端口，失败可重试。",
+      "operation": "fulfill"
+    }
+  ]
+}
