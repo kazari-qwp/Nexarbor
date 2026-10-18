@@ -55,7 +55,11 @@ class ModuleDefinition:
             for key in ('parameters', 'result'): Draft202012Validator.check_schema(spec[key])
             if spec['parameters'].get('type') != 'object': raise ValueError('Operation parameters must be an object')
             self.operations[spec['name']] = spec
-        self.signals = names(signals, 'signal channels')
+        if isinstance(signals, dict):
+            if set(signals) != {'config'} or not isinstance(signals['config'], str) or not signals['config']:
+                raise ValueError('Signal binding must name a config field')
+            self.signals = freeze(signals)
+        else: self.signals = names(signals, 'signal channels')
         self.node_types = names(node_types, 'node types', allow_empty=False)
         if set(self.node_types) - {'node', 'text_file', 'agent', 'pulse'}:
             raise ValueError('Unknown component node type')

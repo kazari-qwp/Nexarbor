@@ -1,0 +1,245 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "modules.executor",
+  "version": "0.1.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent",
+    "text_file",
+    "pulse"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "operations",
+      "graphs"
+    ],
+    "$defs": {
+      "plan": {
+        "oneOf": [
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "id",
+              "operation",
+              "arguments"
+            ],
+            "properties": {
+              "type": {
+                "const": "call"
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "operation": {
+                "type": "string",
+                "minLength": 1
+              },
+              "arguments": {
+                "type": "object"
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "steps"
+            ],
+            "properties": {
+              "type": {
+                "enum": [
+                  "sequence",
+                  "parallel"
+                ]
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/plan"
+                }
+              }
+            }
+          },
+          {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "type",
+              "select",
+              "cases",
+              "default"
+            ],
+            "properties": {
+              "type": {
+                "const": "branch"
+              },
+              "select": {
+                "type": "object",
+                "required": [
+                  "$ref"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "$ref": {
+                    "type": "string",
+                    "pattern": "^/"
+                  }
+                }
+              },
+              "cases": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": {
+                  "$ref": "#/$defs/plan"
+                }
+              },
+              "default": {
+                "$ref": "#/$defs/plan"
+              }
+            }
+          }
+        ]
+      }
+    },
+    "properties": {
+      "operations": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "module",
+            "operation"
+          ],
+          "properties": {
+            "node": {
+              "type": "string",
+              "minLength": 1
+            },
+            "module": {
+              "type": "string",
+              "minLength": 1
+            },
+            "operation": {
+              "type": "string",
+              "minLength": 1
+            },
+            "channels": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "strength": {
+              "type": "number",
+              "minimum": 0
+            },
+            "require_success": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        }
+      },
+      "graphs": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": {
+          "$ref": "#/$defs/plan"
+        }
+      },
+      "default_graph": {
+        "type": "string",
+        "minLength": 1
+      },
+      "signal_channels": {
+        "type": "array",
+        "uniqueItems": true,
+        "items": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "timeout_seconds": {
+        "type": "number",
+        "minimum": 0.01,
+        "maximum": 300,
+        "default": 60
+      },
+      "on_signal": {
+        "type": "array",
+        "maxItems": 64,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "graph"
+          ],
+          "properties": {
+            "graph": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "type": "string",
+              "minLength": 1
+            },
+            "channels": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "where": {
+              "type": "object",
+              "propertyNames": {
+                "pattern": "^/"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "signals": {
+    "config": "signal_channels"
+  },
+  "operations": [
+    {
+      "name": "run",
+      "channels": [
+        "workflow"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "graph": {
+            "type": "string",
+            "minLength": 1
+          },
+          "input": {}
+        }
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ]
+}

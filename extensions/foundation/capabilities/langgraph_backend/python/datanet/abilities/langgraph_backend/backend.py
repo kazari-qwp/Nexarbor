@@ -1,5 +1,6 @@
 """Compile bounded, structured module plans using the official LangGraph runtime."""
 from copy import deepcopy
+import json
 from typing import Annotated, TypedDict
 
 
@@ -94,7 +95,8 @@ def compile_graph(plan, invoke):
                 def route(state):
                     value = resolve(p['select'], state)
                     if not isinstance(value, (str,int,float,bool,type(None))): raise ValueError('Branch result must be scalar')
-                    return routes.get(str(value), fallback)
+                    key = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, allow_nan=False)
+                    return routes.get(key, fallback)
                 g.add_conditional_edges(START, route, names)
                 for name in names: g.add_edge(name, END)
         return g.compile()

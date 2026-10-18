@@ -24,7 +24,8 @@ SCHEMA = {'type':'object', 'additionalProperties':False,
    'required':['name','channels','parameters','result'], 'properties':{
     'name':{'type':'string','minLength':1}, 'channels':{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}},
     'parameters':{'type':'object'}, 'result':{'type':'object'}}}},
- 'signals':{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}}}}
+ 'signals':{'oneOf':[{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}},
+    {'type':'object','additionalProperties':False,'required':['config'],'properties':{'config':{'type':'string','minLength':1}}}]}}}
 
 def manifest(folder):
     result=json.loads((Path(folder)/'module.json').read_text(encoding='utf-8'))

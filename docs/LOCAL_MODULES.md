@@ -96,3 +96,7 @@ Agent 的 execution 设置 `channels:["tools"]` 与足够 strength，调用内�
 ## 验证范围
 
 新协议、频道、信号、Agent 输入和存档的定向核心回归，加上前端布局测试与真实桌面端到端验证。桌面验证涵盖工具目录与装配、访问后取得并调用官方 read、断开路径后拒绝、v3 组件验证发布挂载、关闭后重新恢复。未运行付费模型；旧应用和旧协议测试不属于本轮兼容性验收。
+
+## 模块执行图
+
+`capabilities/module_graph` 提供 v3 模块 `modules.executor`。调用 run 或收到配置频道/种类的信号后，复用已有 LangGraph 后端执行 call/sequence/parallel/branch。每一步均为受网络权限约束的模块调用。详见 [配置、参数引用和返回值](../extensions/foundation/capabilities/module_graph/README.md)。客户端模块页可使用已有可视化执行图编辑器。旧事件触发器及旧应用不作兼容迁移。

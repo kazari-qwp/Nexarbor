@@ -54,11 +54,12 @@ class NodeModule:
                 definition.validate(parameters, _spec['parameters'])
                 return await self.execute(Activation('access', _name, parameters, self.context.caller_id), _spec['result'])
             self.operations[name] = (call, tuple(spec['channels']))
-        if definition.signals:
+        signal_channels = names(self.config.get(definition.signals['config'], []), 'signal channels') if isinstance(definition.signals, dict) else definition.signals
+        if signal_channels:
             async def receive(delivered):
                 return await self.execute(Activation('signal', delivered.signal.kind, {}, delivered.signal.origin,
                     request_id=delivered.receipt_id, signal=delivered.signal, delivery=delivered.delivery))
-            self.receivers.append((definition.signals, receive))
+            self.receivers.append((signal_channels, receive))
 
     async def execute(self, activation, schema=None):
         value = await self.definition.execute(self.context, activation)

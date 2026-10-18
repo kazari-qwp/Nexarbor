@@ -15,3 +15,5 @@ Node offered_tools are registered external tool references, separate from compon
 An explicit `tool_provider` manifest entry maps `list` and `invoke` to declared operations. `list({})` returns descriptors with id/name/description/parameters; `invoke({tool_id,arguments})` executes through the component's own network authority. The Agent adapter installs only these explicitly provided tools. `ctx.network.tool_sources(target,...)` discovers accessible providers without exposing instances. `network.tools` is a read-only query; it does not install tools. The standard `tools.collector` demonstrates chaining and origin-based deduplication; it currently adds no collector cycle detection.
 
 Module code is trusted Python. Contract checks and API locality do not create an OS sandbox. Missing authority is reported, never bypassed with filesystem/import/process tricks.
+
+模块清单的 signals 还可使用 `{"config":"signal_channels"}`：框架从本实例 config 的对应字段读取频道数组，在装配时绑定。空数组表示只通过访问激活。不要把信号中携带的频道当成模块的新访问授权。标准模块 `modules.executor` 演示调用/信号双入口以及通过已有 LangGraph 后端运行配置化流程；模块步骤仍使用 network.call，不能接受任意 Python 函数或表达式。

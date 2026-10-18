@@ -41,10 +41,11 @@ def main():
             access=defaults.get('access'))
         assert set(instance.operations) == {op['name'] for op in spec['operations']}
         assert set(node.tool_definitions) == baseline
-        if spec['signals']:
+        channels=list(dict.fromkeys(c for receiver,_ in instance.receivers for c in receiver))
+        if channels:
             origin=Node('contract-origin','Contract origin',None);network.add_node(origin)
-            origin.connect(node.node_id,channels=spec['signals'])
-            report=asyncio.run(network.propagate(Signal(origin.node_id,spec['signals'],2,
+            origin.connect(node.node_id,channels=channels)
+            report=asyncio.run(network.propagate(Signal(origin.node_id,channels,2,
                 node_timeout_seconds=10,timeout_seconds=15)))
             assert report['status']=='completed',report
         from jsonschema import validate
