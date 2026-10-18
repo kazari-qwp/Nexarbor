@@ -13,5 +13,6 @@
 | Agent 工具、依赖与配置前端 | lessons/04-tools-ui.md |
 | 使用真实运行时验证组件 | lessons/05-tests.md |
 | 组装网络、频道与权限 | lessons/06-presets.md |
+| 从用户效果需求设计，在当前网络副本内试装 | lessons/07-environment.md |
 
 模块作者先读 01；网络预设 Agent 先读 06。详细参数以依赖的 module.json 为准，别凭模块名称猜接口。

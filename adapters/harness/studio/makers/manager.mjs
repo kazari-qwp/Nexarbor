@@ -13,11 +13,11 @@ export class MakerManager{
   await this.rpc('studio_prepare_agent',{id:p.id});const workspace=await this.rpc('studio_read',{id:p.id}),kind=workspace.kind??'module';if([...this.jobs.values()].some(j=>j.workspace===p.id&&j.status==='running'))throw Error('该副本已有制作任务');
   if(typeof p.requirement!=='string'||!p.requirement.trim()||p.requirement.length>16000)throw Error('请填写不超过 16000 字符的制作需求');
   const timeout=p.timeout??600;if(!Number.isInteger(timeout)||timeout<10||timeout>1200)throw Error('制作时限为 10–1200 秒');
-  const allow=kind==='network'&&p.allow_component_creation===true,tools=makerTools(kind,allow),references=Object.entries(workspace.references).sort(([a],[b])=>a.localeCompare(b));
+  const allow=kind==='network'&&p.allow_component_creation===true,testing=p.allow_network_testing===true,tools=makerTools(kind,allow,testing),references=Object.entries(workspace.references).sort(([a],[b])=>a.localeCompare(b));
   const prefix=hash({kind,allow,references,tools});let source;
   if(p.fork_session||p.resume_session){source=this.sessions.get(p.fork_session??p.resume_session);if(!source||source.prefix!==prefix)throw Error('教程或可用工具前缀已变化，请新开会话');if(p.resume_session&&source.workspace!==p.id)throw Error('继续历史只能用于原工作副本，换副本请分叉');}
-  const id=randomUUID(),job={id,workspace:p.id,kind,status:'running',phase:'coding',started:Date.now(),deadline:Date.now()+timeout*1000,repairs:0,children:[],tool_events:[],allow_component_creation:allow,hidden_modules:p.hidden_modules??[],prefix,source_session:p.fork_session??p.resume_session,auto_publish:p.auto_publish!==false};this.jobs.set(id,job);
-  const instructions=workspace.references['AGENTS.md']+'\n\n当前职责：'+(kind==='network'?'网络预设组装；只产出 network.json 和 README。先按需读 lessons/06-presets.md。':kind==='tool'?'模块／工具制作；必须有 agent_tools，可调差异用配置。先按需读 lessons/01-local.md。':'模块／工具制作；先查目录复用，再按需读 lessons/01-local.md。');
+  const id=randomUUID(),job={id,workspace:p.id,kind,status:'running',phase:'coding',started:Date.now(),deadline:Date.now()+timeout*1000,repairs:0,children:[],tool_events:[],allow_component_creation:allow,allow_network_testing:testing,hidden_modules:p.hidden_modules??[],prefix,source_session:p.fork_session??p.resume_session,auto_publish:p.auto_publish!==false};this.jobs.set(id,job);
+  const instructions=workspace.references['AGENTS.md']+'\n\n当前职责：'+(kind==='network'?'网络预设组装；只产出 network.json 和 README。先按需读 lessons/06-presets.md。':kind==='tool'?'模块／工具制作；必须有 agent_tools，可调差异用配置。先按需读 lessons/01-local.md。':'模块／工具制作；先查目录复用，再按需读 lessons/01-local.md。')+(testing?'\n用户可能只表达当前网络里想要的效果。先按需读 lessons/07-environment.md，再用测试副本理解场景，自己抽象可复用方案、验证并报告。':'');
   try{
    const created=await this.runner.request('create',{task:id,directory:workspace.directory,name:p.name??p.id,kind,instructions,tools,max_steps:p.max_steps??70,...(p.fork_session?{fork_cursor:p.seed_only?source.seed_cursor:source.cursor}:p.resume_session?{resume_session:p.resume_session}:{})});Object.assign(job,created);this.sessions.set(job.session_id,{workspace:p.id,prefix,kind,seed_cursor:created.seed_cursor});await this.saveSessions();
    this.run(job,p.requirement,p.max_repairs??3).catch(e=>{job.status='failed';job.error=e.message;this.persist(job).catch(()=>{});});return this.public(job);
@@ -44,10 +44,12 @@ export class MakerManager{
  async read(p){const job=this.jobs.get(p.task);if(!job)throw Error('制作任务已不在内存中，请查看工作副本或证据');if(job.status==='running'&&job.session_id){try{Object.assign(job,await this.runner.request('read',{session_id:job.session_id}));}catch(e){job.read_error=e.message;}}return this.public(job);}
  async cancel(p){const job=this.jobs.get(p.task);if(!job)throw Error('未知制作任务');job.status='cancelled';if(job.session_id)await this.runner.request('cancel',{session_id:job.session_id});for(const task of job.children){if(this.jobs.get(task)?.status==='running')await this.cancel({task});}await this.persist(job);return this.public(job);}
  async tool(p){
-  const job=this.jobs.get(p.task);if(!job||job.status!=='running')throw Error('制作任务已停止');const allowed=makerTools(job.kind,job.allow_component_creation).map(t=>t.name);if(!allowed.includes(p.tool))throw Error('该制作任务未获准使用此工具');
+  const job=this.jobs.get(p.task);if(!job||job.status!=='running')throw Error('制作任务已停止');const allowed=makerTools(job.kind,job.allow_component_creation,job.allow_network_testing).map(t=>t.name);if(!allowed.includes(p.tool))throw Error('该制作任务未获准使用此工具');
   job.tool_events.push({tool:p.tool,path:p.arguments?.path,time:Date.now(),content_hash:p.arguments?.content?hash(p.arguments.content):undefined});
   if(p.tool==='validate'){job.validation_attempts=(job.validation_attempts??0)+1;if(job.validation_attempts>20)throw Error('本任务已达到 20 次验证上限，请报告未解决问题并结束');const check=await this.validate(job.workspace);return {status:check.status,log:check.log};}
   if(p.tool==='node_template')return editorNode(p.arguments.kind,p.arguments.id,p.arguments.name);
+  if(p.tool==='copy_current_network')return this.rpc('studio_copy_current',{id:job.workspace});
+  if(p.tool==='test_environment'){job.environment_attempts=(job.environment_attempts??0)+1;if(job.environment_attempts>100)throw Error('本任务已达到测试环境操作上限');const value=await this.rpc('studio_environment',{...p.arguments,id:job.workspace});job.environment=value;return value;}
   if(p.tool==='request_component'){
    const key=hash(p.arguments),old=job.children.map(id=>this.jobs.get(id)).find(j=>j.request_key===key);if(old)return {task:old.id,status:old.status,release:old.release};
    if(job.children.length>=6)throw Error('本次预设最多委托 6 个组件；先复用已发布能力');

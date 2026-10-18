@@ -185,13 +185,29 @@ class Studio:
             for id,release in self.catalog()['library'].items():
                 spec=release['manifest']
                 if id in hidden or query and query not in json.dumps(spec,ensure_ascii=False).lower():continue
-                result.append(dict(id=id,name=release['name'],description=spec.get('description',''),node_types=spec['node_types'],requires=spec['requires'],operations=spec['operations'],agent_tools=spec.get('agent_tools',[]),defaults=release.get('mount_defaults',{}),frontend=bool(spec.get('frontend'))))
+                details=dict(config_schema=spec['config_schema'],state_schema=spec['state_schema']) if args.get('details') or query==id.lower() else {}
+                result.append(dict(id=id,name=release['name'],description=spec.get('description',''),node_types=spec['node_types'],requires=spec['requires'],operations=spec['operations'],agent_tools=spec.get('agent_tools',[]),defaults=release.get('mount_defaults',{}),frontend=bool(spec.get('frontend')),**details))
             return dict(modules=result[:30],total=len(result))
         raise ValueError('未知制作工具：'+name)
     def release_read(self,p):
         release=self.library[p['module']];files=sources(self.root/release['folder']);files.pop('workspace.json',None)
         owned,references=split_files(files)
         return dict(id=release['id'],files=owned,original=owned,references=references,readOnly=True,release=release)
+    def environment(self,p):
+        from .environment import operate
+        return operate(self,p)
+    def copy_current(self,p):
+        folder=self.folder(p['id'])
+        if read_json(folder/'workspace.json',{}).get('kind')!='network':raise ValueError('仅网络制作副本可以复制当前配置')
+        snapshot=self.backend.snapshot();document={key:snapshot[key] for key in ['network','files']};document['network']['signals']={};document['files']={k.replace('\\','/'):v or '' for k,v in document['files'].items()}
+        for node in document['network']['nodes']:
+            node['context_cursor']=None
+            if node['type']=='pulse':node['parameters'].pop('state',None)
+        from .network_work import validate_network
+        validate_network(document,self.backend,self.library)
+        old=(folder/'network.json').read_text(encoding='utf-8')
+        self.save(dict(id=p['id'],file='network.json',content=json.dumps(document,ensure_ascii=False,indent=2),expected=sha256(old.encode()).hexdigest()))
+        return dict(copied=True,file='network.json',nodes=len(document['network']['nodes']))
     def fork(self,p):
         release=self.release_read(p);workspace=self.create({'sample':'blank'});folder=self.folder(workspace['id'])
         for name,content in release['files'].items():
@@ -468,7 +484,7 @@ class Studio:
     def graph_validate(self,p):
         try:
             from .network_work import validate_network
-            validate_network(self.backend,p['document'])
+            validate_network(p['document'],self.backend,self.library)
             return dict(valid=True,errors=[],warnings=[])
         except Exception as error:return dict(valid=False,errors=[dict(path='network',message=str(error))],warnings=[])
     def close(self):
@@ -489,5 +505,5 @@ def register(services):
         b.studio.library={name:release for name,release in {**installed,**document.get('studio_releases',b.studio.library)}.items() if name not in b.studio.removed}
         b.studio._load_releases()
     services.restorers.append(restore)
-    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)
