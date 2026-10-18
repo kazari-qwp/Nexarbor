@@ -3,9 +3,11 @@ import http from 'node:http';
 import path from 'node:path';
 import {readFile,writeFile} from 'node:fs/promises';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
+import {editorLibrary} from './editor-library.js';
 
 export async function startEditorServer({web,directory,request,chat,recover,port=0}) {
   const token=randomBytes(32).toString('hex');let authority;
+  const library=editorLibrary(directory);
   const pages=new Map(),pageKeys=new Map();
   const bridge=await readFile(new URL('./module-frontend-bridge.js',import.meta.url),'utf8');
   const frontend=page=>{
@@ -46,7 +48,7 @@ export async function startEditorServer({web,directory,request,chat,recover,port
         const chunks=[];let bytes=0;
         for await(const chunk of req){bytes+=chunk.length;if(bytes>8_000_000)return send(res,413,{error:'请求超过8MB'});chunks.push(chunk);}
         const {operation,params={}}=JSON.parse(Buffer.concat(chunks).toString('utf8'));
-        const value=operation?.startsWith('chat.')?await chat(operation,params):operation==='recover'?await recover(params):await request(operation,params);
+        const value=['editor.library','editor.library.update'].includes(operation)?await library(operation,params):operation?.startsWith('chat.')?await chat(operation,params):operation==='recover'?await recover(params):await request(operation,params);
         return send(res,200,{value:operation==='module.frontend'?frontend(value):value});
       }
       if(req.method!=='GET')return send(res,405,{error:'GET required'});

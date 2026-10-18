@@ -40,7 +40,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
    doc.network.nodes.push(node);return doc;
   }
   if(operation==='connect'){
-   const doc=structuredClone(params.document),c=params.connection,meta={channels:c.channels,threshold:c.threshold,multiplier:c.multiplier,attributes:{}};
+   const doc=structuredClone(params.document),c=params.connection,meta={channels:c.channels,threshold:c.threshold,multiplier:c.multiplier,attributes:c.attributes??{}};
    const add=(from,to)=>doc.network.nodes.find(n=>n.node_id===from).connections.interfaces.push({target_node_id:to,metadata:meta});add(c.source,c.target);if(c.reciprocal)add(c.target,c.source);return doc;
   }
   throw Error('此开发工作台未启用该业务入口：'+operation);

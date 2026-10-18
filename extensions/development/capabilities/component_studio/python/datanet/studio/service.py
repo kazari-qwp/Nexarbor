@@ -27,6 +27,16 @@ PROJECT=Path(__file__).resolve().parents[7]
 RESOURCE=Path(__file__).resolve().parents[3]/'resources'
 TEXT={'.py','.json','.md','.txt','.toml','.html','.css','.js'}
 GUIDES=('AGENTS.md','MODULE_GUIDE.md','FRONTEND_GUIDE.md')
+REQUIRED_FILES={'module.py','module.json','example.json'}
+
+def split_files(files):
+    """宿主制作资料与组件源码分开呈现；不改变既有发布摘要。"""
+    owned={};references={}
+    for name,content in files.items():
+        relative=name.replace('\\','/')
+        destination=references if relative in GUIDES or relative.startswith(('dependencies/','reference/')) else owned
+        destination[relative]=content
+    return owned,references
 
 def read_json(path,default):return json.loads(path.read_text(encoding='utf-8')) if path.exists() else default
 def write_json(path,value):
@@ -60,6 +70,7 @@ class Studio:
         self.jobs={};self.processes={};self.pool=ThreadPoolExecutor(max_workers=2)
         self.lock=threading.RLock();self.running=False;self.bindings={}
         self.run_state=dict(status='idle',completed=0,requested=0)
+        self.workspace_busy=lambda id:False
         self._load_releases()
     def _load_releases(self):
         visiting=set();done=set();factories={}
@@ -122,8 +133,10 @@ class Studio:
     def read(self,p):
         folder=self.folder(p['id']);files=sources(folder);files.pop('workspace.json',None)
         original=read_json(self.root/'baselines'/f'{p["id"]}.json',{})
-        references={str(f.relative_to(folder)):f.read_text(encoding='utf-8') for f in (folder/'reference').glob('*.py')} if (folder/'reference').exists() else {}
-        return dict(id=p['id'],directory=str(folder),files=files,original=original,references=references,digest=digest(files))
+        owned,references=split_files(files)
+        if (folder/'reference').exists():
+            references.update({f.relative_to(folder).as_posix():f.read_text(encoding='utf-8') for f in (folder/'reference').glob('*.py')})
+        return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files))
     def dependencies(self,p):
         folder=self.folder(p['id']);catalog=read_json(folder/'dependencies/catalog.json',[])
         known={item['id']:item for item in catalog}
@@ -135,7 +148,8 @@ class Studio:
         write_json(folder/'dependencies/catalog.json',list(known.values()));return self.read(p)
     def release_read(self,p):
         release=self.library[p['module']];files=sources(self.root/release['folder']);files.pop('workspace.json',None)
-        return dict(id=release['id'],files=files,original=files,references={},readOnly=True,release=release)
+        owned,references=split_files(files)
+        return dict(id=release['id'],files=owned,original=owned,references=references,readOnly=True,release=release)
     def fork(self,p):
         release=self.release_read(p);workspace=self.create({'sample':'blank'});folder=self.folder(workspace['id'])
         for name,content in release['files'].items():
@@ -154,6 +168,29 @@ class Studio:
         if not isinstance(content,str) or len(content.encode())>1024*1024:raise ValueError('Source exceeds 1 MiB')
         path.parent.mkdir(parents=True,exist_ok=True);temporary=path.with_suffix(path.suffix+'.tmp');temporary.write_text(content,encoding='utf-8');temporary.replace(path)
         return self.read(p)
+    def _idle_work(self,id):
+        if self.workspace_busy(id) or any(j['workspace']==id and j['status']=='running' for j in self.jobs.values()):
+            raise ValueError('请先停止此工作副本的制作或验证任务')
+        return self.folder(id)
+    def delete_file(self,p):
+        folder=self._idle_work(p['id']);path=self.path(p['id'],p['file'])
+        relative=path.relative_to(folder).as_posix()
+        if relative.casefold() in {n.casefold() for n in (*GUIDES,*REQUIRED_FILES,'workspace.json')} or relative.startswith(('reference/','dependencies/')):
+            raise PermissionError('组件必要文件和制作资料不能删除')
+        current=path.read_text(encoding='utf-8')
+        if p.get('expected')!=sha256(current.encode()).hexdigest():raise ValueError('文件已变化，请重新读取后再删除')
+        target=self.root/'trash/files'/uuid4().hex/relative;target.parent.mkdir(parents=True)
+        if not target.resolve().is_relative_to(self.root.resolve()):raise ValueError('回收站路径越出工作区')
+        path.rename(target)
+        return self.read(p)
+    def delete_workspace(self,p):
+        folder=self._idle_work(p['id'])
+        if p.get('expected')!=self.read(p)['digest']:raise ValueError('工作副本已变化，请重新读取后再删除')
+        archive=self.root/'trash/workspaces'/f'{p["id"]}-{uuid4().hex}'
+        archive.parent.mkdir(parents=True,exist_ok=True)
+        if not archive.resolve().is_relative_to(self.root.resolve()):raise ValueError('回收站路径越出工作区')
+        folder.rename(archive)
+        return dict(deleted=p['id'],archived=True)
     def _write_guides(self,folder):
         for name in GUIDES:(folder/name).write_text((RESOURCE/name).read_text(encoding='utf-8'),encoding='utf-8')
     def prepare_agent(self,p):
@@ -343,5 +380,5 @@ def register(services):
         b.studio.library={**installed,**document.get('studio_releases',b.studio.library)}
         b.studio._load_releases()
     services.restorers.append(restore)
-    methods={'catalog':False,'create':False,'read':False,'dependencies':False,'release_read':False,'fork':False,'save':False,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'create':False,'read':False,'dependencies':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

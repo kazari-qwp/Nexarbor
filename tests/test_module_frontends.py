@@ -74,7 +74,7 @@ class ModuleFrontendTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,'源码发生变化'):self.studio.frontend({'module':release['id']})
     def test_all_three_guides_are_current_and_readonly(self):
         for name in GUIDES:
-            self.assertIn(name,self.work['files'])
+            self.assertNotIn(name,self.work['files']);self.assertIn(name,self.work['references'])
             with self.assertRaises(PermissionError):self.save(name,'替换规范')
         (self.folder/'FRONTEND_GUIDE.md').write_text('旧规范',encoding='utf-8')
         self.studio.prepare_agent({'id':self.work['id']})
@@ -83,6 +83,47 @@ class ModuleFrontendTests(unittest.TestCase):
         self.save('tests/test_not_collected.py','def test_wrong():\n    assert False\n')
         job=self.check();self.assertEqual(job['status'],'failed',job)
         self.assertIn('未收集到测试',job['log'])
+
+    def test_component_files_exclude_host_guides_and_dependency_references(self):
+        dependencies=self.folder/'dependencies';dependencies.mkdir(exist_ok=True)
+        (dependencies/'catalog.json').write_text('[]',encoding='utf-8')
+        data=self.studio.read({'id':self.work['id']})
+        self.assertEqual(set(data['files']),{'module.py','module.json','example.json','README.md'})
+        self.assertIn('dependencies/catalog.json',data['references'])
+        self.assertTrue((self.folder/'AGENTS.md').is_file())
+        job=self.check();self.assertEqual(job['status'],'passed',job['log'])
+        release=self.studio.publish({'id':self.work['id']})
+        published=self.studio.release_read({'module':release['id']})
+        self.assertNotIn('AGENTS.md',published['files']);self.assertIn('AGENTS.md',published['references'])
+
+    def test_delete_optional_file_archives_it_and_invalidates_validation(self):
+        job=self.check();self.assertEqual(job['status'],'passed',job['log'])
+        original=self.work['files']['README.md']
+        value=self.studio.delete_file(dict(id=self.work['id'],file='README.md',expected=hashlib.sha256(original.encode()).hexdigest()))
+        self.assertNotIn('README.md',value['files'])
+        archived=list((self.studio.root/'trash/files').glob('*/README.md'))
+        self.assertEqual(len(archived),1);self.assertEqual(archived[0].read_text(encoding='utf-8'),original)
+        with self.assertRaisesRegex(ValueError,'Test the current source'):self.studio.publish({'id':self.work['id']})
+
+    def test_delete_rejects_necessary_files_references_stale_edits_and_active_work(self):
+        for name in ('module.py','module.json','example.json','AGENTS.md'):
+            with self.subTest(file=name),self.assertRaises(PermissionError):self.studio.delete_file(dict(id=self.work['id'],file=name))
+        with self.assertRaises(ValueError):self.studio.delete_file(dict(id=self.work['id'],file='../outside.py'))
+        with self.assertRaisesRegex(ValueError,'文件已变化'):self.studio.delete_file(dict(id=self.work['id'],file='README.md',expected='stale'))
+        self.studio.workspace_busy=lambda id:True
+        with self.assertRaisesRegex(ValueError,'先停止'):self.studio.delete_workspace(dict(id=self.work['id'],expected=self.work['digest']))
+        with self.assertRaisesRegex(ValueError,'先停止'):self.studio.delete_file(dict(id=self.work['id'],file='README.md'))
+        self.assertTrue((self.folder/'README.md').is_file())
+
+    def test_delete_work_copy_preserves_published_release_and_files(self):
+        job=self.check();self.assertEqual(job['status'],'passed',job['log'])
+        release=self.studio.publish({'id':self.work['id']})
+        with self.assertRaisesRegex(ValueError,'工作副本已变化'):self.studio.delete_workspace(dict(id=self.work['id'],expected='stale'))
+        self.studio.delete_workspace(dict(id=self.work['id'],expected=self.studio.read({'id':self.work['id']})['digest']))
+        self.assertFalse(self.folder.exists());self.assertEqual(self.studio.catalog()['workspaces'],[])
+        archive=list((self.studio.root/'trash/workspaces').glob(self.work['id']+'-*'))
+        self.assertEqual(len(archive),1);self.assertTrue((archive[0]/'module.py').is_file())
+        self.assertIn('module.py',self.studio.release_read({'module':release['id']})['files'])
 
 
 if __name__=='__main__':unittest.main()

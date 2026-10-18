@@ -45,6 +45,7 @@ def main():
     initial=os.environ.get('DATANET_INITIAL_NETWORK')
     document=json.loads(Path(initial).read_text(encoding='utf-8')) if initial else None
     backend=Backend(sys.argv[1],initial_document=document);remote=HarnessRemote(backend.studio)
+    backend.studio.workspace_busy=lambda id:any(j['workspace']==id and j['status']=='running' for j in remote.jobs.values())
     for method in ['connect','start','read','cancel','status']:
         backend.components.rpc('studio_agent_'+method,lambda b,p,method=method:getattr(remote,method)(p))
     backend.components.finalizers.append(lambda b:remote.close())

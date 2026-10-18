@@ -1,0 +1,20 @@
+import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import path from 'node:path';
+import {fileURLToPath} from 'node:url';import {editorLibrary} from '../../../adapters/harness/framework/editor-library.js';
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../../build/editor-library-tests');
+test('bookmarks are persistent, history is capped and unaffected by bookmark management',async()=>{
+ await fs.mkdir(root,{recursive:true});const folder=await fs.mkdtemp(path.join(root,'run-'));const library=editorLibrary(folder);
+ const initial=await library('editor.library');assert.equal(initial.categories[0].id,'default');
+ await library('editor.library.update',{action:'history.push',entries:Array.from({length:105},(_,i)=>({kind:'node',id:String(i),label:String(i)}))});
+ const history=(await library('editor.library')).history;assert.equal(history.length,100);assert.equal(history[0].id,'104');assert.equal(history.at(-1).id,'5');
+ await library('editor.library.update',{action:'category.add',category:{id:'custom',name:'实验'}});
+ const book={id:'x',name:'边',mode:'internal',category:'custom',createdAt:1,snapshot:{nodes:[],edges:[{metadata:{channels:['x']}}]}};
+ await library('editor.library.update',{action:'bookmark.patch',changes:[{id:'x',expected:null,value:book}]});
+ assert.deepEqual((await library('editor.library')).history,history);
+ await library('editor.library.update',{action:'bookmark.patch',changes:[{id:'x',expected:book,value:{...book,name:'新名称'}}]});
+ assert.deepEqual((await library('editor.library')).history,history);
+ await assert.rejects(library('editor.library.update',{action:'bookmark.patch',changes:[{id:'x',expected:book,value:null}]}),/书签已变化/);
+ await library('editor.library.update',{action:'settings.save',settings:{shortcuts:{copyInternal:'F6'}}});
+ const restored=await editorLibrary(folder)('editor.library');assert.equal(restored.bookmarks[0].name,'新名称');assert.equal(restored.settings.shortcuts.copyInternal,'F6');
+ const bad={...book,id:'bad',snapshot:{nodes:[],edges:[{source:'旧起点',target:'b',metadata:{}}]}};
+ await assert.rejects(library('editor.library.update',{action:'bookmark.patch',changes:[{id:'bad',expected:null,value:bad}]}),/不能保存起点/);
+});
