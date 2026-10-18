@@ -48,17 +48,17 @@ try{
  await page.keyboard.press('a');await expect.poll(async()=>(await books()).bookmarks.length).toBe(1);
  await page.keyboard.press('b');await expect.poll(async()=>(await books()).bookmarks.length).toBe(2);
  await page.keyboard.press('b');await expect.poll(async()=>(await books()).bookmarks.length).toBe(1);
- await page.keyboard.press('Control+z');await expect.poll(async()=>(await books()).bookmarks.length).toBe(2);
- await page.keyboard.press('Control+y');await expect.poll(async()=>(await books()).bookmarks.length).toBe(1);
+ await page.keyboard.press('Control+z');await expect(page.locator('.react-flow__edge')).toHaveCount(3);expect((await books()).bookmarks.length).toBe(1);
+ await page.keyboard.press('Control+y');await expect(page.locator('.react-flow__edge')).toHaveCount(4);expect((await books()).bookmarks.length).toBe(1);
  expect((await books()).history.map(e=>e.kind+e.id)).toEqual(history);
  const card=page.locator('.bookmark-card').first();await card.click({button:'middle'});await page.getByRole('dialog',{name:'书签名称',exact:true}).getByRole('textbox').fill('中键命名测试');await page.getByRole('dialog',{name:'书签名称',exact:true}).getByRole('button',{name:'确定',exact:true}).click();
  await expect(card).toHaveAttribute('title',/中键命名测试/);await expect(page.getByText('中键命名测试',{exact:true})).toHaveCount(0);
  await card.hover();await page.keyboard.press('a');await expect.poll(async()=>(await books()).bookmarks.length).toBe(0);
- await page.keyboard.press('Control+z');await expect.poll(async()=>(await books()).bookmarks.length).toBe(1);
+ await page.keyboard.press('Control+z');await expect(page.locator('.react-flow__edge')).toHaveCount(3);expect((await books()).bookmarks.length).toBe(0);await page.keyboard.press('Control+y');await expect(page.locator('.react-flow__edge')).toHaveCount(4);
  await page.getByRole('button',{name:'新增书签分类',exact:true}).click();await page.getByRole('dialog',{name:'新分类名称',exact:true}).getByRole('textbox').fill('实验分类');await page.getByRole('dialog',{name:'新分类名称',exact:true}).getByRole('button',{name:'确定',exact:true}).click();
  await expect(page.getByLabel('书签分类',{exact:true})).not.toHaveValue('default');
  await page.getByRole('button',{name:'切换为文字视图',exact:true}).click();await expect(page.locator('.bookmark-dock')).toHaveClass(/text-view/);
- const category=await page.getByLabel('书签分类',{exact:true}).inputValue();await node('a').hover();
+ const category=await page.getByLabel('书签分类',{exact:true}).inputValue();await node('a').click();await node('b').click({modifiers:['Shift']});await node('a').hover();
  for(const key of ['a','b','a','b','a','b','a']){await page.keyboard.press(key);await page.waitForTimeout(80);}
  await expect.poll(async()=>(await books()).bookmarks.filter(b=>b.category===category).length).toBe(7);
  await expect(page.getByRole('button',{name:'下一页书签',exact:true})).toBeEnabled();await page.getByRole('button',{name:'下一页书签',exact:true}).click();await expect(page.locator('.bookmark-card')).toHaveCount(1);

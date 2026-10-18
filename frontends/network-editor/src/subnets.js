@@ -60,10 +60,6 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
  return {document:next,layout,nodes:nodes.map(n=>n.node_id)};
 }
 
-export function bookmarkChanges(before,after){
- return [...new Set([...before,...after].map(b=>b.id))].flatMap(id=>{const a=before.find(b=>b.id===id)??null,b=after.find(b=>b.id===id)??null;return JSON.stringify(a)===JSON.stringify(b)?[]:[{id,expected:a,value:b}];});
-}
-
 // 历史复用与书签共用粘贴逻辑。单边只带终点，起点由落点决定。
 export function historyBookmark(entry,bookmarks=[],document,layout={}){
  const existing=entry.kind==='bookmark'?bookmarks.find(b=>b.id===entry.id):null;

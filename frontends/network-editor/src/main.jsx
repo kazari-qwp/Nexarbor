@@ -1,7 +1,8 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import {ReactFlow,ReactFlowProvider,Background,Controls,MiniMap,Handle,Position,MarkerType,useReactFlow,applyNodeChanges,ConnectionMode} from '@xyflow/react';
+import {ReactFlow,ReactFlowProvider,Background,Controls,MiniMap,MarkerType,useReactFlow,applyNodeChanges,ConnectionMode} from '@xyflow/react';
 import {ModuleConfig} from './module-config.jsx';
+import {NetworkNode} from './network-node.jsx';
 import {Activity,ArrowLeft,ArrowRight,Box,Check,ChevronDown,ChevronLeft,ChevronRight,Download,FileText,Filter,GitBranch,Layers,MapPin,MessageSquare,MousePointer2,Network,Pause,Play,Plus,RotateCcw,Save,Search,ShieldCheck,SkipForward,Trash2,Upload,UserRound,X} from 'lucide-react';
 import '@xyflow/react/dist/style.css';
 import './style.css';
@@ -31,15 +32,6 @@ async function api(operation,params={}){
   const result=await response.json();if(!response.ok||result.error)throw new Error(result.error??'请求失败');return result.value;
 }
 const icons={'居民':UserRound,'Agent':UserRound,'场所':MapPin,'文本':FileText,'脉冲':Activity,'上下文':Layers,'业务':Box,'节点':Box};
-function NetworkNode({data,selected}){
-  const Icon=icons[data.kind];const budget=data.node.modules['action.budget'];
-  return <div onDoubleClick={e=>{e.stopPropagation();if(data.node.type==='agent')data.openChat?.(data.node);}} className={'network-node '+(selected?'is-selected':'')} style={{'--node-color':colors[data.kind]}}>
-    {[Position.Left,Position.Right,Position.Top,Position.Bottom].map(side=><Handle key={side} id={side} type="source" position={side}/>)}
-    <span className="node-name">{data.node.name}</span>
-    <div className="node-details"><div className="node-kind"><Icon size={12}/>{data.kind}<span className="node-dot"/></div><div className="node-title">{data.node.name}</div><div className="node-subtitle">{data.node.node_id.split('/').slice(-2).join('/')}</div>
-    <div className="node-footer"><span>{Object.keys(data.node.modules).length} 个模块</span>{budget&&<span>{budget.config.capacity} AP</span>}</div></div>
-  </div>;
-}
 const nodeTypes={network:NetworkNode};
 function Toast({message,onClose}){return message&&<div role="status" className="toast"><span>{message}</span><button onClick={onClose}><X size={14}/></button></div>;}
 function MessageBlocks({message}){
@@ -68,7 +60,7 @@ function App(){
   const undo=useRef([]),redo=useRef([]),docRef=useRef(),dirtyRef=useRef(false),layoutRef=useRef({}),fileRef=useRef();
   const note=err=>setMessage(err instanceof Error?err.message:err);
   const run=async fn=>{setBusy(true);try{return await fn();}catch(e){note(e);}finally{setBusy(false);}};
-  const bookmarks=useBookmarks({api,undo,redo,note,context:()=>({document:docRef.current,selection:selectionRef.current,layout:Object.fromEntries(canvas.map(n=>[n.id,n.position])),catalog:catalog.modules,flow}),
+  const bookmarks=useBookmarks({api,note,context:()=>({document:docRef.current,selection:selectionRef.current,layout:Object.fromEntries(canvas.map(n=>[n.id,n.position])),catalog:catalog.modules,flow}),
     onPaste:result=>{edit(result.document);setLayout(result.layout);setSelectedIds(result.nodes);setSelectedEdgeIds([]);setSelected(result.nodes[0]??null);setEdge(null);setLocal(null);setLocalOnly(false);note('已放置书签副本，可撤销；应用网络后生效');},
     onEdgeTemplate:value=>connect(value),onLocate:entry=>{
       const ids=entry.kind==='node'?[entry.id]:[entry.source,entry.target];if(!ids.some(id=>docRef.current.network.nodes.some(n=>n.node_id===id))){note('历史元素已不在当前网络，可用复制键恢复副本');return;}
@@ -108,7 +100,6 @@ function App(){
   const toggle=(value,list,setter)=>setter(list.includes(value)?list.filter(v=>v!==value):[...list,value]);
   const replayHistory=async(from,to)=>{
     if(!from.current.length)return;clearTimeout(clickTimer.current);selectionSequence.current++;const next=from.current.at(-1);bookmarks.resetCopy();selectionFrames.current=[];
-    if(next.booksBefore){await bookmarks.restore(next,from===undo);from.current.pop();to.current.push(next);return;}
     from.current.pop();to.current.push({doc:clone(docRef.current),layout:clone(layoutRef.current)});layoutRef.current=next.layout;setDoc(next.doc);setLayout(next.layout);setDirty(true);docRef.current=next.doc;dirtyRef.current=true;setSelected(null);setSelectedIds([]);setSelectedEdgeIds([]);setEdge(null);setLocal(null);
   };
   const exportDoc=()=>{const blob=new Blob([JSON.stringify({format:'nexarbor-editor',document:doc,layout},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='nexarbor-network.json';a.click();URL.revokeObjectURL(url);};
@@ -154,9 +145,10 @@ function App(){
       if(editing)return;
       if(keyMatches(event,bindings.undo)||keyMatches(event,bindings.redo)){event.preventDefault();if(!busy)bookmarks.afterPending(()=>replayHistory(keyMatches(event,bindings.undo)?undo:redo,keyMatches(event,bindings.undo)?redo:undo)).catch(note);return;}
       if(event.repeat)return;
+      bookmarks.hovered();
       if(bookmarks.hover.current?.kind==='bookmark'){
         const match=bindings.deleteBookmark?keyMatches(event,bindings.deleteBookmark):keyMatches(event,bindings.copyInternal)||keyMatches(event,bindings.copyExternal);
-        if(match){event.preventDefault();bookmarks.remove(bookmarks.hover.current.id).catch(note);}return;
+        if(match){event.preventDefault();bookmarks.removeHovered().catch(note);}return;
       }
       if(keyMatches(event,bindings.copyInternal)||keyMatches(event,bindings.copyExternal)){
         const focused=event.target instanceof Element&&event.target.closest('.canvas-panel');
@@ -172,6 +164,7 @@ function App(){
     };
     window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
   },[doc,selected,selectedIds,selectedEdgeIds,edge,busy,dragActive,studioOpen,chat,modal,documentsOpen,settingsOpen,bookmarks.library,bookmarks.category,draftVersion,baseCommit,layout]);
+  const openNodeTab=(n,nextTab)=>{clearTimeout(clickTimer.current);selectionSequence.current++;setSelected(n.node_id);setSelectedIds([n.node_id]);setSelectedEdgeIds([]);setEdge(null);setTab(nextTab);setRightPanelManual(null);};
   const openChat=n=>{clearTimeout(clickTimer.current);chatFollow.current=true;setChat(n);setChatText('');};
   if(!catalog||!doc)return <div className="loading"><Network size={32}/><h2>Nexarbor</h2><p>{message||'连接本地网络工作台…'}</p></div>;
   const active=state?.job.status==='running';
@@ -191,7 +184,7 @@ function App(){
     </div><div className="runbar"><div className="runbar-top"><div className="run-status"><span className={'status-dot '+(active?'pulsing':'')}/><div><strong>{active?'信号传播中':state?.job.status==='failed'?'执行中断':'网络已暂停'}</strong><small>{state?.job.error??`已完成 ${state?.job.completed??0} / ${state?.job.requested??0} 个时刻`}</small></div></div><select aria-label="执行脉冲" value={pulse} onChange={e=>setPulse(e.target.value)}>{doc.network.nodes.filter(n=>n.type==='pulse').map(n=><option key={n.node_id} value={n.node_id}>{n.name}</option>)}</select></div><div className="runbar-actions"><button disabled={busy||active||dirty||!doc.network.nodes.some(n=>n.node_id===pulse)} onClick={()=>run(async()=>{await api('run',{pulse,cycles:1});await load();})}><SkipForward size={15}/>单步</button>{active&&!state?.studio?<button onClick={()=>run(async()=>{await api('pause');note('将在当前时刻完成后暂停');})}><Pause size={15}/>暂停</button>:<button className="primary" disabled={busy||dirty||!doc.network.nodes.some(n=>n.node_id===pulse)} onClick={()=>run(async()=>{await api('run',{pulse,cycles});await load();})}><Play size={15}/>运行</button>}<input aria-label="运行时刻数" type="number" min="1" max="20" value={cycles} onChange={e=>setCycles(Number(e.target.value))}/><span>时刻</span></div></div>
     </aside>
     <main className={"canvas-panel"+(bookmarks.open?" has-bookmarks":"")}>
-      <LinkGesture onConnect={connect} bindings={bookmarks.bindings} onCanvas={()=>{bookmarks.hover.current={kind:'canvas'};}} onSelectionWheel={selectionWheel} onBookmarkDrop={(id,point)=>{try{bookmarks.drop(id,point);}catch(e){note(e);}}} onHistoryDrop={(entry,point)=>{try{bookmarks.dropHistory(entry,point);}catch(e){note(e);}}}><RoutedScene nodes={graph.nodes} edges={graph.edges} optimize={routingTask} dragging={dragActive}><ReactFlow nodes={graph.nodes.map(n=>({...n,data:{...n.data,openChat},selected:selectedIds.includes(n.id),zIndex:layers.current.nodes[n.id]}))} edges={visibleEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} connectionMode={ConnectionMode.Loose} elevateEdgesOnSelect={false} elevateNodesOnSelect={false} onNodesChange={changePositions} onEdgesChange={changes=>{const choices=changes.filter(c=>c.type==='select');if(choices.length){selectionFrames.current=[];bookmarks.resetCopy();setSelectedEdgeIds(old=>{const ids=new Set(old);for(const c of choices)c.selected?ids.add(c.id):ids.delete(c.id);return [...ids];});}}} onEdgeMouseEnter={(_,e)=>setHoveredEdge(e.id)} onEdgeMouseLeave={()=>setHoveredEdge(null)} onNodeClick={(event,n)=>{clearTimeout(clickTimer.current);if(!modifierMatches(event,bookmarks.bindings.multiSelect))clickTimer.current=setTimeout(()=>selectNode(n),300);else{setLocal(null);setLocalOnly(false);}}} onNodeDoubleClick={(_,n)=>{if(n.data.node.type==='agent')openChat(n.data.node);}} onEdgeClick={(event,e)=>{setEdge(allEdges.find(x=>x.id===e.id));if(!modifierMatches(event,bookmarks.bindings.multiSelect)){setSelectedEdgeIds([e.id]);setSelectedIds([]);setSelected(null);}setLocal(null);}} onPaneClick={()=>{setHoveredEdge(null);clearTimeout(clickTimer.current);selectionSequence.current++;setSelected(null);setSelectedIds([]);setSelectedEdgeIds([]);setEdge(null);setLocal(null);selectionFrames.current=[];bookmarks.resetCopy();}} multiSelectionKeyCode={bookmarks.bindings.multiSelect} selectionKeyCode={bookmarks.bindings.multiSelect} onNodeDragStart={()=>{clearTimeout(clickTimer.current);dragBefore.current={doc:clone(docRef.current),layout:clone(layoutRef.current)};setDragActive(true);}} onConnect={connect} onNodeDragStop={(_,n)=>{setDragActive(false);setHoveredEdge(null);setLayout(old=>({...old,[n.id]:n.position}));if(dragBefore.current){if(JSON.stringify(dragBefore.current.layout)!==JSON.stringify(layoutRef.current)){undo.current.push(dragBefore.current);redo.current=[];bookmarks.record([{kind:'node',id:n.id,label:n.data.node.name,snapshot:copyNodeForHistory(n.id)}]);}dragBefore.current=null;}}} onNodesDelete={nodes=>{let next=doc;for(const n of nodes)if(n.id!=='root')next=removeNode(next,n.id);edit(next);}} fitView zoomOnDoubleClick={false} minZoom={.12} maxZoom={1.8} deleteKeyCode={null} colorMode="dark" proOptions={{hideAttribution:false}}>
+      <LinkGesture onConnect={connect} bindings={bookmarks.bindings} onCanvas={()=>{bookmarks.hover.current={kind:'canvas'};}} onSelectionWheel={selectionWheel} onBookmarkDrop={(id,point)=>{try{bookmarks.drop(id,point);}catch(e){note(e);}}} onHistoryDrop={(entry,point)=>{try{bookmarks.dropHistory(entry,point);}catch(e){note(e);}}}><RoutedScene nodes={graph.nodes} edges={graph.edges} optimize={routingTask} dragging={dragActive}><ReactFlow nodes={graph.nodes.map(n=>({...n,data:{...n.data,openChat,openNodeTab},selected:selectedIds.includes(n.id),zIndex:layers.current.nodes[n.id]}))} edges={visibleEdges} nodeTypes={nodeTypes} edgeTypes={edgeTypes} connectionMode={ConnectionMode.Loose} elevateEdgesOnSelect={false} elevateNodesOnSelect={false} onNodesChange={changePositions} onEdgesChange={changes=>{const choices=changes.filter(c=>c.type==='select');if(choices.length){selectionFrames.current=[];bookmarks.resetCopy();setSelectedEdgeIds(old=>{const ids=new Set(old);for(const c of choices)c.selected?ids.add(c.id):ids.delete(c.id);return [...ids];});}}} onEdgeMouseEnter={(_,e)=>setHoveredEdge(e.id)} onEdgeMouseLeave={()=>setHoveredEdge(null)} onNodeClick={(event,n)=>{clearTimeout(clickTimer.current);if(!modifierMatches(event,bookmarks.bindings.multiSelect))clickTimer.current=setTimeout(()=>selectNode(n),300);else{setLocal(null);setLocalOnly(false);}}} onNodeDoubleClick={(_,n)=>{if(n.data.node.type==='agent')openChat(n.data.node);}} onEdgeClick={(event,e)=>{setEdge(allEdges.find(x=>x.id===e.id));if(!modifierMatches(event,bookmarks.bindings.multiSelect)){setSelectedEdgeIds([e.id]);setSelectedIds([]);setSelected(null);}setLocal(null);}} onPaneClick={()=>{setHoveredEdge(null);clearTimeout(clickTimer.current);selectionSequence.current++;setSelected(null);setSelectedIds([]);setSelectedEdgeIds([]);setEdge(null);setLocal(null);selectionFrames.current=[];bookmarks.resetCopy();}} multiSelectionKeyCode={bookmarks.bindings.multiSelect} selectionKeyCode={bookmarks.bindings.multiSelect} onNodeDragStart={()=>{clearTimeout(clickTimer.current);dragBefore.current={doc:clone(docRef.current),layout:clone(layoutRef.current)};setDragActive(true);}} onConnect={connect} onNodeDragStop={(_,n)=>{setDragActive(false);setHoveredEdge(null);setLayout(old=>({...old,[n.id]:n.position}));if(dragBefore.current){if(JSON.stringify(dragBefore.current.layout)!==JSON.stringify(layoutRef.current)){undo.current.push(dragBefore.current);redo.current=[];bookmarks.record([{kind:'node',id:n.id,label:n.data.node.name,snapshot:copyNodeForHistory(n.id)}]);}dragBefore.current=null;}}} onNodesDelete={nodes=>{let next=doc;for(const n of nodes)if(n.id!=='root')next=removeNode(next,n.id);edit(next);}} fitView zoomOnDoubleClick={false} minZoom={.12} maxZoom={1.8} deleteKeyCode={null} colorMode="dark" proOptions={{hideAttribution:false}}>
         <Background color="#283340" gap={24} size={1}/><Controls showInteractive={false}/><MiniMap nodeColor={n=>colors[n.data.kind]} maskColor="rgba(12,19,28,.75)" pannable zoomable/>
       </ReactFlow></RoutedScene></LinkGesture>
       {doc.network.nodes.length===0&&<div className="welcome"><div className="welcome-icon"><GitBranch size={26}/></div><h2>让网络定义行动空间</h2><p>{state?.studio?'添加节点、工具和新版组件，连接它们建立网络。旧应用尚未迁移。':<>从左侧添加时间、场所和居民，<br/>连接它们，建立你的第一个小世界。</>}</p><button className="primary" onClick={()=>state?.studio?setStudioOpen(true):useTemplate('infrastructure')}><Plus size={15}/>{state?.studio?'打开组件工作室':'添加时间与共享资料'}</button></div>}

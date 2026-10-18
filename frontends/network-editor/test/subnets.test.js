@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {copySubnet,pasteSubnet,selectionStep,bookmarkChanges,historyBookmark} from '../src/subnets.js';
+import {copySubnet,pasteSubnet,selectionStep,historyBookmark} from '../src/subnets.js';
 import {keyMatches,pointerMatches} from '../src/shortcuts.js';
 const edge=target=>({target_node_id:target,metadata:{channels:['tools'],threshold:1,multiplier:1,attributes:{label:'边参数'}}});
 const node=id=>({node_id:id,name:id,type:'agent',parameters:{file_path:id+'.md'},management_parent_id:null,context_cursor:{session_id:'old'},connections:{interfaces:[]},modules:{}});
@@ -25,8 +25,7 @@ test('selection wheel advances one incidence layer at a time',()=>{
  selected=selectionStep(nodes,edges,selected);assert.deepEqual(selected.edges,['ab','bc']);
  assert.deepEqual(selectionStep(nodes,edges,{nodes:['a'],edges:[]},false),{nodes:[],edges:[]});
 });
-test('bookmark undo patch touches only changed entries and key bindings match modifiers',()=>{
- const x={id:'x',name:'x'},y={id:'y',name:'y'};assert.deepEqual(bookmarkChanges([x],[x,y]),[{id:'y',expected:null,value:y}]);
+test('key bindings distinguish modifiers',()=>{
  assert.equal(keyMatches({key:'z',ctrlKey:true},'Ctrl+Z'),true);assert.equal(keyMatches({key:'z',ctrlKey:true,shiftKey:true},'Ctrl+Z'),false);
  assert.equal(pointerMatches({button:2,altKey:true},{button:2,modifier:'Alt'}),true);
 });

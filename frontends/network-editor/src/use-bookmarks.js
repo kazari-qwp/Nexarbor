@@ -1,25 +1,40 @@
 import {useEffect,useRef,useState} from 'react';
-import {bookmarkChanges,copySubnet,pasteSubnet,selectionKey,historyBookmark} from './subnets.js';
+import {copySubnet,pasteSubnet,selectionKey,historyBookmark} from './subnets.js';
 import {shortcuts} from './shortcuts.js';
 import {textPrompt} from './text-prompt.js';
 const clone=value=>structuredClone(value);
 const empty={version:0,bookmarks:[],history:[],categories:[{id:'default',name:'默认分类'}],settings:{}};
-export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,note,undo,redo}){
+export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,note}){
  const [library,setLibrary]=useState(empty),[category,setCategory]=useState('default'),[focus,setFocus]=useState(null),[open,setOpen]=useState(true);
- const current=useRef(empty),latest=useRef(),hover=useRef(null),lastCopy=useRef(null);
+ const current=useRef(empty),latest=useRef(),hover=useRef(null),lastCopy=useRef(null),pointer=useRef(null);
  const queue=useRef(Promise.resolve()),pending=useRef(0);
  const enqueue=job=>{pending.current++;const result=queue.current.then(job).finally(()=>pending.current--);queue.current=result.catch(()=>{});return result;};
  latest.current={context,onPaste,onEdgeTemplate,onLocate,note,category};
  const accept=value=>{if(value.version>=current.current.version){current.current=value;setLibrary(value);}return value;};
  useEffect(()=>{api('editor.library').then(accept).catch(note);},[]);
+ useEffect(()=>{const track=e=>{pointer.current={x:e.clientX,y:e.clientY};};window.addEventListener('pointermove',track,true);return()=>window.removeEventListener('pointermove',track,true);},[]);
+ const hovered=()=>{
+  const point=pointer.current??hover.current?.point;if(!point)return hover.current;
+  const element=document.elementFromPoint(point.x,point.y),book=element?.closest('[data-bookmark-id]'),history=element?.closest('[data-history-kind]');
+  let area=null;
+  if(book||element?.closest('.bookmark-items'))area={kind:'bookmark',id:book?.dataset.bookmarkId??null,point};
+  else if(history){const entry=current.current.history.find(e=>e.kind===history.dataset.historyKind&&e.id===history.dataset.historyId);if(entry)area={kind:'history',entry};}
+  else if(element?.closest('.node-link-gesture'))area={kind:'canvas'};
+  hover.current=area;return area;
+ };
  const update=p=>api('editor.library.update',p).then(accept);
  const record=entries=>{if(entries.length)update({action:'history.push',entries}).catch(latest.current.note);};
- const patch=async(changes,recordUndo=true)=>{
-  const before=clone(current.current.bookmarks),result=await update({action:'bookmark.patch',changes});
-  if(recordUndo){undo.current.push({booksBefore:before,booksAfter:clone(result.bookmarks)});redo.current=[];}
-  return result;
- };
+ const patch=changes=>update({action:'bookmark.patch',changes});
  const remove=async id=>{const book=current.current.bookmarks.find(b=>b.id===id);if(book)await patch([{id,expected:book,value:null}]);lastCopy.current=null;};
+ const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
+ const removeHovered=()=>{
+  const point=hover.current?.point;if(!point)return Promise.resolve();
+  return enqueue(async()=>{
+   // 列表删除后会补位；鼠标静止时不会再触发 pointerenter，按当前落点重新命中。
+   await frame();const element=document.elementFromPoint(point.x,point.y)?.closest('[data-bookmark-id]');
+   if(!element)return;const id=element.dataset.bookmarkId;hover.current={kind:'bookmark',id,point};await remove(id);await frame();
+  });
+ };
  const copy=async(mode,frame)=>{
   const {area,ctx,category}=frame;let snapshot,signature;
   if(area?.kind==='bookmark'){await remove(area.id);return;}
@@ -70,11 +85,10 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,note,u
   if(entry.kind==='bookmark'){const book=current.current.bookmarks.find(b=>b.id===entry.id);if(!book){note('该书签已移除');return;}setCategory(book.category??'default');setFocus(book.id);return;}
   latest.current.onLocate(entry);
  };
- return {library,category,setCategory,focus,open,setOpen,hover,pending,afterPending:enqueue,
+ return {library,category,setCategory,focus,open,setOpen,hover,hovered,pending,afterPending:enqueue,
   copy:mode=>{const ctx=latest.current.context(),frame={area:hover.current?clone(hover.current):null,category:latest.current.category,ctx:{...ctx,document:clone(ctx.document),selection:clone(ctx.selection),layout:clone(ctx.layout)}};return enqueue(()=>copy(mode,frame));},
-  remove:id=>enqueue(()=>remove(id)),created,drop,dropHistory,locate,record,usedHistory,
+  remove:id=>enqueue(()=>remove(id)),removeHovered,created,drop,dropHistory,locate,record,usedHistory,
   bindings:shortcuts(library.settings.shortcuts),resetCopy:()=>{lastCopy.current=null;},
-  async restore(frame,back){await patch(bookmarkChanges(back?frame.booksAfter:frame.booksBefore,back?frame.booksBefore:frame.booksAfter),false);lastCopy.current=null;},
   async rename(book){const name=(await textPrompt('书签名称',book.name))?.trim();if(!name||name===book.name)return;await patch([{id:book.id,expected:book,value:{...book,name}}]);},
   async newCategory(){const name=(await textPrompt('新分类名称'))?.trim();if(!name)return;const item={id:crypto.randomUUID(),name};await update({action:'category.add',category:item});setCategory(item.id);},
   saveSettings:value=>enqueue(()=>update({action:'settings.save',settings:{...current.current.settings,shortcuts:value}})),
