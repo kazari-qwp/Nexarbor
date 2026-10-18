@@ -12,6 +12,8 @@
 
 entry 必须是组件内存在的相对 .html 路径；title 为中文界面标题；height 是 160～900 的初始高度，可省略。提供自包含 HTML，CSS 和 JavaScript 写在页面内，不依赖 CDN、网络、宿主目录或其他相对资源。可以复用成熟实现，但须将需要的资源打包进页面。页面、清单、示例和测试随组件验证、发布；修改页面后重新验证。没有页面时省略 frontend。
 
+清单顶层可选 `description`（描述）和 `preview`（书签／历史区的静态预览图）。`preview` 是自包含的 `data:image/...` 字符串，支持 PNG、JPEG、WebP、SVG，总长度不超过 350000 字符；例如 `"preview":"data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2060%2040'%3E%3Ccircle%20cx='30'%20cy='20'%20r='12'%20fill='%238bd9bf'/%3E%3C/svg%3E"`。位图使用 Base64，SVG 使用 URL 编码；不使用本地绝对路径或外部图片网址。它只是可选展示资料，不执行模块或页面代码；无图、图片失效时显示模块名称。清单跟随正常验证、发布流程，无需改变执行接口。
+
 使用完整 HTML 文档，包含 head 和 body，设置 lang="zh-CN"、UTF-8 及视口。界面采用深色背景，适应约 260 像素起的窄面板；表单控件有中文标签。集合编辑提供添加、删除、名称和值的输入，按需要提供类型选择，正确保留数字、布尔、对象和空值。不要用弹窗代替页面上的常规输入。
 
 ## 客户端注入的接口
@@ -42,7 +44,7 @@ onContext(callback) 订阅首次上下文与后续更新，返回取消订阅函
 - config：本模块配置；state：本模块状态的只读副本，预览时可以为空。
 - configSchema：配置的 JSON Schema；readOnly：是否只读；instance：当前页面实例标识，交给接口内部使用。
 
-setConfig(nextConfig) 返回 Promise，提交的是完整配置对象。保留未编辑的其他配置字段；客户端校验 Schema 并且只修改当前模块的配置，失败时 Promise 被拒绝。修改进入网络草稿，仍需点击客户端的“应用网络”才影响运行实例。发布装配页修改的是待装配配置；源码页面预览只修改预览配置，不代替保存 example.json。
+setConfig(nextConfig) 返回 Promise，提交的是完整配置对象。保留未编辑的其他配置字段；客户端校验 Schema 并且只修改当前模块的配置，失败时 Promise 被拒绝。挂载实例的修改进入网络草稿，仍需点击客户端的“应用网络”才影响运行实例。node 为 null 时显示“待装配配置已更新”，由外层 Save 保存为配置书签；源码页面预览只修改预览配置，不代替保存 example.json。
 
 resize(height) 请求页面高度，客户端限制为 160～900 像素。建议在内容变化后调用；不要无限重试。readOnly 为 true 时禁用修改控件。
 

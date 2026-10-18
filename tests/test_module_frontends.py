@@ -57,6 +57,13 @@ class ModuleFrontendTests(unittest.TestCase):
     def test_unknown_frontend_privileges_are_rejected(self):
         self.page(network=True)
         with self.assertRaises(Exception):manifest(self.folder)
+    def test_optional_preview_is_display_metadata_without_external_image_requests(self):
+        spec=json.loads((self.folder/'module.json').read_text(encoding='utf-8'))
+        spec.update(description='计数器',preview='data:image/svg+xml,%3Csvg%20xmlns="http://www.w3.org/2000/svg"/%3E')
+        self.save('module.json',json.dumps(spec));self.assertEqual(manifest(self.folder)['description'],'计数器')
+        for invalid in ('https://example.com/preview.png','file:///C:/preview.png','data:text/html,hello'):
+            spec['preview']=invalid;self.save('module.json',json.dumps(spec))
+            with self.assertRaises(Exception):manifest(self.folder)
     def test_html_limits_are_checked(self):
         self.page();(self.folder/'ui.html').write_bytes(b'x'*(1024*1024+1))
         with self.assertRaisesRegex(ValueError,'1 MiB'):manifest(self.folder)

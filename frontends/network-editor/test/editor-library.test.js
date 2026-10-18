@@ -18,3 +18,28 @@ test('bookmarks are persistent, history is capped and unaffected by bookmark man
  const bad={...book,id:'bad',snapshot:{nodes:[],edges:[{source:'旧起点',target:'b',metadata:{}}]}};
  await assert.rejects(library('editor.library.update',{action:'bookmark.patch',changes:[{id:'bad',expected:null,value:bad}]}),/不能保存起点/);
 });
+test('virtual folders persist independently of source files and reject cyclic moves',async()=>{
+ await fs.mkdir(root,{recursive:true});const folder=await fs.mkdtemp(path.join(root,'assets-')),library=editorLibrary(folder);
+ const mutate=p=>library('editor.library.update',p);
+ await mutate({action:'asset.folder.create',kind:'module',id:'a',name:'业务'});await mutate({action:'asset.folder.create',kind:'module',id:'b',name:'子目录',parent:'a'});
+ await mutate({action:'asset.move',kind:'module',entry:{type:'item',id:'metadata.fields'},target:'b'});
+ await mutate({action:'asset.rename',kind:'module',entry:{type:'item',id:'metadata.fields'},name:'元数据'});
+ await assert.rejects(mutate({action:'asset.move',kind:'module',entry:{type:'folder',id:'a'},target:'b'}),/自身或子文件夹/);
+ await assert.rejects(mutate({action:'asset.move',kind:'module',entry:{type:'item',id:'x'},target:'missing'}),/已不存在/);
+ await mutate({action:'asset.move',kind:'module',entry:{type:'folder',id:'b'},target:null});
+ const restored=await editorLibrary(folder)('editor.library');assert.equal(restored.assets.module.folders.find(f=>f.id==='b').parent,null);assert.deepEqual(restored.assets.module.items['metadata.fields'],{folder:'b',name:'元数据'});
+ assert.deepEqual(await fs.readdir(folder),['editor-library.json']);assert.deepEqual(restored.history,[]);
+});
+test('resource bookmark CRUD does not reorder history; history aliases survive reuse and restart',async()=>{
+ const folder=await fs.mkdtemp(path.join(root,'presets-')),library=editorLibrary(folder),mutate=p=>library('editor.library.update',p);
+ const asset={kind:'module',id:'metadata.fields',config:{fields:{年龄:18}},state:{},access:{strength:0,channels:[]}};
+ await mutate({action:'history.push',entries:[{kind:'module',id:asset.id,label:'元数据',asset},{kind:'tool',id:'harness:Read',label:'Read',asset:{kind:'tool',id:'harness:Read',channels:['tools']}}]});
+ const original=(await library('editor.library')).history,entry=original[1];
+ await mutate({action:'history.rename',kind:entry.kind,id:entry.id,name:'常用数据',expected:entry});
+ const renamed=(await library('editor.library')).history;assert.deepEqual(renamed.map(e=>e.id),original.map(e=>e.id));assert.equal(renamed[1].time,entry.time);
+ const book={id:'preset',kind:'module',name:'18岁配置',asset,description:'元数据',category:'default',createdAt:1};
+ await mutate({action:'bookmark.patch',changes:[{id:book.id,expected:null,value:book}]});await mutate({action:'bookmark.patch',changes:[{id:book.id,expected:book,value:null}]});
+ assert.deepEqual((await library('editor.library')).history,renamed);
+ await mutate({action:'history.push',entries:[entry]});const restored=await editorLibrary(folder)('editor.library');assert.equal(restored.history[0].label,'常用数据');assert.deepEqual(restored.history[0].asset.config,{fields:{年龄:18}});
+ await assert.rejects(mutate({action:'history.push',entries:[{kind:'module',id:'bad',label:'bad'}]}),/无效工具或模块/);
+});

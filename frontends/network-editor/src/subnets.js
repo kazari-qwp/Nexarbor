@@ -62,6 +62,7 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
 
 // 历史复用与书签共用粘贴逻辑。单边只带终点，起点由落点决定。
 export function historyBookmark(entry,bookmarks=[],document,layout={}){
+ if(entry.asset)return {id:entry.id,kind:entry.kind,name:entry.label,description:entry.description??'',asset:clone(entry.asset)};
  const existing=entry.kind==='bookmark'?bookmarks.find(b=>b.id===entry.id):null;
  let snapshot=existing?.snapshot??entry.snapshot;
  if(entry.kind==='edge')snapshot={nodes:[],edges:[{metadata:clone(entry.metadata),target:entry.target}],files:{},positions:{}};

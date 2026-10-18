@@ -21,7 +21,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(['state','draft','apply','view'].includes(operation))return rpc('studio_'+operation,params);
   if(operation==='catalog'){
    const catalog=await rpc('studio_catalog');const presets=[];
-   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.manifest.frontend?.title??m.id,description:'已发布 · '+m.version,schema:m.manifest.config_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库'}])),presets,studio:true,tools:officialTools,toolError,contract:catalog.contract};
+   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库'}])),presets,studio:true,tools:officialTools,toolError,contract:catalog.contract};
   }
   if(operation==='preset'){
    if(!/^[a-zA-Z0-9_-]+$/.test(params.id))throw Error('Invalid preset');
