@@ -1,0 +1,200 @@
+{
+  "format": "nexarbor-component-presets/v1",
+  "presets": [
+    {
+      "module": "service.actions",
+      "name": "商店借还金币（保留原有买卖）",
+      "description": "拖到商店节点的 service.actions 配置上使用。保留购买镐子、购买斧头、出售矿石、木材和黄金；新增“借金币”“还金币”。借多少、还多少由 perform 的 quantity 决定；每次成功固定消耗1行动点。借出时商店金币减少、居民 debt 欠款增加；归还时居民金币减少、商店金币收回。居民最终欠款最多8枚，归还数量不能超过当前欠款，超额会在扣行动点前被拒绝。",
+      "config": {
+        "address": "place/shop",
+        "actions": [
+          {
+            "id": "buy_pickaxe",
+            "title": "购买镐子，每把5金币",
+            "description": "购买镐子，每把5金币",
+            "actor_deltas": {
+              "coins": -5,
+              "pickaxe": 1
+            },
+            "local_deltas": {
+              "coins": 5,
+              "pickaxe": -1
+            },
+            "cost": 1,
+            "per_unit_cost": false,
+            "require_items": {},
+            "require_values": {
+              "adult": true
+            },
+            "actor_set": {}
+          },
+          {
+            "id": "buy_axe",
+            "title": "购买斧头，每把5金币",
+            "description": "购买斧头，每把5金币",
+            "actor_deltas": {
+              "axe": 1,
+              "coins": -5
+            },
+            "local_deltas": {
+              "axe": -1,
+              "coins": 5
+            },
+            "cost": 1,
+            "per_unit_cost": false,
+            "require_items": {},
+            "require_values": {
+              "adult": true
+            },
+            "actor_set": {}
+          },
+          {
+            "id": "sell_ore",
+            "title": "出售矿石，每份3金币",
+            "description": "出售矿石，每份3金币",
+            "actor_deltas": {
+              "coins": 3,
+              "ore": -1
+            },
+            "local_deltas": {
+              "coins": -3,
+              "ore": 1
+            },
+            "cost": 1,
+            "per_unit_cost": false,
+            "require_items": {
+              "ore": 1
+            },
+            "require_values": {
+              "adult": true
+            },
+            "actor_set": {}
+          },
+          {
+            "id": "sell_wood",
+            "title": "出售木材，每份2金币",
+            "description": "出售木材，每份2金币",
+            "actor_deltas": {
+              "coins": 2,
+              "wood": -1
+            },
+            "local_deltas": {
+              "coins": -2,
+              "wood": 1
+            },
+            "cost": 1,
+            "per_unit_cost": false,
+            "require_items": {
+              "wood": 1
+            },
+            "require_values": {
+              "adult": true
+            },
+            "actor_set": {}
+          },
+          {
+            "id": "sell_gold",
+            "title": "出售黄金，每份10金币",
+            "description": "出售黄金，每份10金币",
+            "actor_deltas": {
+              "coins": 10,
+              "gold": -1
+            },
+            "local_deltas": {
+              "coins": -10,
+              "gold": 1
+            },
+            "cost": 1,
+            "per_unit_cost": false,
+            "require_items": {
+              "gold": 1
+            },
+            "require_values": {
+              "adult": true
+            },
+            "actor_set": {}
+          },
+          {
+            "id": "borrow_coins",
+            "title": "借金币",
+            "description": "按当次需要借入金币，每借1枚欠款增加1，最多共欠8枚；每次成功消耗1行动点。",
+            "actor_deltas": {
+              "coins": 1,
+              "debt": 1
+            },
+            "local_deltas": {
+              "coins": -1
+            },
+            "cost": 1,
+            "per_unit_cost": false,
+            "require_items": {},
+            "require_values": {
+              "adult": true
+            },
+            "actor_maximums": {
+              "debt": 8
+            },
+            "actor_set": {}
+          },
+          {
+            "id": "repay_coins",
+            "title": "还金币",
+            "description": "按当次需要归还金币，不能超过当前欠款；每次成功消耗1行动点。",
+            "actor_deltas": {
+              "coins": -1,
+              "debt": -1
+            },
+            "local_deltas": {
+              "coins": 1
+            },
+            "cost": 1,
+            "per_unit_cost": false,
+            "require_items": {
+              "debt": 1
+            },
+            "require_values": {
+              "adult": true
+            },
+            "actor_set": {}
+          }
+        ],
+        "events": [],
+        "after_hooks": [
+          {
+            "target": "local",
+            "module": "events.chance",
+            "operation": "sample",
+            "arguments": {
+              "trigger": "buy_pickaxe"
+            },
+            "actions": [
+              "buy_pickaxe"
+            ]
+          },
+          {
+            "target": "local",
+            "module": "events.chance",
+            "operation": "sample",
+            "arguments": {
+              "trigger": "buy_axe"
+            },
+            "actions": [
+              "buy_axe"
+            ]
+          },
+          {
+            "target": "local",
+            "module": "events.chance",
+            "operation": "sample",
+            "arguments": {
+              "trigger": "sell_ore"
+            },
+            "actions": [
+              "sell_ore"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

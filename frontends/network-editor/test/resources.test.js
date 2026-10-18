@@ -23,6 +23,12 @@ test('dependencies expand recursively; badges count one level and tools resolve 
  c.modules.c.requires=['a'];assert.throws(()=>attachResource(document,'a',preset.asset,c),/成环/);assert.deepEqual(document.network.nodes[0].modules,{});
  delete c.modules.c;assert.throws(()=>attachResource(document,'a',preset.asset,c),/缺少依赖/);
 });
+test('configuration-only maker bookmarks preserve existing grants and state',()=>{
+ const original=structuredClone(document);original.network.nodes[0].modules['example.x']={config:{value:1},state:{count:9},access:{strength:1,channels:['narrow']}};
+ const updated=attachResource(original,'a',{kind:'module',id:'example.x',config:{value:5}},catalog);
+ assert.deepEqual(updated.network.nodes[0].modules['example.x'],{config:{value:5},state:{count:9},access:{strength:1,channels:['narrow']}});
+ assert.equal(original.network.nodes[0].modules['example.x'].config.value,1);
+});
 test('batch attachment is all-or-nothing to its caller and archive hides resources without removing configuration',()=>{
  const module=resource(catalog,'module','example.x'),tool=resource(catalog,'tool','harness:Read');
  assert.throws(()=>attachResources(document,'b',[tool.asset,module.asset],catalog),/节点类型/);assert.deepEqual(document.network.nodes[1].offered_tools,[]);

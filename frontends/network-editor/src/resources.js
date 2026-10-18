@@ -24,7 +24,7 @@ export function attachResource(document,nodeId,asset,catalog,organization={}){
   if(definition.node_types&&!definition.node_types.includes(node.type))throw Error('此模块或依赖不支持该节点类型：'+id);
   if(!node.modules[id]&&!resourceAvailable(catalog,organization,'module',id))throw Error('依赖模块已归档或删除：'+id);
   visiting.add(id);for(const dependency of definition.requires??[])mount(dependency);visiting.delete(id);done.add(id);
-  if(!node.modules[id]||explicit){const selected=spec??definition.defaults??{config:{},state:{},access:{strength:0,channels:[]}};node.modules[id]={config:clone(selected.config),state:clone(node.modules[id]?.state??selected.state??{}),access:clone(selected.access??definition.defaults?.access??{strength:0,channels:[]})};}
+  if(!node.modules[id]||explicit){const selected=spec??definition.defaults??{config:{},state:{},access:{strength:0,channels:[]}};node.modules[id]={config:clone(selected.config),state:clone(node.modules[id]?.state??selected.state??{}),access:clone(selected.access??node.modules[id]?.access??definition.defaults?.access??{strength:0,channels:[]})};}
  };
  if(asset.kind==='module'){
   const definition=catalog.modules?.[asset.id];if(!definition)throw Error('模块已不在当前组件库');

@@ -69,6 +69,7 @@ async def run():
     children=[id for id in b.network.nodes if id.startswith('instance-')];assert len(children)==1,birth
     child=children[0];assert (await values('npc/yue'))['child']==child and not (await values('npc/yue'))['pregnant']
     assert (await values('npc/lin'))['child']==child
+    assert child in (await local('place/hospital','place.info','read'))['visitors']
     assert (await values(child))['parent1']=='npc/lin' and (await values(child))['parent2']=='npc/yue'
     assert b.network.nodes[child].context_cursor is None and b.network.nodes[child].file_path.is_relative_to(b.directory/'created/templates')
     count=len(executions);report=await b.network.nodes['world/pulse'].run(b.signals,cycles=1,timeout_seconds=60);assert report['status']=='completed',report

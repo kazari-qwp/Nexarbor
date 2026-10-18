@@ -2,6 +2,12 @@
 
 这是一个可直接手动开启的成品网络，不包含时钟、pulse 或自动执行信号。各 Agent 的模型对话需要人在客户端逐个打开，当前没有发生任何模型协作。
 
+## 冷加载修正：清空虚假 expose
+
+此前三个板节点把模块操作名误写进了 `expose`（讨论板/公告箱的 `send`、`read`，任务板的 `knowledge_search`、`knowledge_get`、`knowledge_put`），导致冷加载把这些名字当作节点工具箱工具校验而拒绝。现已把 `board_discuss`、`board_tasks`、`board_notice` 的 `expose` 全部改为 `[]`，其余模块配置、状态、频道、边和授权保持不变。
+
+原因：模块公开的 `agent_tools` 会由框架自动公开，不需要也不应该写进 `node.expose`；`expose` 只登记实际安装的节点工具箱工具。本次只做配置清理，没有重造模块，也没有执行绑定。
+
 ## 网络结构
 
 | 节点 | 类型 | 作用 |
@@ -91,5 +97,7 @@
 - 六个成员的模块装配和递归依赖均通过验证；六个 `execution.prepare` 均为数组形式 `[{"module":"agents.context","operation":"prepare","arguments":{}}]`。
 - 在 candidate 副本中逐个调用六名成员的 `tools.collector / collect`：三名讨论成员各返回 7 个工具（本人的 `remember`、`recall`、`look`，`board_discuss` 的 `send` / `read`，`board_notice` 的 `send` / `read`），不含 `board_tasks` 的知识工具，也不含其他成员的私人记忆工具。
 - 三名协作成员各返回 11 个工具（本人的 `remember`、`recall`、`look`，`board_tasks` 的 6 个知识工具，`board_notice` 的 `send` / `read`），不含 `board_discuss` 的消息工具，也不含其他成员的私人记忆工具。
+
+- 冷加载清理后重新 `reset` candidate：`discuss_eng` 的 `tools.collector / collect` 仍返回 7 个工具，`collab_eng` 仍返回 11 个工具，说明模块的 `agent_tools` 自动公开且未受 `expose` 清空影响；讨论板 `send` 成功，另一讨论成员 `read` 能读到同一条消息。
 
 说明：测试环境禁用外部工具和节点工具箱，但 `tools.collector` 的组件公开操作可以正常调用；以上收集结果来自实际调用，而不是静态推断。真实外部工具的副作用仍需另行运行验收。

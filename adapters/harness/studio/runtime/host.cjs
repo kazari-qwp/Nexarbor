@@ -96,7 +96,7 @@ async function run(p){
   return {status,session_id:entry.agent.id,steps:entry.steps,output:messages.filter(m=>m.role==='assistant').at(-1)?.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')??'',error:status==='completed'?null:JSON.stringify(ending?.data.reason),requests:requestCount};
  }finally{clearTimeout(timer);entry.running=false;entry.ticket=null;await host.sessions.flush(entry.agent.session);}
 }
-async function close(){if(closed)return;closed=true;for(const e of agents.values())e.agent.cancel('user');await checkpoints?.stop();await host?.fiber.dispose();clearInterval(keepAlive);}
+async function close(){if(closed)return;closed=true;for(const e of agents.values())e.agent.cancel('user');try{await checkpoints?.checkpoint();}catch{}await checkpoints?.stop();await host?.fiber.dispose();clearInterval(keepAlive);}
 async function captureContexts(p){
  const result={};
  for(const [actor,id] of Object.entries(p.bindings)){

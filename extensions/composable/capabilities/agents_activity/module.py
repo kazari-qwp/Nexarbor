@@ -104,41 +104,42 @@ async def _run_agent(ctx, prompt):
         raise RuntimeError(f'运行官方端口 runtime:agent_run 失败：{error}') from error
 
 
-async def _mark_completed(ctx, key, budget_field, budget):
-    async with _lock_self(ctx):
-        existing = _find_activity(ctx, key) or {}
-        if existing.get('status') == 'completed':
-            return _result(ctx, key, 'completed', True, budget_field, budget, existing)
-        count = int(existing.get('completed_count', 0) or 0) + 1
-        entry = {
-            'key': key,
-            'status': 'completed',
-            'completed_count': count,
-        }
-        _upsert_activity(ctx, entry)
-        total = int(ctx.state.get('completed_total', 0) or 0) + 1
-        ctx.state['completed_total'] = total
-        ctx.publish_metadata({
-            '活动状态': '已完成',
-            '最近完成活动键': key,
-            '活动完成次数': total,
-        })
-        return _result(ctx, key, 'completed', False, budget_field, budget, entry)
+def _mark_completed(ctx, key, budget_field, budget):
+    # 当前回调自身仍持有本节点的访问凭据；这里只同步记录本地状态，
+    # 不再申请独占锁，避免与外层等待本轮回调的调用形成依赖环。
+    existing = _find_activity(ctx, key) or {}
+    if existing.get('status') == 'completed':
+        return _result(ctx, key, 'completed', True, budget_field, budget, existing)
+    count = int(existing.get('completed_count', 0) or 0) + 1
+    entry = {
+        'key': key,
+        'status': 'completed',
+        'completed_count': count,
+    }
+    _upsert_activity(ctx, entry)
+    total = int(ctx.state.get('completed_total', 0) or 0) + 1
+    ctx.state['completed_total'] = total
+    ctx.publish_metadata({
+        '活动状态': '已完成',
+        '最近完成活动键': key,
+        '活动完成次数': total,
+    })
+    return _result(ctx, key, 'completed', False, budget_field, budget, entry)
 
 
-async def _mark_failed(ctx, key, message):
+def _mark_failed(ctx, key, message):
     text = str(message)[:2000]
     try:
-        async with _lock_self(ctx):
-            existing = _find_activity(ctx, key) or {}
-            if existing.get('status') == 'completed':
-                return
-            entry = dict(existing)
-            entry['key'] = key
-            entry['status'] = 'failed'
-            entry['error'] = text
-            entry.setdefault('completed_count', 0)
-            _upsert_activity(ctx, entry)
+        # 与完成记录相同：同步写本模块状态，不申请独占锁。
+        existing = _find_activity(ctx, key) or {}
+        if existing.get('status') == 'completed':
+            return
+        entry = dict(existing)
+        entry['key'] = key
+        entry['status'] = 'failed'
+        entry['error'] = text
+        entry.setdefault('completed_count', 0)
+        _upsert_activity(ctx, entry)
     except Exception:
         # 记录失败状态是尽力而为，不能覆盖最初的业务失败。
         return
@@ -173,7 +174,7 @@ async def _run_activity(ctx, key):
             started = True
     except Exception as error:
         if started:
-            await _mark_failed(ctx, key, error)
+            _mark_failed(ctx, key, error)
         raise
 
     try:
@@ -181,13 +182,13 @@ async def _run_activity(ctx, key):
         # 模型运行必须在释放独占锁之后进行。
         await _run_agent(ctx, prompt)
     except Exception as error:
-        await _mark_failed(ctx, key, error)
+        _mark_failed(ctx, key, error)
         raise
 
     try:
-        return await _mark_completed(ctx, key, budget_field, budget)
+        return _mark_completed(ctx, key, budget_field, budget)
     except Exception as error:
-        await _mark_failed(ctx, key, f'记录活动完成状态失败：{error}')
+        _mark_failed(ctx, key, f'记录活动完成状态失败：{error}')
         raise
 
 

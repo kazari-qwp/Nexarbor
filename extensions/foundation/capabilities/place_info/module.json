@@ -1,6 +1,6 @@
 {
   "format": "nexarbor-module/v3",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "entry": "module.py:execute",
   "signals": [],
   "id": "place.info",
@@ -39,6 +39,12 @@
           "format": "node-id"
         },
         "default": []
+      },
+      "visitors_from_edges": {
+        "type": "boolean",
+        "title": "从出边派生访客",
+        "description": "默认 false，保持原有访客记录模式。开启后仅从本节点自己的出边中取 relation=location 且频道含 movement 的目标节点作为 visitors，去重排序；不合并 config/state 旧访客，不读取其他节点状态，不扫描网络。适用于普通地点节点，Agent 开启会明确拒绝。",
+        "default": false
       }
     },
     "additionalProperties": false

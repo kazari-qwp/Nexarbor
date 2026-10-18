@@ -14,6 +14,10 @@ catalog_modules 查职责和参数，node_template 取合法单节点骨架，�
 
 也检查服务到依赖的路径，目的地移动模块须访问 NPC 和旧地点。事实只保存一份，经公开操作读取。
 
+角色自己装工具收集器时，通常只让它从本节点被调用：位置/道路边传movement、业务边传service/chat/knowledge，不在这些边上传tools，自己的收集器仍有tools操作频道，且access包含所需业务频道。这样能取得周围真实工具，又不会互相转调其他角色的收集器。只有明确设计的工具中继链才让tools贯通；框架不替你修理循环中继。
+
+同层信号接收器会并行执行，并等待全部完成才进入下一层。需要互相读写的角色若要按先后处理消息，可把tick连接写成clock→角色1→角色2→汇合→save→pulse；这只是网络顺序，模块跨节点访问仍是默认异步。模型等待期间不要持独占锁；锁等待前序回调完全退出，不保证两个相互等待的整轮模型活动能同时写对方。
+
 Agent execution 设 executor:'harness'、strength、channels、prepare、max_steps、timeout_seconds。人格常识用输入组件 system_prompt，现况用 tail，临时事件用唯一 ID inputs。模型思考前不锁全网。
 
 可直接复制的执行配置：

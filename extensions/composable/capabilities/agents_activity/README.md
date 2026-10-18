@@ -6,7 +6,7 @@
 2. 通过本节点的 `records.store.apply` 把行动预算字段重置为配置值，并记下 `running`；
 3. 释放锁后调用本地 `agents.context.prepare`；
 4. 通过显式授权的官方端口 `runtime:agent_run` 运行本节点，消息为配置的 `prompt`；
-5. 成功后短锁记录 `completed` 与完成次数并发布元数据；失败保留 `failed` 和错误原因。
+5. 成功后在本轮回调内同步记录 `completed` 与完成次数并发布元数据；失败同样同步保留 `failed` 和错误原因。完成／失败记录不再申请本节点独占锁，也不在读-写之间等待网络，避免与外层正在等待本轮回调的调用形成依赖环。
 
 信号使用 `activation.signal.signal_id` 作为活动键。信号处理失败会抛出异常，让传播器停止该分支；公开操作失败返回错误封套。相同已完成键再次到达时直接返回 `duplicate`，不会重置预算或重跑模型；相同 `running`／`failed` 键会被拒绝，避免半轮重放。
 

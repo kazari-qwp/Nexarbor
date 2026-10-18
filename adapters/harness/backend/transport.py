@@ -95,7 +95,7 @@ class Transport:
         try:
             self.write(dict(id=request['id'], result=self.dispatch(request['method'], request.get('params', {}))))
         except Exception as error:
-            self.write(dict(id=request.get('id'), error=str(error)))
+            self.write(dict(id=request.get('id'), error=str(error) or type(error).__name__))
 
     def run(self, stream):
         try:

@@ -35,12 +35,12 @@
           "channels": [
             "tick"
           ],
-          "strength": 4,
+          "strength": 12,
           "content": "新时刻开始",
           "signal_options": {
             "timeout_seconds": 540,
             "node_timeout_seconds": 420,
-            "max_hops": 8,
+            "max_hops": 16,
             "max_deliveries": 128
           }
         },
@@ -83,72 +83,6 @@
           "interfaces": [
             {
               "target_node_id": "npc/lin",
-              "metadata": {
-                "channels": [
-                  "tick"
-                ],
-                "threshold": 1,
-                "multiplier": 1,
-                "attributes": {}
-              }
-            },
-            {
-              "target_node_id": "npc/yue",
-              "metadata": {
-                "channels": [
-                  "tick"
-                ],
-                "threshold": 1,
-                "multiplier": 1,
-                "attributes": {}
-              }
-            },
-            {
-              "target_node_id": "npc/sen",
-              "metadata": {
-                "channels": [
-                  "tick"
-                ],
-                "threshold": 1,
-                "multiplier": 1,
-                "attributes": {}
-              }
-            },
-            {
-              "target_node_id": "npc/shi",
-              "metadata": {
-                "channels": [
-                  "tick"
-                ],
-                "threshold": 1,
-                "multiplier": 1,
-                "attributes": {}
-              }
-            },
-            {
-              "target_node_id": "npc/li",
-              "metadata": {
-                "channels": [
-                  "tick"
-                ],
-                "threshold": 1,
-                "multiplier": 1,
-                "attributes": {}
-              }
-            },
-            {
-              "target_node_id": "npc/tie",
-              "metadata": {
-                "channels": [
-                  "tick"
-                ],
-                "threshold": 1,
-                "multiplier": 1,
-                "attributes": {}
-              }
-            },
-            {
-              "target_node_id": "npc/lu",
               "metadata": {
                 "channels": [
                   "tick"
@@ -251,6 +185,39 @@
       },
       {
         "type": "node",
+        "node_id": "world/settle",
+        "name": "活动汇合",
+        "description": "",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "world/save",
+              "metadata": {
+                "channels": [
+                  "tick"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {},
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "context_cursor": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
         "node_id": "place/civil",
         "name": "民政局",
         "description": "民政局，使用本地服务，沿相邻道路移动。",
@@ -308,7 +275,8 @@
           "place.info": {
             "config": {
               "description": "民政局，使用本地服务，沿相邻道路移动。",
-              "visitors": []
+              "visitors": [],
+              "visitors_from_edges": true
             },
             "state": {},
             "access": {
@@ -540,7 +508,8 @@
               "description": "酒馆，使用本地服务，沿相邻道路移动。",
               "visitors": [
                 "npc/lu"
-              ]
+              ],
+              "visitors_from_edges": true
             },
             "state": {},
             "access": {
@@ -855,7 +824,8 @@
               "visitors": [
                 "npc/lin",
                 "npc/yue"
-              ]
+              ],
+              "visitors_from_edges": true
             },
             "state": {},
             "access": {
@@ -1014,7 +984,8 @@
                   "cost": 1,
                   "require_values": {
                     "adult": true,
-                    "pregnant": false
+                    "pregnant": false,
+                    "is_parent": false
                   },
                   "eligible_field": "can_gestate",
                   "equal_fields": [
@@ -1229,7 +1200,8 @@
               "description": "居民楼2，使用本地服务，沿相邻道路移动。",
               "visitors": [
                 "npc/li"
-              ]
+              ],
+              "visitors_from_edges": true
             },
             "state": {},
             "access": {
@@ -1388,7 +1360,8 @@
                   "cost": 1,
                   "require_values": {
                     "adult": true,
-                    "pregnant": false
+                    "pregnant": false,
+                    "is_parent": false
                   },
                   "eligible_field": "can_gestate",
                   "equal_fields": [
@@ -1521,7 +1494,8 @@
               "description": "铁匠铺，使用本地服务，沿相邻道路移动。",
               "visitors": [
                 "npc/tie"
-              ]
+              ],
+              "visitors_from_edges": true
             },
             "state": {},
             "access": {
@@ -1796,7 +1770,8 @@
           "place.info": {
             "config": {
               "description": "商店，使用本地服务，沿相邻道路移动。",
-              "visitors": []
+              "visitors": [],
+              "visitors_from_edges": true
             },
             "state": {},
             "access": {
@@ -2151,7 +2126,8 @@
               "description": "矿坑，使用本地服务，沿相邻道路移动。",
               "visitors": [
                 "npc/shi"
-              ]
+              ],
+              "visitors_from_edges": true
             },
             "state": {},
             "access": {
@@ -2402,7 +2378,8 @@
               "description": "树林，使用本地服务，沿相邻道路移动。",
               "visitors": [
                 "npc/sen"
-              ]
+              ],
+              "visitors_from_edges": true
             },
             "state": {},
             "access": {
@@ -2642,7 +2619,8 @@
           "place.info": {
             "config": {
               "description": "医院，使用本地服务，沿相邻道路移动。",
-              "visitors": []
+              "visitors": [],
+              "visitors_from_edges": true
             },
             "state": {},
             "access": {
@@ -2802,7 +2780,7 @@
               }
             },
             {
-              "target_node_id": "world/save",
+              "target_node_id": "npc/yue",
               "metadata": {
                 "channels": [
                   "tick"
@@ -3132,7 +3110,7 @@
               }
             },
             {
-              "target_node_id": "world/save",
+              "target_node_id": "npc/sen",
               "metadata": {
                 "channels": [
                   "tick"
@@ -3462,7 +3440,7 @@
               }
             },
             {
-              "target_node_id": "world/save",
+              "target_node_id": "npc/shi",
               "metadata": {
                 "channels": [
                   "tick"
@@ -3794,7 +3772,7 @@
               }
             },
             {
-              "target_node_id": "world/save",
+              "target_node_id": "npc/li",
               "metadata": {
                 "channels": [
                   "tick"
@@ -4126,7 +4104,7 @@
               }
             },
             {
-              "target_node_id": "world/save",
+              "target_node_id": "npc/tie",
               "metadata": {
                 "channels": [
                   "tick"
@@ -4458,7 +4436,7 @@
               }
             },
             {
-              "target_node_id": "world/save",
+              "target_node_id": "npc/lu",
               "metadata": {
                 "channels": [
                   "tick"
@@ -4790,7 +4768,7 @@
               }
             },
             {
-              "target_node_id": "world/save",
+              "target_node_id": "world/settle",
               "metadata": {
                 "channels": [
                   "tick"

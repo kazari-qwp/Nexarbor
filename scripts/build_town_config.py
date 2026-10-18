@@ -35,16 +35,17 @@ def events(place,trigger):
     return result
 
 node('root','小镇观察者')
-pulse=node('world/pulse','世界脉冲','pulse');pulse['parameters']=dict(channels=['tick'],strength=4,content='新时刻开始',signal_options=dict(timeout_seconds=540,node_timeout_seconds=420,max_hops=8,max_deliveries=128))
+pulse=node('world/pulse','世界脉冲','pulse');pulse['parameters']=dict(channels=['tick'],strength=12,content='新时刻开始',signal_options=dict(timeout_seconds=540,node_timeout_seconds=420,max_hops=16,max_deliveries=128))
 clock=node('world/time','时间','text_file');mount(clock,'clock.counter',dict(signal_channels=['tick'],labels=['早上','中午','下午','傍晚','午夜'],write_text=True),0,['tick'])
 saver=node('world/save','五时刻存档');mount(saver,'clock.counter',dict(signal_channels=['tick'],checkpoint_every=5),0,['tick','runtime.checkpoint']);saver['offered_tools']=[dict(ref='runtime:checkpoint',channels=['runtime.checkpoint'])]
 edge('world/pulse','world/time',['tick']);edge('world/save','world/pulse',['tick'])
+node('world/settle','活动汇合')
 
 for id,o in original.items():
     if not id.startswith('place/'):continue
     p=node(id,o['name']);p['description']=o.get('description','') or o['name']+'，使用本地服务，沿相邻道路移动。'
     visitors=[i for i,n in original.items() if i.startswith('npc/') and n['modules']['entity.profile']['config']['profile']['place']==id]
-    mount(p,'place.info',dict(description=p['description'],visitors=visitors),0,['movement','info'])
+    mount(p,'place.info',dict(description=p['description'],visitors=visitors,visitors_from_edges=True),0,['movement','info'])
     hooks=[dict(target='requester',module='records.store',operation='apply',arguments={'deltas':{'ap':-3}})]
     arrivals=[dict(id=e['id'],text=e['message'],probability=e['probability'],limit=e.get('max_hits'),rewards=e.get('effects',{}).get('items',{}),triggers=e['triggers']) for e in o['modules']['chance.events']['config']['events']]
     if arrivals:
@@ -85,7 +86,8 @@ def agent(id,name,profile,persona,opening,location,refs,adult=True):
     mount(n,'agents.activity',dict(enabled=True,budget=10,signal_channels=['tick'],prompt='新时刻开始。安排你自己的行动，先看未读便条，按目标做不超过三件事，记录重要经历，然后自然结束。'),0,['tick','records','self','runtime.agent'])
     n['offered_tools']=[dict(ref='runtime:agent_run',channels=['runtime.agent'])]
     n['execution']=dict(executor='harness',strength=2,channels=MODEL,max_steps=18,timeout_seconds=360,prepare=[dict(module='agents.context',operation='prepare',arguments={})])
-    edge(id,location,LOCAL,'location',True);edge(id,'world/time',['info']);edge(id,'world/save',['tick']);edge('world/time',id,['tick'])
+    edge(id,location,LOCAL,'location',True);edge(id,'world/time',['info'])
+    if id=='child':edge(id,'world/save',['tick']);edge('npc/lu',id,['tick'])
     return n
 for id,o in original.items():
     if not id.startswith('npc/'):continue
@@ -93,6 +95,9 @@ for id,o in original.items():
     values=dict(name=p['name'],gender=p['gender'],profession=p['occupation'],role=role_map[short],age=p['age'],age_group='adult',adult=True,can_gestate=p['gender']=='female',pregnant=False,is_parent=False,coins=e['coins'],ap=10,**e['items'])
     references=[('home',p.get('home')),('partner',p.get('partner')),('spouse',None)]
     agent(id,p['name'],values,old['files'][c['persona_file']],c['opening_line'],p['place'],references)
+
+order=['world/time','npc/lin','npc/yue','npc/sen','npc/shi','npc/li','npc/tie','npc/lu','world/settle','world/save']
+for before,after in zip(order,order[1:]):edge(before,after,['tick'])
 
 # 同一通用服务按配置呈现采集、交易、修理、休息；库存只在提供服务的地点保存一份。
 for id,o in original.items():
@@ -116,7 +121,7 @@ marriage=dict(id='marriage',title='双方同意登记结婚',cost=1,require_valu
 mount(nodes['place/civil'],'agreements.pair',dict(clock='world/time',address='place/civil',rules=[marriage]),2,['agreements','records','movement','info'])
 for home in ['home1','home2']:
     id='place/'+home
-    plan=dict(id='family_plan',title='夫妻共同家庭计划',cost=1,require_values={'adult':True,'pregnant':False},eligible_field='can_gestate',equal_fields=['home'],pair_field='spouse',require_pair=True,set_values={'is_parent':True},delay_ticks=10,template='family-'+home,fulfill_cost=1,fulfill_require_values={'can_gestate':True},participant_effects=[dict(when={'can_gestate':True},on_start={'pregnant':True},on_finish={'pregnant':False})])
+    plan=dict(id='family_plan',title='夫妻共同家庭计划',cost=1,require_values={'adult':True,'pregnant':False,'is_parent':False},eligible_field='can_gestate',equal_fields=['home'],pair_field='spouse',require_pair=True,set_values={'is_parent':True},delay_ticks=10,template='family-'+home,fulfill_cost=1,fulfill_require_values={'can_gestate':True},participant_effects=[dict(when={'can_gestate':True},on_start={'pregnant':True},on_finish={'pregnant':False})])
     mount(nodes[id],'agreements.pair',dict(clock='world/time',address=id,delivery_address='place/hospital',rules=[plan]),3,['agreements','records','movement','info','runtime.template'])
     edge(id,'place/hospital',['runtime.template'])
     for npc,o in original.items():
@@ -138,7 +143,7 @@ for home in ['home1','home2']:
     c=deepcopy(child)
     bindings=[dict(path='/network/nodes/0/name',input='name'),dict(path='/network/nodes/0/modules/records.store/config/initial/name',input='name')]
     for i,key in enumerate(['home','parent1','parent2']):bindings.append(dict(path=f'/network/nodes/0/modules/records.store/config/references/{i}/node_id',input={'home':'home','parent1':'/parents/0','parent2':'/parents/1'}[key]))
-    templates.append(dict(id='family-'+home,callers=['place/'+home],document=dict(network=dict(version=8,nodes=[c],signals={},delegations=[]),files=child_files),arguments_schema=dict(type='object',properties=dict(name=dict(type='string',minLength=1,maxLength=50),parents=dict(type='array',items=dict(type='string'),minItems=2,maxItems=2),home=dict(type='string',enum=['place/'+home])),required=['name','parents','home'],additionalProperties=False),bindings=bindings,attachments=[dict(source='world/time',target='child',metadata=dict(channels=['tick'],threshold=1,multiplier=1,attributes={})),dict(source='place/hospital',target='child',metadata=dict(channels=LOCAL,threshold=1,multiplier=1,attributes={'relation':'location'}))]))
+    templates.append(dict(id='family-'+home,callers=['place/'+home],document=dict(network=dict(version=8,nodes=[c],signals={},delegations=[]),files=child_files),arguments_schema=dict(type='object',properties=dict(name=dict(type='string',minLength=1,maxLength=50),parents=dict(type='array',items=dict(type='string'),minItems=2,maxItems=2),home=dict(type='string',enum=['place/'+home])),required=['name','parents','home'],additionalProperties=False),bindings=bindings,attachments=[dict(source='npc/lu',target='child',metadata=dict(channels=['tick'],threshold=1,multiplier=1,attributes={})),dict(source='place/hospital',target='child',metadata=dict(channels=LOCAL,threshold=1,multiplier=1,attributes={'relation':'location'}))]))
 
 save(OUT/'network.json',dict(network=dict(version=8,nodes=list(nodes.values()),signals={},delegations=[]),files=files))
 save(OUT/'templates.json',templates)

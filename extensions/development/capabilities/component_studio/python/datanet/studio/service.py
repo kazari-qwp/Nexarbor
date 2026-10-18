@@ -456,10 +456,10 @@ class Studio:
         self.running=True;cycles=p.get('cycles',1)
         self.run_state=dict(status='running',completed=0,requested=cycles)
         try:
-            runtime=self.backend.network.signals
-            runtime.checkpoint=lambda:self.backend.dispatch('save',{})
+            runtime=self.backend.signals
             async def completed(pulse,report):self.run_state['completed']+=1
-            report=self.backend.runtime.run(self.backend.network.nodes[p.get('pulse','town/pulse')].run(runtime,cycles=cycles,timeout_seconds=p.get('timeout_seconds',min(3600,300*cycles)),cycle_complete=completed))
+            deadline=p.get('timeout_seconds',min(3600,300*cycles))
+            report=self.backend.runtime.run(self.backend.network.nodes[p.get('pulse','town/pulse')].run(runtime,cycles=cycles,timeout_seconds=deadline,cycle_complete=completed),timeout=deadline+10)
             self.run_state['status']='idle' if report['status']=='completed' else 'failed'
             if report['status']!='completed':self.run_state['error']='信号未完成闭环：'+report['status']
             self.running=False
@@ -467,6 +467,11 @@ class Studio:
         except Exception as error:
             self.run_state.update(status='failed',error=str(error));raise
         finally:self.running=False
+    def reconcile(self,p):
+        if self.running or self.backend.modules.executing or self.backend.network.signals._active:raise ValueError('请等待当前执行彻底停止后再核对中断轮次')
+        pulse=self.backend.network.nodes[p['pulse']]
+        if pulse.signal_type!='pulse':raise ValueError('请选择脉冲节点')
+        pulse.reconcile(p['reason']);return self.state()
     def state(self,p=None):
         snapshot=self.backend.snapshot();document=snapshot['network']
         files={name:content if content is not None else '' for name,content in snapshot['files'].items()}
@@ -483,7 +488,8 @@ class Studio:
         if self.running or self.backend.modules.executing or self.backend.network.signals._active:
             raise ValueError('Wait until component access and detached signals complete before replacing the graph')
         if p.get('base_commit')!=self.backend.store.head:raise ValueError('Network changed; reload before applying')
-        document=assemble_document(p['document'],self.library,self.backend.components.module_types);candidate=_build(document['network'],self.backend.directory)
+        from .network_work import validate_network
+        document=validate_network(p['document'],self.backend,self.library);candidate=_build(document['network'],self.backend.directory)
         for node in candidate.nodes.values():
             self.backend.external_tools.validate_node(node)
             if hasattr(node,'file_path') and not node.file_path.is_relative_to(self.backend.directory):raise ValueError('Data files must stay in the network directory')
@@ -533,5 +539,5 @@ def register(services):
         b.studio.library={name:release for name,release in {**installed,**document.get('studio_releases',b.studio.library)}.items() if name not in b.studio.removed}
         b.studio._load_releases()
     services.restorers.append(restore)
-    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

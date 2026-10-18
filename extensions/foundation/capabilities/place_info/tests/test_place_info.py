@@ -84,6 +84,142 @@ class PlaceInfoTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['status'], 'ok', result)
         self.assertEqual(result['data']['node_id'], 'home')
 
+    async def test_visitors_from_edges_works_with_zero_strength(self):
+        self.h.add_node('child', name='孩子')
+        self.h.mount(
+            'home',
+            config={'description': '医院', 'visitors_from_edges': True},
+            access={'strength': 0, 'channels': ['movement']},
+        )
+        self.h.connect(
+            'home', 'child', channels=['movement'],
+            attributes={'relation': 'location'},
+        )
+        result = await self.h.call(
+            'home', 'read', {}, strength=0, channels=['movement']
+        )
+        self.assertEqual(result['status'], 'ok', result)
+        self.assertEqual(result['data']['visitors'], ['child'])
+
+    async def test_visitors_from_edges_ignores_roads(self):
+        self.h.add_node('child', name='孩子')
+        self.h.add_node('road', name='道路')
+        self.h.mount(
+            'home',
+            config={'visitors_from_edges': True},
+            access={'strength': 0, 'channels': ['movement']},
+        )
+        self.h.connect(
+            'home', 'child', channels=['movement'],
+            attributes={'relation': 'location'},
+        )
+        self.h.connect(
+            'home', 'road', channels=['movement'],
+            attributes={'relation': 'road'},
+        )
+        result = await self.h.call(
+            'home', 'read', {}, strength=0, channels=['movement']
+        )
+        self.assertEqual(result['status'], 'ok', result)
+        self.assertEqual(result['data']['visitors'], ['child'])
+
+    async def test_visitors_from_edges_deduplicates_duplicate_edges(self):
+        self.h.add_node('child', name='孩子')
+        self.h.mount(
+            'home',
+            config={'visitors_from_edges': True},
+            access={'strength': 0, 'channels': ['movement']},
+        )
+        self.h.connect(
+            'home', 'child', channels=['movement'],
+            attributes={'relation': 'location'},
+        )
+        self.h.connect(
+            'home', 'child', channels=['movement', 'info'],
+            attributes={'relation': 'location'},
+        )
+        result = await self.h.call(
+            'home', 'read', {}, strength=0, channels=['movement']
+        )
+        self.assertEqual(result['status'], 'ok', result)
+        self.assertEqual(result['data']['visitors'], ['child'])
+
+    async def test_visitors_from_edges_ignores_stale_config_and_state(self):
+        self.h.add_node('child', name='孩子')
+        self.h.mount(
+            'home',
+            config={
+                'visitors_from_edges': True,
+                'visitors': ['ghost_config'],
+            },
+            state={'visitors': ['ghost_state']},
+            access={'strength': 0, 'channels': ['movement']},
+        )
+        self.h.connect(
+            'home', 'child', channels=['movement'],
+            attributes={'relation': 'location'},
+        )
+        result = await self.h.call(
+            'home', 'read', {}, strength=0, channels=['movement']
+        )
+        self.assertEqual(result['status'], 'ok', result)
+        self.assertEqual(result['data']['visitors'], ['child'])
+
+        self.h.disconnect('home', 'child')
+        result = await self.h.call(
+            'home', 'read', {}, strength=0, channels=['movement']
+        )
+        self.assertEqual(result['status'], 'ok', result)
+        self.assertEqual(result['data']['visitors'], [])
+
+    async def test_visitors_from_edges_sees_new_birth_edge(self):
+        self.h.add_node('newborn', name='新生儿')
+        self.h.mount(
+            'home',
+            config={'visitors_from_edges': True},
+            access={'strength': 0, 'channels': ['movement']},
+        )
+        before = await self.h.call(
+            'home', 'read', {}, strength=0, channels=['movement']
+        )
+        self.assertEqual(before['data']['visitors'], [])
+        self.h.connect(
+            'home', 'newborn', channels=['movement'],
+            attributes={'relation': 'location'},
+        )
+        after = await self.h.call(
+            'home', 'read', {}, strength=0, channels=['movement']
+        )
+        self.assertEqual(after['data']['visitors'], ['newborn'])
+
+    async def test_visitors_from_edges_rejects_agent(self):
+        self.h.add_node('agent_place', name='角色', agent=True)
+        self.h.mount(
+            'agent_place',
+            config={'visitors_from_edges': True},
+            access={'strength': 0, 'channels': ['movement']},
+        )
+        with self.assertRaises(PermissionError):
+            await self.h.call(
+                'agent_place', 'read', {}, strength=0, channels=['movement']
+            )
+
+    async def test_arrive_still_requires_real_requester(self):
+        self.h.mount(
+            'home',
+            access={'strength': 1, 'channels': ['movement']},
+        )
+        self.h.connect('family', 'home', channels=['movement'])
+        with self.assertRaises(PermissionError):
+            await self.h.call(
+                'home',
+                'arrive',
+                {'visitor': 'someone_else'},
+                actor='family',
+                strength=1,
+                channels=['movement'],
+            )
+
 
 if __name__ == '__main__':
     unittest.main()
