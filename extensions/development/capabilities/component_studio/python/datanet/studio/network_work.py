@@ -3,12 +3,40 @@ import json
 from .assembly import assemble_document
 from datanet.core.serialization import _build
 
+def validate_execution(node,backend):
+    """在制作阶段检查宿主执行配置，避免只有图结构合法却无法启动。"""
+    binding=node.execution_binding
+    if not binding:return
+    if binding.get('executor')!='harness':raise ValueError('此制作宿主只支持 executor=harness')
+    if node.signal_type!='agent':raise ValueError('只有 Agent 节点可以绑定 Harness 执行器')
+    if set(binding)-{'executor','strength','channels','max_steps','timeout_seconds','prepare'}:raise ValueError('Harness执行配置只支持executor/strength/channels/max_steps/timeout_seconds/prepare')
+    strength=binding.get('strength',0)
+    if type(strength) not in (int,float) or not 0<=strength<=32:raise ValueError('执行器strength须为0至32')
+    channels=binding.get('channels',[])
+    if not isinstance(channels,list) or any(not isinstance(c,str) or not c for c in channels) or len(set(channels))!=len(channels):raise ValueError('执行器channels须为唯一非空字符串列表')
+    if type(binding.get('max_steps',12)) is not int or not 1<=binding.get('max_steps',12)<=100:raise ValueError('执行器max_steps须为1至100')
+    timeout=binding.get('timeout_seconds',90)
+    if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('执行器timeout_seconds须为1至600')
+    prepare=binding.get('prepare',[])
+    if not isinstance(prepare,list):raise ValueError('execution.prepare须为操作对象数组，不是true或单个对象')
+    for item in prepare:
+        if not isinstance(item,dict) or set(item)-{'node','module','operation','arguments'} or not {'module','operation'}<=set(item):raise ValueError('prepare每项声明module/operation/arguments')
+        if item.get('node',node.node_id)!=node.node_id:raise ValueError('上下文准备只能调用本节点模块')
+        module=item['module'];operation=item['operation']
+        if module not in node.modules:raise ValueError('prepare引用未装配的本地模块：'+str(module))
+        definition=backend.components.module_types.get(module)
+        if definition is None or operation not in definition.operations:raise ValueError('prepare引用未知模块操作')
+        definition.validate(item.get('arguments',{}),definition.operations[operation]['parameters'])
+
 def validate_network(document,backend,library):
     if not isinstance(document,dict) or set(document)!={'network','files'}:raise ValueError('预设使用 {network, files} 成品格式')
     document=assemble_document(document,library,backend.components.module_types)
     candidate=_build(document['network'],backend.directory)
     if 'root' not in candidate.nodes:raise ValueError('网络预设需要 root 节点')
     for node in candidate.nodes.values():
+        validate_execution(node,backend)
+        from datanet.core.node_toolboxes import validate_exposure
+        validate_exposure(node)
         backend.external_tools.validate_node(node)
         if hasattr(node,'file_path') and not node.file_path.is_relative_to(backend.directory):raise ValueError('文档路径必须在网络工作目录内')
         for name,spec in node.modules.items():

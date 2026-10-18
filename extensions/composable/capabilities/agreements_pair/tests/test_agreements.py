@@ -827,6 +827,164 @@ class AgreementTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(done["data"]["status"], "completed")
         self.assertEqual((await self.values("a"))["child"], "child-late")
 
+    def mount_source(self, node_id, rules, **overrides):
+        self.h.add_node(node_id)
+        config = {
+            "clock": "clock",
+            "address": None,
+            "delivery_address": None,
+            "sources": [],
+            "rules": rules,
+        }
+        config.update(overrides)
+        source = self.h.mount(
+            node_id,
+            config=config,
+            access={"strength": 3, "channels": CHANNELS},
+        )
+        for agent in ("a", "b"):
+            self.h.connect(node_id, agent, channels=CHANNELS)
+            self.h.connect(agent, node_id, channels=CHANNELS)
+        self.h.connect(node_id, "clock", channels=["info"])
+        self.h.connect("hall", node_id, channels=["agreements"])
+        return source
+
+    async def agree_on(self, node, actor, partner, rule, key):
+        return await self.h.call(
+            node,
+            "agree",
+            {"partner": partner, "rule": rule, "key": key},
+            actor=actor,
+            channels=["agreements"],
+        )
+
+    def source_rule(self, rule_id="shared", **overrides):
+        rule = {
+            "id": rule_id,
+            "title": "来源共同计划",
+            "cost": 0,
+            "set_values": {"source_done": True},
+            "delay_ticks": 2,
+        }
+        rule.update(overrides)
+        return [rule]
+
+    async def test_sources_inspect_merges_requester_visible_agreements_and_rules(self):
+        source = self.mount_source("source1", self.source_rule())
+        first = await self.agree_on("source1", "a", "b", "shared", "inspect-a")
+        second = await self.agree_on("source1", "b", "a", "shared", "inspect-b")
+        self.assertEqual(first["status"], "ok", first)
+        self.assertEqual(second["status"], "ok", second)
+        agreement_id = second["data"]["id"]
+
+        self.mount_hall(sources=["source1"], rules=[])
+        found = await self.h.call(
+            "hall", "inspect", {}, actor="a", channels=["agreements"]
+        )
+        self.assertEqual(found["status"], "ok", found)
+        matches = [
+            item
+            for item in found["data"]["agreements"]
+            if item["id"] == agreement_id
+        ]
+        self.assertEqual(len(matches), 1, found)
+        self.assertEqual(matches[0]["source"], "source1")
+        self.assertIn(
+            "shared", [item["id"] for item in found["data"]["rules"]]
+        )
+
+        hidden = await self.h.call(
+            "hall", "inspect", {}, actor="c", channels=["agreements"]
+        )
+        self.assertEqual(hidden["status"], "ok", hidden)
+        self.assertFalse(
+            any(
+                item["id"] == agreement_id
+                for item in hidden["data"]["agreements"]
+            ),
+            hidden,
+        )
+        self.assertEqual(source.state["agreements"][0]["status"], "pending")
+
+    async def test_sources_fulfill_routes_unique_match_and_missing_is_clear(self):
+        source = self.mount_source("source1", self.source_rule())
+        self.mount_source("source2", self.source_rule())
+        first = await self.agree_on("source1", "a", "b", "shared", "route-a")
+        second = await self.agree_on("source1", "b", "a", "shared", "route-b")
+        self.assertEqual(first["status"], "ok", first)
+        self.assertEqual(second["status"], "ok", second)
+        agreement_id = second["data"]["id"]
+
+        self.mount_hall(sources=["source1", "source2"], rules=[])
+        self.clock.state["tick"] = 2
+        forwarded = await self.fulfill("a", agreement_id, node="hall")
+        self.assertEqual(forwarded["status"], "ok", forwarded)
+        self.assertTrue(forwarded["data"]["forwarded"])
+        self.assertEqual(forwarded["data"]["source"], "source1")
+        self.assertEqual(
+            source.state["agreements"][0]["status"], "completed"
+        )
+        self.assertTrue((await self.values("a"))["source_done"])
+
+        missing = await self.fulfill("a", "agr-never-exists", node="hall")
+        self.assertEqual(missing["status"], "error", missing)
+        self.assertIn("没有来源找到该协议", missing["error"])
+        self.assertEqual(len(source.state["agreements"]), 1)
+        self.assertEqual(
+            source.state["agreements"][0]["status"], "completed"
+        )
+
+    async def test_sources_fulfill_same_id_is_ambiguous_and_runs_no_source(self):
+        first_source = self.mount_source("source1", self.source_rule())
+        second_source = self.mount_source("source2", self.source_rule())
+        for node in ("source1", "source2"):
+            await self.agree_on(node, "a", "b", "shared", node + "-a")
+            await self.agree_on(node, "b", "a", "shared", node + "-b")
+        first_id = first_source.state["agreements"][0]["id"]
+        second_id = second_source.state["agreements"][0]["id"]
+        self.assertEqual(first_id, second_id)
+
+        self.mount_hall(sources=["source1", "source2"], rules=[])
+        self.clock.state["tick"] = 2
+        result = await self.fulfill("a", first_id, node="hall")
+        self.assertEqual(result["status"], "error", result)
+        self.assertIn("歧义", result["error"])
+        for source in (first_source, second_source):
+            self.assertEqual(
+                source.state["agreements"][0]["status"], "pending"
+            )
+        self.assertIsNone((await self.values("a")).get("source_done"))
+
+    async def test_sources_fulfill_surfaces_downstream_business_failure(self):
+        rules = self.source_rule(
+            "guarded",
+            set_values={"guarded_done": True},
+            fulfill_require_values={"ready": True},
+        )
+        source = self.mount_source("source1", rules)
+        await self.agree_on("source1", "a", "b", "guarded", "fail-a")
+        second = await self.agree_on(
+            "source1", "b", "a", "guarded", "fail-b"
+        )
+        agreement_id = second["data"]["id"]
+
+        self.mount_hall(sources=["source1"], rules=[])
+        self.clock.state["tick"] = 2
+        failed = await self.fulfill("a", agreement_id, node="hall")
+        self.assertEqual(failed["status"], "error", failed)
+        self.assertIn("兑现前提", failed["error"])
+        self.assertNotIn("forwarded", failed.get("data") or {})
+        self.assertEqual(
+            source.state["agreements"][0]["status"], "pending"
+        )
+        self.assertIsNone((await self.values("a")).get("guarded_done"))
+
+        await self.set_records("a", {"set": {"ready": True}})
+        done = await self.fulfill("a", agreement_id, node="hall")
+        self.assertEqual(done["status"], "ok", done)
+        self.assertEqual(done["data"]["source"], "source1")
+        self.assertTrue((await self.values("a"))["guarded_done"])
+
     async def test_framework_schema_rejects_bad_types(self):
         self.mount_hall()
         with self.assertRaises(ValidationError):

@@ -1,0 +1,241 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "number.window",
+  "name": "滑动窗口数值统计",
+  "version": "0.1.0",
+  "description": "在本节点的有界滑动窗口中追加有限数值，并读取窗口内的个数、最小值、最大值和算术平均值；支持可选请求键的幂等提交。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "title": "滑动窗口配置",
+    "additionalProperties": false,
+    "properties": {
+      "window_size": {
+        "type": "integer",
+        "title": "窗口容量",
+        "description": "只保留最近多少个数值；设为 3 时，提交第 4 个值会丢弃最早的值。",
+        "minimum": 1,
+        "maximum": 1000,
+        "default": 3
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "title": "滑动窗口状态",
+    "additionalProperties": false,
+    "properties": {
+      "window": {
+        "type": "array",
+        "title": "数值窗口",
+        "description": "按提交顺序保存最近 window_size 个有限数值，不保存无限历史。",
+        "maxItems": 1000,
+        "items": {
+          "type": "number"
+        }
+      },
+      "receipts": {
+        "type": "array",
+        "title": "去重回执",
+        "description": "最近使用过的请求键及其数值，用于避免同一请求被重复追加；最多保留 200 条。",
+        "maxItems": 200,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "type": "string",
+              "title": "请求键",
+              "minLength": 1
+            },
+            "value": {
+              "type": "number",
+              "title": "已提交数值"
+            }
+          },
+          "required": [
+            "key",
+            "value"
+          ]
+        }
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "push",
+      "channels": [
+        "measurement"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "提交数值参数",
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "type": "number",
+            "title": "数值",
+            "description": "要追加到窗口的有限数值；不接受 NaN、Infinity 或 -Infinity。"
+          },
+          "key": {
+            "type": "string",
+            "title": "请求键",
+            "description": "可选。相同请求键和相同数值的重试不会重复追加；同一请求键提交不同数值会被拒绝。",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "value"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "title": "提交结果",
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "窗口内数值个数",
+            "minimum": 0
+          },
+          "min": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "title": "最小值",
+            "description": "窗口为空时为 null。"
+          },
+          "max": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "title": "最大值",
+            "description": "窗口为空时为 null。"
+          },
+          "mean": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "title": "算术平均值",
+            "description": "窗口内所有数值之和除以实际个数，保留浮点结果；窗口为空时为 null。"
+          },
+          "window_size": {
+            "type": "integer",
+            "title": "窗口容量",
+            "minimum": 1
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "是否幂等重试",
+            "description": "相同请求键和相同数值的重试返回 true，且不会再次追加。"
+          }
+        },
+        "required": [
+          "count",
+          "min",
+          "max",
+          "mean",
+          "window_size",
+          "duplicate"
+        ]
+      }
+    },
+    {
+      "name": "read",
+      "channels": [
+        "measurement"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "读取统计参数",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object",
+        "title": "当前窗口统计",
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "type": "integer",
+            "title": "窗口内数值个数",
+            "minimum": 0
+          },
+          "min": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "title": "最小值",
+            "description": "窗口为空时为 null。"
+          },
+          "max": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "title": "最大值",
+            "description": "窗口为空时为 null。"
+          },
+          "mean": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "title": "算术平均值",
+            "description": "窗口内所有数值之和除以实际个数，保留浮点结果；窗口为空时为 null。"
+          },
+          "window_size": {
+            "type": "integer",
+            "title": "窗口容量",
+            "minimum": 1
+          },
+          "values": {
+            "type": "array",
+            "title": "当前窗口数值",
+            "description": "按提交先后排列的窗口内数值，最多 window_size 个。",
+            "items": {
+              "type": "number"
+            }
+          }
+        },
+        "required": [
+          "count",
+          "min",
+          "max",
+          "mean",
+          "window_size",
+          "values"
+        ]
+      }
+    }
+  ],
+  "agent_tools": [
+    {
+      "id": "push",
+      "name": "提交数值",
+      "description": "向本节点的有界滑动窗口追加一个有限数值，并返回窗口内的个数、最小值、最大值和算术平均值；可用请求键避免重复提交。",
+      "operation": "push"
+    },
+    {
+      "id": "read",
+      "name": "读取统计",
+      "description": "读取本节点滑动窗口的数值个数、最小值、最大值、算术平均值、窗口容量和当前数值列表。",
+      "operation": "read"
+    }
+  ],
+  "signals": [],
+  "frontend": {
+    "entry": "ui.html",
+    "title": "滑动窗口数值统计配置",
+    "height": 380
+  }
+}

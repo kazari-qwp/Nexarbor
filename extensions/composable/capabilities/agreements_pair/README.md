@@ -59,7 +59,7 @@
 
 - `address` 非空时，同意时双方都必须在该地点。
 - `delivery_address` 非空时，兑现时请求者必须在该地点；带 `template` 时还必须提供模板端口。
-- `sources` 非空时，本节点的 `fulfill` 只作为转发入口，依次调用这些来源登记节点的同模块 `fulfill`；来源节点只处理自己的待办，不扫描全网。
+- `sources` 非空时，本节点是来源登记节点的汇总入口，只访问这里明确列出的节点，不扫描全网。`inspect` 逐个调用来源的 `inspect`，把各来源中“当前请求者可见”的协议合并返回，并为每条协议附加 `source` 字段；规则按 `id` 合并。`fulfill` 先逐个 `inspect`，只在目标协议 ID 唯一匹配的来源上转调一次。
 - `cost`：每位参与者每次新同意从自己的 `ap` 扣除的行动点，默认 1，非负整数。
 - `fulfill_cost`：带模板协议首次准备待兑现模板请求时，从兑现者自己的 `ap` 扣除一次的行动点，默认 0，非负整数；没有模板的协议不扣此项。
 - `require_values`：每个字段要求双方值都等于给定值。
@@ -83,9 +83,9 @@
 
 ## Agent 工具与操作
 
-- `inspect`：查看规则和自己参与的最近协议。
+- `inspect`：查看规则和自己参与的最近协议。配置 `sources` 时逐个调用来源 `inspect`，只汇总当前请求者可见的协议，并给每条来源协议加上 `source` 字段；来源不可用或读取失败会返回明确错误，不会静默忽略。
 - `agree({partner, rule, key})`：只能由实际 `ctx.requester_id` 的 Agent 同意自己的事；`partner` 必须是可达的真实 Agent。同一 tick 内两份同意才达成；旧 tick 的同意不沿用。新同意从本人 `ap` 扣 `cost`，相同 `key` 重试不重复扣费，不同参数复用同键会被拒绝。
-- `fulfill({id, name})`：仅参与者、到期、满足 `fulfill_require_values` 且到达兑现地点后可执行。带模板的协议先短锁保存稳定的待办请求，首次保存时按 `fulfill_cost` 扣一次兑现者 `ap`；释放锁后调用 `templates:instantiate`。官方端口返回形如 `{"node_ids": {"child": "实际新节点ID"}, "duplicate": false, ...}`，组件从字典值提取节点 ID，也兼容旧的节点 ID 数组；返回为空或没有有效节点 ID 时协议保持 `pending`，不能标记完成。端口失败保留待办，用同一模板 key 可重试且不重复扣费。成功后保存返回的节点引用，并为父母双方写入显式的 `child` 引用（完整网络拷贝可自动映射）。
+- `fulfill({id, name})`：仅参与者、到期、满足 `fulfill_require_values` 且到达兑现地点后可执行。配置 `sources` 时先对每个来源执行 `inspect`：0 个来源匹配该 `id` 时返回“没有来源找到该协议”的错误；多个来源都匹配时返回歧义错误，且不执行任何来源；唯一匹配时只向该来源转调一次，并保留原请求者身份。来源的真实业务失败会原样浮出为错误，不会改报成功，也不会继续尝试其他来源。带模板的协议先短锁保存稳定的待办请求，首次保存时按 `fulfill_cost` 扣一次兑现者 `ap`；释放锁后调用 `templates:instantiate`。官方端口返回形如 `{"node_ids": {"child": "实际新节点ID"}, "duplicate": false, ...}`，组件从字典值提取节点 ID，也兼容旧的节点 ID 数组；返回为空或没有有效节点 ID 时协议保持 `pending`，不能标记完成。端口失败保留待办，用同一模板 key 可重试且不重复扣费。成功后保存返回的节点引用，并为父母双方写入显式的 `child` 引用（完整网络拷贝可自动映射）。
 
 `state.agreements` 保留最近 200 条协议，记录 `id`、`rule`、`participants`、`approvals`、`created_tick`、`due_tick`、`status`、待兑现模板请求和模板返回节点等。
 

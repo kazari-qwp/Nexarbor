@@ -8,15 +8,15 @@ const native=async name=>import(pathToFileURL(require.resolve(path.join(sdk,'@de
 async function initialize(p){
  directory=path.resolve(p.directory);await fs.mkdir(directory,{recursive:true});
  const cordis=await native('cordis');host=new cordis.Context();
- for(const name of ['dsh-system-prompt','dsh-tools','dsh-agent','dsh-fs-local','dsh-spill-local','dsh-attachment-local','dsh-jobs-local','dsh-shell-env','dsh-subprocess-local','dsh-pwsh-local','dsh-tool-fs','dsh-tool-fs-search','dsh-tool-jobs','dsh-tool-pwsh']){
-  const mod=await native(name);await host.plugin(mod.default??mod,name==='dsh-pwsh-local'&&p.pwshPath?{pwshPath:p.pwshPath}:name==='dsh-tool-fs-search'?{sampleOverCapGlobResults:false}:{});
+ for(const name of ['dsh-system-prompt','dsh-tools','dsh-agent','dsh-session','dsh-session-projection','dsh-fs-local','dsh-working-directory','dsh-spill-local','dsh-attachment-local','dsh-jobs-local','dsh-shell-env','dsh-subprocess-local','dsh-pwsh-local','dsh-tool-fs','dsh-tool-fs-search','dsh-tool-jobs','dsh-tool-pwsh']){
+  const mod=await native(name);await host.plugin(mod.default??mod,name==='dsh-pwsh-local'&&p.pwshPath?{pwshPath:p.pwshPath}:name==='dsh-working-directory'?{defaultDirectory:directory}:name==='dsh-tool-fs-search'?{sampleOverCapGlobResults:false}:{});
  }
  return catalog();
 }
 async function owner(actor){
  if(!owners.has(actor)){
   const fiber=host.plugin(()=>{}),id='nexarbor-tools-'+actor;
-  const value={id,ctx:fiber.ctx,status:'running',inject:()=>{},followup:()=>{},session:{id,header:{version:4,id,createdAt:Date.now(),cwd:directory}}};
+  const value={id,ctx:fiber.ctx,status:'running',inject:()=>{},followup:()=>{},session:host.sessions.create(id,{meta:{cwd:directory}})};
   await host.agents.register(value);owners.set(actor,value);
  }
  return owners.get(actor);

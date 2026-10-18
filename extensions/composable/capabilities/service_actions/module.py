@@ -130,6 +130,49 @@ async def _check_location(ctx, requester, address):
         raise RuntimeError(f"当前位置“{location or '未知'}”不是业务地址“{address}”")
 
 
+async def _run_after_hooks(ctx, requester, action_id):
+    """按配置顺序执行匹配的后续钩子；任何失败都抛异常，让外层锁整体回滚。"""
+    locked_nodes = {ctx.node_id, requester}
+    results = []
+    for raw in ctx.config.get("after_hooks", ()) or ():
+        hook = thaw(raw)
+        actions = list(hook.get("actions") or ())
+        if actions and action_id not in actions:
+            continue
+
+        target = hook.get("target")
+        if target == "local":
+            node = ctx.node_id
+        elif target == "requester":
+            node = requester
+        else:
+            raise RuntimeError(f"后续钩子目标“{target}”无效，只能是 local 或 requester")
+        if node not in locked_nodes:
+            raise RuntimeError("后续钩子目标超出本次锁定节点，无法执行")
+
+        module = hook.get("module")
+        operation = hook.get("operation")
+        arguments = thaw(hook.get("arguments") or {})
+        if not isinstance(arguments, dict):
+            raise RuntimeError("后续钩子参数必须是普通对象")
+
+        result = await ctx.network.call(node, module, operation, arguments)
+        if not isinstance(result, dict) or result.get("status") != "ok":
+            detail = result.get("error") if isinstance(result, dict) else "返回了无效结果"
+            raise RuntimeError(
+                f"后续钩子“{module}.{operation}”执行失败：{detail or '未知错误'}"
+            )
+        results.append(
+            {
+                "target": target,
+                "module": module,
+                "operation": operation,
+                "data": thaw(result.get("data")),
+            }
+        )
+    return results
+
+
 async def _requester(ctx):
     requester = getattr(ctx, "requester_id", None)
     if not isinstance(requester, str) or not requester:
@@ -165,6 +208,7 @@ async def _perform_locked(ctx, parameters):
                 continue
             if receipt.get("fingerprint") != fingerprint:
                 raise RuntimeError("幂等键已用于不同的动作、数量或请求者")
+            old["after_results"] = thaw(old.get("after_results") or [])
             old["duplicate"] = True
             return old
 
@@ -257,6 +301,10 @@ async def _perform_locked(ctx, parameters):
         actor_sets,
     )
 
+    # 本地与请求者记录都已成功写入后，仍在锁内按顺序执行后续钩子；
+    # 钩子失败会抛出异常，连同业务变更、事件计数和记录仓写入一起回滚。
+    after_results = await _run_after_hooks(ctx, requester, action_id)
+
     title = action.get("title") or action_id
     observation = [f"完成“{title}”×{quantity}"]
     if total_cost:
@@ -274,6 +322,7 @@ async def _perform_locked(ctx, parameters):
         "values": final_values,
         "observation": observation,
         "duplicate": bool(local_duplicate or actor_duplicate),
+        "after_results": after_results,
     }
 
     if key:

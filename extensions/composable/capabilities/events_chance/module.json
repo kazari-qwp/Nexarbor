@@ -2,8 +2,8 @@
   "format": "nexarbor-module/v3",
   "id": "events.chance",
   "name": "地点概率事件",
-  "version": "0.1.0",
-  "description": "在已经验证道路、扣完预算的同一节点事务中，按配置概率抽取本地事件，累计每项成功次数并给真实 Agent 请求者发放记录仓奖励；不提供 Agent 工具。",
+  "version": "0.2.0",
+  "description": "在已经验证道路、扣完预算的同一节点事务中，按配置概率和可选 trigger 入口筛选抽取本地事件，累计每项成功次数并给真实 Agent 请求者发放记录仓奖励；不提供 Agent 工具。",
   "entry": "module.py:execute",
   "node_types": [
     "node"
@@ -37,6 +37,17 @@
               "title": "事件文字",
               "description": "触发时写入 observations 的中文描述。",
               "minLength": 1
+            },
+            "triggers": {
+              "type": "array",
+              "title": "触发筛选",
+              "description": "非空且唯一的字符串数组；只有 sample 传入的 trigger 在数组内时该事件才参与抽取。留空数组表示所有入口都参与。",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true,
+              "default": []
             },
             "probability": {
               "type": "number",
@@ -92,7 +103,14 @@
       "channels": ["events"],
       "parameters": {
         "type": "object",
-        "properties": {},
+        "properties": {
+          "trigger": {
+            "type": "string",
+            "title": "触发入口",
+            "description": "可选；例如 arrive 或 work。省略时为空字符串，只匹配 triggers 为空数组（所有入口）的事件。",
+            "default": ""
+          }
+        },
         "additionalProperties": false
       },
       "result": {
@@ -118,7 +136,7 @@
           "counts": {
             "type": "object",
             "title": "事件累计成功次数",
-            "description": "本次成功后各事件标识的累计成功次数。",
+            "description": "本次成功后所有已配置事件标识的累计成功次数，与本次匹配的触发入口无关。",
             "additionalProperties": {
               "type": "integer",
               "minimum": 0

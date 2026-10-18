@@ -1,0 +1,172 @@
+{
+  "network": {
+    "version": 8,
+    "nodes": [
+      {
+        "type": "agent",
+        "node_id": "root",
+        "name": "资料管理员",
+        "description": "可手动对话的资料管理员，负责归档、检索与恢复知识。",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "data/root.md",
+          "creation_options": {}
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "knowledge",
+              "metadata": {
+                "channels": [
+                  "tools",
+                  "knowledge"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "agents.context": {
+            "config": {
+              "persona": "你是资料管理员，负责把用户提供的资料整理进知识库，并帮助用户按关键词和标签检索、读取内容和修订历史。",
+              "common": "只通过知识库工具读写公开资料。私人笔记只保存在你自己的私人记忆中，不要写入知识库，也不要尝试让知识库读取它们。回答时说明这是本地关键词检索，不是语义或向量检索。",
+              "opening": "你好，我是资料管理员。你可以让我录入带标签的资料、按关键词或标签检索、读取正文与修订历史，也可以软删除文档或从指定修订恢复。",
+              "map": "",
+              "clock": null,
+              "max_memories": 100,
+              "public_fields": [
+                "name",
+                "profession"
+              ],
+              "knowledge": []
+            },
+            "state": {
+              "memories": [],
+              "opening_queued": false
+            },
+            "access": {
+              "strength": 2,
+              "channels": [
+                "self",
+                "records",
+                "movement",
+                "info"
+              ]
+            }
+          },
+          "records.store": {
+            "config": {
+              "initial": {},
+              "references": [],
+              "minimum": {}
+            },
+            "state": {},
+            "access": {
+              "strength": 1,
+              "channels": [
+                "records"
+              ]
+            }
+          },
+          "place.info": {
+            "config": {},
+            "state": {},
+            "access": {
+              "strength": 0,
+              "channels": [
+                "movement",
+                "info"
+              ]
+            }
+          },
+          "tools.collector": {
+            "config": {},
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "tools",
+                "knowledge",
+                "self"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "channels": [
+            "self",
+            "tools",
+            "knowledge"
+          ],
+          "prepare": [
+            {
+              "module": "agents.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ],
+          "max_steps": 8,
+          "timeout_seconds": 120
+        },
+        "context_cursor": null,
+        "inputs": {}
+      },
+      {
+        "type": "node",
+        "node_id": "knowledge",
+        "name": "知识库",
+        "description": "保存带标签的知识文档、修订历史与软删除状态。",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "knowledge.collection": {
+            "config": {
+              "title": "资料知识库",
+              "read_only": false,
+              "max_entries": 1000,
+              "history_limit": 20
+            },
+            "state": {
+              "documents": {},
+              "idempotency": {}
+            },
+            "access": {
+              "strength": 2,
+              "channels": [
+                "knowledge"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "context_cursor": null,
+        "inputs": null
+      }
+    ],
+    "signals": {},
+    "delegations": []
+  },
+  "files": {
+    "data/root.md": "# 资料管理员\n\n你是这套知识归档网络的资料管理员，也是网络的 root 入口。\n\n## 职责\n\n- 接收用户输入的资料，整理出标题、正文和标签后写入知识库。\n- 按关键词和标签检索知识库，读取正文与修订历史。\n- 对文档执行软删除，并按用户指定的历史修订恢复。\n- 写入、删除、恢复前先用读取工具确认当前 revision，避免覆盖并发修改。\n\n## 边界\n\n- 检索严格按照标题与正文的关键词子串和标签过滤，不声称具备语义或向量检索能力。\n- 私人笔记只写入你自己的私人记忆，知识库无法读取这些笔记。\n- 不提供终端、任意网络管理或修改网络连接的能力。\n"
+  }
+}

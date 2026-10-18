@@ -54,6 +54,34 @@
 }
 ```
 
+### 结算后钩子
+
+`after_hooks` 可选，默认 `[]`。业务动作的场所记录和请求者记录都写入成功后，仍在同一把本地/请求者锁内、保存幂等回执之前，按配置顺序调用匹配的钩子。钩子只允许指向 `local`（本服务节点）或 `requester`（真实请求者），不会访问本次锁定集合之外的节点。
+
+| 字段 | 作用 |
+|---|---|
+| `target` | `local` 或 `requester`。 |
+| `module` | 目标节点上已装配的模块 id，例如 `events.chance`。 |
+| `operation` | 要调用的公开操作，例如 `sample`。 |
+| `arguments` | 传给目标操作的普通对象参数，默认 `{}`；本组件原样转交，不写死任何事件模块。 |
+| `actions` | 只在这些业务动作成功后调用；空数组表示任何动作都匹配。 |
+
+```json
+{
+  "after_hooks": [
+    {
+      "target": "local",
+      "module": "events.chance",
+      "operation": "sample",
+      "arguments": {},
+      "actions": ["mine"]
+    }
+  ]
+}
+```
+
+上例只会在 `mine` 成功后调用本地 `events.chance.sample`。组件本身不依赖也不硬编码 `events.chance`，是否装配该模块由网络配置决定。任何钩子返回错误或调用失败都会在锁内抛出，使业务库存、费用、事件计数和钩子自身状态一起回滚，最后在锁外转成错误封套。成功结果的 `after_results` 按调用顺序记录 `{"target": "local|requester", "module": "...", "operation": "...", "data": ...}`。带相同 `key` 重试时直接返回旧回执和旧 `after_results`，不会再调用钩子。
+
 ### 条件、物品门槛、最终上限与字段设置
 
 每个动作还可配置以下通用字段，不包含任何行业或字段特判：
@@ -123,7 +151,7 @@
 
 参数：`action`（配置动作 id）、`quantity`（1..100 整数，默认 1）、`key`（可选非空幂等键）。
 
-成功返回 `action / quantity / actor / values / observation / duplicate`。`actor` 始终取 `ctx.requester_id`，参数中没有 `actor_id`；不能替别人消费。
+成功返回 `action / quantity / actor / values / observation / duplicate / after_results`。`actor` 始终取 `ctx.requester_id`，参数中没有 `actor_id`；不能替别人消费。
 
 结算规则：
 
@@ -133,7 +161,8 @@
 4. `actor_deltas`、`local_deltas` 按 `quantity` 倍数结算；`cost` 从请求者 `ap` 字段扣除，`per_unit_cost` 为真时乘数量。负向变化不足时整次拒绝。
 5. 逐个独立抽取 `events`；`probability` 为 0/1 时确定不触发/触发，`limit` 是全服务共享的成功次数上限，达到后不再触发。奖励只给成功请求者，并按数量倍数叠加。
 6. 用与记录仓相同的顺序（`actor_set` 先写入，再应用所有增减和事件奖励）计算请求者最终记录，检查 `actor_maximums`；事件奖励不能绕过上限。
-7. 全部检查通过后才写入事件计数并执行两次 `records.store.apply`（请求者一次提交 `set + deltas`）；任何错误立刻抛出，出锁后转为错误封套，由核心回滚两个节点和事件计数。
+7. 全部检查通过后才写入事件计数并执行两次 `records.store.apply`（请求者一次提交 `set + deltas`）。
+8. 两次记录写入成功后，仍在锁内按顺序执行匹配的 `after_hooks`，再保存幂等回执；钩子失败会立刻抛出，出锁后转为错误封套，由核心回滚两个节点、事件计数和钩子已做变更。
 
 ### 幂等
 

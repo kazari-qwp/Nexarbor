@@ -372,7 +372,7 @@ def _truncate(state):
         state["agree_receipts"] = state["agree_receipts"][-200:]
 
 
-async def _inspect(ctx, config):
+def _local_inspect(ctx, config):
     requester = ctx.requester_id
     rules = []
     for rule in config.get("rules") or []:
@@ -398,6 +398,69 @@ async def _inspect(ctx, config):
     for agreement in reversed(ctx.state.get("agreements") or []):
         if requester in (agreement.get("participants") or []):
             agreements.append(_agreement_summary(agreement))
+    return {"rules": rules, "agreements": agreements}
+
+
+async def _source_inspect(ctx, source):
+    """调用一个明确配置的来源登记节点，返回它的 inspect 数据副本。"""
+    try:
+        result = await ctx.network.call(source, ctx.module_id, "inspect", {})
+    except Exception as error:
+        raise AgreementError(
+            "读取来源协议失败：" + str(source) + "：" + str(error)
+        )
+    if result.get("status") != "ok":
+        detail = result.get("error") or "未知错误"
+        raise AgreementError("读取来源协议失败：" + str(source) + "：" + str(detail))
+    data = result.get("data")
+    return data if isinstance(data, dict) else {}
+
+
+def _merge_rules(rules, incoming):
+    seen = {
+        rule.get("id")
+        for rule in rules
+        if isinstance(rule, dict) and rule.get("id")
+    }
+    for rule in incoming or []:
+        if not isinstance(rule, dict):
+            continue
+        rule_id = rule.get("id")
+        if rule_id and rule_id in seen:
+            continue
+        rules.append(_plain(rule))
+        if rule_id:
+            seen.add(rule_id)
+
+
+async def _inspect(ctx, config):
+    """汇总本节点与明确配置的来源登记节点。
+
+    sources 非空时逐个调用来源的 inspect；来源只返回当前请求者可见的协议，
+    因此这里无需、也不会扫描全网。来源协议附带 source 字段，规则按 id 合并。
+    """
+    local = _local_inspect(ctx, config)
+    sources = list(config.get("sources") or [])
+    if not sources:
+        return local
+
+    rules = []
+    _merge_rules(rules, local.get("rules") or [])
+    agreements = []
+    for agreement in local.get("agreements") or []:
+        item = _plain(agreement)
+        item["source"] = ctx.node_id
+        agreements.append(item)
+
+    for source in sources:
+        data = await _source_inspect(ctx, source)
+        _merge_rules(rules, data.get("rules") or [])
+        for agreement in data.get("agreements") or []:
+            if not isinstance(agreement, dict):
+                continue
+            item = _plain(agreement)
+            item["source"] = source
+            agreements.append(item)
     return {"rules": rules, "agreements": agreements}
 
 
@@ -706,18 +769,57 @@ async def _fulfill_one(ctx, config, parameters):
         raise AgreementError(str(error))
 
 
+async def _fulfill_via_sources(ctx, sources, parameters):
+    """先用来源 inspect 定位协议，再只转调唯一匹配的来源一次。
+
+    来源只返回当前 requester 可见的协议；不会执行其他来源来“碰运气”。
+    来源的真实业务失败直接抛给调用者，不吞掉，也不继续尝试其他来源。
+    """
+    agreement_id = parameters.get("id")
+    matches = []
+    for source in sources:
+        data = await _source_inspect(ctx, source)
+        found = any(
+            isinstance(item, dict) and item.get("id") == agreement_id
+            for item in data.get("agreements") or []
+        )
+        if found and source not in matches:
+            matches.append(source)
+
+    if not matches:
+        raise AgreementError("没有来源找到该协议：" + str(agreement_id))
+    if len(matches) > 1:
+        raise AgreementError(
+            "协议 ID 在多个来源中匹配，存在歧义，无法确定兑现来源："
+            + "、".join(str(source) for source in matches)
+        )
+
+    source = matches[0]
+    try:
+        result = await ctx.network.call(
+            source, ctx.module_id, "fulfill", _plain(parameters)
+        )
+    except Exception as error:
+        raise AgreementError(
+            "来源兑现失败：" + str(source) + "：" + str(error)
+        )
+    if result.get("status") != "ok":
+        raise AgreementError(
+            result.get("error") or ("来源节点兑现失败：" + str(source))
+        )
+    return {
+        "forwarded": True,
+        "source": source,
+        "sources": [
+            {"source": source, "data": _plain(result.get("data"))}
+        ],
+    }
+
+
 async def _fulfill(ctx, config, parameters):
     sources = list(config.get("sources") or [])
     if sources:
-        forwarded = []
-        for source in sources:
-            result = await ctx.network.call(
-                source, ctx.module_id, "fulfill", _plain(parameters)
-            )
-            if result.get("status") != "ok":
-                raise AgreementError(result.get("error") or "来源节点兑现失败")
-            forwarded.append({"source": source, "data": _plain(result.get("data"))})
-        return {"forwarded": True, "sources": forwarded}
+        return await _fulfill_via_sources(ctx, sources, parameters)
 
     agreement = _find_agreement(ctx.state, parameters.get("id"))
     return await _fulfill_one(ctx, config, parameters)
@@ -731,12 +833,12 @@ async def execute(ctx, activation):
     parameters = _plain(activation.parameters or {})
     if operation in ("agree", "fulfill") and not config.get("clock"):
         return ComponentResult(status="error", error="未配置时钟节点")
-    if operation == "inspect":
-        return ComponentResult(data=await _inspect(ctx, config))
-    if operation not in ("agree", "fulfill"):
+    if operation not in ("inspect", "agree", "fulfill"):
         return ComponentResult(status="error", error="不支持的请求")
 
     try:
+        if operation == "inspect":
+            return ComponentResult(data=await _inspect(ctx, config))
         if operation == "agree":
             return ComponentResult(data=await _agree(ctx, config, parameters))
         return ComponentResult(data=await _fulfill(ctx, config, parameters))

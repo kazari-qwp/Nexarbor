@@ -25,6 +25,8 @@ class NativeExecutor:
             backend.components.rpc('executor_'+method,lambda b,p,method=method:getattr(self,method)(p),mutation=mutation)
     def binding(self,actor):
         node=self.backend.network.nodes[actor]
+        from datanet.studio.network_work import validate_execution
+        validate_execution(node,self.backend)
         if not isinstance(node,AgentNode):raise TypeError('Native execution requires an Agent node')
         binding=node.execution_binding or {}
         if binding.get('executor')!='harness':raise ValueError('Configure this node with executor=harness')
@@ -43,6 +45,8 @@ class NativeExecutor:
 
     async def _run_owned(self,node_id,message='',**options):
         node,binding=self.binding(node_id)
+        # 首轮也装配本节点公开的工具来源；之后每次模型请求按当前网络刷新。
+        await self.module_tools.visit(node_id,node_id,strength=binding.get('strength',0),channels=binding.get('channels',[]))
         timeout=options.get('timeout_seconds',binding.get('timeout_seconds',90))
         if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('Invalid executor timeout')
         request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=binding.get('max_steps',12),session_id=self.backend.agents.get(node_id,{}).get('session_id'),context_cursor=node.context_cursor)

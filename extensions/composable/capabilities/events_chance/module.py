@@ -19,6 +19,7 @@ def _event_entries(config):
         probability = raw.get("probability", 0)
         limit = raw.get("limit")
         rewards = raw.get("rewards", {})
+        triggers = raw.get("triggers", [])
 
         if not isinstance(event_id, str) or not event_id:
             raise ValueError(f"第 {index} 项事件缺少有效的事件标识")
@@ -39,6 +40,18 @@ def _event_entries(config):
             raise ValueError(f"事件 {event_id} 的成功次数上限必须是正整数或 null")
         if not isinstance(rewards, dict):
             raise ValueError(f"事件 {event_id} 的奖励必须是数字映射")
+        if not isinstance(triggers, (list, tuple)):
+            raise ValueError(f"事件 {event_id} 的触发筛选必须是字符串数组")
+
+        clean_triggers = []
+        seen_triggers = set()
+        for trigger in triggers:
+            if not isinstance(trigger, str) or not trigger:
+                raise ValueError(f"事件 {event_id} 的触发筛选只能包含非空字符串")
+            if trigger in seen_triggers:
+                raise ValueError(f"事件 {event_id} 的触发筛选重复：{trigger}")
+            seen_triggers.add(trigger)
+            clean_triggers.append(trigger)
 
         clean_rewards = {}
         for field, amount in rewards.items():
@@ -60,6 +73,7 @@ def _event_entries(config):
                 "probability": probability,
                 "limit": limit,
                 "rewards": clean_rewards,
+                "triggers": clean_triggers,
             }
         )
     return normalized
@@ -115,7 +129,7 @@ async def _requester_node_type(ctx, requester_id):
     return None
 
 
-async def _sample(ctx):
+async def _sample(ctx, trigger):
     events = _event_entries(ctx.config)
 
     requester_id = getattr(ctx, "requester_id", None)
@@ -149,6 +163,8 @@ async def _sample(ctx):
                 or used < 0
             ):
                 raise ValueError(f"事件 {event_id} 的成功次数状态非法")
+            if event["triggers"] and trigger not in event["triggers"]:
+                continue
             limit = event["limit"]
             if limit is not None and used >= limit:
                 continue
@@ -191,7 +207,11 @@ async def execute(ctx, activation):
         return ComponentResult(status="error", error="不支持的操作，只提供 sample")
 
     try:
-        data = await _sample(ctx)
+        parameters = activation.parameters or {}
+        trigger = parameters.get("trigger", "")
+        if not isinstance(trigger, str):
+            raise ValueError("触发入口必须是字符串")
+        data = await _sample(ctx, trigger)
     except Exception as error:
         return ComponentResult(status="error", error=str(error))
     return ComponentResult(data=data)

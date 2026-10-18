@@ -1,0 +1,105 @@
+{
+  "network": {
+    "version": 8,
+    "nodes": [
+      {
+        "type": "agent",
+        "node_id": "root",
+        "name": "入口",
+        "description": "接收用户提交的连续数值，并转交给测量节点。",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "data/root.md",
+          "creation_options": {}
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "meter",
+              "metadata": {
+                "channels": [
+                  "measurement",
+                  "tools"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "tools.collector": {
+            "config": {},
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "tools",
+                "measurement"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "channels": [
+            "tools",
+            "measurement"
+          ],
+          "prepare": [],
+          "max_steps": 16,
+          "timeout_seconds": 180
+        },
+        "context_cursor": null,
+        "inputs": {}
+      },
+      {
+        "type": "node",
+        "node_id": "meter",
+        "name": "测量节点",
+        "description": "保留最近 N 个数值并公开统计结果。",
+        "management_parent_id": "root",
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "number.window": {
+            "config": {
+              "window_size": 3
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "measurement"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "context_cursor": null,
+        "inputs": null
+      }
+    ],
+    "signals": {},
+    "delegations": []
+  },
+  "files": {
+    "data/root.md": "你是这个网络的入口。用户每给你一个数值，你就调用“提交数值”工具，把该数值提交到测量节点。用户询问统计时，调用“读取统计”工具并把结果转告用户；不要自行计算或保存数值。"
+  }
+}

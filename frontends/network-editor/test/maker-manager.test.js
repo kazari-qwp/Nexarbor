@@ -49,3 +49,13 @@ test('a configuration wish can reuse an existing component and publish bookmarks
  await api('studio.publish',{id:work.id});library=await api('editor.library');assert.equal(library.bookmarks.length,1);assert.deepEqual((await api('studio.catalog')).library['metadata.fields'],before);
  const old=JSON.stringify(presets);presets.presets[0].module='missing';await api('studio.save',{id:work.id,file:'presets.json',content:JSON.stringify(presets),expected:checksum(old)});check=await api('studio.validate',{id:work.id});assert.equal((await finished(api,check.id)).status,'failed');await assert.rejects(api('studio.publish',{id:work.id}));
 });
+
+test('network maker rejects unsupported execution shapes and merges only workcopy nodes',async t=>{
+ const {api}=await fixture(t);const work=await api('studio.create',{kind:'network',dependencies:[]});const document=JSON.parse(work.files['network.json']);const rootNode=document.network.nodes[0];
+ for(const binding of [{executor:'harness',prepare:true},{executor:'harness',prepare:{module:'agents.context',operation:'prepare'}},{executor:'harness',tool_provider:{}},{executor:'harness',channels:['tools','tools']}]){
+  const invalid=structuredClone(document);invalid.network.nodes[0].execution=binding;assert.equal((await api('validate',{document:invalid})).valid,false);
+ }
+ const a=await api('studio.maker_tool',{id:work.id,tool:'network_patch',arguments:{nodes:[{...rootNode,name:'修改后的入口'}],files:{'data/note.md':'资料'}}});assert.equal(a.nodes,1);
+ const edited=JSON.parse((await api('studio.read',{id:work.id})).files['network.json']);assert.equal(edited.network.nodes[0].name,'修改后的入口');assert.equal(edited.files['data/note.md'],'资料');assert.notEqual((await api('state')).live.document.network.nodes[0].name,'修改后的入口');
+ const component=await api('studio.create',{dependencies:[]});await assert.rejects(api('studio.maker_tool',{id:component.id,tool:'network_patch',arguments:{nodes:[]}}),/只有网络/);
+});

@@ -60,7 +60,7 @@ async def run():
     assert agreement['status']=='pending' and (await values('npc/yue'))['pregnant']
     report=await b.network.nodes['world/pulse'].run(b.signals,cycles=10,timeout_seconds=150)
     assert report['status']=='completed',report
-    status=await local('world/time','clock.counter','read');print(json.dumps(dict(clock=status,executions=len(executions),report=report),ensure_ascii=False),flush=True)
+    status=await local('world/time','clock.counter','read');print(json.dumps(dict(clock=status,executions=len(executions),cycles=report['cycles']),ensure_ascii=False),flush=True)
     assert status['tick']==10 and len(executions)==70,(status,len(executions))
     for actor in ['npc/lin','npc/yue']:await budget(actor)
     await move('npc/yue','place/hospital')
@@ -70,7 +70,7 @@ async def run():
     child=children[0];assert (await values('npc/yue'))['child']==child and not (await values('npc/yue'))['pregnant']
     assert (await values('npc/lin'))['child']==child
     assert (await values(child))['parent1']=='npc/lin' and (await values(child))['parent2']=='npc/yue'
-    assert b.network.nodes[child].context_cursor is None and b.network.nodes[child].file_path.is_relative_to(directory/'created/templates')
+    assert b.network.nodes[child].context_cursor is None and b.network.nodes[child].file_path.is_relative_to(b.directory/'created/templates')
     count=len(executions);report=await b.network.nodes['world/pulse'].run(b.signals,cycles=1,timeout_seconds=60);assert report['status']=='completed',report
     assert len(executions)==count+8 and child in executions[count:]
     stages.append('双方同意、孕期、五时刻循环、10时刻等待、医院出生、下一时刻独立激活')

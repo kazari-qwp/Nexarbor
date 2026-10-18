@@ -54,12 +54,23 @@ class ServiceActionsTests(unittest.IsolatedAsyncioTestCase):
             access={"strength": 1, "channels": ["movement"]},
         )
 
-    def add_service(self, config, inventory, address=None, node="shop", name="服务场所"):
+    def add_service(
+        self,
+        config,
+        inventory,
+        address=None,
+        node="shop",
+        name="服务场所",
+        channels=None,
+    ):
         self.h.add_node(node, name=name)
         self.h.mount(
             node,
             config=config,
-            access={"strength": 2, "channels": ["service", "records", "movement"]},
+            access={
+                "strength": 2,
+                "channels": channels or ["service", "records", "movement"],
+            },
         )
         self.h.mount(
             node,
@@ -730,6 +741,193 @@ class ServiceActionsTests(unittest.IsolatedAsyncioTestCase):
         adjusted = await self.call("alice", {"action": "adjust", "key": "adjust-1"})
         self.assertEqual(adjusted["status"], "ok", adjusted)
         self.assertEqual((await self.values("alice"))["score"], 12)
+
+    async def test_after_hooks_run_after_settlement_and_filter_by_action(self):
+        self.add_actor("alice", {"wood": 0, "gold": 10, "ap": 5})
+        self.add_service(
+            {
+                "actions": [buy_action(), gather_action()],
+                "after_hooks": [
+                    {
+                        "target": "local",
+                        "module": "records.store",
+                        "operation": "apply",
+                        "arguments": {"deltas": {"hook_local": 1}},
+                        "actions": ["buy"],
+                    },
+                    {
+                        "target": "requester",
+                        "module": "records.store",
+                        "operation": "apply",
+                        "arguments": {"deltas": {"hook_actor": 1}},
+                        "actions": [],
+                    },
+                    {
+                        "target": "local",
+                        "module": "records.store",
+                        "operation": "apply",
+                        "arguments": {"deltas": {"never": 1}},
+                        "actions": ["gather"],
+                    },
+                ],
+            },
+            {"wood": 10, "gold": 0},
+        )
+        self.connect_actor("alice")
+
+        bought = await self.call("alice", {"action": "buy", "key": "hook-buy"})
+        self.assertEqual(bought["status"], "ok", bought)
+        after = bought["data"]["after_results"]
+        self.assertEqual([entry["target"] for entry in after], ["local", "requester"])
+        self.assertEqual([entry["module"] for entry in after], ["records.store", "records.store"])
+        self.assertEqual([entry["operation"] for entry in after], ["apply", "apply"])
+        # 本地钩子看到的已经是扣完库存、加完金币的场所记录，证明先结算再调钩子。
+        self.assertEqual(after[0]["data"]["values"]["wood"], 9)
+        self.assertEqual(after[0]["data"]["values"]["gold"], 3)
+        self.assertEqual(after[0]["data"]["values"]["hook_local"], 1)
+        # 请求者钩子看到的也是已扣款、扣行动点后的记录。
+        self.assertEqual(after[1]["data"]["values"]["gold"], 7)
+        self.assertEqual(after[1]["data"]["values"]["ap"], 4)
+        self.assertEqual(after[1]["data"]["values"]["hook_actor"], 1)
+        self.assertNotIn("never", after[0]["data"]["values"])
+
+        alice = await self.values("alice")
+        shop = await self.values("shop")
+        self.assertEqual((alice["wood"], alice["gold"], alice["ap"]), (1, 7, 4))
+        self.assertEqual((alice["hook_actor"], shop["hook_local"]), (1, 1))
+        self.assertEqual((shop["wood"], shop["gold"]), (9, 3))
+
+    async def test_after_hook_error_rolls_back_inventory_cost_and_event_state(self):
+        self.add_actor("alice", {"wood": 0, "gold": 10, "ap": 5})
+        self.add_service(
+            {
+                "actions": [buy_action()],
+                "events": [
+                    {
+                        "id": "always",
+                        "text": "必然事件",
+                        "probability": 1,
+                        "limit": 1,
+                        "rewards": {"gold": 1},
+                    }
+                ],
+                "after_hooks": [
+                    {
+                        "target": "local",
+                        "module": "records.store",
+                        "operation": "apply",
+                        "arguments": {
+                            "expected": {"gold": 999},
+                            "deltas": {"hook_should_not_stay": 1},
+                        },
+                        "actions": [],
+                    }
+                ],
+            },
+            {"wood": 10, "gold": 0},
+        )
+        self.connect_actor("alice")
+
+        before_actor = await self.values("alice")
+        before_shop = await self.values("shop")
+        failed = await self.call("alice", {"action": "buy", "key": "hook-fail"})
+        self.assertEqual(failed["status"], "error", failed)
+        self.assertIn("后续钩子", failed["error"])
+        self.assertEqual(await self.values("alice"), before_actor)
+        self.assertEqual(await self.values("shop"), before_shop)
+        service = self.h.modules.get("shop", "service.actions")
+        self.assertEqual(service.state.get("event_counts", {}), {})
+        self.assertEqual(service.state.get("receipts", []), [])
+
+    async def test_duplicate_key_returns_old_result_without_rerunning_hooks(self):
+        self.add_actor("alice", {"wood": 0, "gold": 10, "ap": 5})
+        self.add_service(
+            {
+                "actions": [gather_action()],
+                "after_hooks": [
+                    {
+                        "target": "local",
+                        "module": "records.store",
+                        "operation": "apply",
+                        "arguments": {"deltas": {"hook_count": 1}},
+                        "actions": [],
+                    }
+                ],
+            },
+            {"wood": 10},
+        )
+        self.connect_actor("alice")
+
+        first = await self.call("alice", {"action": "gather", "key": "hook-once"})
+        self.assertEqual(first["status"], "ok", first)
+        self.assertEqual(len(first["data"]["after_results"]), 1)
+        self.assertEqual((await self.values("shop"))["hook_count"], 1)
+        before_actor = await self.values("alice")
+        before_shop = await self.values("shop")
+
+        repeated = await self.call("alice", {"action": "gather", "key": "hook-once"})
+        self.assertEqual(repeated["status"], "ok", repeated)
+        self.assertTrue(repeated["data"]["duplicate"])
+        self.assertEqual(repeated["data"]["after_results"], first["data"]["after_results"])
+        self.assertEqual(await self.values("alice"), before_actor)
+        self.assertEqual(await self.values("shop"), before_shop)
+        self.assertEqual((await self.values("shop"))["hook_count"], 1)
+
+    async def test_after_hook_can_call_real_events_chance_only_once(self):
+        self.add_actor("alice", {"wood": 0, "gold": 0, "ap": 5})
+        self.add_service(
+            {
+                "actions": [gather_action()],
+                "after_hooks": [
+                    {
+                        "target": "local",
+                        "module": "events.chance",
+                        "operation": "sample",
+                        "arguments": {},
+                        "actions": ["gather"],
+                    }
+                ],
+            },
+            {"wood": 10},
+            channels=["service", "records", "movement", "events"],
+        )
+        self.h.mount(
+            "shop",
+            module="events.chance",
+            config={
+                "events": [
+                    {
+                        "id": "mine-echo",
+                        "text": "矿脉里闪过一点微光。",
+                        "probability": 1,
+                        "limit": 1,
+                        "rewards": {"gold": 2},
+                    }
+                ]
+            },
+            access={"strength": 2, "channels": ["events", "records"]},
+        )
+        self.connect_actor("alice")
+
+        first = await self.call("alice", {"action": "gather", "key": "chance-once"})
+        self.assertEqual(first["status"], "ok", first)
+        after = first["data"]["after_results"]
+        self.assertEqual(len(after), 1)
+        self.assertEqual(after[0]["module"], "events.chance")
+        self.assertEqual(after[0]["operation"], "sample")
+        self.assertIn("矿脉里闪过一点微光。", after[0]["data"]["observations"])
+        self.assertEqual(after[0]["data"]["rewards"], {"gold": 2})
+        self.assertEqual((await self.values("alice"))["gold"], 2)
+
+        events = self.h.modules.get("shop", "events.chance")
+        self.assertEqual(events.state["counts"], {"mine-echo": 1})
+        before_actor = await self.values("alice")
+        repeated = await self.call("alice", {"action": "gather", "key": "chance-once"})
+        self.assertEqual(repeated["status"], "ok", repeated)
+        self.assertTrue(repeated["data"]["duplicate"])
+        self.assertEqual(repeated["data"]["after_results"], after)
+        self.assertEqual(await self.values("alice"), before_actor)
+        self.assertEqual(events.state["counts"], {"mine-echo": 1})
 
 
 if __name__ == "__main__":

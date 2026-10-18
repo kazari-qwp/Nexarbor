@@ -3,7 +3,7 @@
   "id": "agreements.pair",
   "name": "双人协议与延后兑现",
   "description": "让两位真实 Agent 在同一时刻同意同一份可配置协议；支持婚姻、共同家庭计划和其他双方约定，可配置资格、前提、费用、按参与者匹配的开始/完成效果、延后兑现与官方模板创建。",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "entry": "module.py:execute",
   "node_types": ["node", "agent"],
   "requires": [],
@@ -38,7 +38,7 @@
         "default": [],
         "uniqueItems": true,
         "title": "来源登记节点",
-        "description": "非空时，本节点的 fulfill 只作为转发入口，依次调用这些节点上的同模块 fulfill；不会扫描全网。"
+        "description": "非空时，本节点的 inspect 逐个调用这些来源的 inspect，合并当前请求者可见的协议（带 source 字段）与规则；fulfill 先逐个 inspect 定位目标协议，只对唯一匹配来源转调一次。0 个匹配清晰报错，多个匹配报告歧义且都不执行，不会扫描全网。"
       },
       "rules": {
         "type": "array",
@@ -217,7 +217,7 @@
     {
       "id": "inspect",
       "name": "查看协议",
-      "description": "查看当前场所可签订的协议规则，以及自己参与的最近协议状态。",
+      "description": "查看当前场所可签订的协议规则，以及自己参与的最近协议状态；配置来源登记节点时会汇总各来源中当前请求者可见的协议，并标明来源。",
       "operation": "inspect"
     },
     {
@@ -229,7 +229,7 @@
     {
       "id": "fulfill",
       "name": "兑现协议",
-      "description": "在到期并到达兑现地点后完成延后协议；带模板协议会调用明确配置的官方模板端口，失败可重试。",
+      "description": "在到期并到达兑现地点后完成延后协议；配置来源登记节点时先按协议 ID 定位唯一来源再转调，找不到或来源歧义都会明确报错；带模板协议会调用明确配置的官方模板端口，失败可重试。",
       "operation": "fulfill"
     }
   ]

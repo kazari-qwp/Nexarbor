@@ -56,11 +56,12 @@ class EventsChanceTests(unittest.IsolatedAsyncioTestCase):
             access={"strength": 2, "channels": ["events", "records"]},
         )
 
-    async def sample(self, actor="npc", channels=None):
+    async def sample(self, actor="npc", channels=None, trigger=None):
+        parameters = {} if trigger is None else {"trigger": trigger}
         return await self.h.call(
             "place",
             "sample",
-            {},
+            parameters,
             actor=actor,
             channels=channels or ["events"],
         )
@@ -215,6 +216,134 @@ class EventsChanceTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result["data"], {"nested": True})
         self.assertEqual(instance.state["counts"], {"nested": 1})
         self.assertEqual(self.records.state["values"]["金币"], 11)
+
+    async def test_triggers_share_limit_across_arrive_and_work(self):
+        instance = self.mount_events(
+            [
+                {
+                    "id": "meet",
+                    "text": "你在门口遇到熟人。",
+                    "probability": 1,
+                    "limit": 1,
+                    "triggers": ["arrive", "work"],
+                    "rewards": {"金币": 2},
+                },
+                {
+                    "id": "work-only",
+                    "text": "工作时有额外收获。",
+                    "probability": 1,
+                    "limit": None,
+                    "triggers": ["work"],
+                    "rewards": {"木材": 1},
+                },
+                {
+                    "id": "everywhere",
+                    "text": "任何入口都可能发生。",
+                    "probability": 1,
+                    "limit": None,
+                    "triggers": [],
+                    "rewards": {},
+                },
+            ]
+        )
+
+        arrive = await self.sample(trigger="arrive")
+        work = await self.sample(trigger="work")
+
+        self.assertEqual(arrive["status"], "ok", arrive)
+        self.assertEqual(
+            arrive["data"]["observations"],
+            ["你在门口遇到熟人。", "任何入口都可能发生。"],
+        )
+        self.assertEqual(arrive["data"]["rewards"], {"金币": 2})
+        self.assertEqual(
+            arrive["data"]["counts"],
+            {"meet": 1, "work-only": 0, "everywhere": 1},
+        )
+
+        self.assertEqual(work["status"], "ok", work)
+        self.assertEqual(
+            work["data"]["observations"],
+            ["工作时有额外收获。", "任何入口都可能发生。"],
+        )
+        self.assertEqual(work["data"]["rewards"], {"木材": 1})
+        self.assertEqual(
+            work["data"]["counts"],
+            {"meet": 1, "work-only": 1, "everywhere": 2},
+        )
+        self.assertEqual(
+            instance.state["counts"],
+            {"meet": 1, "work-only": 1, "everywhere": 2},
+        )
+        self.assertEqual(self.records.state["values"]["金币"], 12)
+        self.assertEqual(self.records.state["values"]["木材"], 1)
+
+    async def test_wrong_trigger_does_not_consume_limit(self):
+        instance = self.mount_events(
+            [
+                {
+                    "id": "arrive-only",
+                    "text": "只有抵达时触发。",
+                    "probability": 1,
+                    "limit": 1,
+                    "triggers": ["arrive"],
+                    "rewards": {"金币": 3},
+                }
+            ]
+        )
+
+        missed = await self.sample(trigger="work")
+        self.assertEqual(missed["status"], "ok", missed)
+        self.assertEqual(missed["data"]["observations"], [])
+        self.assertEqual(missed["data"]["rewards"], {})
+        self.assertEqual(missed["data"]["counts"], {"arrive-only": 0})
+        self.assertEqual(instance.state["counts"], {"arrive-only": 0})
+
+        hit = await self.sample(trigger="arrive")
+        self.assertEqual(hit["status"], "ok", hit)
+        self.assertEqual(hit["data"]["observations"], ["只有抵达时触发。"])
+        self.assertEqual(hit["data"]["counts"], {"arrive-only": 1})
+        self.assertEqual(self.records.state["values"]["金币"], 13)
+
+    async def test_missing_triggers_keeps_original_behavior(self):
+        instance = self.mount_events(
+            [
+                {
+                    "id": "legacy",
+                    "text": "旧配置没有触发筛选。",
+                    "probability": 1,
+                    "limit": 1,
+                    "rewards": {"金币": 1},
+                }
+            ]
+        )
+
+        plain = await self.sample()
+        with_trigger = await self.sample(trigger="work")
+
+        self.assertEqual(plain["status"], "ok", plain)
+        self.assertEqual(plain["data"]["observations"], ["旧配置没有触发筛选。"])
+        self.assertEqual(plain["data"]["counts"], {"legacy": 1})
+        self.assertEqual(with_trigger["status"], "ok", with_trigger)
+        self.assertEqual(with_trigger["data"]["observations"], [])
+        self.assertEqual(with_trigger["data"]["counts"], {"legacy": 1})
+        self.assertEqual(instance.state["counts"], {"legacy": 1})
+        self.assertEqual(self.records.state["values"]["金币"], 11)
+
+    async def test_invalid_or_duplicate_triggers_are_rejected(self):
+        with self.assertRaises(ValidationError):
+            self.mount_events(
+                [
+                    {
+                        "id": "bad",
+                        "text": "非法触发筛选。",
+                        "probability": 1,
+                        "limit": None,
+                        "triggers": ["arrive", "arrive"],
+                        "rewards": {},
+                    }
+                ]
+            )
 
     async def test_non_agent_requester_is_rejected(self):
         self.h.add_node("outsider")

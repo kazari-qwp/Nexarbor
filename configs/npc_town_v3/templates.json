@@ -1,0 +1,846 @@
+[
+  {
+    "id": "family-home1",
+    "callers": [
+      "place/home1"
+    ],
+    "document": {
+      "network": {
+        "version": 8,
+        "nodes": [
+          {
+            "type": "agent",
+            "node_id": "child",
+            "name": "新成员",
+            "description": "",
+            "management_parent_id": "root",
+            "divergence": -1,
+            "data_kind": "agent",
+            "parameters": {
+              "file_path": "memory/child.md"
+            },
+            "connections": {
+              "interfaces": [
+                {
+                  "target_node_id": "place/hospital",
+                  "metadata": {
+                    "channels": [
+                      "movement",
+                      "records",
+                      "info",
+                      "service",
+                      "chat",
+                      "social",
+                      "agreements"
+                    ],
+                    "threshold": 1,
+                    "multiplier": 1,
+                    "attributes": {
+                      "relation": "location"
+                    }
+                  }
+                },
+                {
+                  "target_node_id": "world/time",
+                  "metadata": {
+                    "channels": [
+                      "info"
+                    ],
+                    "threshold": 1,
+                    "multiplier": 1,
+                    "attributes": {}
+                  }
+                },
+                {
+                  "target_node_id": "world/save",
+                  "metadata": {
+                    "channels": [
+                      "tick"
+                    ],
+                    "threshold": 1,
+                    "multiplier": 1,
+                    "attributes": {}
+                  }
+                }
+              ]
+            },
+            "agent": null,
+            "modules": {
+              "records.store": {
+                "config": {
+                  "initial": {
+                    "name": "新成员",
+                    "gender": "unspecified",
+                    "profession": "孩子",
+                    "role": "child",
+                    "age": 0,
+                    "age_group": "child",
+                    "adult": false,
+                    "can_gestate": false,
+                    "pregnant": false,
+                    "is_parent": false,
+                    "coins": 0,
+                    "ap": 10
+                  },
+                  "minimum": {
+                    "age": 0,
+                    "coins": 0,
+                    "ap": 0
+                  },
+                  "references": [
+                    {
+                      "key": "home",
+                      "node_id": "place/home1"
+                    },
+                    {
+                      "key": "parent1",
+                      "node_id": "npc/lin"
+                    },
+                    {
+                      "key": "parent2",
+                      "node_id": "npc/yue"
+                    },
+                    {
+                      "key": "spouse",
+                      "node_id": null
+                    }
+                  ]
+                },
+                "state": {},
+                "access": {
+                  "strength": 0,
+                  "channels": [
+                    "records"
+                  ]
+                }
+              },
+              "place.info": {
+                "config": {
+                  "location": "place/hospital"
+                },
+                "state": {},
+                "access": {
+                  "strength": 0,
+                  "channels": [
+                    "movement",
+                    "info"
+                  ]
+                }
+              },
+              "agents.context": {
+                "config": {
+                  "persona": "# 儿童人格\n你是林与悦的孩子，刚出生就会说话。你天真、好奇，会主动问问题；从家庭关系和见闻认识世界。你可以走动和交谈、在自己家休息，不能从事成人工作或婚育。你的经历和记忆独立，不继承父母的秘密。\n",
+                  "common": "# 小镇常识\n这是一个演示小世界。每天依次为早上、中午、下午、傍晚、午夜五个时刻。大家不需要按现实规律睡觉，午夜也可以活动；只有自己的家允许使用休息服务，其他居民楼可以路过。\n每个时刻有10点行动值，移动通常3点，说话和交易通常1点，挖矿、砍树和休息通常6点。以具体工具返回为准，行动值不足时安排别的事或结束活动；移动不会结束你的时刻。\n你只能与同场所人物交流，去相邻地点移动，并使用本地业务工具。每次请求前会自动更新现场信息和可用工具，直接调用名字对应的工具。别人可能在你开口前离开。发消息不会强制对方立即回复。\n这里的家庭规则是虚构的：双方本人同意才结婚；婚后双方同意可以计划孩子，两天（10个时刻）后由待产者自己去医院办理出生。孩子生下来就是能说话的小孩，从下一时刻开始独立活动。不要替别人同意，不凭空认定已经结婚或怀孕。\n金币和物品只能通过实际工具操作获得或转移。听到的荒唐传闻未必是真实事实，你可以质疑、转述，或保持沉默。不要把传闻当作无可置疑的世界规则。\n\n物品代号：pickaxe=完好镐子，broken_pickaxe=坏镐，axe=斧头，ore=矿石，wood=木材，iron=铁料，gold=黄金。矿石、木材、黄金可以在商店出售。借钱要先商量，对方通过赠送工具主动转账；工具不会自动建立欠条。\n\n记录中的coins是金币；gold是黄金物品，不要混淆。remember/recall属于你自己。需要聊天先看自己的便条箱；到其他地点后工具与现场会自动刷新。每次最多主动执行三件有意义的事，然后保存重要记忆并结束。业务返回失败意味着未完成，不可编造成功。遇到并发锁冲突可以稍后重试一次，不要无限重试。\n",
+                  "map": "# 小镇地图\n\n道路双向，可逐条通行：\n- 居民楼1 ↔ 民政局\n- 居民楼1 ↔ 医院\n- 居民楼1 ↔ 酒馆\n- 居民楼2 ↔ 酒馆\n- 居民楼2 ↔ 商店\n- 居民楼2 ↔ 树林\n- 酒馆 ↔ 商店\n- 酒馆 ↔ 民政局\n- 商店 ↔ 铁匠铺\n- 铁匠铺 ↔ 矿坑\n- 商店 ↔ 医院\n- 树林 ↔ 矿坑\n\n民政局办理结婚；医院办理出生；商店买卖物品；铁匠铺修理镐子；矿坑挖矿，树林砍树；酒馆可以买饮品。\n",
+                  "opening": "你刚刚出生，能说话，想认识家人和这个小镇。",
+                  "clock": "world/time",
+                  "knowledge": [
+                    {
+                      "id": "gender/male",
+                      "when": {
+                        "gender": "male"
+                      },
+                      "text": "你是一位男性居民。\n"
+                    },
+                    {
+                      "id": "gender/female",
+                      "when": {
+                        "gender": "female"
+                      },
+                      "text": "你是一位女性居民。\n"
+                    },
+                    {
+                      "id": "gender/unspecified",
+                      "when": {
+                        "gender": "unspecified"
+                      },
+                      "text": "你的性别尚未设定。\n"
+                    },
+                    {
+                      "id": "profession/resident",
+                      "when": {
+                        "role": "resident"
+                      },
+                      "text": "你目前没有固定职业，可以根据自己的目标安排生活、结交他人或寻找工作。工具和地点规则决定实际可做的事情。\n"
+                    },
+                    {
+                      "id": "profession/miner",
+                      "when": {
+                        "role": "miner"
+                      },
+                      "text": "你是矿工。完好镐子是pickaxe；在矿坑每单位挖矿消耗6行动点，获得3矿石。坏镐可在铁匠铺花2金币及店内1铁料修理，矿石可去商店每份售3金币。以工具返回为准。"
+                    },
+                    {
+                      "id": "profession/woodcutter",
+                      "when": {
+                        "role": "woodcutter"
+                      },
+                      "text": "你是伐木工。持axe在树林每单位砍树消耗6行动点，获得3木材。木材可到商店每份售2金币。"
+                    },
+                    {
+                      "id": "profession/smith",
+                      "when": {
+                        "role": "smith"
+                      },
+                      "text": "你是铁匠。当地修理服务有独立库存，来访者花2金币和店内1铁料修理坏镐。你可将随身铁料补入店内库存，不必替来访者确认。"
+                    },
+                    {
+                      "id": "profession/wanderer",
+                      "when": {
+                        "role": "wanderer"
+                      },
+                      "text": "你暂时没有登记住处，不能使用居民楼休息服务。可以交谈、寻找收入、请求同地居民主动赠送金币或工具。"
+                    },
+                    {
+                      "id": "profession/child",
+                      "when": {
+                        "role": "child"
+                      },
+                      "text": "你是刚出生、已经会说话的孩子，还没有职业。你可以认识家人、和同场所的人交谈、移动或休息；不能劳动、交易、赠送或办理成人业务。\n"
+                    },
+                    {
+                      "id": "life/family",
+                      "when": {
+                        "age_group": "adult"
+                      },
+                      "text": "两位成年人同一时刻在民政局各自调用marriage协议同意。登记后在共同住处各自同意family_plan；必须至少一人有can_gestate资格。10时刻后具备资格的待产者到医院，查看协议并fulfill。不能代替对方同意。"
+                    },
+                    {
+                      "id": "life/gestation",
+                      "when": {
+                        "can_gestate": true
+                      },
+                      "text": "你具备孕育资格；当前是否怀孕以自己的记录为准。"
+                    },
+                    {
+                      "id": "life/pregnant",
+                      "when": {
+                        "pregnant": true
+                      },
+                      "text": "家庭协议登记后等待10时刻，到医院查看协议并兑现。重试同一协议保持同一个孩子名字，官方模板按同一个请求键创建一次。"
+                    },
+                    {
+                      "id": "life/parent",
+                      "when": {
+                        "is_parent": true
+                      },
+                      "text": "孩子拥有独立记忆与身份，下一时刻自己活动。你只能通过当地交流与其交谈。"
+                    }
+                  ]
+                },
+                "state": {},
+                "access": {
+                  "strength": 2,
+                  "channels": [
+                    "self",
+                    "records",
+                    "movement",
+                    "info"
+                  ]
+                }
+              },
+              "messages.box": {
+                "config": {
+                  "read_policy": "self",
+                  "send_cost": 1,
+                  "max_messages": 200
+                },
+                "state": {},
+                "access": {
+                  "strength": 2,
+                  "channels": [
+                    "chat",
+                    "records"
+                  ]
+                }
+              },
+              "tools.collector": {
+                "config": {},
+                "state": {},
+                "access": {
+                  "strength": 2,
+                  "channels": [
+                    "tools",
+                    "movement",
+                    "service",
+                    "chat",
+                    "social",
+                    "agreements",
+                    "self"
+                  ]
+                }
+              },
+              "agents.activity": {
+                "config": {
+                  "enabled": true,
+                  "budget": 10,
+                  "signal_channels": [
+                    "tick"
+                  ],
+                  "prompt": "新时刻开始。安排你自己的行动，先看未读便条，按目标做不超过三件事，记录重要经历，然后自然结束。"
+                },
+                "state": {},
+                "access": {
+                  "strength": 0,
+                  "channels": [
+                    "tick",
+                    "records",
+                    "self",
+                    "runtime.agent"
+                  ]
+                }
+              }
+            },
+            "offered_tools": [
+              {
+                "ref": "runtime:agent_run",
+                "channels": [
+                  "runtime.agent"
+                ]
+              }
+            ],
+            "toolboxes": [],
+            "expose": [],
+            "execution": {
+              "executor": "harness",
+              "strength": 2,
+              "channels": [
+                "tools",
+                "movement",
+                "service",
+                "chat",
+                "social",
+                "agreements",
+                "self"
+              ],
+              "max_steps": 18,
+              "timeout_seconds": 360,
+              "prepare": [
+                {
+                  "module": "agents.context",
+                  "operation": "prepare",
+                  "arguments": {}
+                }
+              ]
+            },
+            "context_cursor": null,
+            "inputs": null
+          }
+        ],
+        "signals": {},
+        "delegations": []
+      },
+      "files": {
+        "memory/child.md": ""
+      }
+    },
+    "arguments_schema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "home": {
+          "type": "string",
+          "enum": [
+            "place/home1"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "parents",
+        "home"
+      ],
+      "additionalProperties": false
+    },
+    "bindings": [
+      {
+        "path": "/network/nodes/0/name",
+        "input": "name"
+      },
+      {
+        "path": "/network/nodes/0/modules/records.store/config/initial/name",
+        "input": "name"
+      },
+      {
+        "path": "/network/nodes/0/modules/records.store/config/references/0/node_id",
+        "input": "home"
+      },
+      {
+        "path": "/network/nodes/0/modules/records.store/config/references/1/node_id",
+        "input": "/parents/0"
+      },
+      {
+        "path": "/network/nodes/0/modules/records.store/config/references/2/node_id",
+        "input": "/parents/1"
+      }
+    ],
+    "attachments": [
+      {
+        "source": "world/time",
+        "target": "child",
+        "metadata": {
+          "channels": [
+            "tick"
+          ],
+          "threshold": 1,
+          "multiplier": 1,
+          "attributes": {}
+        }
+      },
+      {
+        "source": "place/hospital",
+        "target": "child",
+        "metadata": {
+          "channels": [
+            "movement",
+            "records",
+            "info",
+            "service",
+            "chat",
+            "social",
+            "agreements"
+          ],
+          "threshold": 1,
+          "multiplier": 1,
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "family-home2",
+    "callers": [
+      "place/home2"
+    ],
+    "document": {
+      "network": {
+        "version": 8,
+        "nodes": [
+          {
+            "type": "agent",
+            "node_id": "child",
+            "name": "新成员",
+            "description": "",
+            "management_parent_id": "root",
+            "divergence": -1,
+            "data_kind": "agent",
+            "parameters": {
+              "file_path": "memory/child.md"
+            },
+            "connections": {
+              "interfaces": [
+                {
+                  "target_node_id": "place/hospital",
+                  "metadata": {
+                    "channels": [
+                      "movement",
+                      "records",
+                      "info",
+                      "service",
+                      "chat",
+                      "social",
+                      "agreements"
+                    ],
+                    "threshold": 1,
+                    "multiplier": 1,
+                    "attributes": {
+                      "relation": "location"
+                    }
+                  }
+                },
+                {
+                  "target_node_id": "world/time",
+                  "metadata": {
+                    "channels": [
+                      "info"
+                    ],
+                    "threshold": 1,
+                    "multiplier": 1,
+                    "attributes": {}
+                  }
+                },
+                {
+                  "target_node_id": "world/save",
+                  "metadata": {
+                    "channels": [
+                      "tick"
+                    ],
+                    "threshold": 1,
+                    "multiplier": 1,
+                    "attributes": {}
+                  }
+                }
+              ]
+            },
+            "agent": null,
+            "modules": {
+              "records.store": {
+                "config": {
+                  "initial": {
+                    "name": "新成员",
+                    "gender": "unspecified",
+                    "profession": "孩子",
+                    "role": "child",
+                    "age": 0,
+                    "age_group": "child",
+                    "adult": false,
+                    "can_gestate": false,
+                    "pregnant": false,
+                    "is_parent": false,
+                    "coins": 0,
+                    "ap": 10
+                  },
+                  "minimum": {
+                    "age": 0,
+                    "coins": 0,
+                    "ap": 0
+                  },
+                  "references": [
+                    {
+                      "key": "home",
+                      "node_id": "place/home1"
+                    },
+                    {
+                      "key": "parent1",
+                      "node_id": "npc/lin"
+                    },
+                    {
+                      "key": "parent2",
+                      "node_id": "npc/yue"
+                    },
+                    {
+                      "key": "spouse",
+                      "node_id": null
+                    }
+                  ]
+                },
+                "state": {},
+                "access": {
+                  "strength": 0,
+                  "channels": [
+                    "records"
+                  ]
+                }
+              },
+              "place.info": {
+                "config": {
+                  "location": "place/hospital"
+                },
+                "state": {},
+                "access": {
+                  "strength": 0,
+                  "channels": [
+                    "movement",
+                    "info"
+                  ]
+                }
+              },
+              "agents.context": {
+                "config": {
+                  "persona": "# 儿童人格\n你是林与悦的孩子，刚出生就会说话。你天真、好奇，会主动问问题；从家庭关系和见闻认识世界。你可以走动和交谈、在自己家休息，不能从事成人工作或婚育。你的经历和记忆独立，不继承父母的秘密。\n",
+                  "common": "# 小镇常识\n这是一个演示小世界。每天依次为早上、中午、下午、傍晚、午夜五个时刻。大家不需要按现实规律睡觉，午夜也可以活动；只有自己的家允许使用休息服务，其他居民楼可以路过。\n每个时刻有10点行动值，移动通常3点，说话和交易通常1点，挖矿、砍树和休息通常6点。以具体工具返回为准，行动值不足时安排别的事或结束活动；移动不会结束你的时刻。\n你只能与同场所人物交流，去相邻地点移动，并使用本地业务工具。每次请求前会自动更新现场信息和可用工具，直接调用名字对应的工具。别人可能在你开口前离开。发消息不会强制对方立即回复。\n这里的家庭规则是虚构的：双方本人同意才结婚；婚后双方同意可以计划孩子，两天（10个时刻）后由待产者自己去医院办理出生。孩子生下来就是能说话的小孩，从下一时刻开始独立活动。不要替别人同意，不凭空认定已经结婚或怀孕。\n金币和物品只能通过实际工具操作获得或转移。听到的荒唐传闻未必是真实事实，你可以质疑、转述，或保持沉默。不要把传闻当作无可置疑的世界规则。\n\n物品代号：pickaxe=完好镐子，broken_pickaxe=坏镐，axe=斧头，ore=矿石，wood=木材，iron=铁料，gold=黄金。矿石、木材、黄金可以在商店出售。借钱要先商量，对方通过赠送工具主动转账；工具不会自动建立欠条。\n\n记录中的coins是金币；gold是黄金物品，不要混淆。remember/recall属于你自己。需要聊天先看自己的便条箱；到其他地点后工具与现场会自动刷新。每次最多主动执行三件有意义的事，然后保存重要记忆并结束。业务返回失败意味着未完成，不可编造成功。遇到并发锁冲突可以稍后重试一次，不要无限重试。\n",
+                  "map": "# 小镇地图\n\n道路双向，可逐条通行：\n- 居民楼1 ↔ 民政局\n- 居民楼1 ↔ 医院\n- 居民楼1 ↔ 酒馆\n- 居民楼2 ↔ 酒馆\n- 居民楼2 ↔ 商店\n- 居民楼2 ↔ 树林\n- 酒馆 ↔ 商店\n- 酒馆 ↔ 民政局\n- 商店 ↔ 铁匠铺\n- 铁匠铺 ↔ 矿坑\n- 商店 ↔ 医院\n- 树林 ↔ 矿坑\n\n民政局办理结婚；医院办理出生；商店买卖物品；铁匠铺修理镐子；矿坑挖矿，树林砍树；酒馆可以买饮品。\n",
+                  "opening": "你刚刚出生，能说话，想认识家人和这个小镇。",
+                  "clock": "world/time",
+                  "knowledge": [
+                    {
+                      "id": "gender/male",
+                      "when": {
+                        "gender": "male"
+                      },
+                      "text": "你是一位男性居民。\n"
+                    },
+                    {
+                      "id": "gender/female",
+                      "when": {
+                        "gender": "female"
+                      },
+                      "text": "你是一位女性居民。\n"
+                    },
+                    {
+                      "id": "gender/unspecified",
+                      "when": {
+                        "gender": "unspecified"
+                      },
+                      "text": "你的性别尚未设定。\n"
+                    },
+                    {
+                      "id": "profession/resident",
+                      "when": {
+                        "role": "resident"
+                      },
+                      "text": "你目前没有固定职业，可以根据自己的目标安排生活、结交他人或寻找工作。工具和地点规则决定实际可做的事情。\n"
+                    },
+                    {
+                      "id": "profession/miner",
+                      "when": {
+                        "role": "miner"
+                      },
+                      "text": "你是矿工。完好镐子是pickaxe；在矿坑每单位挖矿消耗6行动点，获得3矿石。坏镐可在铁匠铺花2金币及店内1铁料修理，矿石可去商店每份售3金币。以工具返回为准。"
+                    },
+                    {
+                      "id": "profession/woodcutter",
+                      "when": {
+                        "role": "woodcutter"
+                      },
+                      "text": "你是伐木工。持axe在树林每单位砍树消耗6行动点，获得3木材。木材可到商店每份售2金币。"
+                    },
+                    {
+                      "id": "profession/smith",
+                      "when": {
+                        "role": "smith"
+                      },
+                      "text": "你是铁匠。当地修理服务有独立库存，来访者花2金币和店内1铁料修理坏镐。你可将随身铁料补入店内库存，不必替来访者确认。"
+                    },
+                    {
+                      "id": "profession/wanderer",
+                      "when": {
+                        "role": "wanderer"
+                      },
+                      "text": "你暂时没有登记住处，不能使用居民楼休息服务。可以交谈、寻找收入、请求同地居民主动赠送金币或工具。"
+                    },
+                    {
+                      "id": "profession/child",
+                      "when": {
+                        "role": "child"
+                      },
+                      "text": "你是刚出生、已经会说话的孩子，还没有职业。你可以认识家人、和同场所的人交谈、移动或休息；不能劳动、交易、赠送或办理成人业务。\n"
+                    },
+                    {
+                      "id": "life/family",
+                      "when": {
+                        "age_group": "adult"
+                      },
+                      "text": "两位成年人同一时刻在民政局各自调用marriage协议同意。登记后在共同住处各自同意family_plan；必须至少一人有can_gestate资格。10时刻后具备资格的待产者到医院，查看协议并fulfill。不能代替对方同意。"
+                    },
+                    {
+                      "id": "life/gestation",
+                      "when": {
+                        "can_gestate": true
+                      },
+                      "text": "你具备孕育资格；当前是否怀孕以自己的记录为准。"
+                    },
+                    {
+                      "id": "life/pregnant",
+                      "when": {
+                        "pregnant": true
+                      },
+                      "text": "家庭协议登记后等待10时刻，到医院查看协议并兑现。重试同一协议保持同一个孩子名字，官方模板按同一个请求键创建一次。"
+                    },
+                    {
+                      "id": "life/parent",
+                      "when": {
+                        "is_parent": true
+                      },
+                      "text": "孩子拥有独立记忆与身份，下一时刻自己活动。你只能通过当地交流与其交谈。"
+                    }
+                  ]
+                },
+                "state": {},
+                "access": {
+                  "strength": 2,
+                  "channels": [
+                    "self",
+                    "records",
+                    "movement",
+                    "info"
+                  ]
+                }
+              },
+              "messages.box": {
+                "config": {
+                  "read_policy": "self",
+                  "send_cost": 1,
+                  "max_messages": 200
+                },
+                "state": {},
+                "access": {
+                  "strength": 2,
+                  "channels": [
+                    "chat",
+                    "records"
+                  ]
+                }
+              },
+              "tools.collector": {
+                "config": {},
+                "state": {},
+                "access": {
+                  "strength": 2,
+                  "channels": [
+                    "tools",
+                    "movement",
+                    "service",
+                    "chat",
+                    "social",
+                    "agreements",
+                    "self"
+                  ]
+                }
+              },
+              "agents.activity": {
+                "config": {
+                  "enabled": true,
+                  "budget": 10,
+                  "signal_channels": [
+                    "tick"
+                  ],
+                  "prompt": "新时刻开始。安排你自己的行动，先看未读便条，按目标做不超过三件事，记录重要经历，然后自然结束。"
+                },
+                "state": {},
+                "access": {
+                  "strength": 0,
+                  "channels": [
+                    "tick",
+                    "records",
+                    "self",
+                    "runtime.agent"
+                  ]
+                }
+              }
+            },
+            "offered_tools": [
+              {
+                "ref": "runtime:agent_run",
+                "channels": [
+                  "runtime.agent"
+                ]
+              }
+            ],
+            "toolboxes": [],
+            "expose": [],
+            "execution": {
+              "executor": "harness",
+              "strength": 2,
+              "channels": [
+                "tools",
+                "movement",
+                "service",
+                "chat",
+                "social",
+                "agreements",
+                "self"
+              ],
+              "max_steps": 18,
+              "timeout_seconds": 360,
+              "prepare": [
+                {
+                  "module": "agents.context",
+                  "operation": "prepare",
+                  "arguments": {}
+                }
+              ]
+            },
+            "context_cursor": null,
+            "inputs": null
+          }
+        ],
+        "signals": {},
+        "delegations": []
+      },
+      "files": {
+        "memory/child.md": ""
+      }
+    },
+    "arguments_schema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "parents": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "home": {
+          "type": "string",
+          "enum": [
+            "place/home2"
+          ]
+        }
+      },
+      "required": [
+        "name",
+        "parents",
+        "home"
+      ],
+      "additionalProperties": false
+    },
+    "bindings": [
+      {
+        "path": "/network/nodes/0/name",
+        "input": "name"
+      },
+      {
+        "path": "/network/nodes/0/modules/records.store/config/initial/name",
+        "input": "name"
+      },
+      {
+        "path": "/network/nodes/0/modules/records.store/config/references/0/node_id",
+        "input": "home"
+      },
+      {
+        "path": "/network/nodes/0/modules/records.store/config/references/1/node_id",
+        "input": "/parents/0"
+      },
+      {
+        "path": "/network/nodes/0/modules/records.store/config/references/2/node_id",
+        "input": "/parents/1"
+      }
+    ],
+    "attachments": [
+      {
+        "source": "world/time",
+        "target": "child",
+        "metadata": {
+          "channels": [
+            "tick"
+          ],
+          "threshold": 1,
+          "multiplier": 1,
+          "attributes": {}
+        }
+      },
+      {
+        "source": "place/hospital",
+        "target": "child",
+        "metadata": {
+          "channels": [
+            "movement",
+            "records",
+            "info",
+            "service",
+            "chat",
+            "social",
+            "agreements"
+          ],
+          "threshold": 1,
+          "multiplier": 1,
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      }
+    ]
+  }
+]

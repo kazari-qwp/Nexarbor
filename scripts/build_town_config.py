@@ -7,9 +7,9 @@ ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'configs/npc_town_v3'
 old=json.loads((ROOT/'configs/npc_town/network.json').read_text(encoding='utf-8'))
 original={n['node_id']:n for n in old['network']['nodes']}
-LOCAL=['movement','tools','records','info','service','chat','social','agreements']
+LOCAL=['movement','records','info','service','chat','social','agreements']
 MODEL=['tools','movement','service','chat','social','agreements','self']
-CHANNELS=['movement','records','info','tools']
+CHANNELS=['movement','records','info']
 nodes={};files={}
 def save(file,data):
     file.parent.mkdir(parents=True,exist_ok=True);file.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')

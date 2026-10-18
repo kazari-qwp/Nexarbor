@@ -56,12 +56,11 @@
     #status { min-height: 20px; margin: 8px 0; color: #8fd6b5; white-space: pre-wrap; }
     #status.error { color: #ff9c9c; }
     .counts { margin-top: 14px; padding-top: 10px; border-top: 1px solid #2c3a47; color: #9fb2c2; }
-    .empty { color: #8293a2; padding: 10px 0; }
-  </style>
+    .empty { color: #8293a2; padding: 10px 0; }  </style>
 </head>
 <body>
   <h1>地点概率事件配置</h1>
-  <p class="hint">按顺序独立抽取；标识唯一。概率 0～1，次数上限留空表示不限。</p>
+  <p class="hint">按顺序独立抽取；标识唯一。触发筛选留空表示所有入口；多个入口用逗号分隔，例如 arrive, work。概率 0～1，次数上限留空表示不限。</p>
   <div id="events"></div>
   <div class="row" style="margin-bottom:8px">
     <button id="add" type="button">添加事件</button>
@@ -94,6 +93,9 @@
         text: typeof event.text === 'string' ? event.text : '',
         probability: typeof event.probability === 'number' ? event.probability : 0,
         limit: Number.isInteger(event.limit) && event.limit > 0 ? event.limit : null,
+        triggers: Array.isArray(event.triggers)
+          ? event.triggers.filter(item => typeof item === 'string' && item)
+          : [],
         rewards: event.rewards && typeof event.rewards === 'object' && !Array.isArray(event.rewards)
           ? { ...event.rewards }
           : {}
@@ -143,6 +145,13 @@
         card.appendChild(head);
 
         card.appendChild(field('事件标识', event.id, e => { event.id = e.target.value; }, 'text'));
+
+        card.appendChild(field('触发筛选（逗号分隔，留空表示所有入口）', event.triggers.join(', '), e => {
+          event.triggers = e.target.value
+            .split(/[,，]/)
+            .map(item => item.trim())
+            .filter(item => item.length > 0);
+        }, 'text'));
 
         const textLabel = document.createElement('label');
         textLabel.textContent = '事件文字';
@@ -234,6 +243,12 @@
         if (limit !== null && (!Number.isInteger(limit) || limit < 1)) {
           throw new Error('事件 ' + id + ' 的成功次数上限必须是正整数或留空');
         }
+        const triggers = Array.isArray(event.triggers)
+          ? event.triggers.map(item => String(item).trim()).filter(item => item.length > 0)
+          : [];
+        if (new Set(triggers).size !== triggers.length) {
+          throw new Error('事件 ' + id + ' 的触发筛选不能重复');
+        }
         const rewards = event.rewards;
         if (!rewards || typeof rewards !== 'object' || Array.isArray(rewards)) {
           throw new Error('事件 ' + id + ' 的奖励必须是 JSON 数字映射');
@@ -243,13 +258,13 @@
             throw new Error('事件 ' + id + ' 的奖励字段和数值必须是非负数字映射');
           }
         }
-        return { id, text, probability, limit, rewards: { ...rewards } };
+        return { id, text, probability, limit, triggers, rewards: { ...rewards } };
       });
       return { ...(current && current.config ? current.config : {}), events };
     }
 
     addButton.addEventListener('click', () => {
-      draft.push({ id: '', text: '', probability: 0, limit: null, rewards: {} });
+      draft.push({ id: '', text: '', probability: 0, limit: null, triggers: [], rewards: {} });
       render();
     });
 

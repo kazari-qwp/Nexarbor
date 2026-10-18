@@ -2,8 +2,8 @@
   "format": "nexarbor-module/v3",
   "id": "service.actions",
   "name": "可配置业务服务",
-  "version": "0.2.0",
-  "description": "用同一份组件按配置提供采集、买卖、借贷、修理、休息和饮料等业务；库存、钱财和行动点分别保存在场所与请求者 Agent 的记录仓中，支持值/物品门槛、最终上限、字段设置、成本、住所限制、随机事件和幂等重试。",
+  "version": "0.3.0",
+  "description": "用同一份组件按配置提供采集、买卖、借贷、修理、休息和饮料等业务；库存、钱财和行动点分别保存在场所与请求者 Agent 的记录仓中，支持值/物品门槛、最终上限、字段设置、成本、住所限制、随机事件、结算后可选钩子和幂等重试。",
   "entry": "module.py:execute",
   "node_types": [
     "node"
@@ -209,6 +209,62 @@
           ],
           "additionalProperties": false
         }
+      },
+      "after_hooks": {
+        "type": "array",
+        "title": "业务成功后钩子",
+        "description": "可选。本地与请求者记录写入成功、仍在锁内且保存幂等回执之前，按数组顺序调用匹配的钩子；用于接入地点概率事件等可选能力，组件本身不写死具体模块。",
+        "default": [],
+        "items": {
+          "type": "object",
+          "title": "后续钩子",
+          "properties": {
+            "target": {
+              "type": "string",
+              "title": "调用目标",
+              "description": "local 表示本服务节点，requester 表示真实请求者；两者都在本次锁定集合内。",
+              "enum": [
+                "local",
+                "requester"
+              ]
+            },
+            "module": {
+              "type": "string",
+              "title": "模块标识",
+              "description": "要调用的已装配模块 id，例如 events.chance。",
+              "minLength": 1
+            },
+            "operation": {
+              "type": "string",
+              "title": "操作名称",
+              "description": "要调用的公开操作名称，例如 sample。",
+              "minLength": 1
+            },
+            "arguments": {
+              "type": "object",
+              "title": "调用参数",
+              "description": "传给目标操作的普通对象参数，原样转交；默认空对象。",
+              "additionalProperties": true,
+              "default": {}
+            },
+            "actions": {
+              "type": "array",
+              "title": "匹配动作",
+              "description": "只在这些业务动作成功后调用；空数组表示任何动作都匹配。",
+              "default": [],
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "target",
+            "module",
+            "operation"
+          ],
+          "additionalProperties": false
+        }
       }
     },
     "additionalProperties": false
@@ -264,6 +320,33 @@
                 },
                 "duplicate": {
                   "type": "boolean"
+                },
+                "after_results": {
+                  "type": "array",
+                  "title": "后续钩子结果",
+                  "description": "按调用顺序记录 target/module/operation/data。",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "target": {
+                        "type": "string"
+                      },
+                      "module": {
+                        "type": "string"
+                      },
+                      "operation": {
+                        "type": "string"
+                      },
+                      "data": {}
+                    },
+                    "required": [
+                      "target",
+                      "module",
+                      "operation",
+                      "data"
+                    ],
+                    "additionalProperties": false
+                  }
                 }
               },
               "required": [
@@ -272,7 +355,8 @@
                 "actor",
                 "values",
                 "observation",
-                "duplicate"
+                "duplicate",
+                "after_results"
               ],
               "additionalProperties": false
             }
@@ -378,6 +462,33 @@
           },
           "duplicate": {
             "type": "boolean"
+          },
+          "after_results": {
+            "type": "array",
+            "title": "后续钩子结果",
+            "description": "按调用顺序记录 target/module/operation/data。",
+            "items": {
+              "type": "object",
+              "properties": {
+                "target": {
+                  "type": "string"
+                },
+                "module": {
+                  "type": "string"
+                },
+                "operation": {
+                  "type": "string"
+                },
+                "data": {}
+              },
+              "required": [
+                "target",
+                "module",
+                "operation",
+                "data"
+              ],
+              "additionalProperties": false
+            }
           }
         },
         "required": [
@@ -386,7 +497,8 @@
           "actor",
           "values",
           "observation",
-          "duplicate"
+          "duplicate",
+          "after_results"
         ],
         "additionalProperties": false
       }

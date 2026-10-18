@@ -13,3 +13,14 @@ export async function harnessExecutable(){
   }catch(error){if(error.code!=='ENOENT')throw error;}
   return path.join(process.env.LOCALAPPDATA,'Programs/DeepSeek Harness/DeepSeek Harness.exe');
 }
+
+// 这里只保存授权文件的位置；文件内容仅由本机模型运行器读取。
+export async function harnessCredentials({home,directory}={}){
+  if(home)return path.join(path.resolve(home),'.credentials.yaml');
+  const environment=process.env.DATANET_HARNESS_CREDENTIALS??process.env.DATANET_MAKER_CREDENTIALS;
+  if(environment)return path.resolve(environment);
+  if(directory){try{const connection=JSON.parse(await fs.readFile(path.join(directory,'studio/harness-connection.json'),'utf8'));return path.join(path.resolve(connection.home),'.credentials.yaml');}catch(error){if(error.code!=='ENOENT')throw error;}}
+  const root=fileURLToPath(new URL('../../../',import.meta.url));
+  try{const local=JSON.parse(await fs.readFile(path.join(root,'build/harness-installation.json'),'utf8'));if(local.credentials){if(!path.isAbsolute(local.credentials))throw Error('授权记录须为绝对路径');return local.credentials;}}catch(error){if(error.code!=='ENOENT')throw error;}
+  throw Error('请先在组件工作室启用本机账户，或在项目本地安装记录中配置授权文件位置。');
+}

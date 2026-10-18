@@ -1,6 +1,6 @@
 // 两种制作职责共享原生会话；仅登记宿主按工作副本授权的工具。
 const readline=require('node:readline'),crypto=require('node:crypto');
-let runtime,positions;const sessions=new Map(),callbacks=new Map();let serial=0;const keep=setInterval(()=>{},1000);
+let runtime,positions,closed=false;const sessions=new Map(),callbacks=new Map();let serial=0;const keep=setInterval(()=>{},1000);
 const write=value=>process.stdout.write(JSON.stringify(value)+'\n');
 const rpc=params=>new Promise((resolve,reject)=>{const host_id=String(++serial);callbacks.set(host_id,{resolve,reject});write({host_id,method:'maker-tool',params});});
 async function create(p){
@@ -29,6 +29,7 @@ async function handle(method,p){
  if(method==='init'){runtime=await require('./model-host.cjs')(p);positions=new(await runtime.loader.load(p.root+'/adapters/harness/framework/checkpoints.js')).NativePositions(runtime.host);return {ready:true,model:runtime.model};}
  if(method==='create')return create(p);if(method==='run')return run(p);if(method==='read')return read(p);
  if(method==='inspect'){const stored=await positions.read(p.cursor);return {events:stored.events.filter(v=>v.data?.usage).map(v=>({seq:v.seq,usage:v.data.usage})),event_count:stored.events.length};}
- if(method==='cancel'){sessions.get(p.session_id)?.agent.cancel('user');return {ok:true};}throw Error('未知制作操作');
+ if(method==='cancel'){sessions.get(p.session_id)?.agent.cancel('user');return {ok:true};}if(method==='shutdown'){await close();return {ok:true};}throw Error('未知制作操作');
 }
-readline.createInterface({input:process.stdin}).on('line',line=>{let value;try{value=JSON.parse(line);}catch{return;}if(value.host_id){const cb=callbacks.get(value.host_id);if(cb){callbacks.delete(value.host_id);value.error?cb.reject(Error(value.error)):cb.resolve(value.result);}return;}Promise.resolve().then(()=>handle(value.method,value.params??{})).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:error.stack??String(error)}));}).on('close',async()=>{for(const e of sessions.values())e.agent.cancel('user');await runtime?.host.fiber.dispose();clearInterval(keep);process.exit();});
+async function close(){if(closed)return;closed=true;for(const e of sessions.values())e.agent.cancel('user');await runtime?.host.fiber.dispose();clearInterval(keep);}
+readline.createInterface({input:process.stdin}).on('line',line=>{let value;try{value=JSON.parse(line);}catch{return;}if(value.host_id){const cb=callbacks.get(value.host_id);if(cb){callbacks.delete(value.host_id);value.error?cb.reject(Error(value.error)):cb.resolve(value.result);}return;}Promise.resolve().then(()=>handle(value.method,value.params??{})).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:error.stack??String(error)}));}).on('close',()=>close().finally(()=>process.exit()));
