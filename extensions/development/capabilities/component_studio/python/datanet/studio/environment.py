@@ -25,9 +25,14 @@ def prepare(studio,p):
     if p.get('source','current')=='candidate':
         if metadata.get('kind')!='network':raise ValueError('只有网络制作副本可使用候选网络')
         from .network_work import validate_network
-        document=validate_network(read_json(work/'network.json',{}),studio.backend,studio.library)
+        document=read_json(work/'network.json',{})
+        scoped=getattr(studio.backend,'network_administrator',None)
+        if scoped and scoped.has(p['id']):document=scoped.check(p['id'],document)
+        document=validate_network(document,studio.backend,studio.library)
     else:
-        snapshot=studio.backend.snapshot();document={key:snapshot[key] for key in ['network','files']};publications=snapshot.get('node_publications',{})
+        scoped=getattr(studio.backend,'network_administrator',None)
+        snapshot=scoped.source(p['id']) if scoped and scoped.has(p['id']) else studio.backend.snapshot()
+        document={key:snapshot[key] for key in ['network','files']};publications=snapshot.get('node_publications',{})
     document=sanitized(document)
     home=studio.root/'environments'/p['id']/uuid4().hex;home.mkdir(parents=True)
     write_json(home/'initial.json',document)

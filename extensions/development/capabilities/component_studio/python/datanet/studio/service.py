@@ -88,7 +88,12 @@ class Studio:
             for dependency in spec['requires']:
                 if dependency not in self.library:raise ValueError('Missing module dependency: '+dependency)
                 load(dependency)
-            spec,create=factory(folder)
+            reserved=getattr(self.backend.components,'module_extensions',{}).get(name)
+            if reserved:
+                official=self.backend.components.standard_modules.get(name)
+                if not official or digest(sources(official['folder']))!=self.library[name]['digest']:raise PermissionError('官方扩展模块不能由制作产物替换：'+name)
+                create=reserved[0]
+            else:spec,create=factory(folder)
             factories[name]=create
             visiting.remove(name);done.add(name)
         for name in self.library:load(name)
@@ -172,6 +177,9 @@ class Studio:
                 if (source/file).exists():shutil.copyfile(source/file,target/file)
             known[name]=dict(id=name,version=release['version'],manifest=f'dependencies/{name}/module.json',guide=f'dependencies/{name}/README.md')
         write_json(folder/'dependencies/catalog.json',list(known.values()));return self.read(p)
+    def maker_scope(self,p):
+        scoped=getattr(self.backend,"network_administrator",None)
+        return scoped.workspace(p) if scoped else None
     def maker_tool(self,p):
         """制作模型的文件能力只指向当前副本，不提供终端或任意路径。"""
         folder=self.folder(p['id']);name=p['tool'];args=p.get('arguments',{})
@@ -220,7 +228,9 @@ class Studio:
     def copy_current(self,p):
         folder=self.folder(p['id'])
         if read_json(folder/'workspace.json',{}).get('kind')!='network':raise ValueError('仅网络制作副本可以复制当前配置')
-        snapshot=self.backend.snapshot();document={key:snapshot[key] for key in ['network','files']};document['network']['signals']={};document['files']={k.replace('\\','/'):v or '' for k,v in document['files'].items()}
+        scoped=getattr(self.backend,'network_administrator',None)
+        snapshot=scoped.source(p['id']) if scoped and scoped.has(p['id']) else self.backend.snapshot()
+        document={key:snapshot[key] for key in ['network','files']};document['network']['signals']={};document['files']={k.replace('\\','/'):v or '' for k,v in document['files'].items()}
         for node in document['network']['nodes']:
             node['context_cursor']=None
             if node['type']=='pulse':node['parameters'].pop('state',None)
@@ -306,7 +316,7 @@ class Studio:
                     job.update(status='passed',exit_code=0,log='PASS：复用已发布组件的配置方案、配置Schema；配置数量：'+str(len(result['presets']))+'。行为验证另看独立网络副本。');log_path.write_text(job['log'],encoding='utf-8');return
                 if read_json(folder/'workspace.json',{}).get('kind')=='network':
                     from .network_work import check_work
-                    result=check_work(snapshot,self.backend,self.library)
+                    result=check_work(snapshot,self.backend,self.library,workspace=p['id'])
                     job.update(status='passed',exit_code=0,log='PASS：当前成品格式、路径、节点、递归依赖、工具引用、配置与状态；节点数：'+str(result['nodes']))
                     log_path.write_text(job['log'],encoding='utf-8');return
                 with self.lock:
@@ -361,6 +371,7 @@ class Studio:
             from .network_work import check_work
             return dict(kind='network',id=p['id'],document=check_work(folder,self.backend,self.library)['document'],name=p.get('name') or metadata['label'],display_folder=metadata.get('display_folder'),digest=fingerprint)
         spec=json.loads(files['module.json']);name=spec['id']
+        if name in getattr(self.backend.components,'module_extensions',{}):raise PermissionError('官方扩展模块不能发布替代实现')
         if any(module==name for _,module in self.backend.modules.instances):raise ValueError('Unmount active instances before replacing their module')
         if any(dep not in self.library for dep in spec['requires']):raise ValueError('Publish dependencies first')
         destination=self.root/'releases'/name/spec['version']/fingerprint
@@ -407,6 +418,7 @@ class Studio:
             if not file.resolve().is_relative_to(target):raise ValueError('组件发布目录含外部链接，不能删除')
             if file.is_file():files.append(str(file.relative_to(self.root)))
         blockers=[]
+        if name in getattr(self.backend.components,'module_extensions',{}):blockers.append('官方扩展模块，只可归档，不能删除')
         for node in getattr(self.backend.network,'nodes',{}).values():
             if name in node.modules:blockers.append('运行节点：'+node.node_id)
         draft=read_json(self.root/'draft.json',{})
@@ -539,5 +551,5 @@ def register(services):
         b.studio.library={name:release for name,release in {**installed,**document.get('studio_releases',b.studio.library)}.items() if name not in b.studio.removed}
         b.studio._load_releases()
     services.restorers.append(restore)
-    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

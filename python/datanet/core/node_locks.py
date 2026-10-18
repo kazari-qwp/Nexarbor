@@ -238,6 +238,33 @@ class NodeLocks:
             elif token is not None:
                 owner.live = False; _owner.reset(token)
 
+    async def mutate(self, nodes, action, *, validate=None, timeout=30):
+        """宿主生命周期提交：排空目标调用后，同步执行，不允许跨 await 持有协调锁。
+
+        回滚由拥有具体资源的宿主服务负责；普通 ModuleContext 不暴露此入口。
+        """
+        import inspect
+        if self.current: raise RuntimeError('生命周期提交不能嵌套在节点事务内')
+        if type(timeout) not in (int,float) or not 0 < timeout <= 300: raise ValueError('提交等待时限为0至300秒')
+        if not nodes or any(not isinstance(n,str) for n in nodes): raise ValueError('提交需要明确节点范围')
+        nodes=tuple(sorted(set(nodes)));owner,token=self._identity()
+        try:
+            deadline=time.monotonic()+timeout
+            while True:
+                await self._wait(lambda:self._prepared() and self._drained(nodes,owner),deadline,owner=owner,nodes=nodes,drain=True)
+                with self.condition:
+                    if not self._prepared() or not self._drained(nodes,owner):continue
+                    self._check()
+                    if any(n not in self.backend.network.nodes for n in nodes):raise ValueError('提交目标已不存在')
+                    if validate:validate()
+                    value=action()
+                    if inspect.isawaitable(value):
+                        if inspect.iscoroutine(value):value.close()
+                        raise TypeError('生命周期提交回调必须同步完成')
+                    return value
+        finally:
+            if token is not None:owner.live=False;_owner.reset(token)
+
     def transaction(self, actor, nodes, *, strength=0, channels=(), timeout=30, validate=None, finish=None):
         if not isinstance(nodes, (list, tuple)) or not nodes or any(not isinstance(n, str) or not n for n in nodes):
             raise ValueError('Lock a nonempty list of node IDs')

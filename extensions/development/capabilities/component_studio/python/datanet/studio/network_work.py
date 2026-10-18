@@ -48,6 +48,9 @@ def validate_network(document,backend,library):
         if not isinstance(content,str) or not (backend.directory/name).resolve().is_relative_to(backend.directory):raise ValueError('文档必须是网络目录内的文本')
     return document
 
-def check_work(folder,backend,library):
-    document=validate_network(json.loads((folder/'network.json').read_text(encoding='utf-8')),backend,library)
+def check_work(folder,backend,library,workspace=None):
+    document=json.loads((folder/'network.json').read_text(encoding='utf-8'))
+    scoped=getattr(backend,'network_administrator',None)
+    if scoped and scoped.has(workspace or folder.name):document=scoped.check(workspace or folder.name,document)
+    document=validate_network(document,backend,library)
     return dict(valid=True,nodes=len(document['network']['nodes']),document=document)
