@@ -130,7 +130,7 @@ class Studio:
         if available:write_json(folder/'dependencies/catalog.json',available)
         original=sources(folder)
         write_json(self.root/'baselines'/f'{id}.json',original)
-        write_json(folder/'workspace.json',{'label':selected['name'],'sample':sample})
+        write_json(folder/'workspace.json',{'label':selected['name'],'sample':sample,'display_folder':p.get('display_folder')})
         write_json(self.root/'metadata'/f'{id}.json',{'sample':sample,'label':selected['name']})
         return self.read(dict(id=id))
     def read(self,p):
@@ -139,7 +139,7 @@ class Studio:
         owned,references=split_files(files)
         if (folder/'reference').exists():
             references.update({f.relative_to(folder).as_posix():f.read_text(encoding='utf-8') for f in (folder/'reference').glob('*.py')})
-        return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files))
+        return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files),display_folder=read_json(folder/'workspace.json',{}).get('display_folder'))
     def dependencies(self,p):
         folder=self.folder(p['id']);catalog=read_json(folder/'dependencies/catalog.json',[])
         known={item['id']:item for item in catalog}
@@ -159,7 +159,7 @@ class Studio:
             if name in GUIDES:continue
             path=folder/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
         write_json(self.root/'baselines'/f'{workspace["id"]}.json',sources(folder))
-        write_json(folder/'workspace.json',{'label':release['id']+' · 修改副本','sample':'blank'})
+        write_json(folder/'workspace.json',{'label':release['id']+' · 修改副本','sample':'blank','display_folder':release['release'].get('display_folder')})
         return self.read({'id':workspace['id']})
     def save(self,p):
         path=self.path(p['id'],p['file'])
@@ -274,7 +274,7 @@ class Studio:
             path=destination/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
         old=self.library.copy()
         manifest(destination)
-        self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}))
+        self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}),display_folder=read_json(folder/'workspace.json',{}).get('display_folder'))
         try:self._load_releases()
         except BaseException:self.library=old;raise
         self.removed.discard(name);write_json(self.root/'removed-modules.json',sorted(self.removed))

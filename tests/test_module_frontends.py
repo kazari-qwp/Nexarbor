@@ -43,6 +43,15 @@ class ModuleFrontendTests(unittest.TestCase):
     def test_no_frontend_keeps_original_contract(self):
         self.assertIsNone(self.studio.frontend({'id':self.work['id']}))
         self.assertEqual(self.check()['status'],'passed')
+    def test_creation_folder_survives_work_copy_read_publish_and_fork(self):
+        work=self.studio.create({'sample':'blank','display_folder':'maker-folder'})
+        self.work=work;self.folder=self.studio.folder(work['id'])
+        self.assertEqual(self.studio.read({'id':work['id']})['display_folder'],'maker-folder')
+        self.assertEqual(self.check()['status'],'passed')
+        release=self.studio.publish({'id':work['id']})
+        self.assertEqual(release['display_folder'],'maker-folder')
+        fork=self.studio.fork({'module':release['id']})
+        self.assertEqual(fork['display_folder'],'maker-folder')
     def test_preview_reads_html_without_importing_python(self):
         self.page();self.save('module.py',"raise RuntimeError('页面预览不应执行 Python')\n")
         result=self.studio.frontend({'id':self.work['id']})

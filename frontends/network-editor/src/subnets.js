@@ -40,13 +40,19 @@ function documentRefs(value,paths){
 }
 export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
  if(!bookmark.snapshot.nodes.length)return {edges:clone(bookmark.snapshot.edges)};
- const next=clone(document),batch=crypto.randomUUID().slice(0,8),mapping={},paths={};
- for(const node of bookmark.snapshot.nodes)mapping[node.node_id]=node.node_id+'-copy-'+batch;
+ const next=clone(document),nonce=crypto.randomUUID(),mapping=Object.create(null),paths=Object.create(null),allocated=new Set(next.network.nodes.map(n=>n.node_id));
+ let batch=nonce,space=1;while(Object.keys(next.files??{}).some(name=>name.startsWith('copies/'+batch+'/')))batch=nonce+'-'+space++;
+ if(new Set(bookmark.snapshot.nodes.map(n=>n.node_id)).size!==bookmark.snapshot.nodes.length)throw Error('副本中有重复节点编号');
+ for(const node of bookmark.snapshot.nodes){
+  const base=node.node_id.split('-copy-')[0].slice(0,120)+'-copy-'+batch;let id=base,index=1;
+  while(allocated.has(id))id=base+'-'+index++;
+  mapping[node.node_id]=id;allocated.add(id);
+ }
  // 一个副本拥有自己的文档空间；引用同一源文档的副本节点仍共享该副本内的文档。
  for(const name of Object.keys(bookmark.snapshot.files))paths[name]='copies/'+batch+'/'+name.split(/[\\/]/).filter(p=>p&&p!=='.'&&p!=='..'&&!p.includes(':')).join('/');
  const ids=new Set([...next.network.nodes.map(n=>n.node_id),...Object.values(mapping)]),nodes=[];
  for(const original of bookmark.snapshot.nodes){
-  let node=documentRefs(clone(original),paths);node.node_id=mapping[original.node_id];node.name=original.name+' 副本';node.context_cursor=null;
+  let node=documentRefs(clone(original),paths);node.node_id=mapping[original.node_id];node.context_cursor=null;
   node.management_parent_id=mapping[node.management_parent_id]??(ids.has(node.management_parent_id)?node.management_parent_id:'root');
   if(node.management_parent_id===node.node_id)node.management_parent_id='root';
   node.connections.interfaces=node.connections.interfaces.map(link=>({...link,target_node_id:mapping[link.target_node_id]??link.target_node_id})).filter(link=>ids.has(link.target_node_id));
@@ -63,10 +69,8 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
 // 历史复用与书签共用粘贴逻辑。单边只带终点，起点由落点决定。
 export function historyBookmark(entry,bookmarks=[],document,layout={}){
  if(entry.asset)return {id:entry.id,kind:entry.kind,name:entry.label,description:entry.description??'',asset:clone(entry.asset)};
- const existing=entry.kind==='bookmark'?bookmarks.find(b=>b.id===entry.id):null;
- let snapshot=existing?.snapshot??entry.snapshot;
- if(entry.kind==='edge')snapshot={nodes:[],edges:[{metadata:clone(entry.metadata),target:entry.target}],files:{},positions:{}};
- else if(entry.kind==='node'&&document?.network.nodes.some(n=>n.node_id===entry.id))snapshot=copySubnet(document,[entry.id],'external',layout);
+ let snapshot=entry.snapshot;
+ if(!snapshot&&entry.kind==='edge')snapshot={nodes:[],edges:[{metadata:clone(entry.metadata),...(entry.target?{target:entry.target}:{})}],files:{},positions:{}};
  if(!snapshot)throw Error('该历史条目没有可复用的副本');
- return {id:entry.id,name:entry.label,mode:existing?.mode??entry.mode??'external',snapshot:clone(snapshot)};
+ return {id:entry.id,name:entry.label,mode:entry.mode??'external',snapshot:clone(snapshot)};
 }

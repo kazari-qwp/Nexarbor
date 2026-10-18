@@ -1,14 +1,17 @@
 const clone=value=>structuredClone(value);
 export const isAsset=value=>!!value?.asset&&['tool','module'].includes(value.asset.kind);
 export const resourceTitle=value=>`${value.name}：${value.description||'暂无描述'}`;
-export const resourceAvailable=(catalog,organization,kind,id)=>!!(kind==='module'?catalog.modules?.[id]:catalog.tools?.find(t=>t.ref===id))&&!organization?.[kind]?.items?.[id]?.archivedAt;
+export const resourceId=value=>value.asset?.id??value.resourceId;
+const definition=(catalog,kind,id)=>kind==='module'?catalog.modules?.[id]:kind==='tool'?catalog.tools?.find(t=>t.ref===id):catalog[kind==='node'?'nodes':'presets']?.find(t=>t.id===id);
+export const resourceAvailable=(catalog,organization,kind,id)=>!!definition(catalog,kind,id)&&!organization?.[kind]?.items?.[id]?.archivedAt;
 export function resource(catalog,kind,id,organization={}){
- const definition=kind==='module'?catalog.modules?.[id]:catalog.tools?.find(t=>t.ref===id);if(!definition)throw Error('该资源已不在当前目录中');
+ const spec=definition(catalog,kind,id);if(!spec)throw Error('该资源已不在当前目录中');
  const item=organization[kind]?.items?.[id]??{};
- return {kind,name:item.name??(kind==='module'?definition.label:definition.name),description:definition.description??'',asset:kind==='module'?{kind,id,...clone(definition.defaults??{config:{},state:{},access:{strength:0,channels:[]}})}:{kind,id,channels:['tools']}};
+ const base={kind,name:item.name??(kind==='module'?spec.label:spec.name),description:spec.description??''};
+ return ['node','preset'].includes(kind)?{...base,resourceId:id,mode:spec.mode,snapshot:clone(spec.snapshot),file:spec.file,storageKind:spec.storageKind}:{...base,asset:kind==='module'?{kind,id,...clone(spec.defaults??{config:{},state:{},access:{strength:0,channels:[]}})}:{kind,id,channels:['tools']}};
 }
 export function resources(catalog,kind,organization={},includeArchived=false){
- const ids=kind==='module'?Object.keys(catalog.modules??{}):(catalog.tools??[]).map(t=>t.ref);return ids.filter(id=>includeArchived||resourceAvailable(catalog,organization,kind,id)).map(id=>resource(catalog,kind,id,organization));
+ const ids=kind==='module'?Object.keys(catalog.modules??{}):kind==='tool'?(catalog.tools??[]).map(t=>t.ref):(catalog[kind==='node'?'nodes':'presets']??[]).map(t=>t.id);return ids.filter(id=>includeArchived||resourceAvailable(catalog,organization,kind,id)).map(id=>resource(catalog,kind,id,organization));
 }
 export function attachResource(document,nodeId,asset,catalog,organization={}){
  if(!resourceAvailable(catalog,organization,asset.kind,asset.id))throw Error('资源已归档或删除，请先恢复');
@@ -28,7 +31,7 @@ export function attachResources(document,nodeId,assets,catalog,organization={}){
  if(!assets.length)throw Error('请选择工具或模块');return assets.reduce((next,asset)=>attachResource(next,nodeId,asset,catalog,organization),document);
 }
 export function folderResources(tree,entries,id){
- const folders=new Set([id]);for(const parent of folders)for(const f of tree.folders)if(f.parent===parent)folders.add(f.id);return entries.filter(e=>folders.has(tree.items[e.asset.id]?.folder??null));
+ const folders=new Set([id]);for(const parent of folders)for(const f of tree.folders)if(f.parent===parent)folders.add(f.id);return entries.filter(e=>folders.has(tree.items[resourceId(e)]?.folder??null));
 }
 export const assetHistory=book=>({kind:book.asset.kind,id:book.id??book.asset.id,label:book.name,description:book.description??'',asset:clone(book.asset)});
 export const contentType=value=>isAsset(value)?value.asset.kind:!value.snapshot?.nodes.length?'edge':value.snapshot.nodes.length===1?'node':'network';

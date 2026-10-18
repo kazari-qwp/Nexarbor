@@ -9,7 +9,7 @@ const library=()=>api('editor.library');
 const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
 const launch=async()=>{client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));await expect(page.locator('.bookmark-dock')).toBeVisible({timeout:20000});};
 const node=id=>page.locator('.react-flow__node[data-id="'+id+'"]');
-const history=(kind,id)=>page.locator('.history-card[data-history-kind="'+kind+'"][data-history-id="'+id+'"]');
+let historyIds={};const history=(kind,id)=>page.locator('.history-card[data-history-id="'+historyIds[id]+'"]');
 const canvas=()=>page.locator('.node-link-gesture');
 try{
  const initial=await api('state');let document=initial.live.document;
@@ -21,6 +21,7 @@ try{
  const books=[{id:'one',name:'单点名称',mode:'internal',snapshot:one},{id:'line',name:'单边名称',mode:'external',snapshot:line},{id:'network',name:'网络名称',mode:'internal',snapshot:network}].map((b,i)=>({...b,createdAt:i,category:'default'}));
  await api('editor.library.update',{action:'bookmark.patch',changes:books.map(b=>({id:b.id,expected:null,value:b}))});
  await api('editor.library.update',{action:'history.push',entries:[{kind:'node',id:'a',label:'节点 a',snapshot:one},{kind:'edge',id:'a|0',label:'历史边',source:'a',target:'b',metadata:document.network.nodes.find(n=>n.node_id==='a').connections.interfaces[0].metadata},{kind:'bookmark',id:'removed-network',label:'已删除书签的网络',mode:'internal',snapshot:network},{kind:'bookmark',id:'removed-line',label:'已删除书签的纯边',mode:'internal',snapshot:line}]});
+ const aliases={'a':'节点 a','a|0':'历史边','removed-network':'已删除书签的网络','removed-line':'已删除书签的纯边'};historyIds=Object.fromEntries(Object.entries(aliases).map(([id,label])=>[id,null]));for(const [id,label] of Object.entries(aliases))historyIds[id]=(await library()).history.find(e=>e.label===label).id;
  await launch();await expect(page.locator('.bookmark-dock')).toHaveClass(/thumbnail-view/);
  const bookmarks=page.getByRole('region',{name:'书签区'}); // section 通过 aria-label 暴露为区域。
  const left=await bookmarks.boundingBox(),right=await page.getByRole('region',{name:'历史区'}).boundingBox();expect(left.width/right.width).toBeGreaterThan(2.9);expect(left.width/right.width).toBeLessThan(3.1);

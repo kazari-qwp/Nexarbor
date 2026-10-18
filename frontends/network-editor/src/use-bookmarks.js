@@ -4,11 +4,11 @@ import {shortcuts} from './shortcuts.js';
 import {textPrompt} from './text-prompt.js';
 import {isAsset,resource,assetHistory} from './resources.js';
 const clone=value=>structuredClone(value);
-const empty={version:0,bookmarks:[],history:[],categories:[{id:'default',name:'默认分类'}],settings:{},assets:{}};
+const empty={version:0,bookmarks:[],history:[],presets:[],categories:[{id:'default',name:'默认分类'}],settings:{},assets:{}};
 export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpenAsset,onAssetAttach,note}){
  const [library,setLibrary]=useState(empty),[category,setCategory]=useState('default'),[focus,setFocus]=useState(null),[open,setOpen]=useState(true);
  const current=useRef(empty),latest=useRef(),hover=useRef(null),lastCopy=useRef(null),pointer=useRef(null);
- const queue=useRef(Promise.resolve()),pending=useRef(0);
+ const queue=useRef(Promise.resolve()),pending=useRef(0),presetFolder=useRef(null);
  const enqueue=job=>{pending.current++;const result=queue.current.then(job).finally(()=>pending.current--);queue.current=result.catch(()=>{});return result;};
  latest.current={context,onPaste,onEdgeTemplate,onLocate,onOpenAsset,onAssetAttach,note,category};
  const accept=value=>{if(value.version>=current.current.version){current.current=value;setLibrary(value);}return value;};
@@ -25,7 +25,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   hover.current=area;return area;
  };
  const update=p=>api('editor.library.update',p).then(accept);
- const record=entries=>{if(entries.length)update({action:'history.push',entries}).catch(latest.current.note);};
+ const record=entries=>{if(entries.length)enqueue(()=>update({action:'history.push',entries})).catch(latest.current.note);};
  const patch=changes=>update({action:'bookmark.patch',changes});
  const remove=async id=>{const book=current.current.bookmarks.find(b=>b.id===id);if(book)await patch([{id,expected:book,value:null}]);lastCopy.current=null;};
  const frame=()=>new Promise(resolve=>requestAnimationFrame(resolve));
@@ -40,37 +40,31 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  const copy=async(mode,frame)=>{
   const {area,ctx,category}=frame;let snapshot,signature,preset;
   if(area?.kind==='bookmark'){await remove(area.id);return;}
-  if(area?.kind==='resource'){preset=resource(ctx.assetsCatalog,area.resource.kind,area.resource.id,current.current.assets);signature='resource:'+preset.asset.kind+':'+preset.asset.id;}
+  if(area?.kind==='resource'){preset=resource(ctx.assetsCatalog,area.resource.kind,area.resource.id,current.current.assets);signature='resource:'+area.resource.kind+':'+area.resource.id;}
   else if(area?.kind==='history'&&isAsset(area.entry)){preset=historyBookmark(area.entry);signature='history:'+area.entry.kind+':'+area.entry.id;}
   else if(area?.kind==='history'){
-   const e=area.entry;signature='history:'+e.kind+':'+e.id;
-   if(e.kind==='edge')snapshot={nodes:[],edges:[{metadata:clone(e.metadata),...(mode==='external'?{target:e.target}:{})}],files:{},positions:{}};
-   else if(e.kind==='bookmark'){
-    const old=current.current.bookmarks.find(b=>b.id===e.id)?.snapshot??e.snapshot;if(!old)throw Error('该书签已不存在');
-    if(!old.nodes.length)snapshot={...clone(old),edges:old.edges.map(edge=>({metadata:clone(edge.metadata),...(mode==='external'&&edge.target?{target:edge.target}:{})}))};
-    else snapshot=copySubnet({network:{nodes:old.nodes},files:old.files},old.nodes.map(n=>n.node_id),mode,old.positions);
-   }else{
-    const exists=ctx.document.network.nodes.some(n=>n.node_id===e.id);
-    snapshot=exists?copySubnet(ctx.document,[e.id],mode,ctx.layout):copySubnet({network:{nodes:e.snapshot.nodes},files:e.snapshot.files},e.snapshot.nodes.map(n=>n.node_id),mode,e.snapshot.positions);
-   }
+   const e=area.entry;signature='history:'+e.kind+':'+e.id;preset=historyBookmark(e);
   }else{
    signature=selectionKey(ctx.selection);snapshot=copySubnet(ctx.document,ctx.selection.nodes,mode,ctx.layout,ctx.selection.edges);
+  }
+  if(preset&&!isAsset(preset)){
+   const old=preset.snapshot;snapshot=old.nodes.length?copySubnet({network:{nodes:old.nodes},files:old.files},old.nodes.map(n=>n.node_id),mode,old.positions):{...clone(old),edges:old.edges.map(edge=>({metadata:clone(edge.metadata),...(mode==='external'&&edge.target?{target:edge.target}:{})}))};preset=null;
   }
   signature=category+':'+signature;
   if(lastCopy.current?.signature===signature&&lastCopy.current.mode===mode&&current.current.bookmarks.some(b=>b.id===lastCopy.current.id)){await remove(lastCopy.current.id);return;}
   const book=preset?{id:crypto.randomUUID(),name:preset.name,description:preset.description,kind:preset.asset.kind,asset:clone(preset.asset),category,createdAt:Date.now()}:{id:crypto.randomUUID(),name:snapshot.nodes.length===1?snapshot.nodes[0].name:snapshot.nodes.length?snapshot.nodes.length+' 节点子网':'连接书签',mode,category,createdAt:Date.now(),snapshot};
   await patch([{id:book.id,expected:null,value:book}]);lastCopy.current={id:book.id,signature,mode};setFocus(book.id);setOpen(true);
  };
- const created=(before,after)=>{
+ const created=(before,after,layout={})=>{
   lastCopy.current=null;const entries=[],oldIds=new Set(before.network.nodes.map(n=>n.node_id));
   for(const n of after.network.nodes){
-   if(!oldIds.has(n.node_id))entries.push({kind:'node',id:n.node_id,label:n.name,snapshot:copySubnet(after,[n.node_id],'external',{})});
+   if(!oldIds.has(n.node_id))entries.push({kind:'node',id:n.node_id,label:n.name,snapshot:copySubnet(after,[n.node_id],'external',layout)});
    const previous=before.network.nodes.find(o=>o.node_id===n.node_id)?.connections.interfaces.length??0;
    n.connections.interfaces.slice(previous).forEach((link,i)=>entries.push({kind:'edge',id:n.node_id+'|'+(previous+i),label:n.name+' → '+(after.network.nodes.find(t=>t.node_id===link.target_node_id)?.name??link.target_node_id),source:n.node_id,target:link.target_node_id,metadata:clone(link.metadata)}));
   }
   record(entries);
  };
- const usedBook=book=>record([isAsset(book)?assetHistory(book):{kind:'bookmark',id:book.id,label:book.name,mode:book.mode,snapshot:clone(book.snapshot)}]);
+ const usedBook=book=>record([isAsset(book)?assetHistory(book):{kind:'bookmark',id:book.id??book.resourceId??crypto.randomUUID(),label:book.name,mode:book.mode,snapshot:clone(book.snapshot)}]);
  const historyEntry=ref=>current.current.history.find(e=>e.kind===ref.kind&&e.id===ref.id);
  const usedHistory=ref=>{const entry=historyEntry(ref);if(entry)record([entry]);};
  const place=(book,point,usage)=>{
@@ -87,22 +81,31 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  };
  const drop=(id,point)=>{const book=current.current.bookmarks.find(b=>b.id===id);if(!book)throw Error('书签已不存在');place(book,point,{usedBookmark:id});};
  const dropHistory=(ref,point)=>{const entry=historyEntry(ref);if(!entry)throw Error('该历史条目已移除');const ctx=latest.current.context();place(historyBookmark(entry,current.current.bookmarks,ctx.document,ctx.layout),point,{usedHistory:ref});};
- const dropResource=(ref,point)=>{const ctx=latest.current.context(),presets=[...new Set(ref.ids??[ref.id])].map(id=>resource(ctx.assetsCatalog,ref.kind,id,current.current.assets)),nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach(presets,nodeId);record(presets.map(assetHistory));};
+ const dropResource=(ref,point)=>{
+  const ctx=latest.current.context(),presets=[...new Set(ref.ids??[ref.id])].map(id=>resource(ctx.assetsCatalog,ref.kind,id,current.current.assets));
+  if(presets.every(isAsset)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach(presets,nodeId);record(presets.map(assetHistory));return;}
+  let result={document:ctx.document,layout:ctx.layout,nodes:[]};const position=ctx.flow.screenToFlowPosition(point),ids=[];
+  for(const [i,preset] of presets.entries()){result=pasteSubnet(result.document,preset,{x:position.x+i*150,y:position.y+i*70},ctx.catalog,result.layout);ids.push(...result.nodes);}
+  latest.current.onPaste({...result,nodes:ids});presets.forEach(usedBook);
+ };
  const openAsset=value=>latest.current.onOpenAsset({...clone(value),detailKey:crypto.randomUUID()});
  const saveAsset=value=>enqueue(async()=>{
   const old=value.sourceBookmark?current.current.bookmarks.find(b=>b.id===value.sourceBookmark):null;
-  const book={id:old?.id??crypto.randomUUID(),kind:value.asset.kind,name:value.name,description:value.description??'',asset:clone(value.asset),category:old?.category??latest.current.category,createdAt:old?.createdAt??Date.now()};
+  const book={id:old?.id??crypto.randomUUID(),name:value.name,description:value.description??'',...(isAsset(value)?{kind:value.asset.kind,asset:clone(value.asset)}:{mode:value.mode??'internal',snapshot:clone(value.snapshot)}),category:old?.category??latest.current.category,createdAt:old?.createdAt??Date.now()};
   await patch([{id:book.id,expected:old??null,value:book}]);setFocus(book.id);setCategory(book.category);setOpen(true);latest.current.note('当前配置已保存至书签');return book;
  });
  const locate=entry=>{
-  if(isAsset(entry)){openAsset(historyBookmark(entry));return;}
-  if(entry.kind==='bookmark'){const book=current.current.bookmarks.find(b=>b.id===entry.id);if(!book){note('该书签已移除');return;}setCategory(book.category??'default');setFocus(book.id);return;}
+  if(isAsset(entry)||entry.snapshot){openAsset(historyBookmark(entry));return;}
   latest.current.onLocate(entry);
  };
  return {library,category,setCategory,focus,open,setOpen,hover,hovered,pending,afterPending:enqueue,
   copy:mode=>{const ctx=latest.current.context(),frame={area:hover.current?clone(hover.current):null,category:latest.current.category,ctx:{...ctx,document:clone(ctx.document),selection:clone(ctx.selection),layout:clone(ctx.layout)}};return enqueue(()=>copy(mode,frame));},
   remove:id=>enqueue(()=>remove(id)),removeHovered,created,drop,dropHistory,dropResource,locate,record,usedHistory,saveAsset,
-  openBook:book=>{if(isAsset(book))openAsset({...book,sourceBookmark:book.id});},
+  openBook:book=>openAsset({...book,sourceBookmark:book.id}),
+  savePreset:id=>enqueue(async()=>{await update({action:'preset.save',bookId:id,folder:presetFolder.current});latest.current.note('已保存到当前网络预设目录');}),
+  saveNetwork:()=>enqueue(async()=>{const ctx=latest.current.context(),name=(await textPrompt('保存全网',ctx.document.network.nodes.find(n=>n.node_id==='root')?.name+'网络'))?.trim();if(!name)return;await update({action:'network.save',name,document:clone(ctx.document),layout:clone(ctx.layout)});latest.current.note('完整网络已写入磁盘，位于“已存储网络”分类');}),
+  folderChanged:(kind,id)=>{if(kind==='preset')presetFolder.current=id;},
+  reload:()=>enqueue(()=>api('editor.library').then(accept)),
   assetAction:p=>enqueue(()=>update(p)),
   bindings:shortcuts(library.settings.shortcuts),resetCopy:()=>{lastCopy.current=null;},
   async rename(book){const name=(await textPrompt('书签名称',book.name))?.trim();if(!name||name===book.name)return;await patch([{id:book.id,expected:book,value:{...book,name}}]);},

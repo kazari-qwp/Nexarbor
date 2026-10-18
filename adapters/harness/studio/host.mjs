@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';import path from 'node:path';import {fileURLTo
 import {startEditorServer} from '../framework/editor-server.js';
 import {NativeRunner} from './runtime/runner.mjs';
 import {OfficialToolsRunner} from './runtime/official-runner.mjs';
+import {editorNode,editorNodes} from '../framework/editor-nodes.js';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork}={}){
  await fs.mkdir(directory,{recursive:true});const temporary=path.join(directory,'temp');await fs.mkdir(temporary,{recursive:true});
@@ -26,7 +27,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(['state','draft','apply','view'].includes(operation))return rpc('studio_'+operation,params);
   if(operation==='catalog'){
    const catalog=await rpc('studio_catalog');const presets=[];
-   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库'}])),presets,studio:true,tools:officialTools,toolError,contract:catalog.contract};
+   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库',display_folder:m.display_folder}])),nodes:editorNodes(),presets,studio:true,tools:officialTools,toolError,contract:catalog.contract};
   }
   if(operation==='preset'){
    if(!/^[a-zA-Z0-9_-]+$/.test(params.id))throw Error('Invalid preset');
@@ -41,7 +42,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(operation==='template'){
    const {kind,options,document}=params;if(!['node','text_file','agent','pulse'].includes(kind))throw Error('请在组件工作室建立小镇实验场，再装配已发布组件');
    const doc=structuredClone(document);if(doc.network.nodes.some(n=>n.node_id===options.id))throw Error('节点编号已存在');
-   const node={type:kind,node_id:options.id,name:options.name||options.id,description:'',management_parent_id:'root',divergence:-1,data_kind:null,parameters:kind==='agent'||kind==='text_file'?{file_path:'data/'+Date.now()+'.md'}:kind==='pulse'?{channels:['world.tick'],strength:4}:{},connections:{interfaces:[]},agent:null,modules:{},offered_tools:[],toolboxes:[],expose:[],execution:null,inputs:null};
+   const node=editorNode(kind,options.id,options.name||options.id);
    doc.network.nodes.push(node);return doc;
   }
   if(operation==='connect'){
