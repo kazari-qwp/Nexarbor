@@ -174,7 +174,9 @@ def _build(document, base):
                 _fields(entry, ('target_node_id', 'metadata'), '接口')
                 interface = Interface(**entry)
                 if interface.target_node_id not in network.nodes:
-                    raise ValueError(f'连接目标不存在：{interface.target_node_id}')
+                    # Node records can be restored independently of their targets.
+                    # Validate the interface first, then drop a dangling reference.
+                    continue
                 getattr(node, label).append(interface)
     delegations = document['delegations']
     if not isinstance(delegations, list):
