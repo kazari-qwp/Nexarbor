@@ -8,7 +8,9 @@ try{
  const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));await expect(page.locator('.react-flow__node')).toBeVisible({timeout:20000});
  for(const [kind,label,button] of [['tool','工具','制作新工具'],['preset','网络预设','制作网络预设']]){
   const tree=page.locator('[data-resource-library="'+kind+'"]');await tree.locator(':scope>summary').click();await tree.getByRole('button',{name:label+'文件夹 制作目录',exact:true}).dblclick();await tree.getByRole('button',{name:button,exact:true}).click();const dialog=page.getByRole('dialog',{name:'组件工作室',exact:true});await expect(dialog).toBeVisible();
-  const work=(await api('studio.catalog')).workspaces.at(-1);expect(work.kind).toBe(kind==='preset'?'network':'tool');expect(work.display_folder).toBe('test-'+kind);
+  const expectedKind=kind==='preset'?'network':'tool';let work;
+  await expect.poll(async()=>{work=(await api('studio.catalog')).workspaces.find(w=>w.kind===expectedKind&&w.display_folder==='test-'+kind);return work?.kind;},{timeout:15000}).toBe(expectedKind);
+  await expect(dialog.locator('.studio-toolbar>strong')).toHaveText(work.id);expect(work.display_folder).toBe('test-'+kind);
   const testing=dialog.getByRole('checkbox',{name:'允许在当前网络副本内测试',exact:true});await expect(testing).not.toBeChecked();await testing.check();await expect(testing).toBeChecked();await testing.uncheck();
   await dialog.getByRole('button',{name:'复制当前网络测试',exact:true}).click();await expect(dialog.getByText(/"ok": true/)).toBeVisible({timeout:20000});expect((await api('state')).live.document.network.nodes[0].modules).toEqual({});
   if(kind==='preset'){
