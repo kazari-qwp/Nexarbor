@@ -13,7 +13,7 @@ async function init(p){
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry'],['dsh-skill','SkillRegistry']])await host.plugin(native(name)[service]??native(name).default);
  await host.plugin(native('dsh-session-title').SessionTitleService,{fallbackMaxWords:12,fallbackMaxBytes:120,maxTitleBytes:256});
  const optionsFile=path.join(p.directory,'native-model.json');let options={};try{options=JSON.parse(await fs.readFile(optionsFile,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
- await host.plugin(native('dsh-session-persistence-jsonl').default,{root:options.native_logs??path.join(p.directory,'native-logs')});
+ const persistence=native('dsh-session-persistence-jsonl');await host.plugin(persistence.default??persistence,{root:options.native_logs??path.join(p.directory,'native-logs')});
  await host.plugin((await loader.load(p.root+'/adapters/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
  const nativeRoot=loader.root;
  const record=require(path.join(nativeRoot,'yaml')).parse(await fs.readFile(p.credentials,'utf8')).records['deepseek-account-platform/default'];

@@ -24,6 +24,7 @@ def main():
     for file in folder.rglob('*.py'):
         ast.parse(file.read_text(encoding='utf-8'),filename=str(file))
     spec,create=factory(folder)
+    if os.environ.get('DATANET_MAKER_KIND')=='tool' and not spec.get('agent_tools'):raise ValueError('工具制作必须声明至少一个 agent_tools，引用本模块已声明操作')
     defaults=json.loads((folder/'example.json').read_text(encoding='utf-8'))
     kind=spec['node_types'][0]
     if kind=='text_file':node=TextFileNode('subject','Subject','text',folder/'test-output.txt')

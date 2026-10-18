@@ -35,7 +35,7 @@ def split_files(files):
     owned={};references={}
     for name,content in files.items():
         relative=name.replace('\\','/')
-        destination=references if relative in GUIDES or relative.startswith(('dependencies/','reference/')) else owned
+        destination=references if relative in GUIDES or relative.startswith(('dependencies/','reference/','lessons/')) else owned
         destination[relative]=content
     return owned,references
 
@@ -110,6 +110,8 @@ class Studio:
         return dict(workspaces=[dict(id=p.name,**read_json(p/'workspace.json',{})) for p in self.work.iterdir() if p.is_dir()],
                     samples=samples,library=library,jobs=list(self.jobs.values()),contract='nexarbor-module/v3')
     def create(self,p):
+        kind=p.get('kind','module')
+        if kind not in ('module','tool','network'):raise ValueError('制作类型必须是模块、工具或网络预设')
         sample=p.get('sample','blank');definitions=read_json(RESOURCE/'samples.json',[])
         selected=next((s for s in definitions if s['id']==sample),None)
         if selected is None:raise ValueError('Unknown sample')
@@ -119,6 +121,16 @@ class Studio:
             path=folder/name
             if not path.resolve().is_relative_to(folder.resolve()):raise ValueError('Invalid template')
             path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
+        if kind=='network':
+            for path in folder.iterdir():
+                if path.is_file():path.unlink()
+            from datanet.core.network import Network
+            graph=Network();graph.add_node(AgentNode('root','入口',file_path=folder/'data/root.md'))
+            write_json(folder/'network.json',dict(network=network_document(graph,folder),files={'data/root.md':'你是这个网络的入口。'}))
+            (folder/'README.md').write_text('# 网络预设\n\n说明网络用途、配置和使用步骤。\n',encoding='utf-8')
+        elif kind=='tool':
+            spec=read_json(folder/'module.json',{});spec['agent_tools']=[dict(id='increment',name='计数',description='增加计数并返回结果。',operation='increment')]
+            write_json(folder/'module.json',spec)
         self._write_guides(folder)
         if selected.get('reference'):
             source=PROJECT/selected['reference'];reference=folder/'reference';reference.mkdir()
@@ -132,8 +144,8 @@ class Studio:
         if available:write_json(folder/'dependencies/catalog.json',available)
         original=sources(folder)
         write_json(self.root/'baselines'/f'{id}.json',original)
-        write_json(folder/'workspace.json',{'label':selected['name'],'sample':sample,'display_folder':p.get('display_folder')})
-        write_json(self.root/'metadata'/f'{id}.json',{'sample':sample,'label':selected['name']})
+        write_json(folder/'workspace.json',{'label':p.get('name') or {'module':selected['name'],'tool':'制作工具','network':'制作网络预设'}[kind],'sample':sample,'kind':kind,'display_folder':p.get('display_folder')})
+        write_json(self.root/'metadata'/f'{id}.json',{'sample':sample,'kind':kind,'label':selected['name']})
         return self.read(dict(id=id))
     def read(self,p):
         folder=self.folder(p['id']);files=sources(folder);files.pop('workspace.json',None)
@@ -141,7 +153,7 @@ class Studio:
         owned,references=split_files(files)
         if (folder/'reference').exists():
             references.update({f.relative_to(folder).as_posix():f.read_text(encoding='utf-8') for f in (folder/'reference').glob('*.py')})
-        return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files),display_folder=read_json(folder/'workspace.json',{}).get('display_folder'))
+        return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files),**{k:read_json(folder/'workspace.json',{}).get(k,default) for k,default in [('display_folder',None),('kind','module')]})
     def dependencies(self,p):
         folder=self.folder(p['id']);catalog=read_json(folder/'dependencies/catalog.json',[])
         known={item['id']:item for item in catalog}
@@ -151,6 +163,31 @@ class Studio:
                 if (source/file).exists():shutil.copyfile(source/file,target/file)
             known[name]=dict(id=name,version=release['version'],manifest=f'dependencies/{name}/module.json',guide=f'dependencies/{name}/README.md')
         write_json(folder/'dependencies/catalog.json',list(known.values()));return self.read(p)
+    def maker_tool(self,p):
+        """制作模型的文件能力只指向当前副本，不提供终端或任意路径。"""
+        folder=self.folder(p['id']);name=p['tool'];args=p.get('arguments',{})
+        if name=='list_files':
+            data=self.read(p);return dict(files=list(data['files']),references=list(data['references']))
+        if name=='read_file':
+            path=self.path(p['id'],args['path'])
+            if path.name=='workspace.json':raise PermissionError('宿主制作资料不作为组件文件')
+            if path.stat().st_size>1024*1024:raise ValueError('文件超过 1 MiB')
+            text=path.read_text(encoding='utf-8');lines=text.splitlines();start=max(0,args.get('start_line',1)-1);count=min(400,max(1,args.get('line_count',200)))
+            return dict(path=args['path'],total_lines=len(lines),text='\n'.join(lines[start:start+count]))
+        if name in ('write_file','edit_file'):
+            path=self.path(p['id'],args['path']);old=path.read_text(encoding='utf-8') if path.exists() else ''
+            content=args['content'] if name=='write_file' else old.replace(args['old'],args['new'],1)
+            if name=='edit_file' and (not args['old'] or old.count(args['old'])!=1):raise ValueError('替换文本必须在文件中唯一匹配；先重新读取')
+            value=self.save(dict(id=p['id'],file=args['path'],content=content,expected=sha256(old.encode()).hexdigest()))
+            return dict(saved=args['path'],digest=value['digest'])
+        if name=='catalog_modules':
+            query=args.get('query','').lower();hidden=set(p.get('hidden',[]));result=[]
+            for id,release in self.catalog()['library'].items():
+                spec=release['manifest']
+                if id in hidden or query and query not in json.dumps(spec,ensure_ascii=False).lower():continue
+                result.append(dict(id=id,name=release['name'],description=spec.get('description',''),node_types=spec['node_types'],requires=spec['requires'],operations=spec['operations'],agent_tools=spec.get('agent_tools',[]),defaults=release.get('mount_defaults',{}),frontend=bool(spec.get('frontend'))))
+            return dict(modules=result[:30],total=len(result))
+        raise ValueError('未知制作工具：'+name)
     def release_read(self,p):
         release=self.library[p['module']];files=sources(self.root/release['folder']);files.pop('workspace.json',None)
         owned,references=split_files(files)
@@ -166,7 +203,7 @@ class Studio:
     def save(self,p):
         path=self.path(p['id'],p['file'])
         relative=path.relative_to(self.folder(p['id'])).as_posix().casefold()
-        if relative in [name.casefold() for name in (*GUIDES,'workspace.json')] or relative.startswith(('reference/','dependencies/')):raise PermissionError('规范文件与参考资料只读')
+        if relative in [name.casefold() for name in (*GUIDES,'workspace.json')] or relative.startswith(('reference/','dependencies/','lessons/')):raise PermissionError('规范文件与参考资料只读')
         current=path.read_text(encoding='utf-8') if path.exists() else ''
         if p.get('expected')!=sha256(current.encode()).hexdigest():raise ValueError('File changed outside the editor; reload before saving')
         content=p['content']
@@ -180,7 +217,7 @@ class Studio:
     def delete_file(self,p):
         folder=self._idle_work(p['id']);path=self.path(p['id'],p['file'])
         relative=path.relative_to(folder).as_posix()
-        if relative.casefold() in {n.casefold() for n in (*GUIDES,*REQUIRED_FILES,'workspace.json')} or relative.startswith(('reference/','dependencies/')):
+        if relative.casefold() in {n.casefold() for n in (*GUIDES,*REQUIRED_FILES,'workspace.json','network.json')} or relative.startswith(('reference/','dependencies/','lessons/')):
             raise PermissionError('组件必要文件和制作资料不能删除')
         current=path.read_text(encoding='utf-8')
         if p.get('expected')!=sha256(current.encode()).hexdigest():raise ValueError('文件已变化，请重新读取后再删除')
@@ -198,6 +235,7 @@ class Studio:
         return dict(deleted=p['id'],archived=True)
     def _write_guides(self,folder):
         for name in GUIDES:(folder/name).write_text((RESOURCE/name).read_text(encoding='utf-8'),encoding='utf-8')
+        if (RESOURCE/'lessons').is_dir():shutil.copytree(RESOURCE/'lessons',folder/'lessons',dirs_exist_ok=True)
     def prepare_agent(self,p):
         """新任务使用当前规范；历史指纹由原生会话适配器核对。"""
         self._write_guides(self.folder(p['id']))
@@ -225,9 +263,16 @@ class Studio:
             Path(env['TEMP']).mkdir(exist_ok=True)
             log_path=snapshot/'validation.log'
             try:
+                if read_json(folder/'workspace.json',{}).get('kind')=='network':
+                    from .network_work import check_work
+                    result=check_work(snapshot,self.backend,self.library)
+                    job.update(status='passed',exit_code=0,log='PASS：当前成品格式、路径、节点、递归依赖、工具引用、配置与状态；节点数：'+str(result['nodes']))
+                    log_path.write_text(job['log'],encoding='utf-8');return
                 with self.lock:
                     if job['status']!='running' or getattr(self,'closed',False):return
                     sample=read_json(self.root/'metadata'/f'{p["id"]}.json',{}).get('sample','blank')
+                    env['DATANET_TEST_MODULES']=json.dumps({name:str(self.root/release['folder']) for name,release in self.library.items()})
+                    env['DATANET_MAKER_KIND']=read_json(folder/'workspace.json',{}).get('kind','module')
                     proc=subprocess.Popen([sys.executable,'-m','datanet.studio.worker',str(snapshot),sample],cwd=PROJECT,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
                         creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
                     self.processes[id]=proc
@@ -267,6 +312,10 @@ class Studio:
     def publish(self,p):
         folder=self.folder(p['id']);files=sources(folder);fingerprint=digest(files)
         if not any(j['workspace']==p['id'] and j['status']=='passed' and j['digest']==fingerprint for j in self.jobs.values()):raise ValueError('Test the current source before publishing')
+        metadata=read_json(folder/'workspace.json',{})
+        if metadata.get('kind')=='network':
+            from .network_work import check_work
+            return dict(kind='network',id=p['id'],document=check_work(folder,self.backend,self.library)['document'],name=p.get('name') or metadata['label'],display_folder=metadata.get('display_folder'),digest=fingerprint)
         spec=json.loads(files['module.json']);name=spec['id']
         if any(module==name for _,module in self.backend.modules.instances):raise ValueError('Unmount active instances before replacing their module')
         if any(dep not in self.library for dep in spec['requires']):raise ValueError('Publish dependencies first')
@@ -276,7 +325,7 @@ class Studio:
             path=destination/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
         old=self.library.copy()
         manifest(destination)
-        self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}),display_folder=read_json(folder/'workspace.json',{}).get('display_folder'))
+        self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}),display_folder=metadata.get('display_folder'),origin_kind=metadata.get('kind','module'))
         try:self._load_releases()
         except BaseException:self.library=old;raise
         self.removed.discard(name);write_json(self.root/'removed-modules.json',sorted(self.removed))
@@ -418,15 +467,8 @@ class Studio:
         return dict(actor=actor,paths=paths,tools=tools)
     def graph_validate(self,p):
         try:
-            candidate=_build(assemble_document(p['document'],self.library,self.backend.components.module_types)['network'],self.backend.directory)
-            from jsonschema import validate
-            for node in candidate.nodes.values():
-                self.backend.external_tools.validate_node(node)
-                for name,spec in node.modules.items():
-                    if name not in self.library:raise ValueError('Unknown published module: '+name)
-                    definition=self.library[name]['manifest']
-                    if node.signal_type not in definition['node_types']:raise ValueError(name+' cannot mount on '+node.signal_type)
-                    validate(spec['config'],definition['config_schema'])
+            from .network_work import validate_network
+            validate_network(self.backend,p['document'])
             return dict(valid=True,errors=[],warnings=[])
         except Exception as error:return dict(valid=False,errors=[dict(path='network',message=str(error))],warnings=[])
     def close(self):
@@ -447,5 +489,5 @@ def register(services):
         b.studio.library={name:release for name,release in {**installed,**document.get('studio_releases',b.studio.library)}.items() if name not in b.studio.removed}
         b.studio._load_releases()
     services.restorers.append(restore)
-    methods={'catalog':False,'create':False,'read':False,'dependencies':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

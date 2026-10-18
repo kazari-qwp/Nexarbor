@@ -27,8 +27,8 @@ export function editorLibrary(directory,{catalog,inspect,purge}={}){
    const definitions=kind=>kind==='module'?Object.entries(descriptors?.modules??{}).map(([id,spec])=>({id,...spec})):kind==='tool'?(descriptors?.tools??[]).map(t=>({...t,id:t.ref})):kind==='preset'?library.presets:descriptors?.nodes??[];
    const definition=(kind,id)=>definitions(kind).find(s=>s.id===id);
    let reconciled=false;
-   for(const spec of definitions('module'))if(spec.display_folder!==undefined&&!Object.hasOwn(library.assets.module?.items??{},spec.id)){
-    const tree=library.assets.module??={folders:[],items:{}};tree.items[spec.id]={folder:tree.folders.some(f=>f.id===spec.display_folder)?spec.display_folder:null};reconciled=true;
+   for(const kind of ['module','tool'])for(const spec of definitions(kind))if(spec.display_folder!==undefined&&!Object.hasOwn(library.assets[kind]?.items??{},spec.id)){
+    const tree=library.assets[kind]??={folders:[],items:{}};tree.items[spec.id]={folder:tree.folders.some(f=>f.id===spec.display_folder)?spec.display_folder:null};reconciled=true;
    }
    if(operation==='editor.library')return reconciled?write(library):library;
    if(operation==='editor.resource.inspect'){

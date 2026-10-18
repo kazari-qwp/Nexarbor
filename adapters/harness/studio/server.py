@@ -49,7 +49,7 @@ def main():
     for method in ['connect','start','read','cancel','status']:
         backend.components.rpc('studio_agent_'+method,lambda b,p,method=method:getattr(remote,method)(p))
     backend.components.finalizers.append(lambda b:remote.close())
-    transport=StudioTransport(backend);transport.executor=NativeExecutor(backend,transport)
+    transport=StudioTransport(backend);transport.executor=NativeExecutor(backend,transport);backend.studio_executor=transport.executor
     transport.run(sys.stdin)
 
 if __name__=='__main__':
