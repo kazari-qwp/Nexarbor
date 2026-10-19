@@ -1,92 +1,42 @@
 # 角色上下文与私人记忆（agents.context）
 
-适用于 NPC、小组成员和知识工作者等真实 Agent 节点。把稳定人格、通用设定、可选的固定地图、按记录匹配的情境知识和一次性开场提示装配到角色输入，并在每次模型请求前刷新本地账户、当前位置、可达邻域与时钟。私人记忆保存在本 Agent 自己的 `state` 中，只能由本人读取和写入。`prepare` 还会把配置允许的公开资料发布到本模块命名空间，供同地其他角色查看；不会发布完整记录、资产、记忆或开场内容。
+用于真实 Agent 节点。稳定身份和匹配的情境知识在每次模型请求前准备；当前状态、地点和地图可按需查询。私人记忆只通过记住／回忆工具维护，不随处境或地图查询返回。
 
-## 复用与依赖
+## Agent 工具
 
-本组件复用已发布模块，不复制其业务：
+- **查看处境 `look({})`**：只返回 `clock`、`location`、`records`、`people`、`exits`。位置和出口使用地点名称及编号；人物仅来自当前地点的访客记录，只包含明确发布的公开资料。出口只列直接道路，网络上可达的远处人物不会被当作同地人物。不会返回人格、知识、地图、私人记忆、重复摘要、路径强度或开场投递标记。
+- **查询地点 `place({place?})`**：填写地点名称或编号，省略时查询当前位置。返回公开名称、用途描述及直接出口。同名地点要求改用编号。只访问模块授权范围内的普通地点，不读取其他角色的账本或记忆。实际价格和库存仍查询当地业务工具。
+- **查询地图 `map({})`**：按真实 `movement` 道路生成地点道路 PNG。双向道路用线段，单向道路用箭头。仅绘制模块可访问的普通节点；地图不包含人物、账目或记忆，也不计算导航路线。底图按拓扑、名称、说明和布局缓存。
+- **记住 `remember({text,key?})`**：写入自己的私人记忆，重复键和相同内容幂等；相同键不同内容拒绝覆盖。超出条数上限丢弃最早记忆。
+- **回忆 `recall({query})`**：按子串查询自己的记忆，空查询返回全部。
 
-- `records.store`：读取本角色的账户与记录（`values`）。
-- `place.info`：读取本角色的当前位置（`location`）。
-- `clock.counter`：可选。配置 `clock` 后按 `info` 频道读取天数与时刻。
+所有操作都要求请求者为本节点自己，使用 `self` 频道。工具没有扩大访问强度的参数。地图能看多大，由模块装配时的 `access.strength` 和真实网络连线决定。
 
-装配时三个依赖需与角色位于同一节点（时钟可位于可达节点）。角色节点必须用 `agent=True` 创建。
+## 内部准备钩子
+
+`prepare({})` 供执行器调用，不是 Agent 工具。它装配 `persona`、`common` 与条件匹配的 `knowledge`，通过 `ctx.update_inputs` 写入身份、知识、一次性开场输入和简短现场尾部块；按 `public_fields` 发布自己的公开资料。
+
+时间读取链：`clock.counter.read` → 本模块 `prepare` → `ctx.update_inputs({tail: ...})` → 执行器 `agent/request-tail`。因此每次模型请求都会刷新时间，包括调用工具之后的下一步请求。不是读取整个时钟文档，也不让 Agent 自己寻找时间。
+
+地图不会自动塞进每轮上下文。旧配置 `map` 留作读取兼容，已经停止自动注入；需要地图时调用查询地图。人格、世界规则和情境知识仍在各自的输入位置提供。
 
 ## 配置
 
-| 字段 | 类型 | 默认 | 说明 |
-|---|---|---|---|
-| `persona` | 字符串 | 空 | 长期人格，写入 `system_prompt`。 |
-| `common` | 字符串 | 空 | 通用设定，与人格一起写入 `system_prompt`。 |
-| `map` | 字符串 | 空 | 非空时作为 `context=[{id:'map',text:map}]`。 |
-| `opening` | 字符串 | 空 | 非空时只投递一次到 Agent 的 `inputs`，不会反复写入人格。 |
-| `clock` | 节点 id 或空 | 空 | 可选时钟节点，读取 `clock.counter.read`。 |
-| `max_memories` | 正整数 | 100 | 私人记忆保留上限，超出后丢弃最早记忆。 |
-| `public_fields` | 非空字符串数组 | `["name","gender","profession","age_group"]` | 只把本记录中的这些字段发布给同地其他角色；未列出的字段不会发布。 |
-| `knowledge` | 数组 | 空 | 每项 `{id, when, text}`。`prepare` 只把 `when` 中所有普通字段都等于自己 `records.store` 当前值的条目加入 `context`。 |
+| 字段 | 用途 |
+|---|---|
+| `persona` / `common` | 稳定人格与通用规则，作为系统提示词。 |
+| `knowledge` | `{id,when,text}` 条目，只将 `when` 与自己的记录匹配的知识装入上下文。 |
+| `opening` | 仅投递一次的开场输入。 |
+| `clock` | 可选时钟节点编号，读取其 `clock.counter`。 |
+| `public_fields` | 可发布和采集的公开资料字段，默认姓名、性别、职业和年龄段。 |
+| `max_memories` | 自己的私人记忆条数上限。 |
+| `map_title` | 图片标题，默认“地点道路图”。 |
+| `map_layout` | 可选 `[{node,x,y}]` 稳定示意布局，坐标 0～1；未配置时自动布局。`node` 是可随网络拷贝重映射的节点引用。布局只影响显示，不授予访问权限。 |
 
-状态只有 `memories`（有限数组，元素含 `text` 与可选 `key`）和 `opening_queued`（布尔）。
+依赖 `records.store` 与 `place.info`；配置时钟时还需授权可达的 `clock.counter`。当前地点应装配 `place.info`，推荐 `visitors_from_edges=true`，从 `relation=location` 的实际位置边读取访客。道路使用 `movement` 频道和 `relation=road`。
 
-`knowledge[].id` 必须是非空字符串，用于生成稳定的上下文条目 id（`knowledge:<id>`），与固定地图条目 `map` 区分。`when` 是普通字段等值对象；条件不满足时该条目不会出现在结果或 Agent 的 `context` 中，记录变化后下次 `prepare` 会自动更新。这样可以用同一组件配置职业、性别或家庭状态相关文本，而不读取其他角色的私有文本。
+## 图片工具结果
 
-## 操作与 Agent 工具
+查询地图返回通用的 `nexarbor-tool-content/v1` 内容封装。原生执行器将其中的 PNG 纳入附件库，用 `type=image` 内容块交给支持图片输入的模型，不把 base64 当文字发送。对话界面可直接显示图片；Commit、导出、导入和上下文分支保留图片，相同内容按哈希去重。
 
-所有操作频道均为 `self`，且会检查 `ctx.requester_id == ctx.node_id`；通过别人的工具调用会被拒绝，不能读取他人的记忆或处境。
-
-- `prepare({})`：刷新并返回当前上下文，按 `public_fields` 发布自己的公开资料，同时调用 `ctx.update_inputs` 更新该 Agent 的 `system_prompt`、`context`、`tail`；如有未投递开场，附加唯一 id 的一次性 `inputs`。适合绑定 `NativeExecutor.execution.prepare`，不依赖事件总线。
-- `look({})`：返回与 `prepare` 相同的当前信息，但不改写输入。
-- `remember({text, key?})`：写入自己的记忆。`text` 非空且最多 4000 字符；相同 `key` 相同内容返回 `duplicate=true`，相同 `key` 不同内容拒绝；超过上限丢弃最早记忆。
-- `recall({query})`：在自己的记忆中做子串匹配，`query` 留空返回全部。
-
-导出的中文工具为：`记住`（remember）、`回忆`（recall）、`查看处境`（look）。
-
-`nearby` 来自 `ctx.network.nodes(channels=['movement'])` 的真实返回数组，每项包含 `id`、`path`、`strength` 与 `profile`。`profile` 只采集其他节点在本模块命名空间发布的、且被本角色 `public_fields` 允许的字段；未发布或未知时为空对象，不会用节点 id 或其他字段编造。公开资料会显示在 `tail` 的附近可达描述中。
-
-## 装配示例
-
-```json
-{
-  "config": {
-    "persona": "你是镇上的图书管理员，说话简短可靠。",
-    "common": "只根据自己看到和记得的事回答。",
-    "map": "镇广场北接北林，东边是集市。",
-    "opening": "你刚整理完书架，听见门口有人走近。",
-    "clock": "town-clock",
-    "max_memories": 50,
-    "public_fields": ["name", "gender", "profession", "age_group"],
-    "knowledge": [
-      {
-        "id": "farmer",
-        "when": {"profession": "农夫"},
-        "text": "你熟悉节气、土壤和庄稼的收成。"
-      },
-      {
-        "id": "pregnancy",
-        "when": {"pregnant": true},
-        "text": "你了解孕期需要多休息和补充营养。"
-      }
-    ]
-  },
-  "access": {
-    "strength": 2,
-    "channels": ["self", "records", "movement", "info"]
-  }
-}
-```
-
-## 每次模型请求前准备上下文
-
-```python
-async def before_model_request(executor):
-    result = await executor.call(
-        executor.node_id,
-        "agents.context",
-        "prepare",
-        {},
-    )
-    if result.get("status") != "ok":
-        raise RuntimeError(result.get("error", "角色上下文准备失败"))
-    return result["data"]
-```
-
-若宿主通过 `NativeExecutor.execution.prepare` 绑定，直接把 `prepare` 注册为该执行钩子即可。每次调用都会重新读取当前账户、位置、可达边和时钟，所以移动、改边、记账后无需手工维护旧的 `tail`。
+绘图依赖 `requirements.txt` 中的 Pillow，以及运行系统上的微软雅黑、黑体或 Noto Sans CJK 中文字体。绘制在本地完成，不调用绘图 API。原生模型需要支持图片输入。

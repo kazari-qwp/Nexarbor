@@ -1,5 +1,6 @@
 // Optional, bounded native Agent executor. Only core-declared tools are registered.
 const fs=require('node:fs/promises'),path=require('node:path'),readline=require('node:readline'),crypto=require('node:crypto');
+const toolContent=require('./tool-content.cjs');
 const callbacks=new Map(),agents=new Map();let next=0,host,native,config,history,permissions,createUserMessage,checkpoints;
 const keepAlive=setInterval(()=>{},1000),write=value=>process.stdout.write(JSON.stringify(value)+'\n');
 const rpc=(method,params)=>new Promise((resolve,reject)=>{const host_id=String(++next);callbacks.set(host_id,{resolve,reject});write({host_id,method,params});});
@@ -12,6 +13,7 @@ async function init(p){
  const {Context}=native('cordis');host=new Context();
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry'],['dsh-skill','SkillRegistry']])await host.plugin(native(name)[service]??native(name).default);
  await host.plugin(native('dsh-session-title').SessionTitleService,{fallbackMaxWords:12,fallbackMaxBytes:120,maxTitleBytes:256});
+ await host.plugin(native('dsh-attachment-local').LocalAttachmentStore,{dshHome:p.directory});
  const optionsFile=path.join(p.directory,'native-model.json');let options={};try{options=JSON.parse(await fs.readFile(optionsFile,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
  const persistence=native('dsh-session-persistence-jsonl');await host.plugin(persistence.default??persistence,{root:options.native_logs??path.join(p.directory,'native-logs')});
  await host.plugin((await loader.load(p.root+'/adapters/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
@@ -43,14 +45,14 @@ async function refresh(entry){
  for(const definition of view.retained_tools??[]){
   if(entry.definitions.has(definition.name))continue;
   entry.definitions.set(definition.name,JSON.stringify(definition));
-  const dispose=permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:(_a,value)=>[{type:'text',text:JSON.stringify(value)}]},execute:args=>agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args})});
+  const dispose=permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:toolContent.render},execute:async args=>toolContent.prepare({host,native},await agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args}))});
   if(desired.has(definition.name))entry.tools.set(definition.name,dispose);else dispose();
  }
  for(const [name,dispose] of entry.tools)if(!desired.has(name)){dispose();entry.tools.delete(name);}
  for(const definition of view.tools){
   const signature=JSON.stringify(definition);if(entry.definitions.get(definition.name)===signature&&entry.tools.has(definition.name))continue;
   entry.tools.get(definition.name)?.();entry.definitions.set(definition.name,signature);
-  entry.tools.set(definition.name,permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:(_a,value)=>[{type:'text',text:JSON.stringify(value)}]},execute:args=>agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args})}));
+  entry.tools.set(definition.name,permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:toolContent.render},execute:async args=>toolContent.prepare({host,native},await agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args}))}));
  }
  for(const doc of view.context)history.load(entry.agent.ctx,doc.id,doc.text);
  const retained=new Set([...entry.agent.session.deriveMessages(),...entry.agent.inbox.nextStep,...entry.agent.inbox.nextTurn].map(m=>m.id));
@@ -124,5 +126,5 @@ async function restoreContexts(p){
 readline.createInterface({input:process.stdin}).on('line',line=>{
  let value;try{value=JSON.parse(line);}catch{return;}
  if(value.host_id){const p=callbacks.get(value.host_id);if(p){callbacks.delete(value.host_id);value.error?p.reject(Error(value.error)):p.resolve(value.result);}return;}
- Promise.resolve().then(()=>value.method==='init'?init(value.params):value.method==='shutdown'?close().then(()=>({ok:true})):value.method==='core-commit'?(checkpoints?.schedule(),{ok:true}):value.method==='agent-context-capture'?captureContexts(value.params):value.method==='agent-context-restore'?restoreContexts(value.params):value.method==='agent-run'?run(value.params):value.method==='agent-read'?agentFor(value.params).then(e=>({session_id:e.agent.id,status:e.running?'running':'idle',messages:e.agent.session.deriveMessages()})):value.method==='agent-cancel'?(agents.get(value.params.actor)?.agent.cancel('user'),{ok:true}):Promise.reject(Error('Unknown native operation'))).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:String(error.stack??error)}));
+ Promise.resolve().then(()=>value.method==='init'?init(value.params):value.method==='shutdown'?close().then(()=>({ok:true})):value.method==='core-commit'?(checkpoints?.schedule(),{ok:true}):value.method==='agent-context-capture'?captureContexts(value.params):value.method==='agent-context-restore'?restoreContexts(value.params):value.method==='agent-run'?run(value.params):value.method==='agent-read'?agentFor(value.params).then(async e=>{const messages=e.agent.session.deriveMessages();return {session_id:e.agent.id,status:e.running?'running':'idle',messages,previews:await toolContent.previews({host,native},messages)};}):value.method==='agent-cancel'?(agents.get(value.params.actor)?.agent.cancel('user'),{ok:true}):Promise.reject(Error('Unknown native operation'))).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:String(error.stack??error)}));
 }).on('close',()=>close().finally(()=>process.exit()));

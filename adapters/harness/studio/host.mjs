@@ -10,7 +10,7 @@ import {editorNode,editorNodes} from '../framework/editor-nodes.js';
 import {MakerManager} from './makers/manager.mjs';
 import {nativeMakerFactory} from './makers/connection.mjs';
 import {installApplicationPresets} from './application-presets.mjs';
-import {parallelTownTemplates,updateTownRuntime} from './town-layout.mjs';
+import {parallelTownTemplates,updateTownRuntime,updateTownQueries} from './town-layout.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,application,components=[],templates=[],onOpenNetwork,onImportNetwork,onOpenProject,onCreateProject,onRevealFile,projectDirectory=directory,applicationPresets,startupWarnings=[],onProgress=()=>{}}={}){
  registerProjectDirectory(directory,projectDirectory);
@@ -112,6 +112,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  if(application==='npc_town_v3')await updateTownRuntime(rpc,directory);
  workspaceFiles.runtime={components,templates,application};workspaceFiles.project=project;
  if(restoreBundle){const staged=await workspaceFiles.request('workspace.import',{bundle:restoreBundle});if(!restoreBundle.dirty&&staged.validation.valid)await workspaceFiles.request('workspace.apply',{...staged,base_commit:staged.base_commit});}
+ if(application==='npc_town_v3')try{await updateTownQueries(rpc,directory);}catch(error){startupWarnings.push('小镇查询配置未能自动更新：'+error.message);}
  makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory},callback))});await makers.initialize();makers.project=project;makers.advisor=new Advisors(directory,rpc,makers,()=>request('catalog',{}));
  adminRequest=(method,p)=>{if(method==='start')return makers.start(p);if(method==='status')return makers.read(p);if(method==='cancel')return makers.cancel(p);throw Error('未知局部管理员宿主操作');};
  // 原生 Agent 与制作运行器已有按需启动；官方工具同样不阻塞画布。

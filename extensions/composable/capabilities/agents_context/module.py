@@ -1,141 +1,20 @@
+"""角色身份装配与按需只读查询；私人记忆只由 recall 检索。"""
 import json
 from collections.abc import Mapping
-
 from datanet.core.module_protocol import ComponentResult
+from .scene import scene, inspect_place, map_graph, plain as _plain
+from .map_image import render_map
 
 OPENING_INPUT_ID = "agents.context.opening"
-PUBLIC_FIELD_LABELS = {
-    "name": "姓名",
-    "gender": "性别",
-    "profession": "职业",
-    "age_group": "年龄段",
-}
+PUBLIC_FIELD_LABELS = {"name": "姓名", "gender": "性别", "profession": "职业", "age_group": "年龄段"}
 
 
 def _error(message):
     return ComponentResult(status="error", error=message)
 
 
-def _plain(value):
-    """把冻结的 JSON 配置/结果转成普通可序列化的值。"""
-    if isinstance(value, Mapping):
-        return {key: _plain(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_plain(item) for item in value]
-    return value
-
-
-async def _call(ctx, node_id, module_id, operation, parameters=None):
-    result = await ctx.network.call(node_id, module_id, operation, parameters or {})
-    if result.get("status") != "ok":
-        raise RuntimeError(result.get("error") or f"无法调用 {module_id}.{operation}")
-    return _plain(result.get("data") or {})
-
-
-async def _memory_values(ctx):
-    records = await _call(ctx, ctx.node_id, "records.store", "read")
-    values = records.get("values")
-    if not isinstance(values, dict):
-        values = {}
-    return values
-
-
-async def _place_values(ctx):
-    place = await _call(ctx, ctx.node_id, "place.info", "read")
-    if not isinstance(place, dict):
-        place = {}
-    return place
-
-
-def _public_fields(config):
-    fields = config.get("public_fields")
-    if not isinstance(fields, (list, tuple)):
-        fields = ["name", "gender", "profession", "age_group"]
-    return [field for field in fields if isinstance(field, str) and field]
-
-
 def _public_profile(records, config):
-    """只从自己的记录中挑选配置的公开字段，其他记录一律不发布。"""
-    profile = {}
-    for field in _public_fields(config):
-        if field in records:
-            profile[field] = _plain(records[field])
-    return profile
-
-
-def _profile_from_metadata(metadata, config):
-    """只采集其他节点在本模块命名空间发布的配置字段。"""
-    if not isinstance(metadata, Mapping):
-        return {}
-    extensions = metadata.get("extensions")
-    if not isinstance(extensions, Mapping):
-        return {}
-    namespace = extensions.get("agents.context")
-    if not isinstance(namespace, Mapping):
-        return {}
-    profile = {}
-    for field in _public_fields(config):
-        if field in namespace:
-            profile[field] = _plain(namespace[field])
-    return profile
-
-
-async def _nearby_values(ctx):
-    raw = await ctx.network.nodes(channels=["movement"])
-    entries = list(raw or [])
-    nearby = []
-    for entry in entries:
-        item = _plain(entry)
-        if not isinstance(item, dict):
-            continue
-        path = item.get("path")
-        if not isinstance(path, list):
-            path = []
-        node_id = item.get("id") or item.get("node_id") or (path[-1] if path else "")
-        if not node_id or str(node_id) == ctx.node_id:
-            continue
-        metadata = item.get("metadata")
-        if not isinstance(metadata, dict):
-            metadata = {}
-        profile = _profile_from_metadata(metadata, ctx.config)
-        host_name = ""
-        # Agent 的名称只能来自其公开资料；地点等普通节点可显示宿主节点名。
-        if metadata.get("node_type") != "agent":
-            node_name = metadata.get("name")
-            if isinstance(node_name, str):
-                host_name = node_name
-        profile_name = profile.get("name")
-        if not isinstance(profile_name, str):
-            profile_name = ""
-        strength = item.get("strength", 0)
-        if not isinstance(strength, (int, float)) or isinstance(strength, bool):
-            strength = 0
-        nearby.append(
-            {
-                "id": str(node_id),
-                "name": profile_name or host_name,
-                "path": [str(part) for part in path],
-                "strength": strength,
-                "profile": profile,
-            }
-        )
-    nearby.sort(key=lambda item: (item["name"], item["id"]))
-    return nearby
-
-
-async def _clock_values(ctx, config):
-    clock_id = config.get("clock")
-    if not clock_id:
-        return None
-    data = await _call(ctx, str(clock_id), "clock.counter", "read")
-    tick = data.get("tick", 0)
-    day = data.get("day", 1)
-    slot = data.get("slot", "")
-    if not isinstance(tick, int) or isinstance(tick, bool):
-        tick = 0
-    if not isinstance(day, int) or isinstance(day, bool):
-        day = 1
-    return {"tick": tick, "day": day, "slot": str(slot)}
+    return {field: _plain(records[field]) for field in config.get("public_fields", ("name", "gender", "profession", "age_group")) if field in records}
 
 
 def _system_prompt(config):
@@ -174,86 +53,28 @@ def _knowledge_context(config, records):
 
 def _context(config, records):
     context = []
-    map_text = config.get("map") or ""
-    if isinstance(map_text, str) and map_text.strip():
-        context.append({"id": "map", "text": map_text})
     context.extend(_knowledge_context(config, records))
     return context
 
 
-def _display_value(value):
-    if isinstance(value, str):
-        return value
-    try:
-        return json.dumps(_plain(value), ensure_ascii=False, sort_keys=True)
-    except (TypeError, ValueError):
-        return "无法显示"
-
-
-def _display_profile(profile):
-    parts = []
-    for field, value in profile.items():
-        label = PUBLIC_FIELD_LABELS.get(field, field)
-        parts.append(f"{label}：{_display_value(value)}")
-    return "；".join(parts)
-
-
-def _tail(records, place, nearby, clock):
-    try:
-        account = json.dumps(records, ensure_ascii=False, sort_keys=True)
-    except (TypeError, ValueError):
-        account = "无法显示"
-    if records:
-        tail = [f"个人记录：{account}"]
-    else:
-        tail = ["个人记录：暂无"]
-
-    location = place.get("location")
-    tail.append(f"当前位置：{location}" if location else "当前位置：未知")
-
-    if nearby:
-        descriptions = []
-        for item in nearby:
-            path_text = "→".join(item["path"]) if item["path"] else item["id"]
-            label = item["name"] or item["id"]
-            profile_text = _display_profile(item.get("profile") or {})
-            if profile_text:
-                descriptions.append(
-                    f"{label}（{profile_text}；路径 {path_text}，强度 {item['strength']}）"
-                )
-            else:
-                descriptions.append(
-                    f"{label}（公开资料未提供；路径 {path_text}，强度 {item['strength']}）"
-                )
-        tail.append("附近可达：" + "；".join(descriptions))
-    else:
-        tail.append("附近可达：无可达地点")
-
+def _tail(current):
+    location = current["location"]
+    tail = ["个人记录：" + json.dumps(current["records"], ensure_ascii=False, sort_keys=True),
+            "当前位置：" + (location["name"] + "（" + location["id"] + "）" if location else "未知"),
+            "可直接前往：" + ("、".join(item["name"] + "（" + item["id"] + "）" for item in current["exits"]) or "暂无"),
+            "同地人物：" + (json.dumps(current["people"], ensure_ascii=False) if current["people"] else "暂无")]
+    clock = current["clock"]
     if clock is not None:
         tail.append(f"当前时间：第{clock['day']}天 {clock['slot']}（计数 {clock['tick']}）")
     return tail
 
 
 async def _snapshot(ctx):
-    config = ctx.config
-    records = await _memory_values(ctx)
-    place = await _place_values(ctx)
-    nearby = await _nearby_values(ctx)
-    clock = await _clock_values(ctx, config)
-    memories = _plain(ctx.state.get("memories", []))
-    if not isinstance(memories, list):
-        memories = []
-    return {
-        "system_prompt": _system_prompt(config),
-        "context": _context(config, records),
-        "tail": _tail(records, place, nearby, clock),
-        "location": place.get("location") if isinstance(place.get("location"), str) else None,
-        "nearby": nearby,
-        "clock": clock,
-        "records": records,
-        "memories": memories,
-        "opening_queued": bool(ctx.state.get("opening_queued", False)),
-    }
+    current = await scene(ctx)
+    return {"system_prompt": _system_prompt(ctx.config), "context": _context(ctx.config, current["records"]),
+            "tail": _tail(current), "location": current["location"]["id"] if current["location"] else None,
+            "nearby": current["exits"] + current["people"], "clock": current["clock"], "records": current["records"],
+            "memories": _plain(ctx.state.get("memories", [])), "opening_queued": bool(ctx.state.get("opening_queued", False))}
 
 
 def _memory_result(memories, duplicate=False):
@@ -307,8 +128,27 @@ async def execute(ctx, activation):
 
     if operation == "look":
         try:
-            return ComponentResult(data=await _snapshot(ctx))
+            return ComponentResult(data=await scene(ctx))
         except RuntimeError as exc:
+            return _error(str(exc))
+
+    if operation == "place":
+        try:
+            return ComponentResult(data=await inspect_place(ctx, parameters.get("place")))
+        except (RuntimeError, ValueError) as exc:
+            return _error(str(exc))
+
+    if operation == "map":
+        try:
+            graph = await map_graph(ctx)
+            if not graph["places"]:
+                return _error("当前授权范围内没有可绘制的地点")
+            image = render_map(graph, _plain(ctx.config))
+            labels = "；".join(item["name"] + "=" + item["id"] for item in graph["places"])
+            return ComponentResult(data={"format": "nexarbor-tool-content/v1", "content": [
+                {"type": "text", "text": "地点道路图。线段为道路，箭头为单向通行；示意位置不代表距离。地点编号：" + labels},
+                {"type": "image", "name": "地点道路图.png", "mediaType": "image/png", "data": image}]})
+        except (RuntimeError, ValueError) as exc:
             return _error(str(exc))
 
     if operation == "remember":

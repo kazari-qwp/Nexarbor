@@ -73,6 +73,9 @@ def factory(folder):
     source=(folder/'module.py').resolve()
     if not source.is_relative_to(folder): raise ValueError('Module entry escapes its directory')
     key='nexarbor_user_'+re.sub(r'\W','_',specification['id'])+'_'+sha256(str(folder).encode()).hexdigest()[:16]
+    # 每个源码版本独立导入相对辅助文件；旧实例仍持有旧模块对象，直到显式重新装配。
+    for loaded in list(sys.modules):
+        if loaded == key or loaded.startswith(key+'.'):sys.modules.pop(loaded,None)
     spec=importlib.util.spec_from_file_location(key,source,submodule_search_locations=[str(folder)])
     module=importlib.util.module_from_spec(spec);sys.modules[key]=module
     try:
