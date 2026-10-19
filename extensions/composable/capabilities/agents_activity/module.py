@@ -64,7 +64,6 @@ async def _drive(ctx,key,*,resume=False):
                 if account['values'].get(field,0)<=0:break
             # 清除已接收的通知，再准备最新现场。执行中的新通知只置 pending。
             entry=_find(ctx,key);entry.update(pending=False,runs=entry['runs']+1);_save(ctx,entry)
-            await _call(ctx,'agents.context','prepare',{},'self')
             prompt=ctx.config.get('prompt','') if not resume else '你收到新便条。按当前剩余行动点处理需要回应的内容；不要重复已完成的行动，自然结束。'
             try:await ctx.network.invoke(ctx.node_id,'runtime:agent_run',{'message':prompt},channels=['runtime.agent'])
             except Exception as error:raise RuntimeError('运行官方端口 runtime:agent_run 失败：'+str(error)) from error

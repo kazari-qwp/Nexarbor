@@ -24,7 +24,7 @@ SCHEMA = {'type':'object', 'additionalProperties':False,
  'config_schema':{'type':'object'}, 'state_schema':{'type':'object'},
  'frontend':{'type':'object','additionalProperties':False,'required':['entry'],
     'properties':{'entry':{'type':'string','minLength':1},'title':{'type':'string','minLength':1},
-                  'height':{'type':'integer','minimum':160,'maximum':900}}},
+                  'height':{'type':'integer','minimum':160,'maximum':900},'preview_operation':{'type':'string','minLength':1}}},
  'tool_provider':{'type':'object','additionalProperties':False,'required':['list','invoke'],
     'properties':{'list':{'type':'string','minLength':1},'invoke':{'type':'string','minLength':1}}},
  'operations':{'type':'array','items':{'type':'object','additionalProperties':False,
@@ -51,6 +51,7 @@ def manifest(folder):
         if tool['id'] in tools or tool['operation'] not in seen:raise ValueError('模块工具重复或引用未声明操作')
         tools.add(tool['id'])
     if tools and result.get('tool_provider'):raise ValueError('静态工具与动态工具提供器不能同时声明')
+    if result.get('frontend',{}).get('preview_operation') and result['frontend']['preview_operation'] not in seen:raise ValueError('预览必须引用已声明操作')
     frontend_file(folder,result)
     return result
 

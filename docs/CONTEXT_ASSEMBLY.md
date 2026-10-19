@@ -2,6 +2,12 @@
 
 核心定义输入契约，独立装配器组织来源，执行器适配层送入原生通道。工具注册、工具权限、工具结果和执行状态不归入这四类。没有用四类正文重新拼接整个Harness请求。
 
+## 当前 v3 模块工作流
+
+新网络使用普通相邻节点上的 `context.assembler`，四种来源频道为 `system_prompt` / `context` / `inputs` / `tail`，文本节点装 `context.text`。同时支持直接文本和项目文本路径，工作台有可追踪的只读预览。Agent 的 `execution.prepare` 显式通过 `context.assemble` 调用组装节点。实现与反例教学见 [上下文组装案例](CONTEXT_ASSEMBLER_CASE_STUDY.md)，参数见 `extensions/composable/capabilities/context_assembler/README.md`。
+
+下文 Application 插件接口保留给旧运行环境；新制作 Agent 应使用上述 v3 模块，不再使用应用级 `agents.context`。
+
 ## 核心输入接口
 
 ```python

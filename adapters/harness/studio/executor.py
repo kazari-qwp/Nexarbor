@@ -94,10 +94,21 @@ class NativeExecutor:
         if self.backend.agents.get(actor,{}).get('module_tool_sources'):
             self.backend.runtime.run(self.module_tools.refresh(actor,strength=binding.get('strength',0),channels=binding.get('channels',[])))
         for reference in binding.get('prepare',[]):
-            value=self.backend.modules.call(reference.get('node',actor),reference['module'],reference['operation'],reference.get('arguments',{}))
-            if hasattr(value,'__await__'):self.backend.runtime.run(value)
+            target=reference.get('node',actor)
+            channels=reference.get('channels',binding.get('channels',[]))
+            value=self.backend.runtime.run(self.backend.modules.access(actor,target,reference['module'],reference['operation'],reference.get('arguments',{}),strength=binding.get('strength',0),channels=channels))
+            if value.get('status')!='ok':raise RuntimeError(value.get('error') or '上下文准备失败')
+            packet=value.get('data') or {}
+            if isinstance(packet,dict) and packet.get('format')=='nexarbor-context/v1':
+                source='prepare:'+target+':'+reference['module']+':'+reference['operation']
+                node.inputs.update(source,packet['patch'])
+                self.backend.agents.setdefault(actor,{})['context_assembly_errors']=packet.get('errors',[])
+        # 接线撤销后移除快照，但保留已经投递/排队的事件历史。
+        active={'prepare:'+r.get('node',actor)+':'+r['module']+':'+r['operation'] for r in binding.get('prepare',[])}
+        for source in node.inputs.snapshot():
+            if source.startswith('prepare:') and source not in active:node.inputs.update(source,dict(system_prompt='',context=[],tail=[]))
         sources=node.inputs.snapshot();definitions,_=self.definitions(actor)
-        return dict(actor=actor,system_prompt='你有一份私有的记忆，根据你的需要主动维护和阅读，适时清除过时和无用记忆。\n\n'+'\n\n'.join(v['system_prompt'] for _,v in sorted(sources.items())),
+        return dict(actor=actor,system_prompt='\n\n'.join(v['system_prompt'] for _,v in sorted(sources.items())),
             context=[dict(id=s+'/'+d['id'],text=d['text']) for s,v in sorted(sources.items()) for d in v['context']],
             inputs=[dict(source=s,**e) for s,e in node.inputs.pending()],tail=node.inputs.tail(),tools=definitions,retained_tools=[v['definition'] for v in self.backend.agents[actor]['tool_history'].values()],
             unavailable={name:self.refusal(actor,name) for name in self.seen.get(actor,{}) if name not in {d['name'] for d in definitions}})

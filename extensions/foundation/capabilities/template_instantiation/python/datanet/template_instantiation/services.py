@@ -69,6 +69,8 @@ def register(services):
                             old=node['parameters']['file_path']
                             if old not in paths:raise ValueError('模板每个记忆/文本文件都须有独立初始正文')
                             node['parameters']['file_path']=paths[old]
+                        for reference in (node.get('execution') or {}).get('prepare',[]):
+                            if 'node' in reference:reference['node']=ids.get(reference['node'],reference['node'])
                         for edge in node['connections']['interfaces']:edge['target_node_id']=ids.get(edge['target_node_id'],edge['target_node_id'])
                         for module,mount in node['modules'].items():
                             spec=backend.studio.library[module]['manifest']

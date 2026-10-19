@@ -15,5 +15,6 @@
 | 使用真实运行时验证组件 | lessons/05-tests.md |
 | 组装网络、频道与权限 | lessons/06-presets.md |
 | 从用户效果需求设计，在当前网络副本内试装 | lessons/07-environment.md |
+| 人格、资料、事件、尾部快照与文件来源 | lessons/09-context.md |
 
 模块作者先读 01；网络预设 Agent 先读 06。详细参数以依赖的 module.json 为准，别凭模块名称猜接口。

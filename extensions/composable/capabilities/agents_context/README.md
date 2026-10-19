@@ -40,3 +40,7 @@
 查询地图返回通用的 `nexarbor-tool-content/v1` 内容封装。原生执行器将其中的 PNG 纳入附件库，用 `type=image` 内容块交给支持图片输入的模型，不把 base64 当文字发送。对话界面可直接显示图片；Commit、导出、导入和上下文分支保留图片，相同内容按哈希去重。
 
 绘图依赖 `requirements.txt` 中的 Pillow，以及运行系统上的微软雅黑、黑体或 Noto Sans CJK 中文字体。绘制在本地完成，不调用绘图 API。原生模型需要支持图片输入。
+
+## 已弃用：架构反面教材
+
+此版本保留用于旧项目与反例阅读，新网络请使用相邻普通节点上的 context.assembler + context.text，私人记忆用 agents.memory，地点与地图查询用 places.query。具体错误、正确流程及迁移保护见 docs/CONTEXT_ASSEMBLER_CASE_STUDY.md。不要继续把应用规则、时钟和工具塞进这个模块。

@@ -72,6 +72,7 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={},opti
  const ids=new Set([...next.network.nodes.map(n=>n.node_id),...Object.values(mapping)]),nodes=[];
  for(const original of bookmark.snapshot.nodes){
   let node=documentRefs({...clone(original),parameters:{}},paths);node.parameters=clone(original.parameters);for(const field of [...dataFiles,...dataDirectories])if(typeof node.parameters[field]==='string'&&paths[node.parameters[field]])node.parameters[field]=paths[node.parameters[field]];node.node_id=mapping[original.node_id];node.context_cursor=null;
+  for(const reference of node.execution?.prepare??[])if(reference.node)reference.node=mapping[reference.node]??reference.node;
   node.management_parent_id=mapping[node.management_parent_id]??(ids.has(node.management_parent_id)?node.management_parent_id:null);
   if(node.management_parent_id===node.node_id)node.management_parent_id=null;
   node.connections.interfaces=node.connections.interfaces.map(link=>({...link,target_node_id:mapping[link.target_node_id]??link.target_node_id})).filter(link=>ids.has(link.target_node_id));

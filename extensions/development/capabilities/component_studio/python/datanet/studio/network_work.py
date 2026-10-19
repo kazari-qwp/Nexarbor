@@ -3,7 +3,7 @@ import json
 from .assembly import assemble_document
 from datanet.core.serialization import _build
 
-def validate_execution(node,backend,*,allow_missing=False):
+def validate_execution(node,backend,*,allow_missing=False,network=None):
     """在制作阶段检查宿主执行配置，避免只有图结构合法却无法启动。"""
     binding=node.execution_binding
     if not binding:return
@@ -20,10 +20,17 @@ def validate_execution(node,backend,*,allow_missing=False):
     prepare=binding.get('prepare',[])
     if not isinstance(prepare,list):raise ValueError('execution.prepare须为操作对象数组，不是true或单个对象')
     for item in prepare:
-        if not isinstance(item,dict) or set(item)-{'node','module','operation','arguments'} or not {'module','operation'}<=set(item):raise ValueError('prepare每项声明module/operation/arguments')
-        if item.get('node',node.node_id)!=node.node_id:raise ValueError('上下文准备只能调用本节点模块')
+        if not isinstance(item,dict) or set(item)-{'node','module','operation','arguments','channels'} or not {'module','operation'}<=set(item):raise ValueError('prepare每项声明module/operation/arguments')
+        target=(network or backend.network).nodes.get(item.get('node',node.node_id))
+        if target is None:
+            if allow_missing:continue
+            raise ValueError('prepare引用不存在的节点')
+        selected=item.get('channels',channels)
+        if not isinstance(selected,list) or any(c not in channels for c in selected):raise ValueError('准备接口频道必须在执行器授权内')
         module=item['module'];operation=item['operation']
-        if module not in node.modules:raise ValueError('prepare引用未装配的本地模块：'+str(module))
+        if module not in target.modules:
+            if allow_missing:continue
+            raise ValueError('prepare引用未装配的模块：'+str(module))
         definition=backend.components.module_types.get(module)
         if definition is None and allow_missing:continue
         if definition is None or operation not in definition.operations:raise ValueError('prepare引用未知模块操作')
@@ -35,7 +42,7 @@ def validate_network(document,backend,library,*,allow_missing=False):
     document=assemble_document(document,library,backend.components.module_types,allow_missing=allow_missing)
     candidate=_build(document['network'],backend.directory)
     for node in candidate.nodes.values():
-        validate_execution(node,backend,allow_missing=allow_missing)
+        validate_execution(node,backend,allow_missing=allow_missing,network=candidate)
         from datanet.core.node_toolboxes import validate_exposure
         validate_exposure(node)
         backend.external_tools.validate_node(node)

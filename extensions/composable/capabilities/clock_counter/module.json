@@ -2,7 +2,7 @@
   "format": "nexarbor-module/v3",
   "id": "clock.counter",
   "name": "时钟与计数触发器",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "entry": "module.py:execute",
   "node_types": [
     "node",
@@ -65,6 +65,12 @@
         "title": "写入本地文本",
         "description": "为真时把中文时间字符串写入本节点文本文件的主键 content。",
         "default": false
+      },
+      "text_template": {
+        "type": "string",
+        "title": "输出文本模板",
+        "description": "可用占位符：{tick}、{day}、{slot}。文本写在本节点，可供上下文 tail 频道读取。",
+        "default": "第{day}天 {slot}"
       }
     }
   },

@@ -11,6 +11,7 @@ import {MakerManager} from './makers/manager.mjs';
 import {nativeMakerFactory} from './makers/connection.mjs';
 import {installApplicationPresets} from './application-presets.mjs';
 import {parallelTownTemplates,updateTownRuntime,updateTownQueries} from './town-layout.mjs';
+import {assemblyTownTemplates,updateTownAssembly} from './context-town.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
 export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,application,components=[],templates=[],onOpenNetwork,onImportNetwork,onOpenProject,onCreateProject,onRevealFile,projectDirectory=directory,applicationPresets,startupWarnings=[],onProgress=()=>{}}={}){
  registerProjectDirectory(directory,projectDirectory);
@@ -70,6 +71,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   }
   if(operation.startsWith('studio.'))return rpc('studio_'+operation.slice(7).replaceAll('.','_'),params);
   if(operation==='module.frontend')return rpc('studio_frontend',params);
+  if(operation==='module.preview')return rpc('studio_frontend_preview',params);
   if(['state','draft','apply','view'].includes(operation))return rpc('studio_'+operation,params);
   if(operation==='catalog'){
    if(params.official)await loadOfficial();
@@ -107,12 +109,12 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  try{
  await rpc('ping');await rpc('studio_project_modules');mark('pythonReady');onProgress('正在准备画布…');officialNeeded=await rpc('studio_official_needed');await installApplicationPresets(directory,root,{returnPresets:false,applicationIds:applicationPresets??(path.resolve(projectDirectory)!==path.resolve(directory)?[]:undefined)});mark('presetsReady');
  if(components.includes('capabilities/runtime_ports'))runtimeTools=(await rpc('runtime_catalog')).map(t=>({...t,owner:'可选宿主端口'}));
- if(application==='npc_town_v3')templates=parallelTownTemplates(templates);
+ if(application==='npc_town_v3')templates=assemblyTownTemplates(parallelTownTemplates(templates));
  if(components.includes('capabilities/template_instantiation')){if(templates.length)await rpc('templates_register',{templates});runtimeTools.push(...(await rpc('templates_catalog')).map(t=>({...t,owner:'固定模板端口'})));}
  if(application==='npc_town_v3')await updateTownRuntime(rpc,directory);
  workspaceFiles.runtime={components,templates,application};workspaceFiles.project=project;
  if(restoreBundle){const staged=await workspaceFiles.request('workspace.import',{bundle:restoreBundle});if(!restoreBundle.dirty&&staged.validation.valid)await workspaceFiles.request('workspace.apply',{...staged,base_commit:staged.base_commit});}
- if(application==='npc_town_v3')try{await updateTownQueries(rpc,directory);}catch(error){startupWarnings.push('小镇查询配置未能自动更新：'+error.message);}
+ if(application==='npc_town_v3')try{await updateTownQueries(rpc,directory);await updateTownAssembly(rpc,directory);}catch(error){startupWarnings.push('小镇上下文配置未能自动更新：'+error.message);}
  makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory},callback))});await makers.initialize();makers.project=project;makers.advisor=new Advisors(directory,rpc,makers,()=>request('catalog',{}));
  adminRequest=(method,p)=>{if(method==='start')return makers.start(p);if(method==='status')return makers.read(p);if(method==='cancel')return makers.cancel(p);throw Error('未知局部管理员宿主操作');};
  // 原生 Agent 与制作运行器已有按需启动；官方工具同样不阻塞画布。

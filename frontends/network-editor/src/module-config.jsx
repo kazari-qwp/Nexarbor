@@ -63,6 +63,11 @@ function ModuleFrontend({api,module,source,definition,node,config,state,onChange
         if(Number.isFinite(message.height))setHeight(Math.max(160,Math.min(900,Math.ceil(message.height))));
         return;
       }
+      if(message.type==='preview'&&typeof message.id==='string'){
+        const reply=result=>event.source.postMessage({protocol,type:'result',id:message.id,...result},'*');
+        if(!definition.frontend.preview_operation||!context.node){reply({error:'请在已装配节点上预览'});return;}
+        api('module.preview',{node:context.node.id,module:context.module,config:context.config}).then(value=>reply({value}),error=>reply({error:error.message}));return;
+      }
       if(message.type!=='set-config'||typeof message.id!=='string')return;
       const reply=result=>event.source.postMessage({protocol,type:'result',id:message.id,...result},'*');
       try{

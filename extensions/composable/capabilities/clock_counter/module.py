@@ -94,7 +94,7 @@ async def _on_signal(ctx, activation):
         ctx.publish_metadata(dict(clock))
 
         if config.get("write_text", False):
-            await _write_text(ctx, f"第{clock['day']}天 {clock['slot']}")
+            await _write_text(ctx, ctx.config.get('text_template', '第{day}天 {slot}').format(**clock))
 
         if checkpoint_every > 0 and tick % checkpoint_every == 0:
             # 先登记待办，确保调用失败时状态仍然保留。

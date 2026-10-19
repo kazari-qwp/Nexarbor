@@ -1,0 +1,74 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "context.text",
+  "version": "1.0.0",
+  "name": "上下文文本源",
+  "description": "读取本节点的文本，投放类型由组装节点与本节点之间的频道决定。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "text_file"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "order": {
+        "type": "number",
+        "title": "装配顺序",
+        "default": 0
+      },
+      "when": {
+        "type": "object",
+        "title": "匹配条件",
+        "default": {}
+      },
+      "event_id": {
+        "type": "string",
+        "title": "inputs 一次性事件编号",
+        "default": ""
+      },
+      "delivery": {
+        "type": "string",
+        "title": "投递方式",
+        "enum": [
+          "followup",
+          "steer"
+        ],
+        "default": "followup"
+      },
+      "enabled": {
+        "type": "boolean",
+        "title": "启用",
+        "default": true
+      }
+    },
+    "required": []
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "operations": [
+    {
+      "name": "read",
+      "channels": [
+        "system_prompt",
+        "context",
+        "inputs",
+        "tail"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": []
+}

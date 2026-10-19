@@ -26,6 +26,14 @@
         pending.set(id,{resolve,reject,timer});send({type:'set-config',id,instance:context.instance,config});
       });
     },
+    preview(){
+      if(!context)return Promise.reject(Error('客户端尚未提供模块上下文'));
+      const id=String(++serial);
+      return new Promise((resolve,reject)=>{
+        const timer=setTimeout(()=>{pending.delete(id);reject(Error('预览超时'));},15000);
+        pending.set(id,{resolve,reject,timer});send({type:'preview',id,instance:context.instance});
+      });
+    },
     resize(height){if(context)send({type:'resize',instance:context.instance,height});},
   });
   send({type:'ready'});

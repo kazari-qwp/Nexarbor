@@ -357,6 +357,17 @@ class Studio:
         if page is None:return None
         return dict(html=page.read_text(encoding='utf-8'),title=spec['frontend'].get('title',spec['id']),
                     height=spec['frontend'].get('height',320),module=spec['id'])
+    def frontend_preview(self,p):
+        # 用户从当前节点的模块页面请求声明过的预览，不能选择任意操作或替换权限。
+        node=p['node'];name=p['module'];release=self.library[name];folder=self.root/release['folder']
+        spec=manifest(folder);operation=spec.get('frontend',{}).get('preview_operation')
+        if not operation:raise PermissionError('模块未提供预览操作')
+        if name not in self.backend.network.nodes[node].modules:raise ValueError('请先装配模块并校验更新网络，再预览当前接线')
+        arguments={'config':p['config']} if 'config' in p else {}
+        value=self.backend.modules.call(node,name,operation,arguments)
+        if hasattr(value,'__await__'):value=self.backend.runtime.run(value)
+        if value['status']!='ok':raise ValueError(value.get('error') or '预览失败')
+        return value['data']
     def validate(self,p):
         folder=self.folder(p['id']);files=sources(folder)
         id=uuid4().hex;job=dict(id=id,workspace=p['id'],status='running',digest=digest(files),log='',started=time.time())
@@ -632,5 +643,5 @@ def register(services):
         b.studio._load_releases()
         b.studio.persist_library()
     services.restorers.append(restore)
-    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'revision':False,'project_modules':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'revision':False,'project_modules':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'frontend_preview':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

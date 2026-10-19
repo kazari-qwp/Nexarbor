@@ -16,15 +16,15 @@ catalog_modules 查职责和参数，node_template 取合法单节点骨架，�
 
 角色自己装工具收集器时，通常只让它从本节点被调用：位置/道路边传movement、业务边传service/chat/knowledge，不在这些边上传tools，自己的收集器仍有tools操作频道，且access包含所需业务频道。这样能取得周围真实工具，又不会互相转调其他角色的收集器。只有明确设计的工具中继链才让tools贯通；框架不替你修理循环中继。
 
-同层信号接收器会并行执行，并等待全部完成才进入下一层。需要互相读写的角色若要按先后处理消息，可把tick连接写成clock→角色1→角色2→汇合→save→pulse；这只是网络顺序，模块跨节点访问仍是默认异步。模型等待期间不要持独占锁；锁等待前序回调完全退出，不保证两个相互等待的整轮模型活动能同时写对方。
+同层信号接收器会并行执行，并等待全部完成才进入下一层。需要互相读写的角色若要按先后处理消息，可把tick连接写成按需求显式安排；普通角色可用clock分叉到各角色并行，再各自到save；这只是网络顺序，模块跨节点访问仍是默认异步。模型等待期间不要持独占锁；锁等待前序回调完全退出，不保证两个相互等待的整轮模型活动能同时写对方。
 
 Agent execution 设 executor:'harness'、strength、channels、prepare、max_steps、timeout_seconds。人格常识用输入组件 system_prompt，现况用 tail，临时事件用唯一 ID inputs。模型思考前不锁全网。
 
 可直接复制的执行配置：
 ```json
-{"executor":"harness","strength":2,"channels":["tools","self","chat","knowledge"],"prepare":[{"module":"agents.context","operation":"prepare","arguments":{}}],"max_steps":16,"timeout_seconds":180}
+{"executor":"harness","strength":2,"channels":["tools","self","chat","knowledge","context.assemble"],"prepare":[{"node":"context-node","module":"context.assembler","operation":"assemble","arguments":{},"channels":["context.assemble"]}],"max_steps":16,"timeout_seconds":180}
 ```
-prepare必须是数组，不能写true或单个对象，只能调用本节点已装模块；不支持tool_provider字段。tools.collector的access.channels也必须包含希望收集的实际操作频道（例如self/chat/knowledge），只有tools只能看见以tools作为操作频道的工具。执行器首次运行自动访问自己的工具提供模块，后续每次请求刷新，移动后不能复用已经失效的旧工具。
+prepare必须是数组，不能写true或单个对象，可引用本节点模块或通过明确授权连线可达的模块；上下文来源按需读 lessons/09-context.md；不支持tool_provider字段。tools.collector的access.channels也必须包含希望收集的实际操作频道（例如self/chat/knowledge），只有tools只能看见以tools作为操作频道的工具。执行器首次运行自动访问自己的工具提供模块，后续每次请求刷新，移动后不能复用已经失效的旧工具。
 
 Schema中的default是说明，不能假设JSON Schema会自动填入配置；signals:{config:'signal_channels'}的组件必须显式填写signal_channels，否则没有接收频道。使用catalog返回的mount_defaults，再按需求改。
 

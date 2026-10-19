@@ -1,0 +1,345 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "context.assembler",
+  "version": "1.0.0",
+  "name": "上下文组装器",
+  "description": "沿四个独立频道读取文本，或使用直接文本与文本路径，生成可预览的四路上下文；不管理角色、地图或记忆。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "sources": {
+        "type": "array",
+        "title": "直接文本与文件来源",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "title": "稳定来源编号",
+              "minLength": 1
+            },
+            "kind": {
+              "type": "string",
+              "title": "投放类型",
+              "enum": [
+                "system_prompt",
+                "context",
+                "inputs",
+                "tail"
+              ],
+              "default": "context"
+            },
+            "type": {
+              "type": "string",
+              "title": "来源方式",
+              "enum": [
+                "text",
+                "file"
+              ],
+              "default": "text"
+            },
+            "text": {
+              "type": "string",
+              "title": "直接文本",
+              "default": ""
+            },
+            "path": {
+              "type": "string",
+              "title": "文本路径（相对项目目录）",
+              "default": ""
+            },
+            "order": {
+              "type": "number",
+              "title": "顺序",
+              "default": 0
+            },
+            "when": {
+              "type": "object",
+              "title": "匹配条件（事实字段等于指定值）"
+            },
+            "event_id": {
+              "type": "string",
+              "title": "一次性事件编号",
+              "default": ""
+            },
+            "delivery": {
+              "type": "string",
+              "title": "事件投递方式",
+              "enum": [
+                "followup",
+                "steer"
+              ],
+              "default": "followup"
+            },
+            "enabled": {
+              "type": "boolean",
+              "title": "启用",
+              "default": true
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "type"
+          ]
+        },
+        "default": []
+      },
+      "bindings": {
+        "type": "array",
+        "title": "条件事实来源（显式只读调用）",
+        "description": "结果对象合并为条件字段；不配置时条件只使用本节点元数据。",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "node": {
+              "type": "string",
+              "title": "事实节点",
+              "format": "node-id"
+            },
+            "module": {
+              "type": "string",
+              "title": "模块编号"
+            },
+            "operation": {
+              "type": "string",
+              "title": "只读操作"
+            },
+            "arguments": {
+              "type": "object",
+              "title": "参数",
+              "default": {}
+            },
+            "channels": {
+              "type": "array",
+              "title": "访问频道",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1
+            },
+            "pointer": {
+              "type": "string",
+              "title": "结果 JSON Pointer",
+              "default": ""
+            }
+          },
+          "required": [
+            "node",
+            "module",
+            "operation",
+            "channels"
+          ]
+        },
+        "default": []
+      },
+      "document_roots": {
+        "type": "array",
+        "title": "额外允许读取的文本目录",
+        "description": "默认只允许项目目录。额外目录属于明确的文件读取授权。",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      }
+    },
+    "required": []
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "operations": [
+    {
+      "name": "assemble",
+      "channels": [
+        "context.assemble"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "preview",
+      "channels": [
+        "context.assemble"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sources": {
+                "type": "array",
+                "title": "直接文本与文件来源",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "title": "稳定来源编号",
+                      "minLength": 1
+                    },
+                    "kind": {
+                      "type": "string",
+                      "title": "投放类型",
+                      "enum": [
+                        "system_prompt",
+                        "context",
+                        "inputs",
+                        "tail"
+                      ],
+                      "default": "context"
+                    },
+                    "type": {
+                      "type": "string",
+                      "title": "来源方式",
+                      "enum": [
+                        "text",
+                        "file"
+                      ],
+                      "default": "text"
+                    },
+                    "text": {
+                      "type": "string",
+                      "title": "直接文本",
+                      "default": ""
+                    },
+                    "path": {
+                      "type": "string",
+                      "title": "文本路径（相对项目目录）",
+                      "default": ""
+                    },
+                    "order": {
+                      "type": "number",
+                      "title": "顺序",
+                      "default": 0
+                    },
+                    "when": {
+                      "type": "object",
+                      "title": "匹配条件（事实字段等于指定值）"
+                    },
+                    "event_id": {
+                      "type": "string",
+                      "title": "一次性事件编号",
+                      "default": ""
+                    },
+                    "delivery": {
+                      "type": "string",
+                      "title": "事件投递方式",
+                      "enum": [
+                        "followup",
+                        "steer"
+                      ],
+                      "default": "followup"
+                    },
+                    "enabled": {
+                      "type": "boolean",
+                      "title": "启用",
+                      "default": true
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "type"
+                  ]
+                },
+                "default": []
+              },
+              "bindings": {
+                "type": "array",
+                "title": "条件事实来源（显式只读调用）",
+                "description": "结果对象合并为条件字段；不配置时条件只使用本节点元数据。",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "node": {
+                      "type": "string",
+                      "title": "事实节点",
+                      "format": "node-id"
+                    },
+                    "module": {
+                      "type": "string",
+                      "title": "模块编号"
+                    },
+                    "operation": {
+                      "type": "string",
+                      "title": "只读操作"
+                    },
+                    "arguments": {
+                      "type": "object",
+                      "title": "参数",
+                      "default": {}
+                    },
+                    "channels": {
+                      "type": "array",
+                      "title": "访问频道",
+                      "items": {
+                        "type": "string"
+                      },
+                      "minItems": 1
+                    },
+                    "pointer": {
+                      "type": "string",
+                      "title": "结果 JSON Pointer",
+                      "default": ""
+                    }
+                  },
+                  "required": [
+                    "node",
+                    "module",
+                    "operation",
+                    "channels"
+                  ]
+                },
+                "default": []
+              },
+              "document_roots": {
+                "type": "array",
+                "title": "额外允许读取的文本目录",
+                "description": "默认只允许项目目录。额外目录属于明确的文件读取授权。",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              }
+            },
+            "required": []
+          }
+        },
+        "required": []
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [],
+  "frontend": {
+    "entry": "ui.html",
+    "title": "上下文来源与装配预览",
+    "height": 700,
+    "preview_operation": "preview"
+  }
+}
