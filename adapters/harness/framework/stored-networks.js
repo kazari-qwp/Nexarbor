@@ -26,7 +26,7 @@ function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
      await checked(folder,file);const document=JSON.parse(await fs.readFile(file,'utf8'));
      if(!valid(document))throw Error(singleNode?'节点预设需要包含一个节点的 v8 文档':'需要当前 v8 网络文档');
      let editor={};try{await checked(folder,metadataFile);editor=JSON.parse(await fs.readFile(metadataFile,'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
-     presets.push({id:storageKind+':'+entry.name,name:editor.name??path.basename(entry.name,'.json'),description:editor.description??'',mode:editor.mode??'internal',snapshot:{nodes:document.network.nodes,files:document.files??{},positions:editor.positions??{}},originBookmark:editor.originBookmark,display_folder:editor.display_folder,storageKind,file,metadataFile});
+     presets.push({id:storageKind+':'+entry.name,name:editor.name??path.basename(entry.name,'.json'),description:editor.description??'',mode:editor.mode??'internal',snapshot:{nodes:document.network.nodes,files:document.files??{},positions:editor.positions??{}},originBookmark:editor.originBookmark,display_folder:editor.display_folder,storageKind,file,metadataFile,runtime:editor.runtime,application:editor.application});
     }catch(error){errors.push(entry.name+'：'+error.message);}
    }
   }

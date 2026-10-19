@@ -5,9 +5,9 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {randomBytes,timingSafeEqual} from 'node:crypto';
 import {editorLibrary} from './editor-library.js';
 
-export async function startEditorServer({web,directory,request,chat,recover,port=0}) {
+export async function startEditorServer({web,directory,request,chat,recover,runtime,port=0}) {
   const token=randomBytes(32).toString('hex');let authority;
-  const library=editorLibrary(directory,{catalog:()=>request('catalog',{}),inspect:p=>request('resource.inspect',p),purge:p=>request('resource.purge',p)});
+  const library=editorLibrary(directory,{runtime,catalog:()=>request('catalog',{}),inspect:p=>request('resource.inspect',p),purge:p=>request('resource.purge',p)});
   const pages=new Map(),pageKeys=new Map();
   const bridge=await readFile(new URL('./module-frontend-bridge.js',import.meta.url),'utf8');
   const frontend=page=>{
