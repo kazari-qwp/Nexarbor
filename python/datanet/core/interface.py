@@ -27,6 +27,8 @@ class InterfaceMetadata:
         validate_strength(self.multiplier)
         if not isinstance(self.attributes,dict):raise ValueError('attributes must be a JSON object')
         object.__setattr__(self,'channels',names(self.channels,'channels'))
+        from .channel_filters import mode
+        mode(self.attributes.get('channel_mode','allow'))
         object.__setattr__(self,'attributes',freeze(self.attributes))
 
 @dataclass(frozen=True)
@@ -42,12 +44,14 @@ class Interface:
     def allows(self,*,strength,channels):
         validate_signal(strength)
         m=self.metadata
-        return strength>=m.threshold and bool(set(channels).intersection(m.channels))
+        from .channel_filters import matches
+        return strength>=m.threshold and matches(m.channels,channels,m.attributes.get('channel_mode','allow'))
 
     def carries(self,channels,*,strength):
         validate_signal(strength)
         m=self.metadata
-        return strength>=m.threshold and bool(set(channels).intersection(m.channels))
+        from .channel_filters import matches
+        return strength>=m.threshold and matches(m.channels,channels,m.attributes.get('channel_mode','allow'))
 
 
 def metadata_schema():

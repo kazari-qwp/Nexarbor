@@ -4,7 +4,7 @@
 
 ## 当前 v3 模块工作流
 
-新网络使用普通相邻节点上的 `context.assembler`，四种来源频道为 `system_prompt` / `context` / `inputs` / `tail`，文本节点装 `context.text`。同时支持直接文本和项目文本路径，工作台有可追踪的只读预览。Agent 的 `execution.prepare` 显式通过 `context.assemble` 调用组装节点。实现与反例教学见 [上下文组装案例](CONTEXT_ASSEMBLER_CASE_STUDY.md)，参数见 `extensions/composable/capabilities/context_assembler/README.md`。
+新网络使用普通模块 `context.assembler`，推荐装在角色的亚节点上，以独立出边读取四类文本。默认频道为 `context.assembler.system_prompt` / `.context` / `.inputs` / `.tail`，串联频道为 `context.assembler`；均可配置频道列表和黑白名单。同时支持直接文本和项目文本路径。Agent 的 `execution.prepare` 显式引用组装器，同归属树通过核心本地调用，外部仍检查可达性。见 [亚节点](SUBNODES.md)、[上下文组装案例](CONTEXT_ASSEMBLER_CASE_STUDY.md) 和组件 README。
 
 下文 Application 插件接口保留给旧运行环境；新制作 Agent 应使用上述 v3 模块，不再使用应用级 `agents.context`。
 

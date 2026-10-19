@@ -69,4 +69,5 @@ export function RoutedEdge(props){
   <circle cx={start.x} cy={start.y} r={2} fill={props.style?.stroke} pointerEvents="none"/>
  </g>;
 }
-export const edgeTypes={routed:RoutedEdge};
+export function OwnershipEdge(props){const [path]=getSmoothStepPath({...props,borderRadius:6});return <BaseEdge path={path} style={{stroke:'#9073ac',strokeWidth:1.2,strokeDasharray:'4 3'}} interactionWidth={0}/>;}
+export const edgeTypes={routed:RoutedEdge,ownership:OwnershipEdge};

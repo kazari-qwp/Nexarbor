@@ -1,7 +1,7 @@
 {
   "format": "nexarbor-module/v3",
   "id": "context.text",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "上下文文本源",
   "description": "读取本节点的文本，投放类型由组装节点与本节点之间的频道决定。",
   "entry": "module.py:execute",
@@ -41,6 +41,34 @@
         "type": "boolean",
         "title": "启用",
         "default": true
+      },
+      "channels": {
+        "type": "array",
+        "title": "文本读取频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail",
+          "system_prompt",
+          "context",
+          "inputs",
+          "tail"
+        ]
+      },
+      "channel_modes": {
+        "type": "object",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
       }
     },
     "required": []
@@ -53,12 +81,9 @@
   "operations": [
     {
       "name": "read",
-      "channels": [
-        "system_prompt",
-        "context",
-        "inputs",
-        "tail"
-      ],
+      "channels": {
+        "config": "channels"
+      },
       "parameters": {
         "type": "object",
         "additionalProperties": false,

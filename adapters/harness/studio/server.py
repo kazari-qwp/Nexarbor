@@ -27,6 +27,9 @@ class StudioTransport(Transport):
                 result=super().dispatch(method,p)
                 result['commit']=self.backend.store.head
                 return result
+        if method=='studio_frontend_preview':
+            # 只读模块可能等待异步读取，不能持跨线程的全局事务锁。
+            return self.backend.studio.frontend_preview(p)
         if method=='data_preview':
             return self.backend.components.routes['data_preview'](self.backend,p)
         if method=='official_register':

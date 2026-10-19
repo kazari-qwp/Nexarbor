@@ -1,3 +1,4 @@
+import {singleOwnedNode,ownershipRoots} from '../../../shared/graph/ownership.js';
 import {useEffect,useRef,useState} from 'react';
 import {copySubnet,pasteSubnet,selectionKey,historyBookmark} from './subnets.js';
 import {shortcuts} from './shortcuts.js';
@@ -54,7 +55,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   }
   signature=category+':'+signature;
   if(frame.toggle!==false&&lastCopy.current?.signature===signature&&lastCopy.current.mode===mode&&current.current.bookmarks.some(b=>b.id===lastCopy.current.id)){await remove(lastCopy.current.id);return;}
-  const book=preset?{id:crypto.randomUUID(),name:preset.name,description:preset.description,kind:preset.asset.kind,asset:clone(preset.asset),category,createdAt:Date.now()}:{id:crypto.randomUUID(),name:snapshot.nodes.length===1?snapshot.nodes[0].name:snapshot.nodes.length?snapshot.nodes.length+' 节点子网':'连接书签',mode,category,createdAt:Date.now(),snapshot};
+  const book=preset?{id:crypto.randomUUID(),name:preset.name,description:preset.description,kind:preset.asset.kind,asset:clone(preset.asset),category,createdAt:Date.now()}:{id:crypto.randomUUID(),name:singleOwnedNode(snapshot.nodes)?ownershipRoots(snapshot.nodes)[0].name:snapshot.nodes.length?snapshot.nodes.length+' 节点子网':'连接书签',mode,category,createdAt:Date.now(),snapshot};
   await patch([{id:book.id,expected:null,value:book}]);lastCopy.current=frame.toggle===false?null:{id:book.id,signature,mode};setFocus(book.id);setOpen(true);
  };
  const created=(before,after,layout={})=>{
@@ -109,7 +110,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   copySelection:(mode,selection)=>{const ctx=latest.current.context(),frame={area:{kind:'canvas'},toggle:false,category:latest.current.category,ctx:{...ctx,document:clone(ctx.document),selection:clone(selection??ctx.selection),layout:clone(ctx.layout)}};return enqueue(()=>copy(mode,frame));},
   remove:id=>enqueue(()=>remove(id)),removeHovered,created,drop,dropHistory,dropResource,locate,record,usedHistory,saveAsset,
   openBook:book=>openAsset({...book,sourceBookmark:book.id}),
-  savePreset:id=>enqueue(async()=>{const book=current.current.bookmarks.find(b=>b.id===id),node=!isAsset(book)&&book?.snapshot?.nodes.length===1;await update({action:node?'node.save':'preset.save',bookId:id,folder:node?nodeFolder.current:presetFolder.current});latest.current.note(node?'节点完整配置已保存到节点栏；官方目录或根目录下保存时归入“已保存节点”':'已保存到当前网络预设目录');}),
+  savePreset:id=>enqueue(async()=>{const book=current.current.bookmarks.find(b=>b.id===id),node=!isAsset(book)&&singleOwnedNode(book?.snapshot?.nodes);await update({action:node?'node.save':'preset.save',bookId:id,folder:node?nodeFolder.current:presetFolder.current});latest.current.note(node?'节点完整配置已保存到节点栏；官方目录或根目录下保存时归入“已保存节点”':'已保存到当前网络预设目录');}),
   saveNetwork:()=>enqueue(async()=>{const ctx=latest.current.context(),name=(await textPrompt('保存全网',(ctx.document.network.nodes[0]?.name??'未命名')+'网络'))?.trim();if(!name)return;await update({action:'network.save',name,document:clone(ctx.document),layout:clone(ctx.layout)});latest.current.note('完整网络已写入磁盘，位于“已存储网络”分类');}),
   folderChanged:(kind,id)=>{if(kind==='preset')presetFolder.current=id;if(kind==='node')nodeFolder.current=id;},
   reload:()=>enqueue(()=>api('editor.library.index').then(accept)),

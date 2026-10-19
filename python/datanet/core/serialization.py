@@ -180,6 +180,7 @@ def _build(document, base):
                     # Validate the interface first, then drop a dangling reference.
                     continue
                 getattr(node, label).append(interface)
+    network.validate_ownership()
     delegations = document['delegations']
     if not isinstance(delegations, list):
         raise ValueError('delegations 必须是列表')

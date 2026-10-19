@@ -1,3 +1,4 @@
+import {singleOwnedNode,ownershipRoots} from '../../../shared/graph/ownership.js';
 const clone=value=>structuredClone(value);
 export const isAsset=value=>!!value?.asset&&['tool','module'].includes(value.asset.kind);
 export const resourceTitle=value=>`${value.name}：${value.description||'暂无描述'}`;
@@ -22,14 +23,14 @@ export function attachResource(document,nodeId,asset,catalog,organization={}){
   if(visiting.has(id))throw Error('模块依赖成环：'+id);
   if(done.has(id)&&!explicit)return;
   const definition=catalog.modules?.[id];if(!definition)throw Error('缺少依赖模块：'+id);
-  if(definition.node_types&&!definition.node_types.includes(node.type))throw Error('此模块或依赖不支持该节点类型：'+id);
+  if(definition.node_types&&!definition.node_types.includes(node.type==='subnode'?'node':node.type))throw Error('此模块或依赖不支持该节点类型：'+id);
   if(!node.modules[id]&&!resourceAvailable(catalog,organization,'module',id))throw Error('依赖模块已归档或删除：'+id);
   visiting.add(id);for(const dependency of definition.requires??[])mount(dependency);visiting.delete(id);done.add(id);
   if(!node.modules[id]||explicit){const selected=spec??definition.defaults??{config:{},state:{},access:{strength:0,channels:[]}};node.modules[id]={config:clone(selected.config),state:clone(node.modules[id]?.state??selected.state??{}),access:clone(selected.access??node.modules[id]?.access??definition.defaults?.access??{strength:0,channels:[]})};}
  };
  if(asset.kind==='module'){
   const definition=catalog.modules?.[asset.id];if(!definition)throw Error('模块已不在当前组件库');
-  if(definition.node_types&&!definition.node_types.includes(node.type))throw Error('此模块不支持该节点类型');
+  if(definition.node_types&&!definition.node_types.includes(node.type==='subnode'?'node':node.type))throw Error('此模块不支持该节点类型');
   mount(asset.id,asset,true);
  }else if(asset.kind==='tool'){
   if(!catalog.tools?.some(t=>t.ref===asset.id))throw Error('工具已不在当前工具目录');
@@ -69,7 +70,7 @@ export function folderResources(tree,entries,id){
  const folders=new Set([id]);for(const parent of folders)for(const f of tree.folders)if(f.parent===parent)folders.add(f.id);return entries.filter(e=>folders.has(tree.items[resourceId(e)]?.folder??null));
 }
 export const assetHistory=book=>({kind:book.asset.kind,id:book.id??book.asset.id,label:book.name,description:book.description??'',asset:clone(book.asset)});
-export const contentType=value=>isAsset(value)?value.asset.kind:!value.snapshot?.nodes.length?(value.kind==='preset'||value.storageKind==='network'?'network':'edge'):value.snapshot.nodes.length===1?'node':'network';
+export const contentType=value=>isAsset(value)?value.asset.kind:!value.snapshot?.nodes.length?(value.kind==='preset'||value.storageKind==='network'?'network':'edge'):singleOwnedNode(value.snapshot.nodes)?'node':'network';
 export const matchesType=(value,type)=>type==='all'||contentType(value)===type||(['internal','external'].includes(type)&&contentType(value)==='network'&&value.mode===type);
 
 export function moduleProblems(node,catalog,runtime={}){

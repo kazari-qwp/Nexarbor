@@ -11,7 +11,9 @@ def tool_id(node_id, reference):
 async def collect(ctx):
     tools = {}
     pending = []
-    for reached in await ctx.network.nodes():
+    channels=ctx.filter_channels('channels',['tools'])
+    visited={item['node_id'] for item in ctx.call_path if item['module']==ctx.module_id}
+    for reached in await ctx.network.nodes(channels=channels):
         node_id = reached['metadata']['node_id']
         for definition in await ctx.network.tools(node_id):
             reference = definition.get('ref', definition['name'])
@@ -19,10 +21,10 @@ async def collect(ctx):
             tools[identifier] = dict(id=identifier, name=definition['name'],
                 description=definition['description'], parameters=definition['parameters'],
                 origin=dict(node_id=node_id, tool=reference), via=[])
-        if node_id == ctx.node_id: continue  # 仅转调其他节点上的收集器。
-        for source in await ctx.network.tool_sources(node_id):
-            if source['module'] == ctx.module_id:
-                pending.append((node_id, ctx.network.call(node_id, ctx.module_id, source['list'])))
+    for source in await ctx.network.modules(ctx.module_id,channels=channels):
+        node_id=source['node_id']
+        if node_id in visited:continue
+        pending.append((node_id,ctx.network.call(node_id,ctx.module_id,'collect',channels=channels)))
     results = await asyncio.gather(*(request for _, request in pending))
     for (node_id, _), result in zip(pending, results):
         if result['status'] != 'ok': raise RuntimeError(result['error'])
@@ -44,7 +46,7 @@ async def execute(ctx, activation):
     arguments = dict(activation.parameters['arguments'])
     if selected['via']:
         result = await ctx.network.call(selected['via'][0], ctx.module_id, 'invoke',
-            dict(tool_id=selected['id'], arguments=arguments))
+            dict(tool_id=selected['id'], arguments=arguments),channels=ctx.filter_channels('channels',['tools']))
         if result['status'] != 'ok': return ComponentResult(status='error', error=result['error'])
         return ComponentResult(data=result['data'])
     origin = selected['origin']

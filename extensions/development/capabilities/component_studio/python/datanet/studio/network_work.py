@@ -9,14 +9,18 @@ def validate_execution(node,backend,*,allow_missing=False,network=None):
     if not binding:return
     if binding.get('executor')!='harness':raise ValueError('此制作宿主只支持 executor=harness')
     if node.signal_type!='agent':raise ValueError('只有 Agent 节点可以绑定 Harness 执行器')
-    if set(binding)-{'executor','strength','channels','max_steps','timeout_seconds','prepare'}:raise ValueError('Harness执行配置只支持executor/strength/channels/max_steps/timeout_seconds/prepare')
+    if set(binding)-{'executor','strength','channels','max_steps','timeout_seconds','prepare','channel_mode','channel_modes','tool_sources'}:raise ValueError('Harness执行配置只支持executor/strength/channels/max_steps/timeout_seconds/prepare')
     strength=binding.get('strength',0)
     if type(strength) not in (int,float) or not 0<=strength<=32:raise ValueError('执行器strength须为0至32')
+    from datanet.core.channel_filters import resolve,mode
     channels=binding.get('channels',[])
+    mode(binding.get('channel_mode',binding.get('channel_modes',{}).get('channels','allow')))
     if not isinstance(channels,list) or any(not isinstance(c,str) or not c for c in channels) or len(set(channels))!=len(channels):raise ValueError('执行器channels须为唯一非空字符串列表')
     if type(binding.get('max_steps',12)) is not int or not 1<=binding.get('max_steps',12)<=100:raise ValueError('执行器max_steps须为1至100')
     timeout=binding.get('timeout_seconds',90)
     if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('执行器timeout_seconds须为1至600')
+    from datanet.core.json_values import names
+    names(binding.get('tool_sources',[]),'execution.tool_sources')
     prepare=binding.get('prepare',[])
     if not isinstance(prepare,list):raise ValueError('execution.prepare须为操作对象数组，不是true或单个对象')
     for item in prepare:
@@ -52,7 +56,7 @@ def validate_network(document,backend,library,*,allow_missing=False):
             if definition is None:
                 if allow_missing:continue
                 raise ValueError('未发布或未登记模块：'+name)
-            if node.signal_type not in definition.node_types:
+            if ('node' if node.signal_type=='subnode' else node.signal_type) not in definition.node_types:
                 if allow_missing:continue
                 raise ValueError('模块不支持节点类型：'+name)
             try:definition.validate(spec['config'],definition.config_schema);definition.validate(spec['state'],definition.state_schema)

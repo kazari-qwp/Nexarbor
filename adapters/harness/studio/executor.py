@@ -28,7 +28,9 @@ class NativeExecutor:
         from datanet.studio.network_work import validate_execution
         validate_execution(node,self.backend)
         if not isinstance(node,AgentNode):raise TypeError('Native execution requires an Agent node')
-        binding=node.execution_binding or {}
+        binding=dict(node.execution_binding or {})
+        from datanet.core.channel_filters import resolve
+        binding['channels']=list(resolve(binding.get('channels',[]),binding.get('channel_mode',binding.get('channel_modes',{}).get('channels','allow')),self.backend.network.channel_names()))
         if binding.get('executor')!='harness':raise ValueError('Configure this node with executor=harness')
         strength=binding.get('strength',0)
         if type(strength) not in (int,float) or not 0<=strength<=32:raise ValueError('Invalid executor strength')
@@ -46,7 +48,8 @@ class NativeExecutor:
     async def _run_owned(self,node_id,message='',**options):
         node,binding=self.binding(node_id)
         # 首轮也装配本节点公开的工具来源；之后每次模型请求按当前网络刷新。
-        await self.module_tools.visit(node_id,node_id,strength=binding.get('strength',0),channels=binding.get('channels',[]))
+        for target in [node_id,*binding.get('tool_sources',[])]:
+            await self.module_tools.visit(node_id,target,strength=binding.get('strength',0),channels=binding.get('channels',[]))
         timeout=options.get('timeout_seconds',binding.get('timeout_seconds',90))
         if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('Invalid executor timeout')
         request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=binding.get('max_steps',12),session_id=self.backend.agents.get(node_id,{}).get('session_id'),context_cursor=node.context_cursor)
@@ -91,12 +94,14 @@ class NativeExecutor:
     def _prepare_owned(self,p):
         self._check_session(p)
         actor=p['actor'];node,binding=self.binding(actor)
+        for source_node in binding.get('tool_sources',[]):
+            self.backend.runtime.run(self.module_tools.visit(actor,source_node,strength=binding.get('strength',0),channels=binding.get('channels',[])))
         if self.backend.agents.get(actor,{}).get('module_tool_sources'):
             self.backend.runtime.run(self.module_tools.refresh(actor,strength=binding.get('strength',0),channels=binding.get('channels',[])))
         for reference in binding.get('prepare',[]):
             target=reference.get('node',actor)
             channels=reference.get('channels',binding.get('channels',[]))
-            value=self.backend.runtime.run(self.backend.modules.access(actor,target,reference['module'],reference['operation'],reference.get('arguments',{}),strength=binding.get('strength',0),channels=channels))
+            value=self.backend.runtime.run(self.backend.modules.local_access(actor,target,reference['module'],reference['operation'],reference.get('arguments',{})) if self.backend.network.same_family(actor,target) else self.backend.modules.access(actor,target,reference['module'],reference['operation'],reference.get('arguments',{}),strength=binding.get('strength',0),channels=channels))
             if value.get('status')!='ok':raise RuntimeError(value.get('error') or '上下文准备失败')
             packet=value.get('data') or {}
             if isinstance(packet,dict) and packet.get('format')=='nexarbor-context/v1':

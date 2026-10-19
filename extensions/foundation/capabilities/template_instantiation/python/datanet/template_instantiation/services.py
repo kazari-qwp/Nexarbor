@@ -64,6 +64,8 @@ def register(services):
                         paths[old]='created/templates/'+prefix+'/'+old;files[paths[old]]=text
                     for node in document['network']['nodes']:
                         node['node_id']=ids[node['node_id']];node['context_cursor']=None;node['inputs']=None
+                        if node['type']=='subnode':node['parameters']['parent_id']=ids.get(node['parameters'].get('parent_id'),node['parameters'].get('parent_id'))
+                        if (node.get('execution') or {}).get('tool_sources'):node['execution']['tool_sources']=[ids.get(id,id) for id in node['execution']['tool_sources']]
                         parent=node.get('management_parent_id');node['management_parent_id']=ids.get(parent,parent)
                         if 'file_path' in node['parameters']:
                             old=node['parameters']['file_path']

@@ -29,16 +29,25 @@ SCHEMA = {'type':'object', 'additionalProperties':False,
     'properties':{'list':{'type':'string','minLength':1},'invoke':{'type':'string','minLength':1}}},
  'operations':{'type':'array','items':{'type':'object','additionalProperties':False,
    'required':['name','channels','parameters','result'], 'properties':{
-    'name':{'type':'string','minLength':1}, 'channels':{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}},
+    'name':{'type':'string','minLength':1}, 'channels':{'oneOf':[{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}},{'type':'object','additionalProperties':False,'required':['config'],'properties':{'config':{'type':'string','minLength':1}}}]},
     'parameters':{'type':'object'}, 'result':{'type':'object'}}}},
  'signals':{'oneOf':[{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}},
     {'type':'object','additionalProperties':False,'required':['config'],'properties':{'config':{'type':'string','minLength':1}}}]}}}
+
+def channel_schema(schema):
+    if not isinstance(schema,dict):return
+    props=schema.get('properties',{})
+    fields=[k for k,v in props.items() if k.endswith('channels') and v.get('type')=='array']
+    if fields:props.setdefault('channel_modes',{'type':'object','title':'频道匹配模式','additionalProperties':{'enum':['allow','deny']}})
+    for value in list(props.values()):channel_schema(value)
+    if isinstance(schema.get('items'),dict):channel_schema(schema['items'])
 
 def manifest(folder):
     result=json.loads((Path(folder)/'module.json').read_text(encoding='utf-8'))
     if result.get('format')!='nexarbor-module/v3':
         raise ValueError('Only nexarbor-module/v3 is supported; old modules are not migrated automatically')
     Draft202012Validator(SCHEMA).validate(result)
+    channel_schema(result['config_schema'])
     for key in ('config_schema','state_schema'): Draft202012Validator.check_schema(result[key])
     seen=set()
     for operation in result['operations']:

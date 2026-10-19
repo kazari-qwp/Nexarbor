@@ -483,6 +483,12 @@ class NodeLocks:
             node = self.backend.network.nodes[node_id]
             return tuple(node.interfaces), node.divergence
 
+    def ownership(self,node_id):
+        with self.condition:
+            node=self.backend.network.nodes[node_id];group=self.exclusive.get(node_id)
+            attrs=group.images[node_id]['attrs'] if group and group is not self.current and node_id in group.images else vars(node)
+            return {k:attrs.get(k) for k in ('parent_id','use_parent_links','share_links')}
+
     def require_mutable(self, node_id):
         group = self.current
         if group and node_id not in group.nodes:

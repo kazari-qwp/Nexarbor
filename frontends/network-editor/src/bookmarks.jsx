@@ -1,3 +1,4 @@
+import {singleOwnedNode,ownershipRoots} from '../../../shared/graph/ownership.js';
 import {ContextMenu} from './context-menu.jsx';
 import React,{useEffect,useRef,useState} from 'react';
 import {Bookmark,History,Plus,LayoutGrid,List,Save,Trash2} from 'lucide-react';
@@ -6,7 +7,7 @@ import {historyBookmark} from './subnets.js';
 import {isAsset,matchesType,resourceTitle,resourceAvailable} from './resources.js';
 import './bookmark-dock.css';
 
-export const bookmarkType=book=>isAsset(book)?book.asset.kind:book.snapshot.nodes.length===0?'edge':book.snapshot.nodes.length===1?'node':book.mode;
+export const bookmarkType=book=>isAsset(book)?book.asset.kind:book.snapshot.nodes.length===0?'edge':singleOwnedNode(book.snapshot.nodes)?'node':book.mode;
 const filters=[['all','全部类型'],['node','单节点'],['edge','单边'],['network','网络'],['tool','工具'],['module','模块']];
 function AssetPreview({book,catalog}){
  const [failed,setFailed]=useState(false),preview=book.asset.kind==='module'?catalog?.modules?.[book.asset.id]?.preview:null;
@@ -45,6 +46,6 @@ export function BookmarkDock({library,catalog,category,onCategory,onNewCategory,
    {!library.history.length&&<p>创建或使用节点、边、书签时记录。</p>}
    {library.history.map(entry=>({entry,book:historyPreview(entry,library.bookmarks)})).filter(({book})=>matchesType(book,historyType)&&available(book)).map(({entry,book})=><button className={'history-card '+(isAsset(book)?'asset-card '+book.asset.kind:book.mode)} draggable key={entry.kind+entry.id} data-history-kind={entry.kind} data-history-id={entry.id} aria-label={'历史 '+entry.label} title={isAsset(book)?resourceTitle(book):entry.label} onPointerEnter={()=>onHover({kind:'history',entry})} onClick={()=>onLocate(entry)} onMouseDown={e=>{if(pointerMatches(e,bindings.renameBookmark)){e.preventDefault();onRenameHistory?.(entry);}}} onAuxClick={e=>e.preventDefault()} onDragStart={e=>{e.dataTransfer.setData('application/x-nexarbor-history',JSON.stringify({kind:entry.kind,id:entry.id}));e.dataTransfer.effectAllowed='copy';}}>{isAsset(book)?<AssetPreview book={book} catalog={catalog}/>:compact?<Thumbnail book={book}/>:<><i>{entry.kind==='node'?'点':entry.kind==='edge'?'边':'签'}</i><span>{entry.kind==='bookmark'?'子网书签':entry.label}</span></>}</button>)}
   </div></section>
-  {menu&&<ContextMenu x={menu.x} y={menu.y} label="书签操作" onClose={()=>setMenu(null)}><button role="menuitem" aria-label={menu.book.snapshot?.nodes.length===1?"保存书签至节点栏":"保存书签至网络预设"} disabled={isAsset(menu.book)||!menu.book.snapshot?.nodes.length} title={menu.book.snapshot?.nodes.length===1?"保存完整节点至当前节点目录":"网络书签保存至当前浏览的预设目录"} onClick={()=>{onSavePreset(menu.book.id);setMenu(null);}}><Save size={13}/><span>保存</span><small>{bindings.savePreset}</small></button><button role="menuitem" aria-label="删除书签" onClick={()=>{onRemove(menu.book.id);setMenu(null);}}><Trash2 size={13}/><span>删除</span></button></ContextMenu>}
+  {menu&&<ContextMenu x={menu.x} y={menu.y} label="书签操作" onClose={()=>setMenu(null)}><button role="menuitem" aria-label={singleOwnedNode(menu.book.snapshot?.nodes)?"保存书签至节点栏":"保存书签至网络预设"} disabled={isAsset(menu.book)||!menu.book.snapshot?.nodes.length} title={singleOwnedNode(menu.book.snapshot?.nodes)?"保存完整节点至当前节点目录":"网络书签保存至当前浏览的预设目录"} onClick={()=>{onSavePreset(menu.book.id);setMenu(null);}}><Save size={13}/><span>保存</span><small>{bindings.savePreset}</small></button><button role="menuitem" aria-label="删除书签" onClick={()=>{onRemove(menu.book.id);setMenu(null);}}><Trash2 size={13}/><span>删除</span></button></ContextMenu>}
  </div>;
 }

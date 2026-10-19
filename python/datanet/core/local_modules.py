@@ -15,6 +15,7 @@ from .access_budget import current_access, active_agent, access_context
 from .interface import validate_strength
 
 _executing = ContextVar('executing_node_module', default=None)
+_forward_strength=ContextVar('forward_module_strength',default=None)
 
 
 def json_copy(value):
@@ -46,7 +47,7 @@ class NodeModule:
     def unmount(self): self.close()
     def install(self):
         definition = self.definition
-        if self.context.metadata()['node_type'] not in definition.node_types:
+        if ('node' if self.context.metadata()['node_type']=='subnode' else self.context.metadata()['node_type']) not in definition.node_types:
             raise ValueError('Component does not support this node type')
         definition.validate(self.config, definition.config_schema)
         definition.validate(self.state, definition.state_schema)
@@ -54,9 +55,11 @@ class NodeModule:
             async def call(_name=name, _spec=spec, /, **parameters):
                 definition.validate(parameters, _spec['parameters'])
                 return await self.execute(Activation('access', _name, parameters, self.context.caller_id), _spec['result'])
-            self.operations[name] = (call, tuple(spec['channels']))
+            self.operations[name] = (call, spec['channels'])
         signal_channels = names(self.config.get(definition.signals['config'], []), 'signal channels') if isinstance(definition.signals, dict) else definition.signals
-        if signal_channels:
+        signal_field=definition.signals.get('config') if isinstance(definition.signals,dict) else None
+        signal_mode=self.config.get('channel_modes',{}).get(signal_field,'allow')
+        if signal_channels or signal_mode=='deny':
             async def receive(delivered):
                 return await self.execute(Activation('signal', delivered.signal.kind, {}, delivered.signal.origin,
                     request_id=delivered.receipt_id, signal=delivered.signal, delivery=delivered.delivery))
@@ -76,6 +79,7 @@ class NodeModules:
         from .node_locks import NodeLocks
         if not hasattr(backend, 'node_locks'): backend.node_locks = NodeLocks(backend)
         backend.network.node_locks = backend.node_locks
+        backend.network.module_channel_names=self._channel_names
         self.instances, self._access, self._published, self._generations = {}, {}, {}, {}
         self._owners, self._nodes = {}, {}
         self._bindings = []
@@ -83,6 +87,19 @@ class NodeModules:
         # 工作室可保留不可装配的声明；默认宿主仍严格拒绝。
         self.allow_missing = False
         self.unavailable = {}
+
+    def _channel_names(self):
+        for definition in self.factories.values():
+            for operation in definition.operations.values():
+                if isinstance(operation['channels'],(list,tuple)):yield from operation['channels']
+                else:yield from definition.config_schema.get('properties',{}).get(operation['channels']['config'],{}).get('default',[])
+
+    def _operation_channels(self,key,operation):
+        from .channel_filters import resolve
+        instance=self._check(key);spec=instance.definition.operations[operation]['channels']
+        if isinstance(spec,dict):
+            field=spec['config'];default=instance.definition.config_schema.get('properties',{}).get(field,{}).get('default',[]);return resolve(instance.config.get(field,default),instance.config.get('channel_modes',{}).get(field,'allow'),self.backend.network.channel_names())
+        return tuple(spec)
 
     def _check(self, key, generation=None):
         self.backend.node_locks._check()
@@ -108,7 +125,10 @@ class NodeModules:
     def _enter(self, key, generation):
         self._check(key, generation)
         grant = self._access[key]
-        strength, channels = self._strength(key), grant['channels']
+        from .channel_filters import resolve
+        strength=self._strength(key)
+        if _forward_strength.get() is not None:strength=min(strength,_forward_strength.get())
+        channels=resolve(grant['channels'],grant.get('channel_mode','allow'),self.backend.network.channel_names())
         # A callee enters with its own grant, after the caller's path was checked.
         incoming_token = current_access.set(None)
         identity = active_agent.get()
@@ -118,12 +138,16 @@ class NodeModules:
         lease = {'active': True}
         token = _executing.set(dict(key=key, generation=generation, lease=lease, strength=strength, channels=channels,
                                    caller=caller, requester=parent['requester'] if parent and parent['lease']['active'] else caller, children=[], trace=trace, scopes=[]))
+        forward_token=_forward_strength.set(None)
+        path=(parent.get('call_path',[]) if parent and parent['lease']['active'] else [])+[dict(node_id=key[0],module=key[1])]
+        _executing.get()['call_path']=path
         self.executing += 1
         try:
             with access_context(self.backend.network, key[0], strength, [key[0]], channels=channels): yield
         finally:
             lease['active'] = False
             self.executing -= 1
+            _forward_strength.reset(forward_token)
             _executing.reset(token)
             current_access.reset(incoming_token)
 
@@ -222,13 +246,25 @@ class NodeModules:
 
     def _accessible(self, actor, target, module, operation, strength, channels):
         instance = self._check((target, module))
-        declared = instance.operations[operation][1]
+        declared = self._operation_channels((target,module),operation)
         selected = tuple(c for c in names(channels, 'access channels') if c in declared)
         if (declared or actor != target) and not selected: raise PermissionError('Operation channel is not granted')
         route = next(((path, left) for node, path, left in self.backend.network.walk_states(
             actor, strength=strength, channels=selected) if node.node_id == target), None)
+        if route is None and self.backend.network.same_family(actor,target):route=([actor,target],strength)
+        if route is None:
+            root=self.backend.network.family_root(target)
+            route=next(((path+[target],left) for n,path,left in self.backend.network.walk_states(actor,strength=strength,channels=selected) if n.node_id==root),None) if root!=target else None
         if route is None: raise PermissionError('Component is outside the current graph view')
         return selected, route
+
+    async def local_access(self,actor,target,module,operation,arguments=None):
+        if not self.backend.network.same_family(actor,target):raise PermissionError('本地调用只能访问同一归属树')
+        from types import SimpleNamespace
+        async with self.backend.node_locks.access([target]):
+            identity=active_agent.set((SimpleNamespace(max_signal_strength=0),actor))
+            try:return await self.call(target,module,operation,arguments)
+            finally:active_agent.reset(identity)
 
     def tool_sources(self, actor, target, *, strength, channels):
         """Expose only reachable, active declared tool provider endpoints."""
@@ -281,11 +317,39 @@ class NodeModules:
         if not isinstance(target, str): raise TypeError('Target must be a node ID')
         for node, path, remaining in self.backend.network.walk_states(key[0], strength=strength, channels=channels):
             if node.node_id == target: return node, path, remaining
+        if self.backend.network.same_family(key[0],target):return self.backend.network.nodes[target],[key[0],target],strength
+        root=self.backend.network.family_root(target)
+        if root!=target:
+            for node,path,left in self.backend.network.walk_states(key[0],strength=strength,channels=channels):
+                if node.node_id==root:return self.backend.network.nodes[target],path+[target],left
         raise PermissionError('Target is outside this module network view')
 
     def _request(self, key, operation, p):
         frame = self._scope(key); instance = self._check(key)
         node, network = self.backend.network.nodes[key[0]], self.backend.network
+        if isinstance(p.get('target'),str):p=dict(p,target=network.resolve_reference(key[0],p['target']))
+        if operation=='call_path':return json_copy(frame['call_path'])
+        if operation=='resolve_channels':
+            from .channel_filters import resolve
+            return [c for c in resolve(p['values'],p['mode'],network.channel_names()) if c in frame['channels']]
+        if operation=='filter_channels':
+            from .channel_filters import resolve
+            field=p['field'];selected=resolve(instance.config.get(field,p['default']),instance.config.get('channel_modes',{}).get(field,'allow'),network.channel_names())
+            return [c for c in selected if c in frame['channels']]
+        if operation=='local_call':
+            local=p.get('target')
+            if local is None:
+                candidates=[n for n in network.local_family(key[0]) if (n,p['module']) in self.instances]
+                if (key[0],p['module']) in self.instances:local=key[0]
+                elif len(candidates)==1:local=candidates[0]
+                else:raise ValueError('本地模块不存在或有多个实例，请指定 target')
+            if not network.same_family(key[0],local):raise PermissionError('本地调用只能访问同一归属树')
+            target_key=(local,p['module']);callee=self._check(target_key)
+            if p['operation'] not in callee.operations:raise PermissionError('本地模块未声明该操作')
+            if frame['trace']['calls']>=1000 or time.monotonic()>=frame['trace']['deadline']:raise RuntimeError('Access request resource budget exhausted')
+            frame['trace']['calls']+=1
+            request=AccessRequest(self._run(target_key,callee.operations[p['operation']][0],**json_copy(p['arguments'])))
+            frame['children'].append(request);return request
         if operation=='signal_id':
             from .signal_work import current_work
             work=current_work.get();return work.signal_id if work else None
@@ -336,24 +400,39 @@ class NodeModules:
                         for source,edges in pending.items():network.nodes[source].interfaces=edges
                     return dict(changed=len(changes))
             request=AccessRequest(patch());frame['children'].append(request);return request
-        if operation in ('nodes','metadata','edges','tools','visit','tool_sources'):
+        if operation in ('nodes','module_endpoints','metadata','edges','tools','visit','tool_sources'):
             p = dict(p); p['strength'],p['channels'] = self._budget(key,p)
             async def query():
                 while True:
                     strength, channels = self._budget(key,p)
                     reached = list(network.walk_states(key[0],strength=strength,channels=channels))
-                    targets = [n.node_id for n,_,_ in reached] if operation == 'nodes' else [p['target']]
-                    if operation != 'nodes': self._route(key,p['target'],strength,channels)
+                    targets = [n.node_id for n,_,_ in reached] if operation in ('nodes','module_endpoints') else [p['target']]
+                    if operation not in ('nodes','module_endpoints'): self._route(key,p['target'],strength,channels)
                     async with self.backend.node_locks.access(targets,mutable=False):
                         self._scope(key)
                         with self.backend._transaction_lock:
+                            if operation == 'module_endpoints':
+                                result=[]
+                                family_reached=[network.nodes[id] for target,_,_ in reached for id in network.local_family(target.node_id)]
+                                seen_targets=set()
+                                for target in family_reached:
+                                    if target.node_id in seen_targets:continue
+                                    seen_targets.add(target.node_id)
+                                    for (owner,name),candidate in self.instances.items():
+                                        if owner!=target.node_id or p.get('module') not in (None,name):continue
+                                        available=[]
+                                        for op in candidate.operations:
+                                            try:self._accessible(key[0],owner,name,op,strength,channels);available.append(op)
+                                            except PermissionError:continue
+                                        if available:result.append(dict(node_id=owner,module=name,operations=available))
+                                return result
                             if operation == 'nodes':
                                 current = list(network.walk_states(key[0],strength=strength,channels=channels))
                                 if {n.node_id for n,_,_ in current} != set(targets): continue
                                 return [dict(metadata=json_copy(n.get_metadata()),path=path,strength=left) for n,path,left in current]
                             target,path,left = self._route(key,p['target'],strength,channels)
                             if operation == 'metadata': return json_copy(target.get_metadata())
-                            if operation == 'edges': return [json_copy(edge) for edge in target.interfaces]
+                            if operation == 'edges': return [json_copy(edge) for edge in network.routing_snapshot()[1][p['target']]]
                             if operation == 'tool_sources': return self._tool_sources(key[0],p['target'],strength=strength,channels=channels)
                             offers = getattr(self.backend,'external_tools',None)
                             if operation == 'visit':
@@ -434,7 +513,8 @@ class NodeModules:
                     callee = self._check(target_key)
                     entry = callee.operations.get(p['operation'])
                     if entry is None: raise PermissionError('No accessible module operation')
-                    function, declared = entry
+                    function,_ = entry
+                    declared=self._operation_channels(target_key,p['operation'])
                 else:
                     if p['tool'].startswith('module:'):
                         from .module_tools import ModuleTools
@@ -459,9 +539,12 @@ class NodeModules:
                     raise PermissionError('Endpoint channel is not granted')
                 _, path, remaining = self._route(key, p['target'], strength, selected)
                 with access_context(network, p['target'], remaining, path, channels=selected):
-                    if operation == 'call': result = self._run(target_key, function, **json_copy(p['arguments']))
-                    else: result = function(**json_copy(p['arguments']))
-                    if inspect.isawaitable(result): result = await result
+                    forwarded=_forward_strength.set(remaining if operation=='call' and p.get('forward') else None)
+                    try:
+                        if operation == 'call': result = self._run(target_key, function, **json_copy(p['arguments']))
+                        else: result = function(**json_copy(p['arguments']))
+                        if inspect.isawaitable(result):result=await result
+                    finally:_forward_strength.reset(forwarded)
                     self._scope(key)
                     return json_copy(result)
             trace = frame['trace']
@@ -477,7 +560,7 @@ class NodeModules:
             allowed = {'kind', 'sequence', 'close_loop', 'failure_policy', 'max_hops', 'max_deliveries',
                        'timeout_seconds', 'node_timeout_seconds', 'parent_id'}
             if set(p['options']) - allowed: raise PermissionError('Module cannot override signal identity')
-            signal = Signal(key[0], channels, strength, content=p['content'], **p['options'])
+            signal = Signal(key[0], channels, strength, content=p['content'],**p['options'])
             return self.backend.signals.emit(signal)
         raise ValueError('Unknown local module request: ' + operation)
 
@@ -643,7 +726,10 @@ class NodeModules:
                 for key in keys:
                     module = self._check(key, generations[key])
                     for channels, function in tuple(module.receivers):
-                        if set(channels).intersection(context.signal.channels):
+                        from .channel_filters import matches
+                        field=module.definition.signals.get('config') if isinstance(module.definition.signals,dict) else None
+                        mode=module.config.get('channel_modes',{}).get(field,'allow')
+                        if matches(channels,context.signal.channels,mode):
                             jobs.append(self._run(key, function, delivered))
                 return await asyncio.gather(*jobs)
             runtime.bind(node.node_id, receive, access_strength=lambda keys=tuple(keys):max(self._strength(key) for key in keys))

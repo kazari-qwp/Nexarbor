@@ -26,7 +26,7 @@ export function roundedRoute(points,radius=8){
 }
 
 export function circularEndpoint(point,side,node){
-  if(!node)return point;
+  if(!node||node.data?.node?.type==='subnode')return point;
   const b=nodeBox(node);
   // libavoid may nudge a terminal along the shape border. Follow its computed
   // coordinate rather than pulling it back to the originally requested pin.

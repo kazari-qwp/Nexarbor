@@ -1,12 +1,15 @@
 {
   "format": "nexarbor-module/v3",
   "id": "context.assembler",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "name": "上下文组装器",
   "description": "沿四个独立频道读取文本，或使用直接文本与文本路径，生成可预览的四路上下文；不管理角色、地图或记忆。",
   "entry": "module.py:execute",
   "node_types": [
-    "node"
+    "node",
+    "agent",
+    "text_file",
+    "pulse"
   ],
   "requires": [],
   "config_schema": {
@@ -103,7 +106,7 @@
             "node": {
               "type": "string",
               "title": "事实节点",
-              "format": "node-id"
+              "format": "node-reference"
             },
             "module": {
               "type": "string",
@@ -149,6 +152,76 @@
           "type": "string"
         },
         "default": []
+      },
+      "channels": {
+        "type": "array",
+        "title": "组装器串联频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler"
+        ]
+      },
+      "system_prompt_channels": {
+        "type": "array",
+        "title": "系统指令频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler.system_prompt"
+        ]
+      },
+      "context_channels": {
+        "type": "array",
+        "title": "长效资料频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler.context"
+        ]
+      },
+      "inputs_channels": {
+        "type": "array",
+        "title": "一次性输入频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler.inputs"
+        ]
+      },
+      "tail_channels": {
+        "type": "array",
+        "title": "尾部快照频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler.tail"
+        ]
+      },
+      "channel_modes": {
+        "type": "object",
+        "title": "频道匹配模式",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
       }
     },
     "required": []
@@ -161,9 +234,9 @@
   "operations": [
     {
       "name": "assemble",
-      "channels": [
-        "context.assemble"
-      ],
+      "channels": {
+        "config": "channels"
+      },
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -175,9 +248,9 @@
     },
     {
       "name": "preview",
-      "channels": [
-        "context.assemble"
-      ],
+      "channels": {
+        "config": "channels"
+      },
       "parameters": {
         "type": "object",
         "additionalProperties": false,
@@ -276,7 +349,7 @@
                     "node": {
                       "type": "string",
                       "title": "事实节点",
-                      "format": "node-id"
+                      "format": "node-reference"
                     },
                     "module": {
                       "type": "string",
@@ -322,6 +395,76 @@
                   "type": "string"
                 },
                 "default": []
+              },
+              "channels": {
+                "type": "array",
+                "title": "组装器串联频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler"
+                ]
+              },
+              "system_prompt_channels": {
+                "type": "array",
+                "title": "系统指令频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler.system_prompt"
+                ]
+              },
+              "context_channels": {
+                "type": "array",
+                "title": "长效资料频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler.context"
+                ]
+              },
+              "inputs_channels": {
+                "type": "array",
+                "title": "一次性输入频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler.inputs"
+                ]
+              },
+              "tail_channels": {
+                "type": "array",
+                "title": "尾部快照频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler.tail"
+                ]
+              },
+              "channel_modes": {
+                "type": "object",
+                "title": "频道匹配模式",
+                "additionalProperties": {
+                  "enum": [
+                    "allow",
+                    "deny"
+                  ]
+                }
               }
             },
             "required": []

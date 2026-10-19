@@ -1,3 +1,4 @@
+import {singleOwnedNode,ownershipRoots} from '../../../shared/graph/ownership.js';
 import {projectDirectory} from './project-directory.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -8,7 +9,7 @@ export const storedNetworks=directory=>storedDocuments(projectDirectory(director
 export const storedNodes=directory=>storedDocuments(projectDirectory(directory),{rootName:'node_presets',parts:{node:'nodes'},label:'节点预设',singleNode:true});
 function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
  const base=path.resolve(directory),root=path.join(base,rootName),summaries=new Map();
- const valid=(document,kind)=>document.network?.version===8&&Array.isArray(document.network.nodes)&&(singleNode?document.network.nodes.length===1:kind==='network'||document.network.nodes.length>0);
+ const valid=(document,kind)=>document.network?.version===8&&Array.isArray(document.network.nodes)&&(singleNode?singleOwnedNode(document.network.nodes):kind==='network'||document.network.nodes.length>0);
  const checked=async(folder,file)=>{
   const actualBase=await fs.realpath(base),actualFolder=await fs.realpath(folder);
   if(!actualFolder.startsWith(actualBase+path.sep))throw Error(label+'目录越出当前工作区');

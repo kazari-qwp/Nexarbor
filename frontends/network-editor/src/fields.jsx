@@ -1,4 +1,5 @@
 import React from 'react';
+import {ChannelList} from './channel-list.jsx';
 import {Plus,X,ChevronDown} from 'lucide-react';
 export function ValueEditor({value,onChange,label,depth=0}){
   const type=value===null?'null':Array.isArray(value)?'array':typeof value;
@@ -10,7 +11,7 @@ export function ValueEditor({value,onChange,label,depth=0}){
       type==='boolean'?<input aria-label={label} type="checkbox" checked={value} onChange={e=>onChange(e.target.checked)}/>:
       type==='null'?<span className="muted">空值</span>:
       type==='array'?<><div className="nested-fields">{value.map((v,i)=><div key={i} className="field-row"><ValueEditor label={String(i+1)} value={v} onChange={x=>onChange(value.map((old,j)=>i===j?x:old))} depth={depth+1}/><button title="删除项" onClick={()=>onChange(value.filter((_,j)=>j!==i))}><X size={13}/></button></div>)}</div><button className="text-button" onClick={()=>onChange([...value,''])}><Plus size={13}/>添加一项</button></>:
-      <><div className="nested-fields">{Object.entries(value).map(([k,v])=><div key={k} className="field-row"><ValueEditor label={k} value={v} onChange={x=>onChange({...value,[k]:x})} depth={depth+1}/><button title="删除字段" onClick={()=>{const next={...value};delete next[k];onChange(next);}}><X size={13}/></button></div>)}</div><button className="text-button" onClick={()=>{const key=prompt('新字段名称');if(key&&!(key in value))onChange({...value,[key]:''});}}><Plus size={13}/>添加字段</button></>}
+      <><div className="nested-fields">{Object.entries(value).map(([k,v])=><div key={k} className="field-row">{Array.isArray(v)&&(/channels$/.test(k))?<ChannelList label={k} value={v} mode={value.channel_modes?.[k]??value.channel_mode??value.attributes?.channel_mode??'allow'} onChange={x=>onChange({...value,[k]:x})} onMode={m=>onChange(value.attributes?{...value,attributes:{...value.attributes,channel_mode:m}}:{...value,channel_modes:{...value.channel_modes,[k]:m}})}/>:<ValueEditor label={k} value={v} onChange={x=>onChange({...value,[k]:x})} depth={depth+1}/>} <button title="删除字段" onClick={()=>{const next={...value};delete next[k];onChange(next);}}><X size={13}/></button></div>)}</div><button className="text-button" onClick={()=>{const key=prompt('新字段名称');if(key&&!(key in value))onChange({...value,[key]:''});}}><Plus size={13}/>添加字段</button></>}
   </div>;
 }
 export function GraphEditor({value,onChange,operations}){

@@ -1,29 +1,27 @@
 # 上下文组装器
 
-普通节点上的通用 v3 模块。角色只有一条 context.assemble 出边到组装节点。组装节点再用 system_prompt / context / inputs / tail 四种频道分别连接装有 context.text 的文本节点，可以经过同频道的普通中继节点。每类频道单独遍历，同一来源同类只读取一次；聊天、移动、业务频道不会混入。
+通用普通模块，可装在节点或亚节点上。推荐给角色挂一个亚节点，装 context.assembler，保留独立的出边。角色不用再向每份文本拉线，也不用添加到组装器的业务边。
 
-在角色的 Agent 执行设置里添加：
+角色执行设置示例：
 ```json
-{"executor":"harness","strength":2,"channels":["context.assemble"],"prepare":[{"node":"组装节点编号","module":"context.assembler","operation":"assemble","arguments":{},"channels":["context.assemble"]}]}
+{"executor":"harness","strength":2,"channels":[],"prepare":[{"node":"角色的上下文亚节点","module":"context.assembler","operation":"assemble","arguments":{}}]}
 ```
-这里的强度必须足以到达相邻组装节点。组装器读取下游的范围由它自己的模块强度和频道决定。prepare 的跨节点调用同样受可达性检查；不是全局后门。组装器不写别人的输入，只返回 nexarbor-context/v1 数据包，由执行适配器交付四路接口。删除准备引用后，旧快照撤下，已经排队的事件仍保留。
 
-## 三种来源
+同一归属树的 prepare 走核心本地调用，不消耗寻路强度或要求频道。普通外部节点仍按可达性访问。组装器自己的读取范围由它的模块强度和授权决定。返回 nexarbor-context/v1 包，由执行适配器更新四路输入，不直接写其他角色的数据。
 
-- 文本节点：给节点装 context.text，正文在工作台正常编辑。类型在连线上；同一文本也可以显式投放到不同类型。context.text 可配置 order、when、event_id、delivery、enabled。
-- 直接文本：sources 每项填写稳定 id、kind、type:text、text。
-- 文本路径：sources 每项填写稳定 id、kind、type:file、path。相对路径从当前项目文件夹解析，每次装配重读 UTF-8 文本；项目 context/ 目录参与 Commit。默认不能越出项目，document_roots 是显式授予的额外目录。缺失、非 UTF-8、越界、超过 1 MiB 都有来源错误。
+## 来源与频道
 
-文件读取需要 example.json 中的 read_text 扩展授权，仅官方原样组件拥有这个只读端口。普通制作模块仍不得 open 任意文件。组装器没有任何 NPC、钟表、地图或私人记忆知识。
+- 文本节点装 context.text，按 `context.assembler.system_prompt`、`.context`、`.inputs`、`.tail` 四类频道分别接线。每类独立遍历，不能借业务频道混合扩散。每个字段可改为频道列表，界面使用加号和条目，并能切换黑白名单。
+- 直接文本在 sources 填稳定 id、kind、type:text、text。
+- 文件在 sources 填 type:file、path；相对当前项目目录，每次读取 UTF-8。默认不能越出项目，document_roots 可显式授予额外目录。越界、缺失、非 UTF-8 或超过 1 MiB 均报告来源错误。需要示例配置的 read_text 扩展授权，仅原样官方组件提供这个端口。
+- `channels` 默认 `["context.assembler"]`，沿此频道找到其他组装器并合并结果。调用链停止环路，来源按稳定 ID 去重；递归调用转交剩余强度，不重置预算。
 
-## 条件与顺序
+## 条件与输入语义
 
-when 是字段等值条件，字段可以是 JSON Pointer。默认匹配本组装节点元数据；需要业务事实时，bindings 显式填写目标节点、模块、只读操作、参数、频道和结果 JSON Pointer，读取对象字段用于匹配。例如 records.store.read 的 /values。必须有实际连线和授权，不会猜角色 ID 或扫描业务网络。多个来源按 order、稳定 id、kind 排序；context 文档 ID 稳定。
+when 是等值条件，支持 JSON Pointer。默认事实为本容器元数据；bindings 可显式调用模块只读操作，把结果对象合入事实。`node:"$parent"` 能读取当前父对象，如 records.store.read 的 /values，不硬编码人物编号。本地调用免连线，外部事实来源必须可达且有授权。
 
-inputs 必须填写独立稳定 event_id；相同事件只投递一次，同 ID 改正文会明确报错，新的事件使用新 ID。system_prompt 是当前系统快照，context 是按正文变化更新的资料，tail 是每次请求重读的快照。预览不会投递事件，不会更改 Agent 输入或模块状态。
+system_prompt 是当前系统快照，context 是正文变化才更新的资料，tail 每次请求读取当前文本。inputs 是一次性事件，必须有稳定 event_id；相同事件不重放，同 ID 改正文拒绝。来源按 order、id、kind 排序。输入 ID 包含来源，避免不同组装器的同名事件相互覆盖。
 
-## 工作台
+工作台“装配预览”使用草稿配置与当前已校验的连线，展示四路成品、来源、路径、匹配结果和错误。预览只读，不投递事件。移除 prepare 后撤下旧快照，保留历史对话与事件交付回执。
 
-模块页面可添加直接文本或文件、选择类型、保存配置，点击“装配预览”查看四路成品、原节点/文件完整路径、实际频道、路径、匹配结果和错误。来源配置可预览草稿，连线使用已校验更新的运行网络。高级条件和授权通过通用表单编辑。
-
-与私人记忆、地点查询分开使用。教材见 docs/CONTEXT_ASSEMBLER_CASE_STUDY.md。真实运行时测试：tests/test_context_assembler_v3.py。
+组装器不包含 NPC、时间、地图或私人记忆逻辑。时钟输出是 clock.counter 可配置的普通文本，按 tail 频道接入；记忆、场景查询各用独立模块。教材：docs/CONTEXT_ASSEMBLER_CASE_STUDY.md；核心归属机制：docs/SUBNODES.md。

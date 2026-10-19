@@ -7,7 +7,7 @@ from .json_values import freeze, names
 def validate_access(value):
     if not isinstance(value, dict) or not {'strength', 'channels'} <= value.keys():
         raise ValueError('Module access requires strength and channels')
-    if set(value) - {'strength', 'channels', 'extension'}:
+    if set(value) - {'strength', 'channels', 'extension', 'channel_mode'}:
         raise ValueError('Unknown module access field')
     if value['strength'] is not None:validate_strength(value['strength'])
     names(value['channels'], 'module channels')
@@ -17,6 +17,8 @@ def validate_access(value):
             raise ValueError('Extended access requires explicit operations and targets')
         names(policy['operations'], 'extended operations')
         names(policy['targets'], 'extended targets')
+    from .channel_filters import mode
+    mode(value.get('channel_mode','allow'))
     freeze(value)
     return value
 
@@ -38,6 +40,8 @@ class ModuleNetwork:
     def __init__(self, request): self._request = request
     def nodes(self, *, channels=None, strength=None):
         return self._request('nodes', channels=channels, strength=strength)
+    def modules(self, module=None, *, channels=None, strength=None):
+        return self._request('module_endpoints',module=module,channels=channels,strength=strength)
     def metadata(self, target, *, channels=None, strength=None):
         return self._request('metadata', target=target, channels=channels, strength=strength)
     def edges(self, target, *, channels=None, strength=None):
@@ -49,9 +53,9 @@ class ModuleNetwork:
     def invoke(self, target, tool, arguments=None, *, channels=None, strength=None):
         return self._request('invoke', target=target, tool=tool,
                              arguments={} if arguments is None else arguments, channels=channels, strength=strength)
-    def call(self, target, module, operation, arguments=None, *, channels=None, strength=None):
+    def call(self, target, module, operation, arguments=None, *, channels=None, strength=None, forward=False):
         return self._request('call', target=target, module=module, operation=operation,
-                             arguments={} if arguments is None else arguments, channels=channels, strength=strength)
+                             arguments={} if arguments is None else arguments, channels=channels, strength=strength, forward=forward)
     def emit(self, *, channels=None, strength=None, content=None, **options):
         return self._request('emit', channels=channels, strength=strength,
                                    content=content, options=options)
@@ -70,6 +74,12 @@ class ModuleNetwork:
     def cancel_signal(self, signal_id): return self._request('signal_cancel', signal_id=signal_id)
 
 
+class ModuleLocal:
+    __slots__=('_request',)
+    def __init__(self,request):self._request=request
+    def call(self,module,operation,arguments=None,*,target=None):
+        return self._request('local_call',module=module,operation=operation,arguments={} if arguments is None else arguments,target=target)
+
 class ModuleContext:
     __slots__ = ('_request', '_node_id', '_module_id', '_config', '_state', '_network')
     def __init__(self, request, node_id, module_id, config, state):
@@ -86,6 +96,10 @@ class ModuleContext:
         require_transaction_node(self._node_id)
         return self._state
     network = property(lambda self: self._network)
+    local = property(lambda self: ModuleLocal(self._request))
+    call_path = property(lambda self: self._request('call_path'))
+    def resolve_channels(self,values,mode='allow'):return self._request('resolve_channels',values=list(values),mode=mode)
+    def filter_channels(self, field, default=()):return self._request('filter_channels',field=field,default=list(default))
     signal_id = property(lambda self: self._request('signal_id'))
     caller_id = property(lambda self: self._request('caller'))
     requester_id = property(lambda self: self._request('requester'))

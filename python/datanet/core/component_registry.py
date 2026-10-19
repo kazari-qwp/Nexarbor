@@ -50,6 +50,8 @@ def ensure_nodes():
         return
     _loaded = True
     from datanet.core.node import Node
+    from .subnode import Subnode
+    register_node(NodeCodec('subnode',Subnode,lambda n,base:dict(parent_id=n.parent_id,use_parent_links=n.use_parent_links,share_links=n.share_links),lambda common,p,base:Subnode(*common,**p),parameter_fields=['parent_id','use_parent_links','share_links'],description='无本地数据和散度的亚节点，可装配任意普通节点模块，独立管理出边。',local_read=False,local_write=False,local_schema=False))
     register_node(NodeCodec('node', Node, lambda node, base: {}, lambda common, params, base: Node(*common), description='无本地数据的组织节点，用于连接节点和挂载工具。', local_read=False, local_schema=False))
     from datanet.core.text_node import TextFileNode
     def encode_text(node,base):

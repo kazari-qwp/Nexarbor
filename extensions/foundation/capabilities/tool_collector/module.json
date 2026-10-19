@@ -1,7 +1,7 @@
 {
   "format": "nexarbor-module/v3",
   "id": "tools.collector",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "entry": "module.py:execute",
   "node_types": [
     "node",
@@ -13,7 +13,31 @@
   "config_schema": {
     "type": "object",
     "additionalProperties": false,
-    "title": "工具收集配置"
+    "title": "工具收集配置",
+    "properties": {
+      "channels": {
+        "type": "array",
+        "title": "收集与串联频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "tools"
+        ]
+      },
+      "channel_modes": {
+        "type": "object",
+        "title": "频道匹配模式",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      }
+    }
   },
   "state_schema": {
     "type": "object",
@@ -28,9 +52,9 @@
   "operations": [
     {
       "name": "collect",
-      "channels": [
-        "tools"
-      ],
+      "channels": {
+        "config": "channels"
+      },
       "parameters": {
         "type": "object",
         "additionalProperties": false
@@ -90,9 +114,9 @@
     },
     {
       "name": "invoke",
-      "channels": [
-        "tools"
-      ],
+      "channels": {
+        "config": "channels"
+      },
       "parameters": {
         "type": "object",
         "additionalProperties": false,

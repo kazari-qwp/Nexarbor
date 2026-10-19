@@ -16,7 +16,7 @@ export const selectionKey=s=>JSON.stringify([s.nodes.slice().sort(),s.edges.slic
 
 export function selectionStep(nodes,edges,selected,grow=true){
  const adjacency=new Map(nodes.map(n=>['n:'+n.id,new Set()]));
- for(const edge of edges){const key='e:'+edge.id;adjacency.set(key,new Set(['n:'+edge.source,'n:'+edge.target]));for(const id of [edge.source,edge.target])adjacency.get('n:'+id)?.add(key);}
+ for(const edge of edges){if(edge.ownership){adjacency.get('n:'+edge.source)?.add('n:'+edge.target);adjacency.get('n:'+edge.target)?.add('n:'+edge.source);continue;}const key='e:'+edge.id;adjacency.set(key,new Set(['n:'+edge.source,'n:'+edge.target]));for(const id of [edge.source,edge.target])adjacency.get('n:'+id)?.add(key);}
  const current=new Set([...selected.nodes.map(id=>'n:'+id),...selected.edges.map(id=>'e:'+id)].filter(id=>adjacency.has(id)));
  if(grow){for(const id of [...current])for(const other of adjacency.get(id)??[])current.add(other);}
  else{
@@ -29,20 +29,20 @@ export function selectionStep(nodes,edges,selected,grow=true){
 }
 
 export function copySubnet(document,ids,mode,layout={},selectedEdges=[]){
- const selected=new Set(ids),nodes=clone(document.network.nodes.filter(n=>selected.has(n.node_id)));
+ const selected=new Set(ids);for(let size=-1;size!==selected.size;){size=selected.size;for(const n of document.network.nodes)if(n.type==='subnode'&&selected.has(n.parameters.parent_id))selected.add(n.node_id);}const nodes=clone(document.network.nodes.filter(n=>selected.has(n.node_id)));
  if(!nodes.length){
   const edges=document.network.nodes.flatMap(n=>n.connections.interfaces.flatMap((link,i)=>selectedEdges.includes(n.node_id+'|'+i)?[{metadata:clone(link.metadata),...(mode==='external'?{target:link.target_node_id}:{})}]:[]));
   if(!edges.length)throw Error('请先选中需要复制的节点或连接');
   return {nodes:[],edges,files:{},positions:{}};
  }
  requireData(nodes,document.files);
- for(const node of nodes){node.context_cursor=null;if(mode==='internal')node.connections.interfaces=node.connections.interfaces.filter(link=>selected.has(link.target_node_id));}
+ for(const node of nodes){node.context_cursor=null;if(node.type==='subnode'&&!selected.has(node.parameters.parent_id))node.parameters.parent_id=null;if(mode==='internal'){node.connections.interfaces=node.connections.interfaces.filter(link=>selected.has(link.target_node_id));}}
  // 文档作为独立副本保留，粘贴时只映射明确的路径字段。
  const names=new Set(),files=document.files??{},entries=Object.keys(files);const scan=value=>{if(typeof value==='string'){const normalized=normalizePath(value);for(const name of entries)if(normalizePath(name)===normalized)names.add(name);}else if(Array.isArray(value))value.forEach(scan);else if(value&&typeof value==='object')Object.values(value).forEach(scan);};scan(nodes.map(n=>n.type==='value'?{...n,parameters:{}}:n));
  for(const node of nodes)for(const root of ownedPaths(node))for(const name of entries)if(normalizePath(name).startsWith(normalizePath(root).replace(/\/$/,'')+'/'))names.add(name);
  // 显式选中的外部入边作为无头接入口保存；只记书签内的终点，不记原起点。
  const incoming=document.network.nodes.filter(n=>!selected.has(n.node_id)).flatMap(n=>n.connections.interfaces.flatMap((link,i)=>selectedEdges.includes(n.node_id+'|'+i)&&selected.has(link.target_node_id)?[{target:link.target_node_id,metadata:clone(link.metadata)}]:[]));
- return {nodes,...(incoming.length?{edges:incoming}:{}),files:Object.fromEntries([...names].map(name=>[name,clone(document.files[name])])),positions:Object.fromEntries(ids.filter(id=>layout[id]).map(id=>[id,clone(layout[id])]))};
+ return {nodes,...(incoming.length?{edges:incoming}:{}),files:Object.fromEntries([...names].map(name=>[name,clone(document.files[name])])),positions:Object.fromEntries([...selected].filter(id=>layout[id]).map(id=>[id,clone(layout[id])]))};
 }
 function schemaRefs(value,schema,mapping){
  if(schema?.format==='node-id'&&typeof value==='string')return mapping[value]??value;
@@ -73,6 +73,8 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={},opti
  for(const original of bookmark.snapshot.nodes){
   let node=documentRefs({...clone(original),parameters:{}},paths);node.parameters=clone(original.parameters);for(const field of [...dataFiles,...dataDirectories])if(typeof node.parameters[field]==='string'&&paths[node.parameters[field]])node.parameters[field]=paths[node.parameters[field]];node.node_id=mapping[original.node_id];node.context_cursor=null;
   for(const reference of node.execution?.prepare??[])if(reference.node)reference.node=mapping[reference.node]??reference.node;
+  if(node.type==='subnode')node.parameters.parent_id=mapping[original.parameters.parent_id]??(options.source??null);
+  if(node.execution?.tool_sources)node.execution.tool_sources=node.execution.tool_sources.map(id=>mapping[id]??id);
   node.management_parent_id=mapping[node.management_parent_id]??(ids.has(node.management_parent_id)?node.management_parent_id:null);
   if(node.management_parent_id===node.node_id)node.management_parent_id=null;
   node.connections.interfaces=node.connections.interfaces.map(link=>({...link,target_node_id:mapping[link.target_node_id]??link.target_node_id})).filter(link=>ids.has(link.target_node_id));

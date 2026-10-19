@@ -20,14 +20,16 @@ ctx.update_inputs({"system_prompt": snapshot["system_prompt"],
 ## 正例：配置决定行为，连线说明来源
 
 ```text
-角色 ──context.assemble──→ 普通组装节点（context.assembler）
-                            ├─system_prompt─→ 人格 / 世界规则（context.text）
-                            ├─context───────→ 按条件匹配的知识（context.text）
-                            ├─inputs────────→ 开场事件（context.text + event_id）
-                            └─tail──────────→ 时钟文本（context.text + clock.counter）
+角色 ┄┄归属┄┄ 上下文亚节点（普通 context.assembler 模块）
+                ├─context.assembler.system_prompt─→ 人格 / 世界规则
+                ├─context.assembler.context───────→ 条件知识
+                ├─context.assembler.inputs────────→ 一次性事件
+                └─context.assembler.tail──────────→ 时钟普通文本
 ```
 
-角色无需向每份文本拉线。组装器只逐类沿指定频道遍历；不能先走 system_prompt，再借 movement 或 tail 接着扩散。共享来源和环路通过节点 ID 去重，排序由 order 与稳定来源 ID 决定。所有跨节点请求仍使用 ctx.network 的权限与强度，不获取后端 Network 对象。
+亚节点有独立的模块表、工具表和出边。归属虚线不是业务边；角色通过显式 prepare 本地调用模块，不消耗寻路预算。四类文本分别遍历，不能借业务频道扩散。默认不共享父子出边，有需要时由核心的两个开关分别开放，模块不维护这些表。工具收集器也可放在另一亚节点，显式列入 execution.tool_sources；不把它的工具和模块混进父对象的列表。
+
+串联用独立的 context.assembler 频道访问其他组装器，合并来源，停止调用环路，并转交剩余强度。每类频道都可配置列表与黑白名单，界面用条目和加号。
 
 已有文本可以直接接线；短文本可以直接填进 sources；项目文档可用相对路径。不要因为要换一份规则、角色或时间格式就制造新模块。配置和当前正文一起决定四路结果。
 
@@ -36,12 +38,12 @@ ctx.update_inputs({"system_prompt": snapshot["system_prompt"],
 ## 制作流程
 
 1. 先问哪些正文是系统指令、长效资料、一次性事件、每次更新的尾部。不能把全部信息塞 tail。
-2. 查目录复用 context.assembler 和 context.text。先用一个角色、一个组装节点和两份文本完成闭环。
-3. 给角色配置显式 prepare 和唯一的 context.assemble 连线。按四种频道接资料，分开业务频道。
+2. 查目录复用 context.assembler 和 context.text。先用一个角色、一个上下文亚节点和两份文本完成闭环。
+3. 给角色配置显式本地 prepare。按四种频道从亚节点接资料，分开业务频道。
 4. 需要事实条件时显式配置只读 bindings，检查路径和字段，不按人物名字硬编码分支。
 5. 在工作台预览来源。验证重路去重、环路、错频道隔离、文件越界、条件变化撤下资料、事件只投递一次。
 6. 再扩数量。更换角色或业务时优先换文本、参数与连线。只有通用接口确实缺失才增加组件。
 
 ## 迁移保护
 
-小镇 migration 先备份运行状态和工作页。原私人记忆移至 agents.memory，已投递/待投递开场回执保持状态；移除旧模块的当前输入快照，不抹去历史对话。地点、个人记录、消息、活动状态与上下文游标保留。新生模板同时采用组装节点，复制时重定向准备入口与事实引用，不能回指原角色。
+小镇 migration 先备份运行状态和工作页。原私人记忆移至 agents.memory，已投递/待投递开场回执保持状态；移除旧模块的当前输入快照，不抹去历史对话。地点、个人记录、消息、活动状态与上下文游标保留。新生模板同时采用独立亚节点，复制时重定向准备入口与事实引用，不能回指原角色。

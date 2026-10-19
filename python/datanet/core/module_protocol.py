@@ -51,7 +51,9 @@ class ModuleDefinition:
             if set(spec) != {'name', 'channels', 'parameters', 'result'}: raise ValueError('Invalid operation declaration')
             if not isinstance(spec['name'], str) or not spec['name'] or spec['name'] in self.operations:
                 raise ValueError('Invalid or duplicate operation')
-            names(spec['channels'], 'operation channels')
+            if isinstance(spec['channels'],dict):
+                if set(spec['channels'])!={'config'} or not isinstance(spec['channels']['config'],str):raise ValueError('Operation channels must name a config field')
+            else:names(spec['channels'], 'operation channels')
             for key in ('parameters', 'result'): Draft202012Validator.check_schema(spec[key])
             if spec['parameters'].get('type') != 'object': raise ValueError('Operation parameters must be an object')
             self.operations[spec['name']] = spec

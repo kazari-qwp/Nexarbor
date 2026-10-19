@@ -11,7 +11,7 @@ def assemble(node,library,registered=(),*,allow_missing=False):
             if name in registered or allow_missing:done.add(name);return
             raise ValueError('缺少已发布依赖模块：'+name)
         spec=library[name]['manifest']
-        if node['type'] not in spec['node_types']:raise ValueError('依赖模块不支持该节点类型：'+name)
+        if ('node' if node['type']=='subnode' else node['type']) not in spec['node_types']:raise ValueError('依赖模块不支持该节点类型：'+name)
         visiting.add(name)
         for dependency in spec['requires']:
             if dependency not in result and (dependency in library or not allow_missing):

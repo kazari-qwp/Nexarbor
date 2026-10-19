@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
+import {ChannelList} from './channel-list.jsx';
 import Form from '@rjsf/core';
 import {Plus,Trash2,ArrowUp,ArrowDown,Copy,X} from 'lucide-react';
 import './schema-buttons.css';
@@ -9,6 +10,7 @@ const copy=value=>JSON.parse(JSON.stringify(value));
 
 export function enrichSchema(schema,nodes=[]){
   const result=copy(schema);
+  if(result.format==='node-reference'){delete result.format;result.enum=['$parent','$self',...nodes.map(n=>n.node_id)];result.enumNames=['直接父对象','本对象',...nodes.map(n=>n.name+' · '+n.node_id)];}
   if(result.format==='node-id'){delete result.format;const nullable=result.type==='null'||Array.isArray(result.type)&&result.type.includes('null');result.enum=[...(nullable?[null]:[]),...nodes.map(n=>n.node_id)];result.enumNames=[...(nullable?['未指定']:[]),...nodes.map(n=>n.name+' · '+n.node_id)];}
   if(result.format==='textarea')delete result.format;
   if(result.properties)for(const key in result.properties)result.properties[key]=enrichSchema(result.properties[key],nodes);
@@ -28,13 +30,27 @@ const buttonTemplates={
   CopyButton:props=><ActionButton {...props} icon={Copy} label="复制此项"/>,
   ClearButton:props=><ActionButton {...props} icon={X} label="清空此项"/>,
 };
+function ChannelField(props){
+  const path=props.fieldPathId.path,parent=path.slice(0,-1),key=path.at(-1);
+  const data=props.registry.formContext.channelData;
+  const mode=[...parent,'channel_modes',key].reduce((v,k)=>v?.[k],data)??'allow';
+  return <ChannelList label={props.schema.title??key} value={props.formData??[]} mode={mode} disabled={props.disabled||props.readonly}
+    onChange={value=>props.onChange(value,path)} onMode={next=>props.onChange(next,[...parent,'channel_modes',key])}/>;
+}
+const HiddenChannelModes=()=>null;
+function channelUi(spec){
+  const result={'ui:submitButtonOptions':{norender:true}};
+  for(const [key,child]of Object.entries(spec.properties??{}))result[key]=key==='channel_modes'?{'ui:field':HiddenChannelModes}:
+    key.endsWith('channels')&&child.type==='array'?{'ui:field':ChannelField}:channelUi(child);
+  if(spec.items&&typeof spec.items==='object')result.items=channelUi(spec.items);
+  return result;
+}
 export function SchemaForm({schema,value,onChange,nodes=[],readOnly=false}){
   const enriched=useMemo(()=>enrichSchema(schema,nodes),[schema,nodes]);
-  // 默认值只用于展示；库的初始化回调不能把浏览表单变成网络编辑。
   const displayed=useMemo(()=>getDefaultFormState(validator,enriched,value,enriched),[enriched,value]);
-  return <Form templates={{ButtonTemplates:buttonTemplates}} schema={enriched} validator={validator} formData={displayed} disabled={readOnly}
-    onChange={event=>{if(!deepEquals(event.formData,displayed))onChange(event.formData);}} liveValidate={false} omitExtraData={false}
-    uiSchema={{'ui:submitButtonOptions':{norender:true}}}><span/></Form>;
+  const uiSchema=useMemo(()=>channelUi(enriched),[enriched]);
+  return <Form templates={{ButtonTemplates:buttonTemplates}} schema={enriched} validator={validator} formData={displayed} formContext={{channelData:displayed}} disabled={readOnly}
+    onChange={event=>{if(!deepEquals(event.formData,displayed))onChange(event.formData);}} liveValidate={false} omitExtraData={false} uiSchema={uiSchema}><span/></Form>;
 }
 
 function ModuleFrontend({api,module,source,definition,node,config,state,onChange,nodes,readOnly,revision}){
