@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import Form from '@rjsf/core';
 import validator from '@rjsf/validator-ajv8';
+import {getDefaultFormState,deepEquals} from '@rjsf/utils';
 const protocol='nexarbor-module-frontend/v1';
 const copy=value=>JSON.parse(JSON.stringify(value));
 
@@ -14,8 +15,11 @@ export function enrichSchema(schema,nodes=[]){
   return result;
 }
 export function SchemaForm({schema,value,onChange,nodes=[],readOnly=false}){
-  return <Form schema={enrichSchema(schema,nodes)} validator={validator} formData={value} disabled={readOnly}
-    onChange={event=>onChange(event.formData)} liveValidate={false} omitExtraData={false}
+  const enriched=useMemo(()=>enrichSchema(schema,nodes),[schema,nodes]);
+  // 默认值只用于展示；库的初始化回调不能把浏览表单变成网络编辑。
+  const displayed=useMemo(()=>getDefaultFormState(validator,enriched,value,enriched),[enriched,value]);
+  return <Form schema={enriched} validator={validator} formData={displayed} disabled={readOnly}
+    onChange={event=>{if(!deepEquals(event.formData,displayed))onChange(event.formData);}} liveValidate={false} omitExtraData={false}
     uiSchema={{'ui:submitButtonOptions':{norender:true}}}><span/></Form>;
 }
 

@@ -25,7 +25,7 @@ try{
  await expect(item('module','tools.collector')).toHaveText('工具收集器');await expect(item('module','modules.executor')).toHaveText('模块流程执行器');
  const wrapper=item('module','test.wrapper').locator('..');await expect(wrapper.getByRole('button',{name:'嵌套依赖示例的依赖模块，1 个',exact:true})).toBeVisible();await expect(wrapper.getByRole('button',{name:'嵌套依赖示例的携带工具，0 个',exact:true})).toBeVisible();
  const move=item('module','movement.here').locator('..');await expect(move.getByRole('button',{name:'移动到此的依赖模块，1 个',exact:true})).toBeVisible();await expect(move.getByRole('button',{name:'移动到此的携带工具，1 个',exact:true})).toBeVisible();
- await move.getByRole('button',{name:'移动到此的携带工具，1 个',exact:true}).click();await expect(page.locator('.right-panel .resource-relations details[open]')).toContainText('携带工具 · 1');
+ await move.getByRole('button',{name:'移动到此的携带工具，1 个',exact:true}).click();await expect(page.getByRole('dialog',{name:'携带工具列表',exact:true})).toContainText('移动到此');await page.keyboard.press('Escape');
  await item('module','test.wrapper').dragTo(node('old'));await expect(node('old').getByRole('button',{name:'旧地点的模块，3 个',exact:true})).toBeVisible();await expect(node('old').getByRole('button',{name:'旧地点的工具，1 个',exact:true})).toBeVisible();
  await item('tool',tool.ref).dragTo(node('new'));await expect(node('new').getByRole('button',{name:'新地点的模块，2 个',exact:true})).toBeVisible();await expect(node('new').getByRole('button',{name:'新地点的工具，1 个',exact:true})).toBeVisible();
  for(const [kind,id] of [['tool',tool.ref],['module','movement.here']])await item(kind,id).dragTo(node('new'));

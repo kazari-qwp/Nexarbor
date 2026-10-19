@@ -53,6 +53,14 @@ export function resourceRelations(value,catalog){
  const definition=value.asset?.kind==='module'?catalog.modules?.[value.asset.id]:catalog.tools?.find(t=>t.ref===value.asset?.id);
  return {modules:definition?.requires??[],tools:definition?.tools??[]};
 }
+// 关系只列直接一层；编号用于跳转，缺失声明仍保留在列表中。
+export function relatedEntries(value,catalog,key){
+ const kind=key==='modules'?'module':'tool';
+ return resourceRelations(value,catalog)[key].map(id=>{
+  const spec=definition(catalog,kind,id);
+  return {kind,id,name:(kind==='module'?spec?.label:spec?.name)??id,description:spec?.description??'',missing:!spec};
+ });
+}
 export function attachResources(document,nodeId,assets,catalog,organization={}){
  if(!assets.length)throw Error('请选择工具或模块');return assets.reduce((next,asset)=>attachResource(next,nodeId,asset,catalog,organization),document);
 }

@@ -1,5 +1,5 @@
 import {ModuleAccess} from './module-access.jsx';
-import React,{useRef,useState} from 'react';
+import React,{useEffect,useRef,useState} from 'react';
 import {Box,Network,Save,Trash2,FolderOpen} from 'lucide-react';
 import {mergeDataEdit,mergeClearedData} from './data-edit.js';
 import {ClearDataButton} from './clear-data.jsx';
@@ -9,10 +9,11 @@ import {attachResource,nodeTools} from './resources.js';
 import {ModuleConfig} from './module-config.jsx';
 
 // 待放置资源只编辑独立快照；保存或查看都不会创建运行节点。
-export function TemplateDetails({value,catalog,api,onSave,onOpenNetwork}){
- const [snapshot,setSnapshot]=useState(()=>structuredClone(value.snapshot)),[name,setName]=useState(value.name),[index,setIndex]=useState(0),[error,setError]=useState(''),[saving,setSaving]=useState(false);
+export function TemplateDetails({value,catalog,api,onSave,onOpenNetwork,onDraft}){
+ const [snapshot,setSnapshot]=useState(()=>structuredClone(value.snapshot)),[name,setName]=useState(value.name),[index,setIndex]=useState(value.editIndex??0),[error,setError]=useState(''),[saving,setSaving]=useState(false);
  const [dataEpoch,setDataEpoch]=useState(0);
  const snapshotRef=useRef(snapshot);snapshotRef.current=snapshot;
+ useEffect(()=>{onDraft?.({...value,name,snapshot,editIndex:index});},[value,name,snapshot,index,onDraft]);
  const node=snapshot.nodes[index],network=value.kind==='preset'||snapshot.nodes.length>1,Icon=network?Network:Box;
  const change=fn=>setSnapshot(old=>{const next=structuredClone(old);fn(next.nodes[index],next);return next;});
  const attach=asset=>{setError('');try{const doc=attachResource({network:{nodes:snapshot.nodes},files:snapshot.files},node.node_id,asset,catalog);setSnapshot({...snapshot,nodes:doc.network.nodes});}catch(e){setError(e.message);}};
