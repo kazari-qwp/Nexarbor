@@ -1,3 +1,4 @@
+import {editorNode} from '../../../adapters/harness/framework/editor-nodes.js';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
 import {startStudio} from '../../../adapters/harness/studio/host.mjs';import {makerTools} from '../../../adapters/harness/studio/makers/tools.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),checksum=text=>createHash('sha256').update(text).digest('hex');
@@ -15,7 +16,7 @@ test('network work copies publish real files into the entry directory and valida
  const {api,directory}=await fixture(t);await api('editor.library.update',{action:'asset.folder.create',kind:'preset',id:'maps',name:'地图',parent:'stored-networks'});
  const work=await api('studio.create',{kind:'network',sample:'blank',display_folder:'maps'});assert.deepEqual(Object.keys(work.files).sort(),['README.md','network.json']);
  let check=await api('studio.validate',{id:work.id});assert.equal((await finished(api,check.id)).status,'passed');const release=await api('studio.publish',{id:work.id,name:'入口预设'});assert.equal(release.storageKind,'network');assert.equal(release.display_folder,'maps');assert.ok(release.file.startsWith(path.join(directory,'network_presets','networks')));assert.equal(JSON.parse(await fs.readFile(release.file,'utf8')).network.version,8);
- const doc=JSON.parse(work.files['network.json']);assert.equal((await api('validate',{document:doc})).valid,true);doc.network.nodes[0].modules.missing={config:{},state:{},access:{strength:0,channels:[]}};assert.equal((await api('validate',{document:doc})).valid,false);await api('studio.save',{id:work.id,file:'network.json',content:JSON.stringify(doc),expected:checksum(work.files['network.json'])});check=await api('studio.validate',{id:work.id});assert.equal((await finished(api,check.id)).status,'failed');await assert.rejects(api('studio.publish',{id:work.id}));
+ const doc=JSON.parse(work.files['network.json']);assert.equal(doc.network.nodes.length,0);assert.equal((await api('validate',{document:doc})).valid,true);doc.network.nodes.push(editorNode('agent','entry','入口'));doc.files['data/entry.md']='';doc.network.nodes[0].modules.missing={config:{},state:{},access:{strength:0,channels:[]}};assert.equal((await api('validate',{document:doc})).valid,false);await api('studio.save',{id:work.id,file:'network.json',content:JSON.stringify(doc),expected:checksum(work.files['network.json'])});check=await api('studio.validate',{id:work.id});assert.equal((await finished(api,check.id)).status,'failed');await assert.rejects(api('studio.publish',{id:work.id}));
 });
 test('delegation switch is enforced by host capabilities; same-prefix history can fork',async t=>{
  let callback,serial=0;const created=[],waiting=new Map();const runner={start:async()=>({ready:true}),close:async()=>{},request:async(method,p)=>{if(method==='create'){created.push(p);return {session_id:'offline-'+(++serial),seed_cursor:{seed:true}};}if(method==='run')return new Promise(resolve=>waiting.set(p.session_id,resolve));if(method==='read')return {messages:[]};if(method==='cancel'){waiting.get(p.session_id)?.({status:'cancelled',messages:[],events:[]});return {};}}};
@@ -51,11 +52,11 @@ test('a configuration wish can reuse an existing component and publish bookmarks
 });
 
 test('network maker rejects unsupported execution shapes and merges only workcopy nodes',async t=>{
- const {api}=await fixture(t);const work=await api('studio.create',{kind:'network',dependencies:[]});const document=JSON.parse(work.files['network.json']);const rootNode=document.network.nodes[0];
+ const {api}=await fixture(t);const work=await api('studio.create',{kind:'network',dependencies:[]});const document=JSON.parse(work.files['network.json']);const entryNode=editorNode('agent','entry','入口');document.network.nodes.push(entryNode);document.files['data/entry.md']='';
  for(const binding of [{executor:'harness',prepare:true},{executor:'harness',prepare:{module:'agents.context',operation:'prepare'}},{executor:'harness',tool_provider:{}},{executor:'harness',channels:['tools','tools']}]){
   const invalid=structuredClone(document);invalid.network.nodes[0].execution=binding;assert.equal((await api('validate',{document:invalid})).valid,false);
  }
- const a=await api('studio.maker_tool',{id:work.id,tool:'network_patch',arguments:{nodes:[{...rootNode,name:'修改后的入口'}],files:{'data/note.md':'资料'}}});assert.equal(a.nodes,1);
+ const a=await api('studio.maker_tool',{id:work.id,tool:'network_patch',arguments:{nodes:[{...entryNode,name:'修改后的入口'}],files:{'data/note.md':'资料'}}});assert.equal(a.nodes,1);
  const edited=JSON.parse((await api('studio.read',{id:work.id})).files['network.json']);assert.equal(edited.network.nodes[0].name,'修改后的入口');assert.equal(edited.files['data/note.md'],'资料');assert.notEqual((await api('state')).live.document.network.nodes[0].name,'修改后的入口');
  const component=await api('studio.create',{dependencies:[]});await assert.rejects(api('studio.maker_tool',{id:component.id,tool:'network_patch',arguments:{nodes:[]}}),/只有网络/);
 });

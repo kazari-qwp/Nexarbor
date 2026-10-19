@@ -152,11 +152,10 @@ class Plugin(Component):
         if not check['valid']: return check
         doc = safe_document(p['document'], self.r.catalog, self.r.enabled)
         old = b.snapshot()
-        root_state = deepcopy(self.r.states['root'])
+        root_state = deepcopy(self.r.states.get('root'))
         # Include native cursor capture before detaching nodes whenever available.
         # Existing bindings survive edits to their node; new identities get new sessions.
         ids = {n['node_id'] for n in doc['network']['nodes'] if n['type'] == 'agent'}
-        if 'root' not in ids: raise ValueError('根节点必须是 Agent')
         for actor in set(b.agents) - ids:
             if actor in self.r.states: self.r.host('dispose-agent', actor=actor)
         doc['agents'] = {k: v for k, v in old['agents'].items() if k in ids}
@@ -166,7 +165,7 @@ class Plugin(Component):
                 b.restore(document)
                 b.components.graph_loaded(b)
             self.r.states.clear()
-            self.r.bind('root', root_state['session_id'], root_state['role'], root_state['grant'], root_state['prompt'])
+            if root_state and 'root' in ids:self.r.bind('root', root_state['session_id'], root_state['role'], root_state['grant'], root_state['prompt'])
             b.modules.bind(self.r)
             for actor in self.r.states: self.r.host('view-update', actor=actor, view=self.r.view(actor))
             b.dispatch('save', {})

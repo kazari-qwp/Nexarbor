@@ -50,7 +50,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   }
   if(preset&&!isAsset(preset)){
    preset=await hydrate(preset);
-   const old=preset.snapshot;snapshot=old.nodes.length?copySubnet({network:{nodes:old.nodes},files:old.files},old.nodes.map(n=>n.node_id),mode,old.positions):{...clone(old),edges:old.edges.map(edge=>({metadata:clone(edge.metadata),...(mode==='external'&&edge.target?{target:edge.target}:{})}))};preset=null;
+   const old=preset.snapshot;if(!old.nodes.length&&!old.edges?.length)throw Error('空网络没有可保存的书签内容');snapshot=old.nodes.length?copySubnet({network:{nodes:old.nodes},files:old.files},old.nodes.map(n=>n.node_id),mode,old.positions):{...clone(old),edges:old.edges.map(edge=>({metadata:clone(edge.metadata),...(mode==='external'&&edge.target?{target:edge.target}:{})}))};preset=null;
   }
   signature=category+':'+signature;
   if(lastCopy.current?.signature===signature&&lastCopy.current.mode===mode&&current.current.bookmarks.some(b=>b.id===lastCopy.current.id)){await remove(lastCopy.current.id);return;}
@@ -108,7 +108,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   remove:id=>enqueue(()=>remove(id)),removeHovered,created,drop,dropHistory,dropResource,locate,record,usedHistory,saveAsset,
   openBook:book=>openAsset({...book,sourceBookmark:book.id}),
   savePreset:id=>enqueue(async()=>{const book=current.current.bookmarks.find(b=>b.id===id),node=!isAsset(book)&&book?.snapshot?.nodes.length===1;await update({action:node?'node.save':'preset.save',bookId:id,folder:node?nodeFolder.current:presetFolder.current});latest.current.note(node?'节点完整配置已保存到节点栏；官方目录或根目录下保存时归入“已保存节点”':'已保存到当前网络预设目录');}),
-  saveNetwork:()=>enqueue(async()=>{const ctx=latest.current.context(),name=(await textPrompt('保存全网',ctx.document.network.nodes.find(n=>n.node_id==='root')?.name+'网络'))?.trim();if(!name)return;await update({action:'network.save',name,document:clone(ctx.document),layout:clone(ctx.layout)});latest.current.note('完整网络已写入磁盘，位于“已存储网络”分类');}),
+  saveNetwork:()=>enqueue(async()=>{const ctx=latest.current.context(),name=(await textPrompt('保存全网',(ctx.document.network.nodes[0]?.name??'未命名')+'网络'))?.trim();if(!name)return;await update({action:'network.save',name,document:clone(ctx.document),layout:clone(ctx.layout)});latest.current.note('完整网络已写入磁盘，位于“已存储网络”分类');}),
   folderChanged:(kind,id)=>{if(kind==='preset')presetFolder.current=id;if(kind==='node')nodeFolder.current=id;},
   reload:()=>enqueue(()=>api('editor.library.index').then(accept)),
   assetAction:p=>enqueue(()=>update(p)),

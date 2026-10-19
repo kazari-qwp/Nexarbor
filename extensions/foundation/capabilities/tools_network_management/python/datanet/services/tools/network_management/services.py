@@ -5,8 +5,8 @@ from datanet.core.agent_node import AgentNode
 
 
 def load_root_network(self, p):
-    if len(self.network.nodes) != 1 or self.agents or self.root.agent_config is not None:
-        return {'status': 'ok', 'restored': True, 'root_node_id': self.root.node_id}
+    if self.network.nodes and (len(self.network.nodes) != 1 or self.root is None or self.agents or self.root.agent_config is not None):
+        return {'status': 'ok', 'restored': True, 'root_node_id': self.root.node_id if self.root else None}
     path = Path(p['package'])
     if not path.is_absolute():
         if p['package'] not in self.components.root_packages:
@@ -14,14 +14,16 @@ def load_root_network(self, p):
         path = self.components.root_packages[p['package']]
     package = load_network_package(path)
     entry = p.get('entry_point', 'root')
-    if package.entry_points.get(entry) != 'root':
-        raise ValueError('Root entry must reference canonical node ID root')
+    if entry not in package.entry_points:
+        raise ValueError('Network entry point is absent')
     network, report = package.instantiate(storage_dir=self.directory / 'resources', toolkits=self.components.toolkits(self))
     self.network = network
-    self.root = network.nodes[report.entry_points[entry]]
+    entry_node = network.nodes[report.entry_points[entry]]
+    network.node_locks = self.node_locks
+    network.use_metadata_registry(self.metadata_registry)
     self.components.graph_loaded(self)
-    self.attach_creation()
-    attach_interface_management_tools(self.network, self.root, scope='descendants')
+    self.attach_creation(entry_node)
+    attach_interface_management_tools(self.network, entry_node, scope='descendants')
     return {'status': 'ok', 'node_ids': report.node_ids, 'entry_points': report.entry_points}
 
 def agent_capability(self, p):

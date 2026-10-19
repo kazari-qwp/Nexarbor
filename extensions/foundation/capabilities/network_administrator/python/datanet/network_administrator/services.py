@@ -193,7 +193,7 @@ class Administrator:
         b=self.backend;original={n['node_id']:n for n in scope['document']['network']['nodes']};draft={n['node_id']:deepcopy(n) for n in document['network']['nodes']}
         reverse={a:n for n,a in scope['aliases'].items()};fresh={a:'admin-'+uuid4().hex for a in draft if a not in original};ids={**reverse,**fresh,**scope.get('external_aliases',{})};removed={reverse[a] for a in original.keys()-draft.keys()}
         updated=[reverse[a] for a in original.keys()&draft.keys() if original[a]!=draft[a]]
-        if 'root' in removed or scope['actor'] in removed:raise PermissionError('不能删除全网根节点或当前管理员')
+        if scope['actor'] in removed:raise PermissionError('不能删除正在执行本次修改的管理员')
         if any(any(e.target_node_id in removed for e in n.interfaces) or n.management_parent_id in removed for k,n in b.network.nodes.items() if k not in scope['aliases']):raise PermissionError('节点仍被边界外网络引用，不能删除')
         if any(source in removed or set(targets)&removed for source,targets in b.network.delegation_permissions.items()):raise PermissionError('节点仍被委托许可引用，不能删除')
         oldbindings=deepcopy(b.agents)

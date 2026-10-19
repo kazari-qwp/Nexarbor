@@ -40,8 +40,8 @@ class Backend:
         self.network.node_locks = self.node_locks
         self.metadata_registry = self.network.metadata_registry
         from datanet.core.agent_node import AgentNode
-        self.root = AgentNode('root', 'DataNet根节点', file_path=self.directory / 'root-memory.md')
-        self.network.add_node(self.root)
+        starter = AgentNode('root', '起始节点', file_path=self.directory / 'root-memory.md')
+        self.network.add_node(starter)
         self.extension_state = {}
         from .external_tools import ExternalTools
         self.external_tools = ExternalTools(self)
@@ -58,7 +58,7 @@ class Backend:
             if previous is None:self.modules.restore()
             self.components.graph_loaded(self)
             self.attach_creation()
-            attach_interface_management_tools(self.network, self.root, scope='descendants')
+            if self.root is not None:attach_interface_management_tools(self.network, self.root, scope='descendants')
             if previous is None:
                 self.store.commit(self.snapshot())
         except Exception:
@@ -66,12 +66,16 @@ class Backend:
             self.store.close()
             raise
 
+    @property
+    def root(self):
+        """可选的起始节点引用；编号 root 不属于网络格式约束。"""
+        return self.network.nodes.get('root')
+
     def load_initial_document(self,document):
         """Load a declarative initial graph only into a new, empty backend."""
         if set(self.network.nodes)!={'root'} or self.store.latest() is not None:raise ValueError('Initial config requires an empty backend')
         candidate=_build(document['network'],self.directory)
-        if 'root' not in candidate.nodes:raise ValueError('Initial config requires root')
-        self.network=candidate;candidate.use_metadata_registry(self.metadata_registry);self.root=candidate.nodes['root']
+        self.network=candidate;candidate.use_metadata_registry(self.metadata_registry)
         candidate.node_locks = self.node_locks
         self.write_documents(document.get('files',{}))
 
@@ -213,7 +217,6 @@ class Backend:
         self.network = _build(document['network'], self.directory)
         self.network.node_locks = self.node_locks
         self.network.use_metadata_registry(self.metadata_registry)
-        self.root = self.network.nodes['root']
         self.agents = document['agents']
         self._restore_agent_managers()
         self.components.restore(self, document)
@@ -328,6 +331,7 @@ class Backend:
 
     def attach_creation(self, owner=None, options=None):
         owner = self.root if owner is None else owner
+        if owner is None:return
         options = {} if options is None else options
         attach_node_creation_tools(self.network, owner, storage_dir=self.directory / 'created', presets=self.components.node_presets, scope=options.get('scope', 'descendants'), allow_custom=options.get('allow_custom', False), network_presets=self.components.network_presets, toolkits=self.components.toolkits(self))
 
@@ -369,7 +373,7 @@ class Backend:
 
     def _dispatch(self, method, p):
         if method == 'network_initialize':
-            if set(self.network.nodes)!={'root'}:return {'loaded':False}
+            if self.network.nodes and set(self.network.nodes)!={'root'}:return {'loaded':False}
             self.restore(p['document'])
             self.components.graph_loaded(self)
             self.attach_creation()
@@ -408,7 +412,7 @@ class Backend:
         if method == 'persistence_reconcile':
             self.store.reconcile(p['operation_id'],p['reason']);return {'ok':True}
         if method == 'recovery_info':
-            return {'node_count': len(self.network.nodes), 'agents': self.agents, 'management': {key: node.management_parent_id for key, node in self.network.nodes.items()}, 'unassigned_management_nodes': [key for key, node in self.network.nodes.items() if key != self.root.node_id and node.management_parent_id is None], 'pending_operations': self.store.pending(), 'checkpoint_count': self.store.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0], **self.components.status(self)}
+            return {'node_count': len(self.network.nodes), 'agents': self.agents, 'management': {key: node.management_parent_id for key, node in self.network.nodes.items()}, 'unassigned_management_nodes': [key for key, node in self.network.nodes.items() if node.management_parent_id is None], 'pending_operations': self.store.pending(), 'checkpoint_count': self.store.db.execute('SELECT COUNT(*) FROM checkpoints').fetchone()[0], **self.components.status(self)}
         if method in self.components.routes:
             return self.components.routes[method](self, p)
         if method in ('agent_inputs_update','agent_inputs_ack'):
@@ -418,7 +422,7 @@ class Backend:
             if method=='agent_inputs_update':return node.inputs.update(p['source'],p['patch'])
             node.inputs.acknowledge(p['source'],p['event_id']);return {'ok':True}
         if method == 'root_network_info':
-            return {'root_node_id': self.root.node_id, 'agent_config': self.root.agent_config}
+            return {'root_node_id': self.root.node_id if self.root else None, 'agent_config': self.root.agent_config if self.root else None}
         if method == 'bind_agent':
             return self._bind_agent(p)
         if method == 'agent_progress':

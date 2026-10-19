@@ -2,6 +2,7 @@
 import ast
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+from copy import deepcopy
 from dataclasses import asdict
 from hashlib import sha256
 import json
@@ -60,15 +61,20 @@ class Studio:
         self.backend=backend;self.root=backend.directory/'studio';self.root.mkdir(exist_ok=True)
         self.work=self.root/'work';self.work.mkdir(exist_ok=True)
         self.removed=set(read_json(self.root/'removed-modules.json',[]))
-        self.library={name:release for name,release in read_json(self.root/'library.json',{}).items() if name not in self.removed}
+        self.standard_releases={}
         for name,source in getattr(backend.components,'standard_modules',{}).items():
-            if name in self.library or name in self.removed:continue
+            if name in self.removed:continue
             files=sources(source['folder']);fingerprint=digest(files);spec=source['manifest']
             destination=self.root/'releases'/name/spec['version']/fingerprint
-            for file,content in files.items():
-                path=destination/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
-            self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}))
-        write_json(self.root/'library.json',self.library)
+            if not destination.exists():
+                temporary=destination.with_name(fingerprint+'.tmp-'+uuid4().hex)
+                for file,content in files.items():
+                    path=temporary/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
+                temporary.rename(destination)
+            defaults=read_json(destination/'example.json',{})
+            self.standard_releases[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin='standard')
+        self.library=self.select_releases(read_json(self.root/'library.json',{}))
+        self.persist_library()
         for name in self.removed:
             backend.components.module_types.pop(name,None);backend.components.module_owners.pop(name,None)
         self.jobs={};self.processes={};self.pool=ThreadPoolExecutor(max_workers=2)
@@ -76,6 +82,29 @@ class Studio:
         self.run_state=dict(status='idle',completed=0,requested=0)
         self.workspace_busy=lambda id:False
         self._load_releases()
+    def standard_owned(self,name,release):
+        if name not in self.standard_releases:return False
+        if release.get('origin')=='standard':return True
+        # 旧的框架安装副本没有来源标记；用户发布和测试候选有各自来源。
+        if 'origin_kind' in release or 'origin' in release:return False
+        parts=str(release.get('folder','')).replace('\\','/').split('/')
+        return (parts==['releases',name,release.get('version'),release.get('digest')]
+                and release.get('id')==name and release.get('manifest',{}).get('id')==name)
+
+    def select_releases(self,releases):
+        selected={**self.standard_releases,**releases}
+        for name,release in releases.items():
+            if self.standard_owned(name,release):selected[name]=self.standard_releases[name]
+        return {name:release for name,release in selected.items() if name not in self.removed}
+
+    def persist_library(self):
+        file=self.root/'library.json';previous=read_json(file,None)
+        if previous==self.library:return
+        if previous is not None:
+            backup=self.root/'library-history'/(digest(previous)+'.json')
+            if not backup.exists():write_json(backup,previous)
+        write_json(file,self.library)
+
     def _load_releases(self):
         visiting=set();done=set();factories={}
         def load(name):
@@ -130,8 +159,8 @@ class Studio:
             for path in folder.iterdir():
                 if path.is_file():path.unlink()
             from datanet.core.network import Network
-            graph=Network();graph.add_node(AgentNode('root','入口',file_path=folder/'data/root.md'))
-            write_json(folder/'network.json',dict(network=network_document(graph,folder),files={'data/root.md':'你是这个网络的入口。'}))
+            graph=Network()
+            write_json(folder/'network.json',dict(network=network_document(graph,folder),files={}))
             (folder/'README.md').write_text('# 网络预设\n\n说明网络用途、配置和使用步骤。\n',encoding='utf-8')
         elif kind=='tool':
             spec=read_json(folder/'module.json',{});spec['agent_tools']=[dict(id='increment',name='计数',description='增加计数并返回结果。',operation='increment')]
@@ -512,7 +541,12 @@ class Studio:
         old=self.backend.snapshot()
         try:
             self.backend.modules.clear();self.backend.network=candidate;candidate.use_metadata_registry(self.backend.metadata_registry)
-            self.backend.root=candidate.nodes['root'];self.backend.modules.restore();self._bind()
+            self.backend.agents={id:deepcopy(binding) for id,binding in old['agents'].items() if id in candidate.nodes and isinstance(candidate.nodes[id],AgentNode)}
+            for binding in self.backend.agents.values():
+                if binding.get('manager_id',binding.get('creator_node_id')) not in self.backend.agents:binding['manager_id']=None
+                if binding.get('creator_node_id') not in candidate.nodes:binding['creator_node_id']=None
+            self.backend._restore_agent_managers()
+            self.backend.modules.restore();self._bind()
             self.backend.write_documents(document.get('files',{}))
         except BaseException:
             self.backend.restore(old);self._bind();raise
@@ -549,9 +583,9 @@ def register(services):
     services.graph_loaders.append(lambda b:b.studio._bind())
     services.snapshotters.append(lambda b:{'studio_releases':b.studio.library})
     def restore(b,document):
-        installed={name:release for name,release in b.studio.library.items() if name in getattr(b.components,'standard_modules',{})}
-        b.studio.library={name:release for name,release in {**installed,**document.get('studio_releases',b.studio.library)}.items() if name not in b.studio.removed}
+        b.studio.library=b.studio.select_releases(document.get('studio_releases',b.studio.library))
         b.studio._load_releases()
+        b.studio.persist_library()
     services.restorers.append(restore)
     methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

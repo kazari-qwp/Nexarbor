@@ -40,7 +40,7 @@ def register_provider(b,space,provider,*,public=False):
 
 def extend(b,node_id):
     if 'capabilities/node_metadata' not in b.components.enabled:return {}
-    acting=active_agent.get();own=not acting or acting[1] in (node_id,b.root.node_id)
+    acting=active_agent.get();own=not acting or acting[1]==node_id
     spaces=set(b._node_metadata_providers)|set(b.extension_state.get('node_metadata',{}).get(node_id,{}))
     result={}
     for space in sorted(spaces):

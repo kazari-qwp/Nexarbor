@@ -60,5 +60,5 @@ export function folderResources(tree,entries,id){
  const folders=new Set([id]);for(const parent of folders)for(const f of tree.folders)if(f.parent===parent)folders.add(f.id);return entries.filter(e=>folders.has(tree.items[resourceId(e)]?.folder??null));
 }
 export const assetHistory=book=>({kind:book.asset.kind,id:book.id??book.asset.id,label:book.name,description:book.description??'',asset:clone(book.asset)});
-export const contentType=value=>isAsset(value)?value.asset.kind:!value.snapshot?.nodes.length?'edge':value.snapshot.nodes.length===1?'node':'network';
+export const contentType=value=>isAsset(value)?value.asset.kind:!value.snapshot?.nodes.length?(value.kind==='preset'||value.storageKind==='network'?'network':'edge'):value.snapshot.nodes.length===1?'node':'network';
 export const matchesType=(value,type)=>type==='all'||contentType(value)===type||(['internal','external'].includes(type)&&contentType(value)==='network'&&value.mode===type);

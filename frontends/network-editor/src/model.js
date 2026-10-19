@@ -31,8 +31,8 @@ export function layoutNodes(document,saved={}){
   });
 }
 export function removeNode(document,id){
-  if(id==='root')throw new Error('根节点不能删除');
   const next=clone(document);next.network.nodes=next.network.nodes.filter(n=>n.node_id!==id);
+  if(next.network.delegations)next.network.delegations=next.network.delegations.filter(g=>g.source!==id&&g.target!==id);
   for(const n of next.network.nodes){
     for(const d of Object.keys(n.connections))n.connections[d]=n.connections[d].filter(e=>e.target_node_id!==id);
     if(n.management_parent_id===id)n.management_parent_id=null;

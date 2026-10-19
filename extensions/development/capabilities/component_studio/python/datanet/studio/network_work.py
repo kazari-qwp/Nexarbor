@@ -32,7 +32,6 @@ def validate_network(document,backend,library):
     if not isinstance(document,dict) or set(document)!={'network','files'}:raise ValueError('预设使用 {network, files} 成品格式')
     document=assemble_document(document,library,backend.components.module_types)
     candidate=_build(document['network'],backend.directory)
-    if 'root' not in candidate.nodes:raise ValueError('网络预设需要 root 节点')
     for node in candidate.nodes.values():
         validate_execution(node,backend)
         from datanet.core.node_toolboxes import validate_exposure

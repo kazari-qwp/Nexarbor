@@ -71,7 +71,7 @@ export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
     library.presets=(await store.list(options)).presets;tree.items[preset.id]??={folder:p.folder??null};
     delete tree.items[preset.id].archivedAt;delete tree.items[preset.id].resource;
    }else if(p.action==='network.save'){
-    if(typeof p.name!=='string'||!p.name.trim()||p.name.length>160||!p.document?.network?.nodes.some(n=>n.node_id==='root'))throw Error('完整网络需要名称和根节点');
+    if(typeof p.name!=='string'||!p.name.trim()||p.name.length>160||!Array.isArray(p.document?.network?.nodes))throw Error('完整网络需要名称和节点列表');
     const preset=await store.save({storageKind:'network',document:structuredClone(p.document),editor:{name:p.name.trim(),mode:'internal',positions:p.layout??{},display_folder:'stored-networks',runtime}});
     library.presets=(await store.list(options)).presets;presetTree.items[preset.id]={folder:'stored-networks'};
    }else if(['asset.archive','asset.restore','asset.purge'].includes(p.action)){

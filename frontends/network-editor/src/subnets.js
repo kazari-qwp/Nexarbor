@@ -54,7 +54,7 @@ function documentRefs(value,paths){
  return value;
 }
 export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
- if(!bookmark.snapshot.nodes.length)return {edges:clone(bookmark.snapshot.edges)};
+ if(!bookmark.snapshot.nodes.length){if(bookmark.snapshot.edges?.length)return {edges:clone(bookmark.snapshot.edges)};throw Error('空网络没有可拖入的节点，请使用“打开完整网络”');}
  requireData(bookmark.snapshot.nodes,bookmark.snapshot.files);
  const next=clone(document),nonce=crypto.randomUUID(),mapping=Object.create(null),paths=Object.create(null),allocated=new Set(next.network.nodes.map(n=>n.node_id));
  let batch=nonce,space=1;while(Object.keys(next.files??{}).some(name=>name.startsWith('copies/'+batch+'/')))batch=nonce+'-'+space++;
@@ -70,8 +70,8 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
  const ids=new Set([...next.network.nodes.map(n=>n.node_id),...Object.values(mapping)]),nodes=[];
  for(const original of bookmark.snapshot.nodes){
   let node=documentRefs({...clone(original),parameters:{}},paths);node.parameters=clone(original.parameters);for(const field of [...dataFiles,...dataDirectories])if(typeof node.parameters[field]==='string'&&paths[node.parameters[field]])node.parameters[field]=paths[node.parameters[field]];node.node_id=mapping[original.node_id];node.context_cursor=null;
-  node.management_parent_id=mapping[node.management_parent_id]??(ids.has(node.management_parent_id)?node.management_parent_id:'root');
-  if(node.management_parent_id===node.node_id)node.management_parent_id='root';
+  node.management_parent_id=mapping[node.management_parent_id]??(ids.has(node.management_parent_id)?node.management_parent_id:null);
+  if(node.management_parent_id===node.node_id)node.management_parent_id=null;
   node.connections.interfaces=node.connections.interfaces.map(link=>({...link,target_node_id:mapping[link.target_node_id]??link.target_node_id})).filter(link=>ids.has(link.target_node_id));
   for(const [id,spec] of Object.entries(node.modules)){
    spec.config=schemaRefs(spec.config,catalog[id]?.schema,mapping);

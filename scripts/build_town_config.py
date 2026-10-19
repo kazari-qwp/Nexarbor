@@ -14,7 +14,7 @@ nodes={};files={}
 def save(file,data):
     file.parent.mkdir(parents=True,exist_ok=True);file.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 def node(id,name,kind='node'):
-    value=dict(type=kind,node_id=id,name=name,description='',management_parent_id=None if id=='root' else 'root',divergence=-1,data_kind={'agent':'agent','text_file':'text','pulse':'pulse'}.get(kind),parameters={},connections={'interfaces':[]},agent=None,modules={},offered_tools=[],toolboxes=[],expose=[],execution=None,context_cursor=None,inputs=None)
+    value=dict(type=kind,node_id=id,name=name,description='',management_parent_id=None,divergence=-1,data_kind={'agent':'agent','text_file':'text','pulse':'pulse'}.get(kind),parameters={},connections={'interfaces':[]},agent=None,modules={},offered_tools=[],toolboxes=[],expose=[],execution=None,context_cursor=None,inputs=None)
     if kind in ('agent','text_file'):
         file=('memory/' if kind=='agent' else 'world/')+id.replace('/','-')+'.md';value['parameters']['file_path']=file;files[file]=''
     nodes[id]=value;return value
@@ -34,7 +34,6 @@ def events(place,trigger):
         result.append(dict(id=e['id'],text=e['message'],probability=e['probability'],limit=e.get('max_hits'),rewards=e.get('effects',{}).get('items',{}),triggers=e['triggers']))
     return result
 
-node('root','小镇观察者')
 pulse=node('world/pulse','世界脉冲','pulse');pulse['parameters']=dict(channels=['tick'],strength=12,content='新时刻开始',signal_options=dict(timeout_seconds=540,node_timeout_seconds=420,max_hops=16,max_deliveries=128))
 clock=node('world/time','时间','text_file');mount(clock,'clock.counter',dict(signal_channels=['tick'],labels=['早上','中午','下午','傍晚','午夜'],write_text=True),0,['tick'])
 saver=node('world/save','五时刻存档');mount(saver,'clock.counter',dict(signal_channels=['tick'],checkpoint_every=5),0,['tick','runtime.checkpoint']);saver['offered_tools']=[dict(ref='runtime:checkpoint',channels=['runtime.checkpoint'])]

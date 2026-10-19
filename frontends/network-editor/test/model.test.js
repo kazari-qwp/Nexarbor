@@ -10,9 +10,9 @@ test('filters never invent reach or mutate actual graph',()=>{
  assert.equal(filterGraph(nodes,edges,{local}).nodes.length,1);
  assert.equal(document.network.nodes[0].connections.interfaces.length,1);
 });
-test('deleting a node cleans edges and keeps root',()=>{
+test('any node including root can be deleted, including the last one',()=>{
  const next=removeNode(document,'b');assert.equal(next.network.nodes.length,1);assert.equal(next.network.nodes[0].connections.interfaces.length,0);
- assert.throws(()=>removeNode(document,'root'));assert.equal(document.network.nodes.length,2);
+ const rootless=removeNode(document,'root');assert.equal(rootless.network.nodes.length,1);assert.equal(rootless.network.nodes[0].connections.interfaces.length,0);assert.equal(removeNode(rootless,'b').network.nodes.length,0);assert.equal(document.network.nodes.length,2);
 });
 test('visibility switches distinguish all, none and ordinary connections',()=>{
  const nodes=[...layoutNodes(document),{id:'isolated',data:{kind:'节点',node:{name:'Isolated'}}}],edges=edgesOf(document);

@@ -56,7 +56,7 @@ def prepare(studio,p):
         for relative,content in current.items():
             target=destination/relative;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(content,encoding='utf-8')
         defaults=read_json(work/'example.json',{})
-        library[spec['id']]=dict(id=spec['id'],version=spec['version'],folder=str(destination.relative_to(home/'runtime/studio')),digest=fingerprint,manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults)
+        library[spec['id']]=dict(origin_kind='candidate',id=spec['id'],version=spec['version'],folder=str(destination.relative_to(home/'runtime/studio')),digest=fingerprint,manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults)
     write_json(home/'runtime/studio/library.json',library)
     setup=dict(fingerprint=fingerprint,source=p.get('source','current'),external_tools=studio.backend.external_tools.catalog(),publications=publications,module=None if metadata.get('kind')=='network' else spec['id'])
     write_json(home/'setup.json',setup);write_json(studio.root/'environments'/p['id']/'active.json',dict(home=str(home)))

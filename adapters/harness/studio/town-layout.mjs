@@ -19,9 +19,20 @@ export function parallelTownDocument(document){
  doc.network.nodes=nodes.filter(n=>n.node_id!=='world/settle');
  return {document:doc,changed:true};
 }
+export function currentTownDocument(document){
+ const previous=parallelTownDocument(document),doc=previous.document,nodes=doc.network.nodes,observer=nodes.find(n=>n.node_id==='root');
+ const unused=observer?.type==='node'&&observer.name==='小镇观察者'&&!observer.description&&
+  !Object.keys(observer.modules??{}).length&&!(observer.offered_tools??[]).length&&!(observer.toolboxes??[]).length&&!(observer.expose??[]).length&&
+  !Object.keys(observer.parameters??{}).length&&!observer.execution&&!observer.agent&&!observer.inputs&&!observer.context_cursor&&
+  !(doc.network.delegations??[]).some(g=>g.source==='root'||g.target==='root')&&
+  !observer.connections.interfaces.length&&!nodes.some(n=>n.connections.interfaces.some(e=>e.target_node_id==='root'));
+ if(unused){doc.network.nodes=nodes.filter(n=>n!==observer);for(const node of doc.network.nodes)if(node.management_parent_id==='root')node.management_parent_id=null;}
+ return {document:doc,changed:previous.changed||!!unused};
+}
 export function parallelTownTemplates(templates=[]){
  return structuredClone(templates).map(t=>{
   for(const n of t.document?.network?.nodes??[]){
+   if(n.management_parent_id==='root')n.management_parent_id=null;
    for(const e of n.connections.interfaces)if(e.target_node_id==='world/settle'&&e.metadata.channels.includes('tick'))e.target_node_id='world/save';
    const box=n.modules?.['messages.box'];if(box&&n.modules?.['agents.activity']){box.config.notify_activity=true;box.access.channels=[...new Set([...box.access.channels,'activity'])];}
   }
@@ -30,15 +41,15 @@ export function parallelTownTemplates(templates=[]){
  });
 }
 export async function updateTownRuntime(rpc,directory){
- const marker=path.join(directory,'town-parallel-layout-v1.json');try{await fs.access(marker);return;}catch(error){if(error.code!=='ENOENT')throw error;}
- const state=await rpc('studio_state'),live=parallelTownDocument(state.live.document),draft=state.draft?parallelTownDocument(state.draft.document):null;
+ const marker=path.join(directory,'town-layout-v2.json');try{await fs.access(marker);return;}catch(error){if(error.code!=='ENOENT')throw error;}
+ const state=await rpc('studio_state'),live=currentTownDocument(state.live.document),draft=state.draft?currentTownDocument(state.draft.document):null;
  if(live.changed||draft?.changed){
   // 当前后端已拥有工作区锁，尚未开放画布，也没有运行中的活动。
-  await fs.writeFile(path.join(directory,'before-town-parallel-layout.json'),JSON.stringify(state,null,2));
+  await fs.writeFile(path.join(directory,'before-town-layout-v2.json'),JSON.stringify(state,null,2));
   if(live.changed){const result=await rpc('studio_apply',{document:live.document,base_commit:state.live.commit,layout:state.draft?.layout??{}});if(!result.valid)throw Error('更新小镇布局校验失败：'+JSON.stringify(result));}
   if(state.draft&&!state.draft.applied){
    const now=await rpc('studio_state');await rpc('studio_draft',{document:draft.document,expected_version:now.draft?.version??0,base_commit:now.live.commit,layout:state.draft.layout??{}});
   }
  }
- await fs.writeFile(marker,JSON.stringify({version:1,changed:live.changed,updatedAt:new Date().toISOString()}));
+ await fs.writeFile(marker,JSON.stringify({version:2,changed:live.changed,updatedAt:new Date().toISOString()}));
 }

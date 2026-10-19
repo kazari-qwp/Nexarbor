@@ -32,7 +32,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
    if(!onOpenNetwork)throw Error('请通过 Nexarbor 桌面客户端打开完整网络');
    if(openingNetwork)throw Error('正在打开完整网络');
    const {storedNetworks}=await import('../framework/stored-networks.js'),preset=await storedNetworks(directory).load(params.id);
-   if(preset.storageKind!=='network'||!preset.snapshot.nodes.some(n=>n.node_id==='root'))throw Error('该预设没有根节点，请将它拖入当前网络使用');
+   if(preset.storageKind!=='network')throw Error('请选择完整网络；零件预设可拖入当前网络使用');
    openingNetwork=true;setTimeout(()=>Promise.resolve(onOpenNetwork(preset)).catch(()=>{}).finally(()=>{openingNetwork=false;}),150);
    return {opening:true,name:preset.name};
   }

@@ -1,8 +1,8 @@
 # 从需求组装网络
 
-catalog_modules 查职责和参数，node_template 取合法单节点骨架，组合 network.json。成品仅 {network,files}，network.version=8，nodes/signals/delegations 都存在，保留 root。files 放人格、常识、地图等文本，相对路径在网络内部。
+catalog_modules 查职责和参数，node_template 取合法单节点骨架，组合 network.json。成品仅 {network,files}，network.version=8，nodes/signals/delegations 都存在；不要求 root，可以没有管理根或没有节点。files 放人格、常识、地图等文本，相对路径在网络内部。
 
-大网络优先分批调用network_patch，每批提供完整节点对象和需要的files，按node_id合并；不必反复读取或重写所有节点。replace=true用于首次清空空白草稿，之后继续合并。root的management_parent_id必须为null，其他节点通常为root；不要写屏幕坐标等非协议字段。
+大网络优先分批调用network_patch，每批提供完整节点对象和需要的files，按node_id合并；不必反复读取或重写所有节点。replace=true用于首次清空空白草稿，之后继续合并。没有管理者时 management_parent_id 为 null；设置管理者时必须引用实际存在的节点，不能为了凑格式创建 root；不要写屏幕坐标等非协议字段。
 
 流程：列角色数据 → 查复用组件 → 分配本地职责 → 配频道和有向边 → 填配置/状态/授权 → validate。不写全局 Python 启动器。
 

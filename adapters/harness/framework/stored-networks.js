@@ -7,7 +7,7 @@ export const storedNetworks=directory=>storedDocuments(directory,{rootName:'netw
 export const storedNodes=directory=>storedDocuments(directory,{rootName:'node_presets',parts:{node:'nodes'},label:'节点预设',singleNode:true});
 function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
  const base=path.resolve(directory),root=path.join(base,rootName),summaries=new Map();
- const valid=document=>document.network?.version===8&&Array.isArray(document.network.nodes)&&(singleNode?document.network.nodes.length===1:document.network.nodes.length>0);
+ const valid=(document,kind)=>document.network?.version===8&&Array.isArray(document.network.nodes)&&(singleNode?document.network.nodes.length===1:kind==='network'||document.network.nodes.length>0);
  const checked=async(folder,file)=>{
   const actualBase=await fs.realpath(base),actualFolder=await fs.realpath(folder);
   if(!actualFolder.startsWith(actualBase+path.sep))throw Error(label+'目录越出当前工作区');
@@ -25,7 +25,7 @@ function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
   info??=matches(summaries.get(file)?.stamp,stat)?summaries.get(file).info:undefined;
   if(!summary||!info){
    document=JSON.parse(await fs.readFile(file,'utf8'));
-   if(!valid(document))throw Error(singleNode?'节点预设需要包含一个节点的 v8 文档':'需要当前 v8 网络文档');
+   if(!valid(document,storageKind))throw Error(singleNode?'节点预设需要包含一个节点的 v8 文档':'需要当前 v8 网络文档');
    info={nodeCount:document.network.nodes.length,hasRoot:document.network.nodes.some(n=>n.node_id==='root')};summaries.set(file,{stamp:stat,info});
   }
   return {id:storageKind+':'+name,name:editor.name??path.basename(name,'.json'),description:editor.description??'',mode:editor.mode??'internal',...info,...(summary?{lazySnapshot:true}:{snapshot:{nodes:document.network.nodes,files:document.files??{},positions:editor.positions??{}}}),originBookmark:editor.originBookmark,display_folder:editor.display_folder,storageKind,file,metadataFile,runtime:summary?undefined:editor.runtime,application:editor.application};
@@ -47,7 +47,7 @@ function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
   return {presets,errors};
  };
  const save=async({storageKind,existingId,document,editor})=>{
-  if(!Object.hasOwn(parts,storageKind)||!valid(document))throw Error('无效的'+label+'文档');
+  if(!Object.hasOwn(parts,storageKind)||!valid(document,storageKind))throw Error('无效的'+label+'文档');
   const existing=existingId?await load(existingId,{summary:true}):null;if(existing&&existing.storageKind!==storageKind)throw Error('预设存储类型不一致');
   const folder=path.join(root,parts[storageKind]);await fs.mkdir(folder,{recursive:true});
   const file=existing?.file??path.join(folder,randomUUID()+'.json'),metadataFile=file.slice(0,-5)+'.editor.json';await checked(folder,file);await checked(folder,metadataFile);
