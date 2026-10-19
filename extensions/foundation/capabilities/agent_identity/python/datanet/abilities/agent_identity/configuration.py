@@ -32,40 +32,8 @@ def validate_config(config, base):
     return result
 
 def assemble_agents(network, client, *, model_override=None, node_ids=None):
-    """工具已由应用装配；先构建全部实例，成功后统一绑定，不调用 API。"""
-    from datanet.executors.minimal.agent import Agent
-    from datanet.abilities.agent_identity.delegation import attach_delegation_tool
-    prepared = {}
-    for node in network.nodes.values():
-        if node_ids is not None and node.node_id not in node_ids:
-            continue
-        config = node.agent_config
-        if config is not None:
-            from datanet.core.agent_node import AgentNode
-            if not isinstance(node,AgentNode):raise TypeError('Agents require an Agent node')
-        if config is None:
-            continue
-        config = validate_config(config, Path.cwd())
-        if config['tools_path'] is not None:
-            with Path(config['tools_path']).open(encoding='utf-8') as file:
-                definitions = json.load(file)
-        else:
-            definitions = [{'type': 'function', 'function': {key: deepcopy(value) for key, value in definition.items() if key != 'read_only'}} for name, definition in node.tool_definitions.items() if name in node.tools and definition['read_only']]
-        names_from_file = {d['function']['name'] for d in definitions}
-        definitions.extend((deepcopy(d) for name, d in node.agent_tool_definitions.items() if name not in names_from_file))
-        definitions.extend(attach_discovery_tools(network, node))
-        definitions.append(attach_delegation_tool(network, node))
-        names = [d['function']['name'] for d in definitions]
-        if len(names) != len(set(names)):
-            raise ValueError('Agent 工具定义名称重复')
-        if set(names) - node.tools.keys():
-            raise ValueError('Agent 配置包含未装配的工具')
-        extra = None if config['thinking'] is None else {'thinking': {'type': 'enabled' if config['thinking'] else 'disabled'}}
-        prepared[node.node_id] = Agent(client, model_override or config['model'], config['prompt_path'], definitions, config['max_rounds'], config['max_tokens'], extra, node_bindings=config['node_bindings'], max_signal_strength=config['max_signal_strength'])
-    for node_id, agent in prepared.items():
-        network.nodes[node_id].agent = agent
-        from datanet.abilities.agent_identity.management import attach_agent_management_tools
-        attach_agent_management_tools(network.nodes[node_id])
+    """旧独立执行器入口已停用；运行由 DeepSeek Harness 宿主装配。"""
+    raise RuntimeError('独立 Python Agent 执行器已移除。请在 Nexarbor 工作台通过 DeepSeek Harness 运行 Agent。')
 
 
 def encode_execution(node, base):

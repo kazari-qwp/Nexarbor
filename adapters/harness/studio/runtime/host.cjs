@@ -21,7 +21,7 @@ async function init(p){
  const record=require(path.join(nativeRoot,'yaml')).parse(await fs.readFile(p.credentials,'utf8')).records['deepseek-account-platform/default'];
  if(record?.kind!=='grant'||new URL(record.payload.issuer).origin!=='https://platform.deepseek.com')throw Error('Configure a supported DeepSeek account grant in Harness');
  config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:16000,contextWindow:500000,...options.model};config.maxRequests=options.max_requests??240;config.maxSeconds=options.max_seconds??1200;
- const deepseek=native('dsh-llm-deepseek'),models=JSON.parse(await fs.readFile(p.root+'/in-history.patch.yml','utf8')).find(r=>r.id==='llm-deepseek-account').config.models;
+ const deepseek=native('dsh-llm-deepseek'),models=JSON.parse(await fs.readFile(p.root+'/adapters/harness/runtime/models.json','utf8'));
  const connection=deepseek.resolveAdapterOptions({models,maxTokens:config.model.maxTokens,retryPolicy:{mode:'normal',maxRetries:0},streamIdleTimeoutMs:60000});
  const adapter=new deepseek.DeepSeekAdapter({options:()=>connection,resolveAuth:async c=>{if(new URL(c.baseURL).origin!=='https://api.deepseek.com')throw Error('Unexpected model endpoint');return {headers:{'x-dsh-auth-token':record.payload.token}};},resolveUserId:()=> 'nexarbor-component-studio',prepareExtensions:async()=>({fields:{},accept:async()=>{}})});
  host.llm.registerAdapter(['deepseek-account'],adapter);

@@ -22,5 +22,6 @@ export async function harnessCredentials({home,directory}={}){
   if(directory){try{const connection=JSON.parse(await fs.readFile(path.join(directory,'studio/harness-connection.json'),'utf8'));return path.join(path.resolve(connection.home),'.credentials.yaml');}catch(error){if(error.code!=='ENOENT')throw error;}}
   const root=fileURLToPath(new URL('../../../',import.meta.url));
   try{const local=JSON.parse(await fs.readFile(path.join(root,'build/harness-installation.json'),'utf8'));if(local.credentials){if(!path.isAbsolute(local.credentials))throw Error('授权记录须为绝对路径');return local.credentials;}}catch(error){if(error.code!=='ENOENT')throw error;}
-  throw Error('请先在组件工作室启用本机账户，或在项目本地安装记录中配置授权文件位置。');
+  for(const folder of [process.env.DSH_HOME,process.env.USERPROFILE&&path.join(process.env.USERPROFILE,'.dsh')].filter(Boolean)){const candidate=path.join(path.resolve(folder),'.credentials.yaml');try{await fs.access(candidate);return candidate;}catch(error){if(error.code!=='ENOENT')throw error;}}
+  throw Error('请先在 DeepSeek Harness 完成账户授权，并在制作 Agent 页面指定 Harness home，或设置 DATANET_HARNESS_CREDENTIALS。');
 }

@@ -26,11 +26,13 @@
 
 现有公开 Network / NodeModules / Transport 入口与 v8 文件格式保持兼容。保留薄包装是为了不把目录整理扩散到所有组件，不复制实现。核心内部仍共享网络与模块运行状态，这是同一职责域的必要协作，不强行引入额外服务框架。
 
-extensions/ 中的模块、数据节点与应用预设通过清单登记；executors/minimal/ 是可选执行器。它们使用核心公开端口，核心不写应用分支。组件选择见 [组件装配](COMPONENTS.md)，亚节点见 [归属与出边](SUBNODES.md)。
+extensions/ 中的模块、数据节点与应用预设通过清单登记，Agent 执行统一由 DeepSeek Harness 原生宿主提供。组件使用核心公开端口，核心不写应用分支。组件选择见 [组件装配](COMPONENTS.md)，亚节点见 [归属与出边](SUBNODES.md)。
 
 ## 边界验证
 
-tests/test_layer_boundaries.py 检查反向导入；tests/test_jsonrpc_transport.py 离线验证双向回调、关闭、超时与错误；前端 communication.test.js 用注入处理器直接验证传输。模块、信号、事务、上下文和真实客户端测试继续覆盖拆分后的行为。npm 发布清单包含 communication 和 shared，确保安装包中也有这些入口。
+这些回归文件保留在本地开发目录，由 Git 忽略，不随发布包分发。
+
+tests/test_layer_boundaries.py 检查反向导入；tests/test_jsonrpc_transport.py 离线验证双向回调、关闭、超时与错误；前端 communication.test.js 用注入处理器直接验证传输。模块、信号、事务、上下文和真实客户端测试继续覆盖拆分后的行为。桌面 ZIP 装配包含 communication 和 shared，确保运行包中也有这些入口。
 
 ## 核心 Agent 节点
 

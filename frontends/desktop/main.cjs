@@ -42,7 +42,7 @@ function projectRoot(){
   let directory=path.resolve(start);
   for(let i=0;i<9;i++){if(fs.existsSync(path.join(directory,'adapters/harness/studio/host.mjs')))return directory;const parent=path.dirname(directory);if(parent===directory)break;directory=parent;}
  }
- throw Error('找不到项目开发后端。请设置 NEXARBOR_ROOT 指向包含源码和Python运行时的目录。');
+ throw Error('找不到工作台后端。请完整解压运行包；源码开发可设置 NEXARBOR_ROOT 指向仓库目录。');
 }
 async function startWorkspace(spec,startupWarnings=spec.startupWarnings??[]){
  let next;

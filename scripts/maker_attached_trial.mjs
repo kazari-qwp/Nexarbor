@@ -1,7 +1,0 @@
-// 向已运行的制作宿主提交一次复审，沿用其连接和原生会话，不另开数据库。
-import fs from 'node:fs/promises';import path from 'node:path';
-const spec=JSON.parse(await fs.readFile(process.argv[2],'utf8')),connection=JSON.parse(await fs.readFile(path.join(spec.directory,'editor-connection.json'),'utf8'));
-const api=async(operation,params)=>{const response=await fetch('http://'+connection.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(connection.url).hash.slice(7)},body:JSON.stringify({operation,params})});const result=await response.json();if(result.error)throw Error(result.error);return result.value;};
-if(spec.fork_module){const work=await api('studio.fork',{module:spec.fork_module});spec.task.id=work.id;}
-const job=await api('studio.agent.start',spec.task);console.log(JSON.stringify({workspace:job.workspace,task:job.id,session_id:job.session_id}));
-for(;;){const result=await api('studio.agent.read',{task:job.id});console.log(JSON.stringify({status:result.status,steps:result.steps,tools:result.tool_events.length}));if(result.status!=='running'){await fs.writeFile(path.join(spec.directory,'attached-'+job.id+'.json'),JSON.stringify({spec,result},null,2));console.log(JSON.stringify({status:result.status,error:result.error,validation_log:result.validation_log}));process.exitCode=result.status==='completed'?0:1;break;}await new Promise(r=>setTimeout(r,10000));}

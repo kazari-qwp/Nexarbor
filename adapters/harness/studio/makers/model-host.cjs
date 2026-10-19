@@ -9,7 +9,7 @@ module.exports=async function(p){
  await host.plugin((await loader.load(p.root+'/adapters/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
  const grant=require(path.join(loader.root,'yaml')).parse(await fs.readFile(p.credentials,'utf8')).records['deepseek-account-platform/default'];
  if(grant?.kind!=='grant'||new URL(grant.payload.issuer).origin!=='https://platform.deepseek.com')throw Error('未找到受支持的 Harness DeepSeek 账户授权');
- const deepseek=native('dsh-llm-deepseek'),models=JSON.parse(await fs.readFile(p.root+'/in-history.patch.yml','utf8')).find(r=>r.id==='llm-deepseek-account').config.models;
+ const deepseek=native('dsh-llm-deepseek'),models=JSON.parse(await fs.readFile(p.root+'/adapters/harness/runtime/models.json','utf8'));
  const model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:24000,contextWindow:500000,...p.options?.model};
  const connection=deepseek.resolveAdapterOptions({models,maxTokens:model.maxTokens,retryPolicy:{mode:'normal',maxRetries:0},streamIdleTimeoutMs:60000});
  host.llm.registerAdapter(['deepseek-account'],new deepseek.DeepSeekAdapter({options:()=>connection,resolveAuth:async c=>{if(new URL(c.baseURL).origin!=='https://api.deepseek.com')throw Error('非预期模型端点');return {headers:{'x-dsh-auth-token':grant.payload.token}};},resolveUserId:()=> 'nexarbor-makers',prepareExtensions:async()=>({fields:{},accept:async()=>{}})}));

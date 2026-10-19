@@ -1,3 +1,4 @@
+import {pythonExecutable} from './runtime-paths.mjs';
 import {Project,readProjectBundle,readProjectRuntime} from './project.mjs';import {registerProjectDirectory} from '../framework/project-directory.js';
 // Local development host. Electron Renderer has no OS bridge or Node privileges.
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {spawn} from 'node:child_process';import readline from 'node:readline';
@@ -13,7 +14,8 @@ import {installApplicationPresets} from './application-presets.mjs';
 import {parallelTownTemplates,updateTownRuntime,updateTownQueries} from './town-layout.mjs';
 import {subnodeTownTemplates,updateTownSubnodes} from './subnode-town.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
-export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,application,components=[],templates=[],onOpenNetwork,onImportNetwork,onOpenProject,onCreateProject,onRevealFile,projectDirectory=directory,applicationPresets,startupWarnings=[],onProgress=()=>{}}={}){
+export async function startStudio({directory=path.join(root,'build/workbench-v3'),python,initialNetwork,makerRunnerFactory,application,components=[],templates=[],onOpenNetwork,onImportNetwork,onOpenProject,onCreateProject,onRevealFile,projectDirectory=directory,applicationPresets,startupWarnings=[],onProgress=()=>{}}={}){
+ python??=await pythonExecutable(root);
  registerProjectDirectory(directory,projectDirectory);
  if(!application){const savedRuntime=await readProjectRuntime(projectDirectory);if(savedRuntime){components=[...new Set([...components,...(savedRuntime.components??[])])];if(!templates.length)templates=savedRuntime.templates??[];application=savedRuntime.application;}}
  let restoreBundle=null;try{await fs.access(path.join(directory,'checkpoints.sqlite3'));}catch{if(!initialNetwork)restoreBundle=await readProjectBundle(projectDirectory);}

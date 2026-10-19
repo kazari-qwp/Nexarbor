@@ -35,7 +35,7 @@ Interface('target', metadata={
 
 ## 独立上下文装配器
 
-`capabilities/context_assembly`已替代旧匹配器。Agent节点核心提供system_prompt/context/inputs/tail四类输入，可直接接收文档引用；装配器是可选来源组织模块。专用普通装配节点读取明确清单中的文档、组件资源或直接连接的节点，按Agent统一元数据匹配，不扫描业务网络。四类分别走原生系统提示、历史文档、消息队列和请求尾部。无信号或元数据扩展器依赖；系统提示变化检测交给Harness，文档仍按原生标记补载。详见[四类输入与装配](CONTEXT_ASSEMBLY.md)。
+`capabilities/context_assembly`已替代旧匹配器。Agent节点核心提供system_prompt/context/inputs/tail四类输入，可直接接收文档引用；装配器是可选来源组织模块。专用普通装配节点读取明确清单中的文档、组件资源或直接连接的节点，按Agent统一元数据匹配，不扫描业务网络。四类分别走原生系统提示、历史文档、消息队列和请求尾部。无信号或元数据扩展器依赖；系统提示变化检测交给Harness，文档仍按原生标记补载。详见四类输入与装配（本地开发资料：`CONTEXT_ASSEMBLY.md`）。
 
 ## 节点元数据扩展器
 
@@ -64,4 +64,4 @@ NPC用`npc`命名空间提供性别、职业、孕期等字段。装配器不导
 
 ## 最小验证
 
-当前 v7 的频道、信号、四类输入与持久化测试见[本轮验证](ROUTING_CHANNELS_V7_TEST_20261017.md)，未运行旧应用或付费模型。此前共享响应器、装配器及NPC最小回环的记录见[NPC验证](applications/npc_world/VALIDATION.md)，不代表旧应用已兼容 v7。
+当前 v7 的频道、信号、四类输入与持久化测试见本轮验证（本地开发资料：`ROUTING_CHANNELS_V7_TEST_20261017.md`），未运行旧应用或付费模型。此前共享响应器、装配器及NPC最小回环的记录见NPC验证（本地开发资料：`applications/npc_world/VALIDATION.md`），不代表旧应用已兼容 v7。
