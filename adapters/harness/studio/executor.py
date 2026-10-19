@@ -51,8 +51,10 @@ class NativeExecutor:
         if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('Invalid executor timeout')
         request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=binding.get('max_steps',12),session_id=self.backend.agents.get(node_id,{}).get('session_id'),context_cursor=node.context_cursor)
         try:
-            with self.backend.node_locks.export_owner(node_id) as ticket:
-                result=await asyncio.to_thread(self.transport.host,'agent-run',dict(request,node_access_ticket=ticket))
+            async with self.backend.node_locks.suspend_access():
+                with self.backend.node_locks.export_owner(node_id) as ticket:
+                    result=await asyncio.to_thread(self.transport.host,'agent-run',dict(request,node_access_ticket=ticket))
+            if self.backend.network.nodes.get(node_id) is not node:raise RuntimeError('Agent node was replaced during execution')
             if result.get('status')!='completed':raise RuntimeError(result.get('error') or 'Agent did not complete')
             self.backend.agents.setdefault(node_id,{}).update(session_id=result['session_id'],executor='harness')
             return result

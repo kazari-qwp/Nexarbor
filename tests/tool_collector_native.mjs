@@ -17,7 +17,7 @@ try{
  for(const[from,to]of[['1','2'],['2','3'],['3','2'],['2','4'],['4','5'],['5','6']])get(from).connections.interfaces.push({target_node_id:to,metadata:{channels:['tools'],threshold:0,multiplier:1,attributes:{}}});
  for(const[id,strength]of[['1',2],['3',10]])get(id).modules['tools.collector']={config:{},state:{},access:{strength,channels:['tools']}};
  document.files['probe.txt']='tool collector six reached via three';
- await host.rpc('studio_apply',{document,base_commit:initial.live.commit,layout:{}});
+ await host.request('apply',{document,base_commit:initial.live.commit,layout:{}});
  const collected=await host.rpc('module_access',{node:'1',module:'tools.collector',operation:'collect'});
  assert.equal(collected.status,'ok');assert.equal(collected.data.length,5);
  assert.deepEqual(collected.data.map(t=>t.origin.node_id).sort(),['2','3','4','5','6']);
@@ -31,7 +31,7 @@ try{
  const response=await host.rpc('executor_invoke',{actor:'1',name:six.alias,arguments:{file_path:'probe.txt'}});
  assert.equal(response.isError,false);assert.match(JSON.stringify(response),/tool collector six reached via three/);
  const latest=await host.rpc('studio_state');latest.live.document.network.nodes.find(n=>n.node_id==='3').connections.interfaces=[];
- await host.rpc('studio_apply',{document:latest.live.document,base_commit:latest.live.commit,layout:{}});
+ await host.request('apply',{document:latest.live.document,base_commit:latest.live.commit,layout:{}});
  const updated=await host.rpc('executor_prepare',{actor:'1'});
  assert.equal(updated.tools.filter(t=>t.name.startsWith('mod_')).length,3);
  assert.equal((await host.rpc('executor_invoke',{actor:'1',name:six.alias,arguments:{file_path:'probe.txt'}})).status,'forbidden');

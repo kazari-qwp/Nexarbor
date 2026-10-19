@@ -55,6 +55,33 @@ class MessagesBoxTests(unittest.IsolatedAsyncioTestCase):
         for node in nodes:
             self._mount_records(node, ap)
 
+    async def test_paid_preflight_leaves_inbox_untouched_until_transaction_starts(self):
+        from copy import deepcopy
+        self._prepare({'read_policy':'reachable','send_cost':1})
+        instance=self.h.modules.instances[('box','messages.box')]
+        before=deepcopy(instance.state);locks=self.h.network.node_locks;real=locks.transaction
+        def reject(*args,**kwargs):raise RuntimeError('模拟申请事务失败')
+        locks.transaction=reject
+        try:
+            result=await self.h.call('box','send',{'text':'不得提前入箱','key':'preflight'},actor='alice',channels=['chat'])
+            self.assertEqual(result['status'],'error');self.assertEqual(instance.state,before)
+        finally:locks.transaction=real
+        read=await self.h.call('alice','read',{},module='records.store',channels=['records'])
+        self.assertEqual(read['data']['values']['ap'],5)
+
+    async def test_duplicate_paid_delivery_does_not_acquire_another_transaction(self):
+        self._prepare({'read_policy':'reachable','send_cost':1})
+        args={'text':'仅一次','key':'once'}
+        first=await self.h.call('box','send',args,actor='alice',channels=['chat'])
+        self.assertEqual(first['status'],'ok');self.assertFalse(first['data']['duplicate']);self.assertEqual(first['data']['ap'],4)
+        locks=self.h.network.node_locks;real=locks.transaction
+        def reject(*args,**kwargs):raise AssertionError('重复消息不应申请事务')
+        locks.transaction=reject
+        try:
+            again=await self.h.call('box','send',args,actor='alice',channels=['chat'])
+            self.assertEqual(again['status'],'ok');self.assertTrue(again['data']['duplicate'])
+        finally:locks.transaction=real
+
     async def test_agent_send_and_read(self):
         self._prepare({"read_policy": "reachable"})
         sent = await self.h.call(

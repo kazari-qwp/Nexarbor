@@ -23,6 +23,7 @@ class Node:
         self.data_kind = data_kind
         self.description = description
         self.divergence = divergence
+        self.module_strength = 0
         self.agent: Any = None
         self.agent_config: dict | None = None
         self.execution_binding: dict | None = None
@@ -80,6 +81,14 @@ class Node:
 
     def get_schema(self) -> dict | None:
         return None
+
+    @property
+    def module_strength(self):return self._module_strength
+
+    @module_strength.setter
+    def module_strength(self,value):
+        from .interface import validate_strength
+        self._module_strength=validate_strength(value)
 
     @property
     def divergence(self):

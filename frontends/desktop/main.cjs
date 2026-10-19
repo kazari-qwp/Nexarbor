@@ -63,7 +63,7 @@ async function startStoredNetwork(preset){
   if(studio&&path.resolve(studio.directory)===directory){await activate(studio.url,studio);return;}
   const connection=await activeConnection(path.join(directory,'editor-connection.json'));
   if(connection){await activate(connection,null);return;}
-  next=await startStudio({directory,initialNetwork:preset.file,components:preset.runtime?.components??[],templates:preset.runtime?.templates??[],onOpenNetwork:openStoredNetwork,onProgress:progress});
+  next=await startStudio({directory,application:preset.application,initialNetwork:preset.file,components:preset.runtime?.components??[],templates:preset.runtime?.templates??[],onOpenNetwork:openStoredNetwork,onProgress:progress});
   await activate(next.url,next);
  }catch(error){
   if(next&&next!==studio)await next.close().catch(()=>{});

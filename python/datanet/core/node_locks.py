@@ -60,13 +60,15 @@ class NodeLocks:
         self.tickets = {}
         self.dependencies = {}
         self.leases = {}
+        self.suspended = {}
 
     @contextmanager
     def export_owner(self, actor):
         """Trusted adapter bridge; never a component parameter or graph grant."""
         from uuid import uuid4
         owner,token=self._identity();ticket=uuid4().hex
-        with self.condition:self.tickets[ticket]=(owner,actor,self.current,_access_stack.get())
+        from .signal_work import current_work
+        with self.condition:self.tickets[ticket]=(owner,actor,self.current,_access_stack.get(),current_work.get())
         try:yield ticket
         finally:
             with self.condition:self.tickets.pop(ticket,None)
@@ -80,11 +82,13 @@ class NodeLocks:
             record=self.tickets.get(ticket)
             if not record or record[1]!=actor or not record[0].live:
                 raise PermissionError('Executor node access ticket has expired')
-            owner,_,group,stack=record
+            owner,_,group,stack,work=record
             if group is not None and group.phase!='active':raise PermissionError('Executor transaction has ended')
+        from .signal_work import current_work
+        work_token=current_work.set(work)
         token=_owner.set(owner);transaction_token=_transaction.set(group);stack_token=_access_stack.set(stack)
         try:yield
-        finally:_access_stack.reset(stack_token);_transaction.reset(transaction_token);_owner.reset(token)
+        finally:_access_stack.reset(stack_token);_transaction.reset(transaction_token);_owner.reset(token);current_work.reset(work_token)
 
     @property
     def current(self):
@@ -174,15 +178,68 @@ class NodeLocks:
     def _leave(self, nodes, owner, token, lease, stack_token):
         with self.condition:
             for n in nodes:
-                self.leases[n].pop(lease)
-                if not self.leases[n]:del self.leases[n]
-                counts = self.active[n]; counts[owner] -= 1
-                if not counts[owner]: del counts[owner]
-                if not counts: del self.active[n]
+                self._drop_lease(n,lease,owner)
+            self.suspended.pop(lease,None)
             self._notify()
         _access_stack.reset(stack_token)
         if token is not None:
             owner.live = False; _owner.reset(token)
+
+    def _drop_lease(self,node,lease,owner):
+        leases=self.leases.get(node,{})
+        if lease not in leases:return
+        leases.pop(lease)
+        if not leases:self.leases.pop(node,None)
+        counts=self.active[node];counts[owner]-=1
+        if not counts[owner]:counts.pop(owner)
+        if not counts:self.active.pop(node,None)
+
+    @asynccontextmanager
+    async def suspend_access(self,timeout=180):
+        """可信宿主等待外部计算时让出访问；返回前重新排队，不能让出显式事务。"""
+        if self.current:raise RuntimeError('Release node transactions before waiting for external execution')
+        stack=_access_stack.get();records=[]
+        with self.condition:
+            for lease in stack:
+                record=self.suspended.get(lease)
+                if record is None:
+                    entries=[(node,*leases[lease]) for node,leases in self.leases.items() if lease in leases]
+                    if not entries:continue
+                    record=dict(entries=entries,count=0);self.suspended[lease]=record
+                    for node,owner,_ in entries:self._drop_lease(node,lease,owner)
+                record['count']+=1;records.append((lease,record))
+            self._notify()
+        token=_access_stack.set(())
+        try:yield
+        finally:
+            # 返回业务代码前重新进入；失败核心只清理，不覆盖最初错误。
+            def restore(admit):
+                with self.condition:
+                    for lease,record in records:
+                        if self.suspended.get(lease) is not record:continue
+                        record['count']-=1
+                        if record['count']:continue
+                        self.suspended.pop(lease)
+                        if admit:
+                            for node,owner,executor in record['entries']:
+                                if node not in self.backend.network.nodes:continue
+                                counts=self.active.setdefault(node,{});counts[owner]=counts.get(owner,0)+1
+                                self.leases.setdefault(node,{})[lease]=(owner,executor)
+                    self._notify()
+            try:
+                if getattr(self.backend,'failed',False):restore(False)
+                else:
+                    deadline=time.monotonic()+timeout
+                    try:
+                        while True:
+                            targets=tuple({n for _,record in records for n,_,_ in record['entries'] if n in self.backend.network.nodes})
+                            await self._wait(lambda:not self._blocked(targets,None),deadline)
+                            with self.condition:
+                                if self._blocked(targets,None):continue
+                                restore(True);break
+                    except BaseException:
+                        restore(False);self.backend.failed=True;raise
+            finally:_access_stack.reset(token)
 
     def _admit(self, nodes, owner, mutable):
         self._check()
@@ -289,7 +346,7 @@ class NodeLocks:
         for node_id in group.nodes:
             node = backend.network.nodes[node_id]
             image = dict(attrs={name: deepcopy(getattr(node, name)) for name in (
-                'name', 'description', 'data_kind', 'divergence', 'management_parent_id',
+                'name', 'description', 'data_kind', 'divergence', 'module_strength', 'management_parent_id',
                 'interfaces', 'modules', 'offered_tools', 'toolboxes', 'expose', 'agent_config', 'execution_binding','context_cursor')},
                 tools=dict(node.tools), definitions=deepcopy(node.tool_definitions),
                 agent_definitions=deepcopy(node.agent_tool_definitions), refusals=dict(node.tool_refusals),
@@ -440,7 +497,7 @@ class NodeLockScope:
     def __init__(self, locks, nodes, validate, timeout, finish):
         self.locks, self.nodes, self.validate = locks, nodes, validate
         self.timeout, self.finish = timeout, finish
-        self.group = None; self.token = None; self.owner_token = None; self.closed = False
+        self.group = None; self.token = None; self.owner_token = None; self.closed = False; self.park = None
 
     def __await__(self):return self.__aenter__().__await__()
 
@@ -464,6 +521,9 @@ class NodeLockScope:
                         raise RuntimeError('Nested node locks may reenter, but cannot expand the locked group')
                     parent.depth += 1; self.group = parent
                     return self
+            # 只在明确申请事务时让出祖先访问占用；排队不能互相挡住升级。
+            self.park = locks.suspend_access(timeout=self.timeout)
+            await self.park.__aenter__()
             deadline = time.monotonic() + self.timeout
             while True:
                 await locks._wait(lambda: locks._prepared() and locks._drained(self.nodes, owner), deadline,owner=owner,nodes=self.nodes,drain=True)
@@ -500,8 +560,11 @@ class NodeLockScope:
                     locks._notify()
                 self.group=None;raise
         except BaseException:
-            if self.owner_token is not None:
-                owner.live = False; _owner.reset(self.owner_token)
+            try:
+                if self.park is not None:await self.park.__aexit__(None,None,None)
+            finally:
+                if self.owner_token is not None:
+                    owner.live = False; _owner.reset(self.owner_token)
             raise
 
     async def __aexit__(self, kind, error, traceback):
@@ -555,8 +618,12 @@ class NodeLockScope:
                     group.phase = 'closed'
                     for n in group.nodes: locks.exclusive.pop(n, None)
                     _transaction.reset(self.token); locks._notify()
-            if self.owner_token is not None:
-                self.owner.live = False; _owner.reset(self.owner_token)
+            try:
+                # 先释放独占组，再重新进入原回调；不要持有本组等另一组。
+                if self.park is not None:await self.park.__aexit__(None,None,None)
+            finally:
+                if self.owner_token is not None:
+                    self.owner.live = False; _owner.reset(self.owner_token)
         return False
 
     async def _restore_contexts(self):

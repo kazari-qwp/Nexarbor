@@ -20,6 +20,10 @@ receipt = ctx.network.emit(channels=['tick'], strength=3, content={'day': 1})
 
 不要在一个信号响应中等待必须由自己先完成才能继续的同一条波。
 
+需要在本时刻启动后续回应、又不能让发送者等待收信者整轮模型时，可调用 `ctx.network.post(target, module, operation, arguments, channels=[...])`。仅在当前信号层可用，仍检查本模块的实际路径、频道和强度；真正执行时重验，使用新的访问上下文，不继承原事务或请求者身份。本层所有后续访问结束后才进入下一层；数量受信号投递预算约束，时间受该波期限约束。独立持续存在的传播仍使用 emit。
+
+锁的判断与本次小镇的错误复盘见 [反面教材](NODE_LOCKS.md#反面教材用锁和串行拓扑掩盖并发问题)。
+
 ## 固定入口与返回
 
 ```python
@@ -55,7 +59,7 @@ async def execute(ctx, activation):
 {"config":{},"state":{},"access":{"strength":2,"channels":["town.local"]}}
 ```
 
-装配者授予权限，组件不能自授。直接 mount 省略 access 时为零强度、空频道。配置只读，状态属于本实例。
+装配者授予权限，组件不能自授。节点的 `module_strength` 是模块的默认强度；模块 `access.strength:null` 表示继承该默认值，显式数字可以超过节点默认值。模块运行时的请求仍不能超过本实例授权，频道也不能扩大。它与节点散度 `divergence`、Agent 执行器的强度分开。直接 mount 省略 access 时继承节点默认强度、频道为空。配置只读，状态属于本实例。
 
 | 接口 | 行为 |
 |---|---|
@@ -68,6 +72,8 @@ async def execute(ctx, activation):
 | `ctx.network.visit/tools` | 访问可达节点，取得其提供的已登记工具引用 |
 | `ctx.network.tool_sources` | 查询可达节点明确声明的工具提供模块；返回操作名，不暴露实例 |
 | `ctx.network.call/invoke` | 立即启动可等待的组件／工具调用 |
+| `ctx.signal_id` | 当前信号层的标识；非信号活动为 None |
+| `ctx.network.post` | 在当前信号层排入有界后续访问，立即返回；本层等其完成再传播 |
 | `ctx.network.emit` | 交付核心持有的波，返回回执 |
 | `signal_status/wait_signal/cancel_signal` | 查询、等待、取消本节点发出的信号 |
 

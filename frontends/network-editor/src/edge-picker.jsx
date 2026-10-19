@@ -1,0 +1,6 @@
+import React,{useEffect,useRef} from 'react';
+export function EdgePicker({value,nodes,onChoose,onHover,onClose}){
+ const ref=useRef();useEffect(()=>{ref.current?.querySelector('button')?.focus({preventScroll:true});const close=e=>{if(!ref.current?.contains(e.target))onClose();};const key=e=>{if(e.key==='Escape'){e.preventDefault();onClose();}};window.addEventListener('pointerdown',close,true);window.addEventListener('keydown',key,true);return()=>{window.removeEventListener('pointerdown',close,true);window.removeEventListener('keydown',key,true);};},[]);
+ const name=id=>nodes.find(n=>n.node_id===id)?.name??id;
+ return <div ref={ref} className="edge-picker" role="menu" aria-label="选择重合连线" style={{left:Math.max(8,Math.min(value.x+10,window.innerWidth-330)),top:Math.max(8,Math.min(value.y+10,window.innerHeight-260))}} onClick={e=>e.stopPropagation()} onPointerLeave={()=>onHover(null)}><small>此处有 {value.edges.length} 条连线，请选择</small>{value.edges.map(edge=><button role="menuitem" key={edge.id} onPointerEnter={()=>onHover(edge.id)} onFocus={()=>onHover(edge.id)} onClick={e=>onChoose(edge,value.additive||e.shiftKey)}><strong>{name(edge.source)} → {name(edge.target)}</strong><span>{edge.metadata.channels.join('、')||'无频道'} · 门槛 {edge.metadata.threshold??0} · 倍率 {edge.metadata.multiplier??1}</span><small>{edge.id}</small></button>)}</div>;
+}

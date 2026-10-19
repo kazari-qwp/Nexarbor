@@ -82,6 +82,7 @@ class NodeModules:
         self.executing = 0
 
     def _check(self, key, generation=None):
+        self.backend.node_locks._check()
         if generation is not None and self._generations.get(key) is not generation:
             raise PermissionError('Module instance has been replaced')
         instance = self.instances.get(key)
@@ -103,7 +104,7 @@ class NodeModules:
     def _enter(self, key, generation):
         self._check(key, generation)
         grant = self._access[key]
-        strength, channels = grant['strength'], grant['channels']
+        strength, channels = self._strength(key), grant['channels']
         # A callee enters with its own grant, after the caller's path was checked.
         incoming_token = current_access.set(None)
         identity = active_agent.get()
@@ -260,6 +261,10 @@ class NodeModules:
                     return await self.call(target, module, operation, arguments)
             finally: active_agent.reset(identity)
 
+    def _strength(self,key):
+        value=self._access[key]['strength']
+        return self._nodes[key].module_strength if value is None else value
+
     def _budget(self, key, params):
         frame = self._scope(key)
         strength = frame['strength'] if params.get('strength') is None else validate_strength(params['strength'])
@@ -277,6 +282,20 @@ class NodeModules:
     def _request(self, key, operation, p):
         frame = self._scope(key); instance = self._check(key)
         node, network = self.backend.network.nodes[key[0]], self.backend.network
+        if operation=='signal_id':
+            from .signal_work import current_work
+            work=current_work.get();return work.signal_id if work else None
+        if operation=='post':
+            from .signal_work import current_work
+            work=current_work.get()
+            if work is None:raise RuntimeError('Deferred access requires an active signal layer')
+            strength,channels=self._budget(key,p);self._route(key,p['target'],strength,channels)
+            generation=frame['generation'];arguments=json_copy(p['arguments'])
+            self._accessible(key[0],p['target'],p['module'],p['operation'],strength,channels)
+            async def later():
+                self._check(key,generation)
+                return await self.access(key[0],p['target'],p['module'],p['operation'],arguments,strength=strength,channels=channels)
+            return work.post(later,p['target']+'/'+p['module']+'/'+p['operation'])
         if operation == 'lock_nodes':
             strength, channels = self._budget(key,p)
             start = len(frame['children'])
@@ -547,7 +566,7 @@ class NodeModules:
             node = self.backend.network.nodes[node_id]
             if name in node.modules: raise ValueError('Module already mounted')
             spec = validate_modules({name: dict(config={} if config is None else config,
-                state={} if state is None else state, access={'strength': 0, 'channels': []} if access is None else access)})[name]
+                state={} if state is None else state, access={'strength': None, 'channels': []} if access is None else access)})[name]
             if name not in self.factories: raise ValueError('Missing node module component: ' + name)
             instance = self.create(name, node, spec); key = (node_id, name)
             node.modules[name] = spec; self.instances[key] = instance
@@ -598,5 +617,5 @@ class NodeModules:
                         if set(channels).intersection(context.signal.channels):
                             jobs.append(self._run(key, function, delivered))
                 return await asyncio.gather(*jobs)
-            runtime.bind(node.node_id, receive, access_strength=max(self._access[key]['strength'] for key in keys))
+            runtime.bind(node.node_id, receive, access_strength=lambda keys=tuple(keys):max(self._strength(key) for key in keys))
             self._bindings.append((node.node_id, runtime))

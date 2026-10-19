@@ -1,12 +1,13 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
+import {parallelTownDocument,parallelTownTemplates} from './town-layout.mjs';
 import {storedNetworks} from '../framework/stored-networks.js';
 
 export const applications=[
  {id:'fixed_groups_v3',name:'固定讨论与协作组',description:'讨论小组与去中心化协作小组，包含私人记忆和公共讨论、任务及公告板。'},
  {id:'knowledge_v3',name:'知识归档与恢复',description:'归档、修订恢复及独立 JSON、CSV、SQLite、RAG、Wiki 数据节点。'},
- {id:'npc_town_v3',name:'NPC小镇',description:'21 节点完整小镇：时刻、居民、地点、移动、资源、交易与家庭。'}
+ {id:'npc_town_v3',name:'NPC小镇',description:'20 节点完整小镇：时刻、居民、地点、移动、资源、交易与家庭。'}
 ];
 // 每个工作区首次安装一份独立成品副本；重启不覆盖用户的编辑、归档或删除。
 export async function installApplicationPresets(directory,root,{returnPresets=true}={}){
@@ -16,7 +17,16 @@ export async function installApplicationPresets(directory,root,{returnPresets=tr
  try{installed=JSON.parse(await fs.readFile(file,'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;installed={version:1,applications:{}};}
  const save=async()=>{const temp=file+'.'+randomUUID()+'.tmp';await fs.writeFile(temp,JSON.stringify(installed,null,2)+'\n');await fs.rename(temp,file);};
  for(const app of applications){
-  if(installed.applications[app.id])continue;
+  if(installed.applications[app.id]){
+   if(app.id==='npc_town_v3'&&!installed.townParallelV1){
+    const preset=await store.load(installed.applications[app.id]).catch(error=>{if(error.code==='ENOENT')return null;throw error;});
+    if(preset){const source=JSON.parse(await fs.readFile(preset.file,'utf8')),update=parallelTownDocument(source);if(update.changed){
+     await fs.copyFile(preset.file,preset.file+'.before-parallel');await fs.copyFile(preset.metadataFile,preset.metadataFile+'.before-parallel');
+     const editor=JSON.parse(await fs.readFile(preset.metadataFile,'utf8'));editor.runtime={...editor.runtime,templates:parallelTownTemplates(editor.runtime?.templates)};
+     editor.description=app.description;await store.save({storageKind:preset.storageKind,existingId:preset.id,document:update.document,editor});
+    }}installed.townParallelV1=true;await save();
+   }continue;
+  }
   const existing=(await store.list({summary:true})).presets.find(p=>p.originBookmark==='application:'+app.id);
   if(existing){installed.applications[app.id]=existing.id;await save();continue;}
   const folder=path.join(root,'configs',app.id),profile=JSON.parse(await fs.readFile(path.join(folder,'profile.json'),'utf8')),document=JSON.parse(await fs.readFile(path.join(folder,profile.network),'utf8'));

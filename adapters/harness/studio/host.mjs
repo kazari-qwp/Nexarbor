@@ -7,8 +7,9 @@ import {editorNode,editorNodes} from '../framework/editor-nodes.js';
 import {MakerManager} from './makers/manager.mjs';
 import {nativeMakerFactory} from './makers/connection.mjs';
 import {installApplicationPresets} from './application-presets.mjs';
+import {parallelTownTemplates,updateTownRuntime} from './town-layout.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
-export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,components=[],templates=[],onOpenNetwork,onProgress=()=>{}}={}){
+export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,application,components=[],templates=[],onOpenNetwork,onProgress=()=>{}}={}){
  await fs.mkdir(directory,{recursive:true});const temporary=path.join(directory,'temp');await fs.mkdir(temporary,{recursive:true});
  const profile=JSON.parse(await fs.readFile(path.join(root,'extensions/development/extension.json'),'utf8'));profile.select=[...new Set([...profile.select,...components])];
  onProgress('正在恢复网络…');const startTime=performance.now(),timings={};const mark=name=>{timings[name]=Math.round(performance.now()-startTime);};
@@ -83,7 +84,9 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  try{
  await rpc('ping');mark('pythonReady');onProgress('正在准备画布…');officialNeeded=await rpc('studio_official_needed');await installApplicationPresets(directory,root,{returnPresets:false});mark('presetsReady');
  if(components.includes('capabilities/runtime_ports'))runtimeTools=(await rpc('runtime_catalog')).map(t=>({...t,owner:'可选宿主端口'}));
+ if(application==='npc_town_v3')templates=parallelTownTemplates(templates);
  if(components.includes('capabilities/template_instantiation')){if(templates.length)await rpc('templates_register',{templates});runtimeTools.push(...(await rpc('templates_catalog')).map(t=>({...t,owner:'固定模板端口'})));}
+ if(application==='npc_town_v3')await updateTownRuntime(rpc,directory);
  makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory},callback))});await makers.initialize();
  adminRequest=(method,p)=>{if(method==='start')return makers.start(p);if(method==='status')return makers.read(p);if(method==='cancel')return makers.cancel(p);throw Error('未知局部管理员宿主操作');};
  // 原生 Agent 与制作运行器已有按需启动；官方工具同样不阻塞画布。
@@ -96,7 +99,7 @@ export async function startStudioProfile(file,overrides={}){
  const base=path.dirname(path.resolve(file)),profile=JSON.parse(await fs.readFile(file,'utf8'));
  const directory=path.resolve(base,profile.runtime_directory??'runtime'),relative=path.relative(path.join(root,'build'),directory);
  if(!overrides.directory&&(!relative||relative.startsWith('..')||path.isAbsolute(relative)))throw Error('应用运行目录须位于项目 build 内；其他目录请显式指定 --workspace');
- return startStudio({directory,initialNetwork:profile.network?path.resolve(base,profile.network):undefined,components:profile.components??[],templates:profile.templates?JSON.parse(await fs.readFile(path.resolve(base,profile.templates),'utf8')):[],...overrides});
+ return startStudio({directory,application:path.dirname(base)===path.join(root,'configs')?path.basename(base):undefined,initialNetwork:profile.network?path.resolve(base,profile.network):undefined,components:profile.components??[],templates:profile.templates?JSON.parse(await fs.readFile(path.resolve(base,profile.templates),'utf8')):[],...overrides});
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  const value=process.argv[2]==='--profile'?await startStudioProfile(process.argv[3]):await startStudio({directory:process.argv[2]});console.log(JSON.stringify({connection_file:path.join(value.directory,'editor-connection.json')}));

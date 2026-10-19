@@ -39,7 +39,7 @@ pulse=node('world/pulse','世界脉冲','pulse');pulse['parameters']=dict(channe
 clock=node('world/time','时间','text_file');mount(clock,'clock.counter',dict(signal_channels=['tick'],labels=['早上','中午','下午','傍晚','午夜'],write_text=True),0,['tick'])
 saver=node('world/save','五时刻存档');mount(saver,'clock.counter',dict(signal_channels=['tick'],checkpoint_every=5),0,['tick','runtime.checkpoint']);saver['offered_tools']=[dict(ref='runtime:checkpoint',channels=['runtime.checkpoint'])]
 edge('world/pulse','world/time',['tick']);edge('world/save','world/pulse',['tick'])
-node('world/settle','活动汇合')
+
 
 for id,o in original.items():
     if not id.startswith('place/'):continue
@@ -80,14 +80,14 @@ def agent(id,name,profile,persona,opening,location,refs,adult=True):
     n=node(id,name,'agent');records(n,profile,refs)
     mount(n,'place.info',dict(location=location),0,['movement','info'])
     mount(n,'agents.context',dict(persona=persona,common=common,map=map_text,opening=opening,clock='world/time',knowledge=knowledge),2,['self','records','movement','info'])
-    mount(n,'messages.box',dict(read_policy='self',send_cost=1,max_messages=200),2,['chat','records'])
+    mount(n,'messages.box',dict(read_policy='self',send_cost=1,max_messages=200,notify_activity=True),2,['chat','records','activity'])
     if adult:mount(n,'records.transfer',dict(cost=1,same_location=True),2,['self','social','movement','records'])
     mount(n,'tools.collector',{},2,MODEL)
     mount(n,'agents.activity',dict(enabled=True,budget=10,signal_channels=['tick'],prompt='新时刻开始。安排你自己的行动，先看未读便条，按目标做不超过三件事，记录重要经历，然后自然结束。'),0,['tick','records','self','runtime.agent'])
     n['offered_tools']=[dict(ref='runtime:agent_run',channels=['runtime.agent'])]
     n['execution']=dict(executor='harness',strength=2,channels=MODEL,max_steps=18,timeout_seconds=360,prepare=[dict(module='agents.context',operation='prepare',arguments={})])
     edge(id,location,LOCAL,'location',True);edge(id,'world/time',['info'])
-    if id=='child':edge(id,'world/save',['tick']);edge('npc/lu',id,['tick'])
+    if id=='child':edge(id,'world/save',['tick']);edge('world/time',id,['tick'])
     return n
 for id,o in original.items():
     if not id.startswith('npc/'):continue
@@ -96,8 +96,8 @@ for id,o in original.items():
     references=[('home',p.get('home')),('partner',p.get('partner')),('spouse',None)]
     agent(id,p['name'],values,old['files'][c['persona_file']],c['opening_line'],p['place'],references)
 
-order=['world/time','npc/lin','npc/yue','npc/sen','npc/shi','npc/li','npc/tie','npc/lu','world/settle','world/save']
-for before,after in zip(order,order[1:]):edge(before,after,['tick'])
+for id in [id for id in nodes if id.startswith('npc/')]:
+    edge('world/time',id,['tick']);edge(id,'world/save',['tick'])
 
 # 同一通用服务按配置呈现采集、交易、修理、休息；库存只在提供服务的地点保存一份。
 for id,o in original.items():
@@ -143,7 +143,7 @@ for home in ['home1','home2']:
     c=deepcopy(child)
     bindings=[dict(path='/network/nodes/0/name',input='name'),dict(path='/network/nodes/0/modules/records.store/config/initial/name',input='name')]
     for i,key in enumerate(['home','parent1','parent2']):bindings.append(dict(path=f'/network/nodes/0/modules/records.store/config/references/{i}/node_id',input={'home':'home','parent1':'/parents/0','parent2':'/parents/1'}[key]))
-    templates.append(dict(id='family-'+home,callers=['place/'+home],document=dict(network=dict(version=8,nodes=[c],signals={},delegations=[]),files=child_files),arguments_schema=dict(type='object',properties=dict(name=dict(type='string',minLength=1,maxLength=50),parents=dict(type='array',items=dict(type='string'),minItems=2,maxItems=2),home=dict(type='string',enum=['place/'+home])),required=['name','parents','home'],additionalProperties=False),bindings=bindings,attachments=[dict(source='npc/lu',target='child',metadata=dict(channels=['tick'],threshold=1,multiplier=1,attributes={})),dict(source='place/hospital',target='child',metadata=dict(channels=LOCAL,threshold=1,multiplier=1,attributes={'relation':'location'}))]))
+    templates.append(dict(id='family-'+home,callers=['place/'+home],document=dict(network=dict(version=8,nodes=[c],signals={},delegations=[]),files=child_files),arguments_schema=dict(type='object',properties=dict(name=dict(type='string',minLength=1,maxLength=50),parents=dict(type='array',items=dict(type='string'),minItems=2,maxItems=2),home=dict(type='string',enum=['place/'+home])),required=['name','parents','home'],additionalProperties=False),bindings=bindings,attachments=[dict(source='world/time',target='child',metadata=dict(channels=['tick'],threshold=1,multiplier=1,attributes={})),dict(source='place/hospital',target='child',metadata=dict(channels=LOCAL,threshold=1,multiplier=1,attributes={'relation':'location'}))]))
 
 save(OUT/'network.json',dict(network=dict(version=8,nodes=list(nodes.values()),signals={},delegations=[]),files=files))
 save(OUT/'templates.json',templates)

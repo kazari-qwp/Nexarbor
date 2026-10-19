@@ -9,7 +9,7 @@ def validate_access(value):
         raise ValueError('Module access requires strength and channels')
     if set(value) - {'strength', 'channels', 'extension'}:
         raise ValueError('Unknown module access field')
-    validate_strength(value['strength'])
+    if value['strength'] is not None:validate_strength(value['strength'])
     names(value['channels'], 'module channels')
     if 'extension' in value:
         policy = value['extension']
@@ -55,6 +55,9 @@ class ModuleNetwork:
     def emit(self, *, channels=None, strength=None, content=None, **options):
         return self._request('emit', channels=channels, strength=strength,
                                    content=content, options=options)
+    def post(self,target,module,operation,arguments=None,*,channels=None,strength=None):
+        """当前信号层追踪的后续访问：立即返回，换层前等待完成。"""
+        return self._request('post',target=target,module=module,operation=operation,arguments={} if arguments is None else arguments,channels=channels,strength=strength)
     def visit(self, target, *, channels=None, strength=None):
         return self._request('visit', target=target, channels=channels, strength=strength)
     def tool_sources(self, target, *, channels=None, strength=None):
@@ -83,6 +86,7 @@ class ModuleContext:
         require_transaction_node(self._node_id)
         return self._state
     network = property(lambda self: self._network)
+    signal_id = property(lambda self: self._request('signal_id'))
     caller_id = property(lambda self: self._request('caller'))
     requester_id = property(lambda self: self._request('requester'))
     def metadata(self): return self._request('local_metadata')

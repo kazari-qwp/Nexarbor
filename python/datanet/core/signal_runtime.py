@@ -10,6 +10,7 @@ from .access_budget import active_agent,current_access
 from .interface import validate_strength,validate_signal
 from .signals import Signal,SignalDelivery,SignalContext
 from .json_values import freeze,thaw
+from .signal_work import LayerWork,current_work
 
 @dataclass
 class _Binding:
@@ -164,6 +165,7 @@ class SignalRuntime:
                 if time.monotonic()>=deadline:
                     record['status']='timed_out';break
                 depth+=1;count+=len(pending);layer=[];required=[];jobs=[]
+                work=LayerWork(signal,deadline,record);work_token=current_work.set(work)
                 for target,(incoming,path,parents) in pending.items():
                     remaining=incoming+divergences[target];validate_signal(remaining)
                     if remaining<0:continue
@@ -178,11 +180,15 @@ class SignalRuntime:
                         continue
                     required.append((delivery,entry))
                     jobs.append(asyncio.create_task(self._bounded(nodes[target],delivery,signal,record,deadline)))
-                try:outcomes=await asyncio.gather(*jobs)
+                try:
+                    outcomes=await asyncio.gather(*jobs)
+                    await work.drain()
                 except BaseException:
                     for job in jobs:job.cancel()
                     await asyncio.gather(*jobs,return_exceptions=True)
+                    await work.cancel()
                     raise
+                finally:current_work.reset(work_token)
                 frontier=[]
                 for (delivery,entry),outcome in zip(required,outcomes):
                     entry.update(outcome)
@@ -201,7 +207,10 @@ class SignalRuntime:
                 if entry['status']=='processing':entry['status']='cancelled'
             raise
         except Exception as error:
-            record.update(status='failed',error=str(error));raise
+            record.update(status='failed',error=str(error))
+            for entry in record['deliveries']:
+                if entry['status']=='processing':entry.update(status='failed',error=str(error))
+            raise
         finally:
             record['finished_at']=time.time();self._active.pop(signal.signal_id,None)
             self._prune()

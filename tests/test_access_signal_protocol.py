@@ -311,3 +311,45 @@ class OfferedTools(unittest.IsolatedAsyncioTestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+
+class ModuleDefaultsAndDeferredAccess(unittest.IsolatedAsyncioTestCase):
+    async def test_node_default_and_explicit_larger_grant_are_independent(self):
+        async def query(ctx,activation):
+            return ComponentResult(data=await ctx.network.metadata('c',**dict(activation.parameters)))
+        b=backend({'query':definition(query)})
+        self.addAsyncCleanup(b.signals.close);self.addCleanup(b.modules.clear)
+        b.network.nodes['a'].connect('b',channels=['red']);b.network.nodes['b'].connect('c',channels=['red'])
+        b.network.nodes['a'].module_strength=1
+        mount(b,'a','query',strength=None,channels=['red'])
+        with self.assertRaises(PermissionError):await b.modules.call('a','query','run')
+        b.network.nodes['a'].module_strength=2
+        self.assertEqual((await b.modules.call('a','query','run'))['data']['node_id'],'c')
+        b.modules.unmount('a','query');mount(b,'a','query',strength=10,channels=['red'])
+        b.network.nodes['a'].module_strength=0
+        self.assertEqual((await b.modules.call('a','query','run'))['data']['node_id'],'c')
+        for params in ({'strength':11},{'channels':['forbidden']}):
+            with self.assertRaises(PermissionError):await b.modules.call('a','query','run',params)
+        document=network_document(b.network,Path(tempfile.gettempdir()));restored=_build(document,Path(tempfile.gettempdir()))
+        self.assertEqual(restored.nodes['a'].module_strength,0)
+        self.assertEqual(restored.nodes['a'].modules['query']['access']['strength'],10)
+
+    async def test_deferred_access_finishes_before_the_next_signal_layer_and_uses_own_context(self):
+        events=[];received=asyncio.Event()
+        async def source(ctx,activation):
+            self.assertIsNotNone(ctx.signal_id)
+            async with ctx.network.lock_nodes(['b']):
+                ctx.network.post('b','reply','run',{'message':'hello'},channels=['red'])
+            return ComponentResult()
+        async def reply(ctx,activation):
+            self.assertIsNone(b.node_locks.current)
+            self.assertEqual(ctx.requester_id,'a')
+            await asyncio.sleep(.01);events.append('reply');received.set();return ComponentResult()
+        async def saved(ctx,activation):
+            self.assertTrue(received.is_set());events.append('save');return ComponentResult()
+        b=backend({'source':definition(source,signals=['red']),'reply':definition(reply),'save':definition(saved,signals=['red'])})
+        self.addAsyncCleanup(b.signals.close);self.addCleanup(b.modules.clear)
+        b.network.nodes['hidden'].connect('a',channels=['red']);b.network.nodes['a'].connect('c',channels=['red']);b.network.nodes['a'].connect('b',channels=['red'])
+        mount(b,'a','source',strength=1,channels=['red']);mount(b,'b','reply',channels=['red']);mount(b,'c','save',channels=['red'])
+        run=await b.signals.propagate(Signal('hidden',['red'],3))
+        self.assertEqual(run['status'],'completed');self.assertEqual(events,['reply','save']);self.assertEqual(run['deferred'][0]['status'],'processed')

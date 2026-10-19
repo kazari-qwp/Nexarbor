@@ -49,10 +49,41 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.locks.waiters,set())
         self.assertEqual(self.locks.dependencies,{})
         self.assertEqual(self.locks.leases,{})
+        self.assertEqual(self.locks.suspended,{})
         self.b.modules.clear(); self.temp.cleanup()
 
     async def call(self,node,operation='run',**parameters):
         return await self.b.modules.call(node,'probe',operation,parameters)
+
+    async def test_external_wait_releases_admission_and_reenters_after_short_transaction(self):
+        waiting,returned,held,release=(asyncio.Event() for _ in range(4))
+        async def actor():
+            async with self.locks.access(['a']):
+                async with self.locks.suspend_access():waiting.set();await returned.wait()
+                self.assertFalse(self.locks.exclusive)
+                self.assertIn('a',self.locks.active)
+        async def writer():
+            async with self.locks.transaction('u',['a'],strength=1,channels=['red']):held.set();await release.wait()
+        task=asyncio.create_task(actor());await waiting.wait()
+        write=asyncio.create_task(writer());await asyncio.wait_for(held.wait(),1)
+        returned.set();await asyncio.sleep(.01);self.assertFalse(task.done())
+        release.set();await asyncio.gather(task,write)
+
+    async def test_external_wait_cancellation_and_deleted_target_clean_admission(self):
+        entered=asyncio.Event()
+        async def actor():
+            async with self.locks.access(['a']):
+                async with self.locks.suspend_access():entered.set();await asyncio.Event().wait()
+        task=asyncio.create_task(actor());await entered.wait();task.cancel()
+        with self.assertRaises(asyncio.CancelledError):await task
+        async with self.locks.access(['a']):
+            async with self.locks.suspend_access():self.b.network.nodes.pop('a')
+        self.assertEqual(self.locks.suspended,{})
+
+    async def test_external_wait_must_not_let_go_of_an_explicit_transaction(self):
+        async with self.locks.transaction('u',['a'],strength=1,channels=['red']):
+            with self.assertRaisesRegex(RuntimeError,'Release node transactions'):
+                async with self.locks.suspend_access():pass
 
     async def test_queries_calls_and_signals_wait_without_blocking_event_loop(self):
         ready,release = asyncio.Event(),asyncio.Event(); signals=[]
@@ -213,7 +244,7 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
             return ComponentResult()
         self.handlers['a']=owner;await self.call('a')
 
-    async def test_concurrent_upgrade_cycle_fails_instead_of_hanging(self):
+    async def test_concurrent_upgrades_queue_without_holding_admission(self):
         from datanet.core.node_locks import NodeLockDeadlockError
         started=set();both=asyncio.Event()
         self.b.network.nodes['b'].connect('a',channels=['red'])
@@ -225,7 +256,7 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
             return ComponentResult()
         self.handlers.update(a=owner,b=owner)
         results=await asyncio.wait_for(asyncio.gather(self.call('a'),self.call('b'),return_exceptions=True),1)
-        self.assertEqual(sum(isinstance(result,NodeLockDeadlockError) for result in results),1)
+        self.assertTrue(all(isinstance(result,dict) for result in results),results)
 
     async def test_sibling_access_started_before_lock_must_drain(self):
         entered,release,acquired=asyncio.Event(),asyncio.Event(),asyncio.Event()
@@ -314,6 +345,39 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
         results=await asyncio.wait_for(asyncio.gather(self.call('a'),self.call('b'),return_exceptions=True),1)
         self.assertEqual(sum(isinstance(result,NodeLockDeadlockError) for result in results),1)
         self.assertEqual(sum(isinstance(result,dict) for result in results),1)
+
+    async def test_native_wait_releases_outer_access_and_callback_keeps_wave_identity(self):
+        import importlib.util
+        from threading import Event
+        from datanet.core.signal_work import current_work
+        spec=importlib.util.spec_from_file_location('native_wait_fixture',Path(__file__).resolve().parents[1]/'adapters/harness/studio/executor.py')
+        native=importlib.util.module_from_spec(spec);spec.loader.exec_module(native)
+        started=asyncio.Event();release=Event();loop=asyncio.get_running_loop()
+        class Transport:
+            def host(_,method,params):
+                self.assertEqual(method,'agent-run');loop.call_soon_threadsafe(started.set)
+                if not release.wait(2):raise TimeoutError('模型等待验收超时')
+                with self.locks.import_owner(params['node_access_ticket'],'a'):
+                    self.assertEqual(current_work.get().signal_id,'native-wave')
+                    self.assertEqual(__import__('datanet.core.node_locks',fromlist=['_access_stack'])._access_stack.get(),())
+                    asyncio.run(self.b.modules.access('a','b','probe','set',{'value':'callback'},strength=1,channels=['red']))
+                return dict(status='completed',session_id='native-test')
+        executor=object.__new__(native.NativeExecutor);executor.backend=self.b;executor.transport=Transport()
+        async def visit(*args,**kwargs):return []
+        executor.module_tools=SimpleNamespace(visit=visit)
+        executor.binding=lambda actor:(self.b.network.nodes[actor],dict(strength=1,channels=['red']))
+        async def actor():
+            token=current_work.set(SimpleNamespace(signal_id='native-wave'))
+            try:
+                async with self.locks.access(['a']):return await executor.run('a')
+            finally:current_work.reset(token)
+        task=asyncio.create_task(actor());await started.wait()
+        try:
+            async with self.locks.transaction('u',['a'],strength=1,channels=['red']):
+                self.assertFalse(task.done())
+        finally:release.set()
+        self.assertEqual((await asyncio.wait_for(task,2))['status'],'completed')
+        self.assertEqual((await self.call('b','read'))['data']['value'],'callback')
 
     async def test_native_network_listing_waits_for_locked_metadata(self):
         import importlib.util

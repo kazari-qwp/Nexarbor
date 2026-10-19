@@ -2,7 +2,7 @@
   "format": "nexarbor-module/v3",
   "id": "messages.box",
   "name": "消息与讨论箱",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "保存有限的消息与讨论记录，支持 Agent 私信、讨论小组公告和协作组任务通信；发送费用、读取范围和是否要求 Agent 身份均可配置。",
   "entry": "module.py:execute",
   "node_types": [
@@ -42,6 +42,11 @@
         "title": "仅限 Agent 发送",
         "description": "开启时发送者必须是核心类型为 agent 的真实节点；普通 node 不能发送。",
         "default": true
+      },
+      "notify_activity": {
+        "type": "boolean",
+        "title": "收信后在当前时刻继续活动",
+        "default": false
       }
     },
     "additionalProperties": false
@@ -169,6 +174,10 @@
               "integer",
               "null"
             ]
+          },
+          "notification": {
+            "type": "object",
+            "title": "同层回应的排队结果"
           }
         },
         "required": [

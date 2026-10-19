@@ -54,7 +54,7 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
             'npc',
             config=activity_config,
             state=state or {},
-            access={'strength': 3, 'channels': ['records', 'self', 'runtime.agent', 'tick']},
+            access={'strength': 3, 'channels': ['records', 'self', 'runtime.agent', 'tick', 'activity']},
         )
 
     def mount_example(self, enabled=None):
@@ -115,6 +115,31 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
             'npc', 'apply', {'set': {'ap': value}},
             module='records.store', channels=['records'])
         self.assertEqual(result['status'], 'ok', result)
+
+    async def test_different_key_cannot_start_a_second_model_on_same_node(self):
+        self.mount_activity();started,release=asyncio.Event(),asyncio.Event()
+        async def execute(actor,name,args):started.set();await release.wait();return {'ok':True}
+        self.h.register_tools('runtime',[{'name':'agent_run','description':'测试模型','parameters':{'type':'object'}}],execute)
+        self.node.offered_tools=[{'ref':'runtime:agent_run','channels':['runtime.agent']}]
+        first=asyncio.create_task(self.activate('first'));await started.wait()
+        second=await self.activate('second');self.assertEqual(second['status'],'error');self.assertIn('重叠',second['error'])
+        release.set();self.assertEqual((await first)['status'],'ok')
+
+    async def test_repeated_notifications_are_bounded_and_do_not_reset_budget(self):
+        from datanet.core.signal_work import current_work
+        activity=self.mount_activity(config={'max_reactions':2});calls=[]
+        async def execute(actor,name,args):
+            calls.append(actor)
+            await self.set_ap(7)
+            result=await self.h.call('npc','notify',{'key':current_work.get().signal_id},channels=['activity'])
+            self.assertEqual(result['status'],'ok')
+            return {'ok':True}
+        self.h.register_tools('runtime',[{'name':'agent_run','description':'测试模型','parameters':{'type':'object'}}],execute)
+        self.node.offered_tools=[{'ref':'runtime:agent_run','channels':['runtime.agent']}]
+        self.h.add_node('source');self.h.connect('source','npc',channels=['tick'])
+        await self.h.emit('source',['tick'])
+        self.assertEqual(len(calls),3);self.assertEqual((await self.records_values())['ap'],7)
+        self.assertEqual(activity.state['completed_total'],1);self.assertFalse(activity.state['activities'][-1]['pending'])
 
     async def test_01_信号触发重置预算_准备上下文_再运行且无独占锁(self):
         activity = self.mount_activity()
@@ -359,13 +384,13 @@ class ActivityTests(unittest.IsolatedAsyncioTestCase):
             'a',
             config=activity_config(),
             state={},
-            access={'strength': 3, 'channels': ['records', 'self', 'runtime.agent', 'tick']},
+            access={'strength': 3, 'channels': ['records', 'self', 'runtime.agent', 'tick', 'activity']},
         )
         activity_b = self.h.mount(
             'b',
             config=activity_config(),
             state={},
-            access={'strength': 3, 'channels': ['records', 'self', 'runtime.agent', 'tick']},
+            access={'strength': 3, 'channels': ['records', 'self', 'runtime.agent', 'tick', 'activity']},
         )
 
         # 仿官方端口：从工具回调发起外部调用前清理宿主调用上下文。

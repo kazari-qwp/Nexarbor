@@ -17,7 +17,8 @@ def register(services):
                 if hasattr(backend,'studio_executor'):
                     executor=backend.studio_executor;node,binding=executor.binding(actor)
                     await executor.module_tools.visit(actor,actor,strength=binding.get('strength',0),channels=binding.get('channels',[]))
-                return await backend.execute_agent(actor,args.get('message',''))
+                async with backend.node_locks.suspend_access():
+                    return await backend.execute_agent(actor,args.get('message',''))
             finally:active_agent.reset(identity);current_access.reset(frame)
         backend.external_tools.register('runtime',DEFINITIONS,execute)
     services.initializers.append(install)

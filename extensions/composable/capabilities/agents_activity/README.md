@@ -1,86 +1,33 @@
 # 信号驱动的角色活动
 
-`agents.activity` 面向 NPC、小组工作者等真实 Agent。收到 `tick` 等频道信号，或宿主调用公开操作 `activate` 时，它会：
+角色活动采用明确的本地状态机，不申请节点事务：
 
-1. 锁定本节点，核验活动键去重；
-2. 通过本节点的 `records.store.apply` 把行动预算字段重置为配置值，并记下 `running`；
-3. 释放锁后调用本地 `agents.context.prepare`；
-4. 通过显式授权的官方端口 `runtime:agent_run` 运行本节点，消息为配置的 `prompt`；
-5. 成功后在本轮回调内同步记录 `completed` 与完成次数并发布元数据；失败同样同步保留 `failed` 和错误原因。完成／失败记录不再申请本节点独占锁，也不在读-写之间等待网络，避免与外层正在等待本轮回调的调用形成依赖环。
+1. 在任何 await 前核验活动键、同步登记 running。同一节点不能同时启动两轮模型；
+2. 新活动通过本节点记录仓设置预算，后续回应沿用剩余预算；
+3. 准备当前现场，再调用显式授权的 runtime:agent_run；
+4. 运行中收到 notify 只置 pending 标记，模型返回后合并处理；已结束则继续同一活动键；
+5. 同步登记 completed，每键仅累计完成一次。失败保留 failed，不自动重放。
 
-信号使用 `activation.signal.signal_id` 作为活动键。信号处理失败会抛出异常，让传播器停止该分支；公开操作失败返回错误封套。相同已完成键再次到达时直接返回 `duplicate`，不会重置预算或重跑模型；相同 `running`／`failed` 键会被拒绝，避免半轮重放。
+同步状态转换不跨 await 暴露半成品。等待模型时可信端口让出访问占用，返回业务代码前重新通过门禁。移动、交易自己保护确实不能被看见的中间状态，活动模块不锁住整轮。
 
-## 装配
+信号以 signal_id 为活动键；公开 activate 接收 `{"key":"活动键"}`，使用 tick 频道。同一完成键返回 duplicate；运行中或失败键拒绝重放。不同键也不能在本节点已有活动运行时重叠启动。
 
-本组件只装配在真实 `agent` 节点上，依赖 `records.store` 与 `agents.context`（后者还会递归装配其自身依赖）。模块不导出任何 Agent 工具，避免模型递归启动自己。
+notify 仅接受当前信号的活动键，使用 activity 频道，不作为 Agent 工具提供。未初次激活的节点不会凭通知开始活动，初次准备上下文会读取已有便条。运行中通知合并，已完成则用剩余预算回应。核心 post 将后续访问纳入本信号层；发送者不等待对方整轮，下一层等本层所有工作结束。
 
-```json
-{
-  "modules": {
-    "records.store": {
-      "config": { "initial": { "ap": 3 }, "minimum": {} },
-      "access": { "strength": 2, "channels": ["records"] }
-    },
-    "agents.context": {
-      "config": { "persona": "谨慎的守夜人", "opening": "集合时间到了" },
-      "access": { "strength": 2, "channels": ["self", "records", "movement"] }
-    },
-    "agents.activity": {
-      "config": {
-        "signal_channels": ["tick"],
-        "budget_field": "ap",
-        "budget": 10,
-        "prompt": "现在开始你这一时刻的行动。",
-        "enabled": false
-      },
-      "access": {
-        "strength": 0,
-        "channels": ["tick", "records", "self", "runtime.agent"]
-      }
-    },
-    "tools.collector": {
-      "config": {},
-      "access": { "strength": 2, "channels": ["tools"] }
-    }
-  }
-}
-```
+每键最多初始运行一次加 max_reactions 次后续回应（默认8，允许0至32），剩余行动点不足则跳过后续运行，避免无限对话。通知不重置预算，不重复累计完成次数。
 
-宿主必须为该 Agent 节点显式提供官方运行端口与频道授权：
+## 装配与配置
 
-```json
-"offered_tools": [
-  { "ref": "runtime:agent_run", "channels": ["runtime.agent"] }
-]
-```
-
-`runtime:agent_run` 只运行当前节点，不接受任意 actor 参数；宿主运行时会从该节点自己的 `tools.collector` 取得当下可用工具。组件自身申请 `records`、`self`、`runtime.agent` 三个调用频道，并接收 `tick` 信号。
-
-安全默认下 `enabled` 为 `false`，直接拖入组件不会响应 `tick`，也不会产生付费模型调用。装配后必须：先确认该节点 `offered_tools` 已提供 `runtime:agent_run` 及其频道授权，再由应用配置显式启用：
-
-```json
-{
-  "agents.activity": {
-    "config": { "enabled": true }
-  }
-}
-```
-
-只有应用确实要运行本节点时才做这次覆盖。`example.json` 保持安全默认 `false`，不会自动产生付费模型调用。
-
-## 配置
+仅支持 agent，依赖 records.store、agents.context。节点需显式提供 runtime:agent_run，频道 runtime.agent；活动模块需 records、self、runtime.agent 授权。消息箱配置 notify_activity:true 时另需 activity 频道。
 
 | 字段 | 默认值 | 说明 |
 |---|---|---|
-| `signal_channels` | `["tick"]` | 触发活动的信号频道。 |
-| `budget_field` | `"ap"` | 记录仓中的行动预算字段。 |
-| `budget` | `10` | 每次新活动写入的非负整数预算。 |
-| `prompt` | `""` | 投递给本节点 Agent 的用户消息。 |
-| `enabled` | `false` | 默认关闭；必须由应用显式设为 `true` 才运行。关闭时跳过，不扣预算也不调用模型。 |
+| signal_channels | ["tick"] | 新活动的信号频道 |
+| budget_field / budget | ap / 10 | 新活动写入预算，后续回应不重置 |
+| prompt | 空字符串 | 初次活动的提示 |
+| enabled | false | 应用明确启用才调用模型 |
+| max_reactions | 8 | 同一活动键后续模型运行次数上限 |
 
-## 触发
+状态 activities 保留最近200键，记录 status、runs、pending、completed_count 和可选错误；completed_total 只统计首次完成。示例默认关闭，直接装配不产生付费调用。
 
-- 信号：让时钟等源节点沿真实出边发送 `tick`。源节点本身不执行本组件，接收端必须在出边目标上。
-- 单次运行：宿主在具备 `tick` 频道访问时调用公开操作 `activate`，参数 `{"key": "非空活动键"}`，并自行检查返回的 `status`、`duplicate` 与 `error`。
-
-状态 `activities` 保留最近 200 个活动键的 `running`／`completed`／`failed`、该键完成次数与失败原因；`completed_total` 记录累计完成次数。
+当前状态机由维护者重新设计，原 Agent 制作记录代表历史产物。复盘见 [节点锁反面教材](../../../../docs/NODE_LOCKS.md)。

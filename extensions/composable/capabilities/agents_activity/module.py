@@ -1,222 +1,101 @@
+"""角色活动状态机：同步占用活动键，异步执行模型；不以节点事务包住活动。"""
+from copy import deepcopy
+from datanet.core.json_values import thaw
 from datanet.core.module_protocol import ComponentResult
 
-MAX_ACTIVITY_KEYS = 200
-LOCK_TIMEOUT_SECONDS = 15
 
+def _copy(value):
+    """状态可能含可变 list；thaw 只负责解冻，必须再深拷贝。"""
+    return deepcopy(thaw(value))
 
-class ActivityRejected(Exception):
-    """活动键状态不允许继续执行。"""
+MAX_KEYS=200
 
+def _entries(ctx):return _copy(ctx.state.get('activities',[]))
+def _find(ctx,key):return next((entry for entry in _entries(ctx) if entry['key']==key),None)
+def _save(ctx,entry):
+    entries=[item for item in _entries(ctx) if item['key']!=entry['key']]
+    ctx.state['activities']=(entries+[entry])[-MAX_KEYS:]
 
-def _activity_entries(ctx):
-    entries = ctx.state.get('activities', [])
-    return [dict(item) for item in entries if isinstance(item, dict)]
+def _result(ctx,key,status,*,duplicate=False,reason=None):
+    entry=_find(ctx,key) or {}
+    result=dict(key=key,status=status,duplicate=duplicate,budget_field=ctx.config.get('budget_field','ap'),budget=ctx.config.get('budget',10),completed_count=entry.get('completed_count',0),completed_total=ctx.state.get('completed_total',0))
+    if reason:result['reason']=reason
+    return result
 
+async def _call(ctx,module,operation,arguments,channel):
+    result=await ctx.network.call(ctx.node_id,module,operation,arguments,channels=[channel])
+    if result['status']!='ok':raise RuntimeError(result.get('error') or '本地组件执行失败：'+module)
+    return result['data']
 
-def _find_activity(ctx, key):
-    for entry in _activity_entries(ctx):
-        if entry.get('key') == key:
-            return entry
-    return None
+def _reserve(ctx,key,resume):
+    # 检查与 running 标记之间没有 await，另一激活不会穿插进来。
+    previous=_find(ctx,key)
+    if previous and not resume:
+        if previous['status']=='completed':return None
+        raise ValueError('活动键正在执行或上次失败，拒绝重放')
+    running=next((e for e in _entries(ctx) if e['status']=='running'),None)
+    if running:raise ValueError('本节点已有正在执行的活动，拒绝重叠启动')
+    if resume and (not previous or previous['status']!='completed'):raise ValueError('只能继续本时刻已完成的活动')
+    entry=dict(previous or {},key=key,status='running',pending=False,runs=(previous or {}).get('runs',0),completed_count=(previous or {}).get('completed_count',0))
+    _save(ctx,entry)
+    return entry
 
+def _finish(ctx,key,error=None):
+    entry=_find(ctx,key)
+    if error is not None:
+        entry.update(status='failed',pending=False,error=str(error)[:2000])
+    else:
+        first=entry['completed_count']==0
+        entry.update(status='completed',pending=False,completed_count=1)
+        if first:ctx.state['completed_total']=ctx.state.get('completed_total',0)+1
+        ctx.publish_metadata({'活动状态':'已完成','最近完成活动键':key,'活动完成次数':ctx.state.get('completed_total',0)})
+    _save(ctx,entry)
 
-def _upsert_activity(ctx, entry):
-    entries = [item for item in _activity_entries(ctx) if item.get('key') != entry.get('key')]
-    entries.append(dict(entry))
-    ctx.state['activities'] = entries[-MAX_ACTIVITY_KEYS:]
-
-
-def _result(ctx, key, status, duplicate, budget_field, budget, entry=None, reason=None):
-    entry = entry or {}
-    data = {
-        'key': key,
-        'status': status,
-        'duplicate': bool(duplicate),
-        'budget_field': budget_field,
-        'budget': budget,
-        'completed_count': int(entry.get('completed_count', 0) or 0),
-        'completed_total': int(ctx.state.get('completed_total', 0) or 0),
-    }
-    if reason:
-        data['reason'] = reason
-    return data
-
-
-def _lock_self(ctx, timeout=LOCK_TIMEOUT_SECONDS):
-    # 角色只锁自己，锁定范围不随信号源或调用者扩大。
-    return ctx.network.lock_nodes([ctx.node_id], timeout=timeout)
-
-
-def _signal_key(activation):
-    signal = getattr(activation, 'signal', None)
-    key = getattr(signal, 'signal_id', None) if signal is not None else None
-    if not isinstance(key, str) or not key.strip():
-        raise ActivityRejected('信号缺少有效的 signal_id，无法作为活动键')
-    return key
-
-
-def _access_key(activation):
-    key = activation.parameters.get('key')
-    if not isinstance(key, str) or not key.strip():
-        raise ActivityRejected('活动键必须是非空字符串')
-    return key
-
-
-async def _records_apply(ctx, budget_field, budget):
-    result = await ctx.network.call(
-        ctx.node_id,
-        'records.store',
-        'apply',
-        {'set': {budget_field: budget}},
-        channels=['records'],
-    )
-    if not isinstance(result, dict) or result.get('status') != 'ok':
-        error = result.get('error') if isinstance(result, dict) else '记录仓没有返回结果'
-        raise RuntimeError(f'重置行动预算失败：{error}')
-    values = (result.get('data') or {}).get('values') or {}
-    if values.get(budget_field) != budget:
-        raise RuntimeError('记录仓未按预期写入行动预算')
-
-
-async def _prepare_context(ctx):
-    result = await ctx.network.call(
-        ctx.node_id,
-        'agents.context',
-        'prepare',
-        {},
-        channels=['self'],
-    )
-    if not isinstance(result, dict) or result.get('status') != 'ok':
-        error = result.get('error') if isinstance(result, dict) else '上下文准备没有返回结果'
-        raise RuntimeError(f'准备角色上下文失败：{error}')
-
-
-async def _run_agent(ctx, prompt):
-    # 官方端口只运行本节点，工具由宿主从本节点自己的工具收集器取得。
+async def _drive(ctx,key,*,resume=False):
+    entry=_reserve(ctx,key,resume)
+    if entry is None:return _result(ctx,key,'completed',duplicate=True)
     try:
-        return await ctx.network.invoke(
-            ctx.node_id,
-            'runtime:agent_run',
-            {'message': prompt},
-            channels=['runtime.agent'],
-        )
+        field=ctx.config.get('budget_field','ap')
+        if not resume:await _call(ctx,'records.store','apply',{'set':{field:ctx.config.get('budget',10)}},'records')
+        limit=1+ctx.config.get('max_reactions',8)
+        while entry['runs']<limit:
+            if resume:
+                account=await _call(ctx,'records.store','read',{},'records')
+                if account['values'].get(field,0)<=0:break
+            # 清除已接收的通知，再准备最新现场。执行中的新通知只置 pending。
+            entry=_find(ctx,key);entry.update(pending=False,runs=entry['runs']+1);_save(ctx,entry)
+            await _call(ctx,'agents.context','prepare',{},'self')
+            prompt=ctx.config.get('prompt','') if not resume else '你收到新便条。按当前剩余行动点处理需要回应的内容；不要重复已完成的行动，自然结束。'
+            try:await ctx.network.invoke(ctx.node_id,'runtime:agent_run',{'message':prompt},channels=['runtime.agent'])
+            except Exception as error:raise RuntimeError('运行官方端口 runtime:agent_run 失败：'+str(error)) from error
+            entry=_find(ctx,key)
+            if not entry.get('pending'):break
+            resume=True
+        _finish(ctx,key)
+        return _result(ctx,key,'completed')
+    except BaseException as error:
+        _finish(ctx,key,error);raise
+
+async def _notify(ctx,key):
+    if key!=ctx.signal_id:raise ValueError('活动通知必须属于当前信号')
+    entry=_find(ctx,key)
+    if entry is None:
+        # 初次激活准备上下文时会读取已有便条；通知本身不能凭空新建活动。
+        return {'skipped':True}
+    if entry['status']=='running':
+        entry['pending']=True;_save(ctx,entry);return {'queued':True}
+    if entry['status']=='failed':return {'skipped':True}
+    return await _drive(ctx,key,resume=True)
+
+async def execute(ctx,activation):
+    is_signal=activation.kind=='signal'
+    try:
+        if is_signal:key=activation.signal.signal_id
+        elif activation.kind=='access' and activation.operation in ('activate','notify'):key=activation.parameters['key']
+        else:raise ValueError('不支持的角色活动请求')
+        if not ctx.config.get('enabled',False):return ComponentResult(data=_result(ctx,key,'skipped',reason='角色活动已禁用'))
+        result=await _notify(ctx,key) if not is_signal and activation.operation=='notify' else await _drive(ctx,key)
+        return ComponentResult(data=result)
     except Exception as error:
-        raise RuntimeError(f'运行官方端口 runtime:agent_run 失败：{error}') from error
-
-
-def _mark_completed(ctx, key, budget_field, budget):
-    # 当前回调自身仍持有本节点的访问凭据；这里只同步记录本地状态，
-    # 不再申请独占锁，避免与外层等待本轮回调的调用形成依赖环。
-    existing = _find_activity(ctx, key) or {}
-    if existing.get('status') == 'completed':
-        return _result(ctx, key, 'completed', True, budget_field, budget, existing)
-    count = int(existing.get('completed_count', 0) or 0) + 1
-    entry = {
-        'key': key,
-        'status': 'completed',
-        'completed_count': count,
-    }
-    _upsert_activity(ctx, entry)
-    total = int(ctx.state.get('completed_total', 0) or 0) + 1
-    ctx.state['completed_total'] = total
-    ctx.publish_metadata({
-        '活动状态': '已完成',
-        '最近完成活动键': key,
-        '活动完成次数': total,
-    })
-    return _result(ctx, key, 'completed', False, budget_field, budget, entry)
-
-
-def _mark_failed(ctx, key, message):
-    text = str(message)[:2000]
-    try:
-        # 与完成记录相同：同步写本模块状态，不申请独占锁。
-        existing = _find_activity(ctx, key) or {}
-        if existing.get('status') == 'completed':
-            return
-        entry = dict(existing)
-        entry['key'] = key
-        entry['status'] = 'failed'
-        entry['error'] = text
-        entry.setdefault('completed_count', 0)
-        _upsert_activity(ctx, entry)
-    except Exception:
-        # 记录失败状态是尽力而为，不能覆盖最初的业务失败。
-        return
-
-
-async def _run_activity(ctx, key):
-    budget_field = str(ctx.config.get('budget_field', 'ap') or 'ap')
-    budget = int(ctx.config.get('budget', 10))
-    prompt = str(ctx.config.get('prompt', '') or '')
-
-    started = False
-    try:
-        async with _lock_self(ctx):
-            existing = _find_activity(ctx, key)
-            if existing is not None:
-                status = existing.get('status')
-                if status == 'completed':
-                    return _result(
-                        ctx, key, 'completed', True,
-                        budget_field, budget, existing,
-                    )
-                if status == 'running':
-                    raise ActivityRejected('该活动键正在执行，拒绝重放半轮活动')
-                raise ActivityRejected('该活动键上次执行失败，拒绝自动重放；请使用新的活动键')
-
-            await _records_apply(ctx, budget_field, budget)
-            _upsert_activity(ctx, {
-                'key': key,
-                'status': 'running',
-                'completed_count': int((existing or {}).get('completed_count', 0) or 0),
-            })
-            started = True
-    except Exception as error:
-        if started:
-            _mark_failed(ctx, key, error)
-        raise
-
-    try:
-        await _prepare_context(ctx)
-        # 模型运行必须在释放独占锁之后进行。
-        await _run_agent(ctx, prompt)
-    except Exception as error:
-        _mark_failed(ctx, key, error)
-        raise
-
-    try:
-        return _mark_completed(ctx, key, budget_field, budget)
-    except Exception as error:
-        _mark_failed(ctx, key, f'记录活动完成状态失败：{error}')
-        raise
-
-
-async def execute(ctx, activation):
-    is_signal = activation.kind == 'signal'
-    try:
-        if activation.kind == 'signal':
-            key = _signal_key(activation)
-        elif activation.kind == 'access' and activation.operation == 'activate':
-            key = _access_key(activation)
-        else:
-            raise ActivityRejected('不支持的请求')
-
-        if not bool(ctx.config.get('enabled', False)):
-            budget_field = str(ctx.config.get('budget_field', 'ap') or 'ap')
-            budget = int(ctx.config.get('budget', 10))
-            existing = _find_activity(ctx, key)
-            return ComponentResult(data=_result(
-                ctx, key, 'skipped', False, budget_field, budget, existing,
-                reason='角色活动已禁用',
-            ))
-
-        return ComponentResult(data=await _run_activity(ctx, key))
-    except ActivityRejected as error:
-        if is_signal:
-            raise
-        return ComponentResult(status='error', error=str(error))
-    except Exception as error:
-        if is_signal:
-            raise
-        return ComponentResult(status='error', error=f'角色活动失败：{error}')
+        if is_signal:raise
+        return ComponentResult(status='error',error=str(error))

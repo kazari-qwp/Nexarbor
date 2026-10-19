@@ -41,6 +41,14 @@ class RecordsStoreTests(unittest.IsolatedAsyncioTestCase):
     async def apply(self, node, parameters):
         return await self.h.call(node, 'apply', parameters, channels=['records'])
 
+    async def test_read_is_pure_and_failed_plan_leaves_uninitialized_state_untouched(self):
+        instance=self.mount('a',{'金币':5},minimum={'金币':0})
+        before=thaw(instance.state)
+        read=await self.h.call('a','read',{},channels=['records'])
+        self.assertEqual(read['data']['values'],{'金币':5});self.assertEqual(thaw(instance.state),before)
+        bad=await self.apply('a',{'deltas':{'金币':-10}})
+        self.assertEqual(bad['status'],'error');self.assertEqual(thaw(instance.state),before)
+
     async def test_read_returns_copy_and_apply_sets_and_deltas(self):
         self.mount(
             'a',

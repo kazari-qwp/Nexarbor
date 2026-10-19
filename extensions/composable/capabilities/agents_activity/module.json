@@ -1,10 +1,10 @@
 {
   "format": "nexarbor-module/v3",
   "id": "agents.activity",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "entry": "module.py:execute",
   "name": "信号驱动的角色活动",
-  "description": "收到信号或公开激活时，为角色重置行动预算、准备上下文并运行本节点官方 Agent 端口；按活动键去重，记录最近活动状态。",
+  "description": "信号或访问激活本节点角色；同步登记活动状态、异步运行模型。同一时刻收到新消息后用剩余预算有界回应，不持整轮节点事务。",
   "node_types": [
     "agent"
   ],
@@ -57,6 +57,13 @@
         "title": "启用角色活动",
         "description": "默认关闭：信号与公开激活都会被跳过，不扣预算也不调用模型。确认节点已提供 runtime:agent_run 后，应用配置再显式设为 true。",
         "default": false
+      },
+      "max_reactions": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 32,
+        "default": 8,
+        "title": "每时刻最多额外回应次数"
       }
     }
   },
@@ -96,6 +103,14 @@
             "error": {
               "type": "string",
               "title": "失败原因"
+            },
+            "runs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pending": {
+              "type": "boolean",
+              "title": "运行期间收到后续通知"
             }
           },
           "required": [
@@ -181,6 +196,27 @@
           "completed_count",
           "completed_total"
         ]
+      }
+    },
+    {
+      "name": "notify",
+      "channels": [
+        "activity"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
       }
     }
   ],

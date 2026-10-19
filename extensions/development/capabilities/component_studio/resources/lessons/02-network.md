@@ -19,3 +19,7 @@ edges(target) 返回出边副本。patch_edges([{source,target,action,metadata}]
 反例：查全局状态或继承信号源所有权限。正确：每次经 ctx，参数表达需求，授权只可收窄。
 
 信号处理失败需要抛异常，传播器才会把该分支标为失败、停止向后传播；ComponentResult(status='error') 是调用者读取的业务封套，信号传播器不会替业务解释它。成功信号仍返回ComponentResult。接收模块执行使用自己的access，不是signal.channels；例如收tick后可依自身授权调用本地runtime.checkpoint，无需改用信号源提供的工具或假设继承源权限。
+
+节点 module_strength 是默认值，装配 access.strength:null 继承它；模块显式强度可更高，但每次请求仍只能收窄自身授权。它不是节点散度，也不是 Agent 执行器的强度。
+
+在一条 tick 内需要后续回应，而发送者不能等待对方整轮执行时，用 ctx.network.post(target,module,operation,arguments,channels=[...])。它只在当前信号层可用，立即返回排队回执，本层等后续访问全部结束才进入下层；数量与时间有界。ctx.signal_id 给出当前层所属信号的标识，无信号时为 None。post 是新访问，不继承原事务或 requester_id，执行时重新检查路径和本模块授权。独立持续传播仍用 emit，不私自开后台任务。
