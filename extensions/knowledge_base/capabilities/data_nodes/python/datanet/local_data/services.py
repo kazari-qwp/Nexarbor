@@ -21,5 +21,7 @@ def templates():
 
 def register(services):
     from .preview import preview
+    from .clear import clear_live
     services.rpc('data_templates',lambda b,p:templates())
     services.rpc('data_preview',preview)
+    services.rpc('data_clear',clear_live)

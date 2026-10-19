@@ -4,7 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 (ROOT/'build/data-node-tests').mkdir(parents=True,exist_ok=True)
-os.environ.update(PYTHONUTF8='1',PYTHONDONTWRITEBYTECODE='1',DATANET_COMPONENT_ROOT=str(ROOT/'extensions/development'),DATANET_COMPONENT_SELECTION=json.dumps(['capabilities/component_studio','capabilities/tool_collector','capabilities/data_nodes','capabilities/network_administrator']),DATANET_COMPONENT_PROFILE='{}',HF_HOME=str(ROOT/'build/data-node-tests/model-cache'),HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1')
+os.environ.update(PYTHONUTF8='1',PYTHONDONTWRITEBYTECODE='1',DATANET_COMPONENT_ROOT=str(ROOT/'extensions/development'),DATANET_COMPONENT_SELECTION=json.dumps(['capabilities/component_studio','capabilities/tool_collector','capabilities/data_nodes','capabilities/network_administrator','capabilities/knowledge_collection']),DATANET_COMPONENT_PROFILE='{}',HF_HOME=str(ROOT/'build/data-node-tests/model-cache'),HF_HUB_OFFLINE='1',TRANSFORMERS_OFFLINE='1')
 sys.path.insert(0,str(ROOT/'python'))
 from datanet.core.backend import Backend
 from datanet.core.resource_data import read_data,decode_data
@@ -119,5 +119,77 @@ class DataTests(unittest.TestCase):
   with self.assertRaisesRegex(ValueError,'越界'):self.b.dispatch('data_preview',dict(node=node,files={},operation='inspect'))
   node['parameters']['db_path']='data/db.sqlite3'
   with self.assertRaisesRegex(ValueError,'未知'):self.b.dispatch('data_preview',dict(node=node,files={},operation='execute_sql',arguments={'sql':'SELECT 1'}))
+
+ def clear(self, id):
+  from datanet.local_data.clear import clear_live
+  doc=self.b.studio.state()['live']['document'];node=next(n for n in doc['network']['nodes'] if n['node_id']==id)
+  return self.b.runtime.run(clear_live(self.b,dict(node=node,files=doc['files'],expected_commit=self.b.store.head)))
+ def test_clear_all_native_data_keeps_configuration_and_remains_empty_after_restart(self):
+  from copy import deepcopy
+  self.seed();before=self.b.studio.state()['live']['document']
+  for kind in ('value','csv','sqlite','rag','wiki'):
+   id='template-'+kind;node=self.b.network.nodes[id];configuration=deepcopy(next(n for n in before['network']['nodes'] if n['node_id']==id));configuration['parameters'].pop('value',None)
+   result=self.clear(id);self.assertEqual(result['scope'],'live')
+   after=deepcopy(next(n for n in self.b.studio.state()['live']['document']['network']['nodes'] if n['node_id']==id));after['parameters'].pop('value',None);self.assertEqual(after,configuration)
+   key='value' if kind=='value' else 'one' if kind in ('csv','sqlite') else 'guide';read=self.call(id,'read',{'key':key})
+   self.assertEqual(read['items'][0]['value'],None) if kind=='value' else self.assertEqual(read['status'],'not_found')
+   if kind in ('rag','wiki'):
+    self.assertFalse(any('原始资料' in path.read_text('utf-8',errors='ignore') for path in node.directory.rglob('*') if path.is_file()))
+    self.assertEqual(self.call(id,'history',{'key':'guide'})['status'],'not_found')
+  self.assertEqual(self.b.network.nodes['template-csv'].file_path.read_text('utf-8').strip(),'id,text')
+  db=sqlite3.connect(self.b.network.nodes['template-sqlite'].db_path)
+  try:self.assertEqual(db.execute('SELECT COUNT(*) FROM records').fetchone()[0],0);self.assertEqual(len(db.execute('PRAGMA table_info(records)').fetchall()),2)
+  finally:db.close()
+  self.b.close();self.b=Backend(self.temp.name)
+  for kind in ('csv','sqlite','rag','wiki'):self.assertEqual(self.call('template-'+kind,'read',{'key':'one' if kind in ('csv','sqlite') else 'guide'})['status'],'not_found')
+ def test_clear_text_without_a_data_module_keeps_config_and_clears_real_file_and_backup(self):
+  from copy import deepcopy
+  doc=self.b.studio.state()['live']['document'];n=deepcopy(doc['network']['nodes'][1]);n.update(type='text_file',node_id='text',name='独立文本',data_kind='text',parameters={'file_path':'data/text.md','max_chars':100,'tool_channels':{}},modules={});doc['network']['nodes'].append(n);doc['files']['data/text.md']='真实正文';self.b.studio.apply(dict(document=doc,base_commit=self.b.store.head))
+  node=self.b.network.nodes['text'];node.write('content','第二版');self.assertTrue(node.backup_path.exists());before=deepcopy(next(n for n in self.b.studio.state()['live']['document']['network']['nodes'] if n['node_id']=='text'))
+  self.clear('text');self.assertEqual(node.file_path.read_text('utf-8'),'');self.assertFalse(node.backup_path.exists());self.assertEqual(next(n for n in self.b.studio.state()['live']['document']['network']['nodes'] if n['node_id']=='text'),before)
+ def test_clear_draft_is_independent_and_operator_can_clear_read_only_data(self):
+  from copy import deepcopy
+  self.seed();doc=self.b.studio.state()['live']['document'];node=deepcopy(next(n for n in doc['network']['nodes'] if n['node_id']=='template-sqlite'));node['modules']['data.local']['config']['read_only']=True
+  result=self.b.dispatch('data_preview',dict(node=node,files=doc['files'],operation='clear'));self.assertTrue(result['node']['modules']['data.local']['config']['read_only']);self.assertNotEqual(result['files'][node['parameters']['db_path']],doc['files'][node['parameters']['db_path']]);self.assertEqual(self.call(node['node_id'],'read',{'key':'one'})['status'],'ok')
+  n=next(n for n in doc['network']['nodes'] if n['node_id']=='template-sqlite');n['modules']['data.local']['config']['read_only']=True;self.b.studio.apply(dict(document=doc,base_commit=self.b.store.head));self.clear(n['node_id']);self.assertEqual(self.call(n['node_id'],'read',{'key':'one'})['status'],'not_found');self.assertTrue(self.b.network.nodes[n['node_id']].modules['data.local']['config']['read_only'])
+ def test_clear_waits_for_existing_access_and_rejects_stale_or_protected_storage(self):
+  from datanet.local_data.clear import clear_live
+  from copy import deepcopy
+  self.seed();doc=self.b.studio.state()['live']['document'];node=next(n for n in doc['network']['nodes'] if n['node_id']=='template-wiki');request=dict(node=node,files=doc['files'],expected_commit=self.b.store.head)
+  async def operation():
+   async with self.b.node_locks.access(['template-wiki']):
+    from contextvars import Context
+    task=asyncio.create_task(clear_live(self.b,request),context=Context());await asyncio.sleep(.05);self.assertFalse(task.done());self.assertIn('原始资料',self.b.network.nodes['template-wiki'].read({'method':'key','key':'guide'}).items[0]['content'])
+   await task
+  self.b.runtime.run(operation())
+  with self.assertRaisesRegex(ValueError,'网络已变化'):self.b.runtime.run(clear_live(self.b,request))
+  unsafe=deepcopy(node);unsafe['parameters']['directory']='studio'
+  with self.assertRaisesRegex(ValueError,'越界'):self.b.dispatch('data_preview',dict(node=unsafe,files={},operation='clear'))
+ def test_failed_clear_restores_real_directory_and_value(self):
+  from unittest.mock import patch
+  from datanet.local_data import clear as operation
+  self.seed();original=operation.clear_node
+  def fail(node,home):original(node,home);raise RuntimeError('模拟清空中途失败')
+  for id,key in [('template-wiki','guide'),('template-value','value'),('template-sqlite','one')]:
+   with patch.object(operation,'clear_node',fail),self.assertRaisesRegex(RuntimeError,'模拟'):self.clear(id)
+   result=self.call(id,'read',{'key':key});self.assertEqual(result['status'],'ok');self.assertIn('原始',json.dumps(result,ensure_ascii=False));self.assertFalse(self.b.failed)
+ def test_clear_does_not_rebase_over_concurrent_unrelated_updates(self):
+  from unittest.mock import patch
+  from datanet.local_data import clear as operation
+  self.seed();original=operation.clear_node
+  def concurrent(node,home):
+   original(node,home);self.b.network.nodes['template-value'].write('value',{'other':'其他执行者的新值'});self.b.dispatch('save',{})
+  with patch.object(operation,'clear_node',concurrent):result=self.clear('template-wiki')
+  self.assertFalse(result['rebase_safe']);self.assertEqual(self.call('template-value','read',{'key':'value'})['items'][0]['value']['other'],'其他执行者的新值');self.assertEqual(self.call('template-wiki','read',{'key':'guide'})['status'],'not_found')
+ def test_clear_raw_vector_node_removes_all_index_versions_and_resets_cache(self):
+  from datanet.components.nodes.llamaindex_node.llamaindex_node import LlamaIndexNode
+  n=LlamaIndexNode('raw-index','底层向量节点',self.b.directory/'data/raw-index',embedding_config={'model_path':str(ROOT/'build/models/bge-small-zh-v1.5'),'device':'cpu','max_length':128,'batch_size':2});n.management_parent_id='root';self.b.network.add_node(n)
+  folder=n.storage_path/'versions/abc';folder.mkdir(parents=True);(folder/'docstore.json').write_text('旧索引正文',encoding='utf-8');(n.storage_path/'current.json').write_text('{"version":"abc"}',encoding='utf-8');n.index=object();n._version='abc'
+  before=n.embedding_config.copy();result=self.clear(n.node_id);self.assertEqual(result['scope'],'live');self.assertEqual(list(n.storage_path.iterdir()),[]);self.assertEqual(n.embedding_config,before);self.assertIsNone(n.index);self.assertIsNone(n._version);self.assertFalse(n.has_index())
+ def test_clear_original_knowledge_module_removes_versions_without_removing_modules(self):
+  from copy import deepcopy
+  original=json.loads((ROOT/'configs/knowledge_v3/network.json').read_text('utf-8'));node=deepcopy(next(n for n in original['network']['nodes'] if n['node_id']=='knowledge'));doc=self.b.studio.state()['live']['document'];doc['network']['nodes'].append(node);self.b.studio.apply(dict(document=doc,base_commit=self.b.store.head))
+  self.call('knowledge','put',{'id':'doc','title':'标题','text':'正文','tags':[]},module='knowledge.collection');before=deepcopy(self.b.network.nodes['knowledge'].modules['knowledge.collection']['config']);self.clear('knowledge')
+  self.assertEqual(self.b.network.nodes['knowledge'].modules['knowledge.collection']['config'],before);self.assertEqual(self.b.network.nodes['knowledge'].modules['knowledge.collection']['state']['documents'],{});r=self.call('knowledge','search',{'query':''},module='knowledge.collection');self.assertEqual(r['items'],[])
 
 if __name__=='__main__':unittest.main(verbosity=2)

@@ -33,6 +33,9 @@ try{
  await page.getByRole('button',{name:'保存工具 '+tool.ref+'至书签',exact:true}).click();await expect.poll(async()=>(await api('editor.library')).bookmarks.some(b=>b.asset?.id===tool.ref)).toBe(true);await page.getByRole('button',{name:'删除工具 '+tool.ref,exact:true}).click();await expect(node('new').getByRole('button',{name:'新地点的工具，0 个',exact:true})).toBeVisible();await expect(node('new').getByRole('button',{name:'新地点的模块，1 个',exact:true})).toBeVisible();await page.keyboard.press('Control+z');await node('new').hover();await expect(node('new').getByRole('button',{name:'新地点的工具，1 个',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'应用网络',exact:true}).click();await expect(page.locator('.toast')).toContainText('已应用，Agent 会话和模块已装配');await expect(page.getByRole('button',{name:'应用网络',exact:true})).toBeDisabled();
  let state=await api('state'),old=state.live.document.network.nodes.find(n=>n.node_id==='old');expect(Object.keys(old.modules).sort()).toEqual(['movement.here','place.info','test.wrapper']);expect(old.modules['place.info'].config.description).toBe('旧地点说明');expect(state.live.document.network.nodes.find(n=>n.node_id==='new').offered_tools).toEqual([]);
+ // 这个装配用例不测试行动点扣费，明确关闭业务钩子；默认示例现在会调用 records.store。
+ for(const n of state.live.document.network.nodes)if(n.modules['movement.here'])n.modules['movement.here'].config.before_hooks=[];
+ await api('apply',{document:state.live.document,base_commit:state.live.commit});
  await page.screenshot({path:path.join(directory,'01-related-assets.png')});
  // 实际取得并通过 NativeExecutor 调用模块工具；不调用模型。
  const visit=await host.rpc('executor_visit',{actor:'root',target:'new'}),entry=visit.tools.find(t=>t.module==='movement.here');expect(entry).toBeTruthy();const prepared=await host.rpc('executor_prepare',{actor:'root'});expect(prepared.tools.some(t=>t.name===entry.alias)).toBe(true);

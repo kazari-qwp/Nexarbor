@@ -32,6 +32,8 @@ class StudioTransport(Transport):
             result=self.backend.runtime.run(self.backend.modules.call(p['node'],p['module'],p['operation'],p.get('arguments',{})))
             self.backend.dispatch('save',{})
             return result
+        if method=='data_clear':
+            return self.backend.runtime.run(self.backend.components.routes['data_clear'](self.backend,p))
         if method=='studio_pulse':return self.backend.studio.pulse(p)
         if method=='executor_run':return asyncio.run(self.backend.execute_agent(p['actor'],p.get('text','')))
         if method=='executor_read':
