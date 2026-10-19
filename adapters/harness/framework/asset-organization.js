@@ -12,7 +12,7 @@ export function organizeAssets(library,p,{ids=[]}={}){
   if(typeof p.id!=='string'||!p.id||tree.folders.some(f=>f.id===p.id))throw Error('文件夹编号无效或已存在');folder(p.parent);tree.folders.push({id:p.id,name:name(p.name),parent:p.parent??null});return;
  }
  if(p.action==='asset.folder.delete'){
-  folder(p.id);if(p.id==null)throw Error('不能删除资源根目录');const descendants=descendantFolders(tree,p.id);if(tree.folders.some(f=>f.system&&descendants.has(f.id)))throw Error('系统提供的已存储网络分类不能删除');
+  folder(p.id);if(p.id==null)throw Error('不能删除资源根目录');const descendants=descendantFolders(tree,p.id);if(tree.folders.some(f=>f.system&&descendants.has(f.id)))throw Error('系统分类不能删除');
   const resources=new Set([...ids,...Object.keys(tree.items)]);
   if([...resources].some(id=>(ids.includes(id)||!tree.items[id]?.deletedAt)&&descendants.has(tree.items[id]?.folder??null)))throw Error('文件夹或子目录内仍有资源，请先移走或彻底删除资源');
   tree.folders=tree.folders.filter(f=>!descendants.has(f.id));for(const item of Object.values(tree.items))if(descendants.has(item.folder))item.folder=null;return;
@@ -24,7 +24,7 @@ export function organizeAssets(library,p,{ids=[]}={}){
  const entry=p.entry;if(!entry||!['folder','item'].includes(entry.type)||typeof entry.id!=='string'||!entry.id)throw Error('请选择资源或文件夹');
  if(entry.type==='item'&&!Object.hasOwn(tree.items,entry.id))Object.defineProperty(tree.items,entry.id,{value:{folder:null},enumerable:true,writable:true,configurable:true});
  const selected=entry.type==='folder'?folder(entry.id):tree.items[entry.id];
- if(entry.type==='folder'&&selected.system)throw Error('系统提供的已存储网络分类不能重命名或移动');
+ if(entry.type==='folder'&&selected.system)throw Error('系统分类不能重命名或移动');
  if(p.action==='asset.rename'){selected.name=name(p.name);return;}
  if(p.action!=='asset.move')throw Error('未知资源操作');
  folder(p.target);

@@ -80,7 +80,7 @@ function App(){
       setTimeout(()=>flow.fitView({nodes:ids.map(id=>({id})),duration:250,maxZoom:1.3}),50);
     }});
   useEffect(()=>{docRef.current=doc;dirtyRef.current=dirty;layoutRef.current=layout;},[doc,dirty,layout]);
-  const resourceCatalog=catalog?{...catalog,presetErrors:bookmarks.library.presetErrors??[],presets:[...(catalog.presets??[]),...(bookmarks.library.presets??[])]}:null;
+  const resourceCatalog=catalog?{...catalog,nodes:[...(catalog.nodes??[]),...(bookmarks.library.nodeTemplates??[])],nodeErrors:bookmarks.library.nodeErrors??[],presetErrors:bookmarks.library.presetErrors??[],presets:[...(catalog.presets??[]),...(bookmarks.library.presets??[])]}:null;
   const edit=(next,nextLayout=layoutRef.current,recordCreated=true)=>{clearTimeout(clickTimer.current);selectionSequence.current++;const previous=docRef.current;undo.current.push({doc:clone(docRef.current),layout:clone(layoutRef.current)});if(undo.current.length>40)undo.current.shift();redo.current=[];setDoc(next);docRef.current=next;setDirty(true);dirtyRef.current=true;setCheck(null);setLocal(null);if(recordCreated)bookmarks.created(previous,next,nextLayout);};
   const load=async(initial=false)=>{
     const next=await api('state');setState(next);

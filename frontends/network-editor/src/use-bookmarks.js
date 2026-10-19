@@ -8,7 +8,7 @@ const empty={version:0,bookmarks:[],history:[],presets:[],categories:[{id:'defau
 export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpenAsset,onAssetAttach,note}){
  const [library,setLibrary]=useState(empty),[category,setCategory]=useState('default'),[focus,setFocus]=useState(null),[open,setOpen]=useState(true);
  const current=useRef(empty),latest=useRef(),hover=useRef(null),lastCopy=useRef(null),pointer=useRef(null);
- const queue=useRef(Promise.resolve()),pending=useRef(0),presetFolder=useRef(null);
+ const queue=useRef(Promise.resolve()),pending=useRef(0),presetFolder=useRef(null),nodeFolder=useRef(null);
  const enqueue=job=>{pending.current++;const result=queue.current.then(job).finally(()=>pending.current--);queue.current=result.catch(()=>{});return result;};
  latest.current={context,onPaste,onEdgeTemplate,onLocate,onOpenAsset,onAssetAttach,note,category};
  const accept=value=>{if(value.version>=current.current.version){current.current=value;setLibrary(value);}return value;};
@@ -102,9 +102,9 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   copy:mode=>{const ctx=latest.current.context(),frame={area:hover.current?clone(hover.current):null,category:latest.current.category,ctx:{...ctx,document:clone(ctx.document),selection:clone(ctx.selection),layout:clone(ctx.layout)}};return enqueue(()=>copy(mode,frame));},
   remove:id=>enqueue(()=>remove(id)),removeHovered,created,drop,dropHistory,dropResource,locate,record,usedHistory,saveAsset,
   openBook:book=>openAsset({...book,sourceBookmark:book.id}),
-  savePreset:id=>enqueue(async()=>{await update({action:'preset.save',bookId:id,folder:presetFolder.current});latest.current.note('已保存到当前网络预设目录');}),
+  savePreset:id=>enqueue(async()=>{const book=current.current.bookmarks.find(b=>b.id===id),node=!isAsset(book)&&book?.snapshot?.nodes.length===1;await update({action:node?'node.save':'preset.save',bookId:id,folder:node?nodeFolder.current:presetFolder.current});latest.current.note(node?'节点完整配置已保存到节点栏；官方目录或根目录下保存时归入“已保存节点”':'已保存到当前网络预设目录');}),
   saveNetwork:()=>enqueue(async()=>{const ctx=latest.current.context(),name=(await textPrompt('保存全网',ctx.document.network.nodes.find(n=>n.node_id==='root')?.name+'网络'))?.trim();if(!name)return;await update({action:'network.save',name,document:clone(ctx.document),layout:clone(ctx.layout)});latest.current.note('完整网络已写入磁盘，位于“已存储网络”分类');}),
-  folderChanged:(kind,id)=>{if(kind==='preset')presetFolder.current=id;},
+  folderChanged:(kind,id)=>{if(kind==='preset')presetFolder.current=id;if(kind==='node')nodeFolder.current=id;},
   reload:()=>enqueue(()=>api('editor.library').then(accept)),
   assetAction:p=>enqueue(()=>update(p)),
   bindings:shortcuts(library.settings.shortcuts),resetCopy:()=>{lastCopy.current=null;},

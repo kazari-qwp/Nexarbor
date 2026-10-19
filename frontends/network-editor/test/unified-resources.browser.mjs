@@ -25,7 +25,7 @@ try{
  for(const kind of ['node','tool','module','preset'])await expect(tree(kind)).not.toHaveAttribute('open','');
  await expect(page.locator('.left-panel .palette-item')).toHaveCount(0);
  // 左侧基础节点只预览和编辑，不进场；保存配置为独立书签。
- await openTree('node');await item('node','text_file').click();const detail=page.getByLabel('节点模板详情',{exact:true});await expect(detail).toBeVisible();expect(await page.locator('.react-flow__node').count()).toBe(4);
+ await openTree('node');await tree('node').getByRole('button',{name:'节点文件夹 官方节点',exact:true}).dblclick();await item('node','text_file').click();const detail=page.getByLabel('节点模板详情',{exact:true});await expect(detail).toBeVisible();expect(await page.locator('.react-flow__node').count()).toBe(4);
  await detail.getByLabel('资源书签名称',{exact:true}).fill('文字模板');await detail.getByLabel('模板节点名称',{exact:true}).fill('资料节点');await detail.getByLabel('模板节点文档',{exact:true}).fill('模板正文');
  await detail.getByRole('button',{name:'Save · 保存至书签',exact:true}).click();await expect.poll(async()=>(await library()).bookmarks.length).toBe(3);expect((await library()).history).toEqual([]);
  const textBook=(await library()).bookmarks.find(b=>b.name==='文字模板');let placed=await drop(book(textBook.id),1,560,220);let added=placed.network.nodes.at(-1);expect(added.name).toBe('资料节点');expect(placed.files[added.parameters.file_path]).toBe('模板正文');
