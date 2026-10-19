@@ -85,3 +85,20 @@ test('real record-store node references in configuration, state and receipts fol
   assert.equal(record.config.initial.label,'b');assert.equal(record.state.values.label,'b');
  }
 });
+
+test('text, binary and directory data are independent, including empty directory templates',()=>{
+ const data=structuredClone(document);data.network.nodes[0].type='sqlite';data.network.nodes[0].parameters={db_path:'data/store.sqlite3'};data.files['data/store.sqlite3']={encoding:'base64',data:'AAECAw=='};
+ const saved=copySubnet(data,['a'],'internal'),placed=pasteSubnet(data,{snapshot:saved},{x:0,y:0}),n=placed.document.network.nodes.at(-1);
+ assert.notEqual(n.parameters.db_path,'data/store.sqlite3');placed.document.files[n.parameters.db_path].data='changed';assert.equal(saved.files['data/store.sqlite3'].data,'AAECAw==');assert.equal(data.files['data/store.sqlite3'].data,'AAECAw==');
+ const empty=structuredClone(saved);empty.nodes[0].parameters={directory:'data/empty'};empty.files={};const one=pasteSubnet(data,{snapshot:empty},{x:0,y:0}),two=pasteSubnet(one.document,{snapshot:empty},{x:0,y:0});assert.notEqual(one.document.network.nodes.at(-1).parameters.directory,two.document.network.nodes.at(-1).parameters.directory);
+});
+
+test('JSON node values preserve ordinary node_id and file_path fields without copying another nodes document',()=>{
+ const value={file_path:'a.md',node_id:'a',directory:'some/path'},source=structuredClone(document);source.network.nodes[0].type='value';source.network.nodes[0].parameters={value};
+ const saved=copySubnet(source,['a'],'internal');assert.deepEqual(saved.files,{});const result=pasteSubnet(source,{snapshot:saved},{x:0,y:0});assert.deepEqual(result.document.network.nodes.at(-1).parameters.value,value);
+});
+
+test('missing backing data and external resource paths fail instead of creating lookalike empty copies',()=>{
+ const source=structuredClone(document);delete source.files['a.md'];assert.throws(()=>copySubnet(source,['a'],'internal'),/数据资源缺失/);assert.throws(()=>pasteSubnet(document,{snapshot:{nodes:[a],files:{}}},{x:0,y:0}),/数据资源缺失/);
+ source.network.nodes[0].parameters.file_path='../external.md';assert.throws(()=>copySubnet(source,['a'],'internal'),/导入网络目录/);
+});

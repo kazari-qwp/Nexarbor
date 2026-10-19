@@ -114,3 +114,12 @@ Agent 的 execution 设置 `channels:["tools"]` 与足够 strength，调用内�
 ## 模块执行图
 
 `capabilities/module_graph` 提供 v3 模块 `modules.executor`。调用 run 或收到配置频道/种类的信号后，复用已有 LangGraph 后端执行 call/sequence/parallel/branch。每一步均为受网络权限约束的模块调用。详见 [配置、参数引用和返回值](../extensions/foundation/capabilities/module_graph/README.md)。客户端模块页可使用已有可视化执行图编辑器。旧事件触发器及旧应用不作兼容迁移。
+
+
+## 本地数据接口与资源（2026-10-19）
+
+`ctx.schema()` 读取所在节点的数据结构，`ctx.read(request)` 与 `ctx.write(key,value,mode=...)` 仍只作用于本节点。不同节点的读写通过既有网络访问进入目标节点上的数据模块，不把网络对象、磁盘路径或数据库连接传给模块。模块 `node_types` 支持扩展节点标识，实际装配仍校验该节点类型、配置与操作声明。
+
+`data.local` 复用上述接口，支持 JSON、CSV、SQLite、文本和本地知识集合；`data.knowledge` 通过同节点依赖复用只读检查，管理知识版本、章节与索引。修改操作使用现有节点锁，成功后统一存档，异常恢复本节点旧数据。
+
+节点编解码器通过 `resources` 声明文件，通过 `resource_directories` 声明目录。文件快照可为 UTF-8 文本，或 `{encoding:"base64",data:...}` 二进制对象；目录递归包含实际数据文件，不包含锁、日志与临时文件。嵌入模型不属于可写数据资源。SQLite 快照使用数据库备份接口纳入已提交 WAL 页；恢复、复制和节点锁回滚都使用同一资源格式。

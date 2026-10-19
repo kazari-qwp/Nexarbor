@@ -21,4 +21,4 @@ def decode(common, params, base):
     return node
 
 def register():
-    register_node(NodeCodec('llamaindex', LlamaIndexNode, encode, decode, parameter_fields=['storage_path', 'embedding'], description='文档语义检索节点。基于 LlamaIndex 导入文档、分块并建立向量索引，支持增量更新及语义搜索，返回相关文本片段与来源。适合资料库和长文档检索；需要配置嵌入模型，只检索片段，不自行生成回答。', resources=(), references={}, local_write=True))
+    register_node(NodeCodec('llamaindex', LlamaIndexNode, encode, decode, parameter_fields=['storage_path', 'embedding'], description='文档语义检索节点。基于 LlamaIndex 导入文档、分块并建立向量索引，支持增量更新及语义搜索，返回相关文本片段与来源。适合资料库和长文档检索；需要配置嵌入模型，只检索片段，不自行生成回答。', resource_directories=('storage_path',), references={}, local_write=True))

@@ -61,7 +61,7 @@ class ModuleDefinition:
             self.signals = freeze(signals)
         else: self.signals = names(signals, 'signal channels')
         self.node_types = names(node_types, 'node types', allow_empty=False)
-        if set(self.node_types) - {'node', 'text_file', 'agent', 'pulse'}:
+        if any(not name.isidentifier() or not name.isascii() for name in self.node_types):
             raise ValueError('Unknown component node type')
         self.config_schema = config_schema or {'type': 'object'}
         self.state_schema = state_schema or {'type': 'object'}

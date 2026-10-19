@@ -87,6 +87,7 @@ class ModuleContext:
     requester_id = property(lambda self: self._request('requester'))
     def metadata(self): return self._request('local_metadata')
     def publish_metadata(self, fields): return self._request('publish_metadata', fields=fields)
+    def schema(self): return self._request('schema')
     def read(self, request): return self._request('read', request=request)
     def write(self, key, value, *, mode='upsert'):
         return self._request('write', key=key, value=value, mode=mode)

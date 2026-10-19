@@ -9,6 +9,11 @@ from datanet.core.node import Node, NodeResult
 from datanet.core.write_support import validate_write, validate_record
 
 class CsvNode(Node):
+    signal_type = 'csv'
+
+    def install_local_tools(self):
+        """当前协议由节点上的 data.local 模块显式提供工具。"""
+        pass
 
     def write_many(self, values):
         """Upsert a batch with one file replacement; caller owns collection write locking."""

@@ -364,6 +364,7 @@ class NodeModules:
             network.metadata_registry.register('module:' + repr(key),
                 lambda target: self._metadata_fields(key, target))
             return None
+        if operation == 'schema': return json_copy(node.get_schema())
         if operation == 'read': return json_copy(node.read(json_copy(p['request'])))
         if operation == 'write':
             self.backend.node_locks.require_mutable(key[0])

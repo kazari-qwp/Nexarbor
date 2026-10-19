@@ -9,7 +9,8 @@ import time
 from pathlib import Path
 from uuid import uuid4
 from datanet.core.json_values import thaw
-from datanet.core.component_registry import codec_for_node
+from datanet.core.component_registry import codec_for_node,codecs,active_codecs,resource_roots,resource_paths
+from datanet.core.resource_data import read_data,decode_data
 from datanet.core.execution import encode_execution
 from datanet.core.serialization import _build
 from datanet.core.management import validate_management
@@ -31,13 +32,17 @@ def configuration_version(record):
     value=deepcopy(record)
     for mount in value['modules'].values():mount.pop('state',None)
     # 本次不编辑已有节点参数；只固定文本资源归属，运行数据继续由原节点拥有。
-    value['parameters']={k:v for k,v in value['parameters'].items() if k=='file_path'}
+    value['parameters']={k:v for k,v in value['parameters'].items() if k not in ('value','state','collection_id')}
     return fingerprint(value)
 def remap(value,schema,ids,external=None):
     if schema.get('format')=='node-id' and isinstance(value,str):return ids.get(value,external(value) if external and value not in ids else value)
     if isinstance(value,list):return [remap(v,schema.get('items',{}),ids,external) for v in value]
     if isinstance(value,dict):return {k:remap(v,schema.get('properties',{}).get(k,schema.get('additionalProperties',{}) if isinstance(schema.get('additionalProperties'),dict) else {}),ids,external) for k,v in value.items()}
     return value
+
+def data_roots(entry):
+    codec=codecs()[entry['type']];params=entry['parameters']
+    return [(label,params[label],'file') for label in codec.resources]+[(label,params[label],'directory') for label in codec.resource_directories]
 
 class Administrator:
     def __init__(self,backend):
@@ -77,10 +82,16 @@ class Administrator:
                 definition=b.components.module_types[name]
                 for field in ('config','state'):mount[field]=remap(mount[field],getattr(definition,field+'_schema'),aliases,mask)
             if n==actor:node.update(type='node',parameters={},modules={},execution=None)
-            elif 'file_path' in node['parameters']:
-                path=(b.directory/node['parameters']['file_path']).resolve()
-                if not path.is_relative_to(b.directory.resolve()) or path.is_symlink():raise PermissionError('管理员只能复制网络目录内的节点文本')
-                alias='data/'+aliases[n]+'.md';paths[alias]=str(path.relative_to(b.directory));files[alias]=path.read_text(encoding='utf-8') if path.exists() else '';node['parameters']['file_path']=alias
+            else:
+                source=b.network.nodes[n]
+                for label,path,kind in resource_roots(source):
+                    if not path.is_relative_to(b.directory.resolve()) or path.is_symlink():raise PermissionError('管理员只能复制网络目录内的节点数据')
+                    alias='data/'+aliases[n]+(Path(path).suffix or '.md') if kind=='file' else 'data/'+aliases[n]+'-'+label
+                    node['parameters'][label]=alias;paths[alias]=path.relative_to(b.directory).as_posix()
+                    for _,_,file in resource_paths(source):
+                        if file==path or kind=='directory' and file.is_relative_to(path):
+                            name=alias+('/'+file.relative_to(path).as_posix() if kind=='directory' else '')
+                            files[name]=read_data(file);paths[name]=file.relative_to(b.directory).as_posix()
             doc.append(node)
         return dict(actor=actor,policy=policy,aliases=aliases,external_aliases=outside,versions={n:configuration_version(v) for n,v in raw.items()},paths=paths,file_versions={a:fingerprint(t) for a,t in files.items()},document=dict(network=dict(version=8,nodes=doc,signals={},delegations=[]),files=files))
     async def inspect(self,actor):
@@ -142,7 +153,9 @@ class Administrator:
                     if prior and any(mount[f]!=prior[f] for f in ('state','access')):raise PermissionError('不能覆盖已有组件状态或授权')
             else:
                 if key.startswith('outside-'):raise PermissionError('外部引用标记不能用作新增节点编号')
-                if node['type'] not in ('node','agent','text_file','pulse') or node.get('agent') or node.get('inputs') or node.get('context_cursor'):raise PermissionError('新增节点不能继承会话、上下文或执行身份')
+                if node['type'] not in active_codecs() or node.get('agent') or node.get('inputs') or node.get('context_cursor'):raise PermissionError('新增节点不能继承会话、上下文或执行身份')
+                embedding=node.get('parameters',{}).get('embedding')
+                if embedding and not any(embedding==entry.get('parameters',{}).get('embedding') for entry in original.values()):raise PermissionError('新增节点只能复用可见节点已配置的嵌入模型')
                 if node.get('offered_tools') or node.get('toolboxes') or node.get('expose'):raise PermissionError('不能授予外部工具；请使用普通模块携带工具')
                 binding=node.get('execution') or {}
                 if binding.get('strength',0)>p['strength'] or not set(binding.get('channels',[]))<=set(p['channels']):raise PermissionError('新增Agent执行范围不能扩大授权')
@@ -157,8 +170,8 @@ class Administrator:
                     if access.get('extension') or access['strength']>p['strength'] or not set(access['channels'])<=set(p['channels']):raise PermissionError('新增模块不能扩大授权')
         for name in document.get('files',{}):
             if Path(name).is_absolute() or '..' in Path(name).parts or ':' in name or chr(92) in name:raise PermissionError('草稿文本必须使用副本内相对路径')
-        used={n['parameters']['file_path'] for n in nodes if 'file_path' in n['parameters']}
-        if set(document['files'])-used:raise PermissionError('不能写入不属于局部节点的文件')
+        roots=[(path,kind) for node in nodes for _,path,kind in data_roots(node)]
+        if any(not any(name==path or kind=='directory' and name.startswith(path.rstrip('/')+'/') for path,kind in roots) for name in document['files']):raise PermissionError('不能写入不属于局部节点的文件')
         if any(n['parameters']['file_path'] not in document['files'] for n in nodes if n['node_id'] not in original and 'file_path' in n['parameters']):raise ValueError('新增文本节点和Agent必须提供独立初始正文')
         return document
     async def apply(self,actor,task):
@@ -174,7 +187,7 @@ class Administrator:
             if current['policy']!=scope['policy']:raise PermissionError('管理员授权或模式已变化，请重新制作')
             if current['versions']!=scope['versions']:raise ValueError('局部网络配置已经变化，请重新制作，不能覆盖新配置')
             for path,text in document['files'].items():
-                if path in scope['file_versions'] and text!=scope['document']['files'][path] and current['file_versions'].get(path)!=scope['file_versions'][path]:raise ValueError('待修改的节点文本已经变化，请重新制作')
+                if text!=scope['document']['files'].get(path) and current['file_versions'].get(path)!=scope['file_versions'].get(path):raise ValueError('待修改的节点文本已经变化，请重新制作')
         return await self.backend.node_locks.mutate(list(scope['aliases']),lambda:self.commit(scope,document),validate=validate,timeout=30)
     def commit(self,scope,document):
         b=self.backend;original={n['node_id']:n for n in scope['document']['network']['nodes']};draft={n['node_id']:deepcopy(n) for n in document['network']['nodes']}
@@ -193,11 +206,15 @@ class Administrator:
             for name,mount in node['modules'].items():
                 definition=b.components.module_types[name]
                 for field in ('config','state'):mount[field]=remap(mount[field],getattr(definition,field+'_schema'),ids)
-            if old_path is not None:
+            for label,old_path,kind in data_roots(node):
+                owned={path:value for path,value in document['files'].items() if path==old_path or kind=='directory' and path.startswith(old_path.rstrip('/')+'/')}
                 if alias in original:
-                    if old_path in document['files'] and document['files'][old_path]!=scope['document']['files'][old_path]:files[scope['paths'][old_path]]=document['files'][old_path]
+                    for path,value in owned.items():
+                        if value!=scope['document']['files'].get(path):files[scope['paths'][old_path]+path[len(old_path):]]=value
                 else:
-                    path='created/admin/'+node['node_id']+'.md';node['parameters']['file_path']=path;files[path]=document['files'][old_path]
+                    path='created/admin/'+node['node_id']+('.md' if label=='file_path' and kind=='file' else '/'+label+('/'+Path(old_path).name if kind=='file' else ''))
+                    node['parameters'][label]=path
+                    for name,value in owned.items():files[path+name[len(old_path):]]=value
         candidates=[self.raw(n) for n in b.network.nodes.values() if n.node_id not in removed]
         candidates.extend(draft[a] for a in fresh)
         for n in candidates:
@@ -209,7 +226,7 @@ class Administrator:
             target=(b.directory/path).resolve()
             if not target.is_relative_to(b.directory.resolve()) or target.is_symlink():raise PermissionError('节点文本位置无效')
             previous=target.read_bytes() if target.exists() else None
-            if previous!=files[path].encode('utf-8'):
+            if previous!=decode_data(files[path]):
                 from datanet.core.component_registry import resource_paths
                 if any(Path(resource).resolve()==target for n,node in b.network.nodes.items() if n not in scope['aliases'] for _,_,resource in resource_paths(node)):raise PermissionError('文本仍被范围外节点共享，不能写入')
             file_images[path]=previous

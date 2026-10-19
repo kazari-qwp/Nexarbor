@@ -16,7 +16,7 @@ export function Documents({files,onChange,onClose}){
    <input aria-label="新文档相对路径" placeholder="例如 personas/new.md" value={path} onChange={e=>setPath(e.target.value)}/><button onClick={create}><Plus size={14}/>添加文档</button>
    {Object.keys(files).sort().map(name=><button key={name} className={name===file?'active':''} onClick={()=>setFile(name)}>{name}</button>)}
   </aside><main style={{flex:1,minWidth:0,display:'flex',flexDirection:'column'}}><p>{file||'先添加文档'} · 修改自动进入网络草稿</p>
-   {file&&<div style={{flex:1,minHeight:0}}><CodeEditor file={file} value={files[file]??''} onChange={text=>onChange({...files,[file]:text})}/></div>}
+   {file&&typeof files[file]==='object'&&files[file]!==null?<p className="notice">二进制数据资源随节点独立复制和存档，请通过对应节点的数据工具读写。</p>:file&&<div style={{flex:1,minHeight:0}}><CodeEditor file={file} value={files[file]??''} onChange={text=>onChange({...files,[file]:text})}/></div>}
    {error&&<p role="status">{error}</p>}
   </main></div>
  </section></div>;

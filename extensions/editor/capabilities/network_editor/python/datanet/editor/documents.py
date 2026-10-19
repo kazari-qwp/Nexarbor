@@ -18,7 +18,7 @@ def portable(snapshot):
     """Export graph/files, never host session identities or projection caches."""
     network = deepcopy(snapshot['network'])
     for node in network['nodes']:
-        for name in ('file_path', 'content_path', 'metadata_path'):
+        for name in ('file_path', 'content_path', 'metadata_path','db_path','directory','storage_path'):
             if isinstance(node.get('parameters', {}).get(name), str):
                 node['parameters'][name] = node['parameters'][name].replace('\\', '/')
     files = {}
@@ -67,8 +67,8 @@ def safe_document(document, catalog, enabled):
         doc['network']['signals'] = {}
     for path, content in doc['files'].items():
         relative(path)
-        if content is not None and not isinstance(content, str):
-            raise ValueError('资源内容必须是文本')
+        from datanet.core.resource_data import decode_data
+        decode_data(content)
     def sources(value):
         if isinstance(value, list):
             for item in value: sources(item)
@@ -88,11 +88,12 @@ def safe_document(document, catalog, enabled):
             raise ValueError('节点编号仅使用字母、数字、下划线、短横线和路径分隔符')
         if key in ids: raise ValueError('节点编号重复：' + key)
         ids.add(key)
-        if node['type'] not in ('node', 'agent', 'text_file', 'pulse'):
+        from datanet.core.component_registry import active_codecs
+        if node['type'] not in active_codecs():
             raise ValueError('此编辑器暂不支持节点类型：' + node['type'])
         if node.get('agent') is not None or node.get('execution') is not None:
             raise ValueError('执行器绑定由宿主建立，不从导入文件载入')
-        for name in ('file_path', 'content_path', 'metadata_path'):
+        for name in ('file_path', 'content_path', 'metadata_path','db_path','directory','storage_path'):
             if node['parameters'].get(name): relative(node['parameters'][name])
         sources(node['modules'])
     if 'root' not in ids: raise ValueError('网络必须保留根 Agent 节点')

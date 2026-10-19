@@ -44,8 +44,14 @@ def validate_network(document,backend,library):
             if definition is None:raise ValueError('未发布或未登记模块：'+name)
             if node.signal_type not in definition.node_types:raise ValueError('模块不支持节点类型：'+name)
             definition.validate(spec['config'],definition.config_schema);definition.validate(spec['state'],definition.state_schema)
+    from datanet.core.component_registry import resource_roots
+    for node in candidate.nodes.values():
+        for _,path,_ in resource_roots(node):
+            if not path.is_relative_to(backend.directory):raise ValueError('节点数据必须在网络工作目录内')
+    from datanet.core.resource_data import decode_data
     for name,content in document['files'].items():
-        if not isinstance(content,str) or not (backend.directory/name).resolve().is_relative_to(backend.directory):raise ValueError('文档必须是网络目录内的文本')
+        if not (backend.directory/name).resolve().is_relative_to(backend.directory):raise ValueError('资源必须在网络目录内')
+        decode_data(content)
     return document
 
 def check_work(folder,backend,library,workspace=None):

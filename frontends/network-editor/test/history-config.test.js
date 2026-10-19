@@ -42,3 +42,11 @@ test('network preset stores raw A/B snapshot and remains independent of bookmark
  await mutate({action:'asset.move',kind:'module',entries:[{type:'item',id:'new'}],target:null});assert.equal((await library('editor.library')).assets.module.items.new.folder,null);
  catalog.modules.fallback={label:'目录被删',display_folder:'missing'};assert.equal((await library('editor.library')).assets.module.items.fallback.folder,null);
 });
+
+test('binary databases and knowledge directories deduplicate by payload rather than copied storage paths',()=>{
+ const node=structuredClone(editorNodes()[0].snapshot.nodes[0]);node.type='knowledge_collection';node.parameters={directory:'data/wiki'};
+ const source={network:{nodes:[node]},files:{'data/wiki/catalog.sqlite3':{encoding:'base64',data:'AAECAw=='},'data/wiki/pages/one.md':'知识正文'}};
+ const original=entry(copySubnet(source,[node.node_id],'internal')),placed=pasteSubnet(source,original,{x:0,y:0}),copied=entry(copySubnet(placed.document,placed.nodes,'internal'));
+ assert.notEqual(copied.snapshot.nodes[0].parameters.directory,node.parameters.directory);assert.equal(normalizeHistory(original).id,normalizeHistory(copied).id);
+ const binary=Object.values(copied.snapshot.files).find(v=>typeof v==='object');binary.data='BAUG';assert.notEqual(normalizeHistory(original).id,normalizeHistory(copied).id);assert.equal(source.files['data/wiki/catalog.sqlite3'].data,'AAECAw==');
+});

@@ -14,4 +14,4 @@ def decode(common, params, base):
     return node
 
 def register():
-    register_node(NodeCodec('sqlite', SqliteNode, encode, decode, parameter_fields=['db_path', 'table_name', 'key_column'], description='SQLite 数据表节点。绑定数据库中的一张表，支持主键读取、字段条件查询和记录写入。适合需要精确查询与更新的结构化数据；创建节点不会自动创建数据表。', resources=(), references={}, local_write=True))
+    register_node(NodeCodec('sqlite', SqliteNode, encode, decode, parameter_fields=['db_path', 'table_name', 'key_column'], description='SQLite 数据表节点。绑定数据库中的一张表，支持主键读取、字段条件查询和记录写入。适合需要精确查询与更新的结构化数据；创建节点不会自动创建数据表。', resources=('db_path',), references={}, local_write=True))

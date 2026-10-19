@@ -10,6 +10,11 @@ from .local_fs import local_filesystem
 from datanet.core.node import Node, NodeResult
 
 class LlamaIndexNode(Node):
+    signal_type = 'llamaindex'
+
+    def install_local_tools(self):
+        """当前协议由节点上的 data.local 模块显式提供工具。"""
+        pass
 
     def __init__(self, node_id, name, storage_path, *, embed_model=None, embedding_config=None, description=''):
         super().__init__(node_id, name, 'document', description=description)
@@ -34,11 +39,8 @@ class LlamaIndexNode(Node):
         self._version = None
         self.index = None
         self.chunk_size, self.chunk_overlap = (512, 64)
-        query_parameters = {'type': 'object', 'properties': {'query': {'type': 'string'}, 'top_k': {'type': 'integer', 'minimum': 1}}, 'required': ['query'], 'additionalProperties': False}
-        self.register_tool('search', self.search, description='语义检索本节点文档，返回原文、相关性和来源，不生成答案', parameters=query_parameters, read_only=True)
-        self.register_tool('build_index', self.ingest, description='从指定本地文件全量重建并保存索引；替换当前索引，不是增量追加', parameters={'type': 'object', 'properties': {'input_files': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1}, 'chunk_size': {'type': 'integer', 'minimum': 1}, 'chunk_overlap': {'type': 'integer', 'minimum': 0}}, 'required': ['input_files'], 'additionalProperties': False}, read_only=False)
-        self.register_tool('load_index', self.load, description='重新加载本节点已保存的索引，不修改磁盘内容', parameters={'type': 'object', 'properties': {}, 'additionalProperties': False}, read_only=True)
-        self.register_tool('update_documents', self.update_documents, description='增量导入本地文件：新文档追加，同路径文档未变则跳过，变化则替换；保留其他文档', parameters={'type': 'object', 'properties': {'input_files': {'type': 'array', 'items': {'type': 'string'}, 'minItems': 1}}, 'required': ['input_files'], 'additionalProperties': False}, read_only=False)
+
+    def resources_restored(self):self.index=None;self._version=None
 
     @staticmethod
     def _documents(input_files):

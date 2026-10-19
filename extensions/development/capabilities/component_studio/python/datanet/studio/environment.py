@@ -10,10 +10,19 @@ def sanitized(document):
         node['execution']=None;node['context_cursor']=None;node['agent']=None
         node['toolboxes']=[];node['expose']=[]
         if node['type']=='pulse':node['parameters'].pop('state',None)
-        old=node.get('parameters',{}).get('file_path')
-        if old is not None:
-            old=old.replace('\\','/');new=paths.setdefault(old,f'data/{index}'+(Path(old).suffix or '.txt'));node['parameters']['file_path']=new
-            copied[new]=files.get(old) or ''
+        parameters=node.get('parameters',{})
+        for label in ('file_path','content_path','metadata_path','db_path','directory','storage_path'):
+            old=parameters.get(label)
+            if not isinstance(old,str):continue
+            old=old.replace('\\','/').rstrip('/');new=f'data/{index}/'+Path(old).name;parameters[label]=new;paths[old]=new
+            for name,content in files.items():
+                if name==old or name.startswith(old+'/'):copied[new+name[len(old):]]=deepcopy(content)
+            if label in ('file_path','content_path','metadata_path') and old not in files:copied[new]=''
+        def rewrite(value):
+            if isinstance(value,list):return [rewrite(v) for v in value]
+            if isinstance(value,dict):return {key:paths.get(item.replace('\\','/'),item) if isinstance(item,str) and (key in ('file','path','document') or key.endswith('_path')) else rewrite(item) for key,item in value.items()}
+            return value
+        node['modules']=rewrite(node['modules'])
     result['files']=copied
     return result
 

@@ -19,6 +19,7 @@ class NodeCodec:
     local_write: bool = True
     local_read: bool = True
     local_schema: bool = True
+    resource_directories: tuple = ()
 _codecs = {}
 _owners = {}
 _toolboxes = {}
@@ -52,13 +53,13 @@ def ensure_nodes():
     register_node(NodeCodec('node', Node, lambda node, base: {}, lambda common, params, base: Node(*common), description='无本地数据的组织节点，用于连接节点和挂载工具。', local_read=False, local_schema=False))
     from datanet.core.text_node import TextFileNode
     def encode_text(node,base):
-        return {'file_path':os.path.relpath(node.file_path,base),'max_chars':node.max_chars,'tool_channels':node.tool_channels}
+        return {'file_path':Path(os.path.relpath(node.file_path,base)).as_posix(),'max_chars':node.max_chars,'tool_channels':node.tool_channels}
     def decode_text(common,params,base):
         if set(params)-{'file_path','max_chars','tool_channels'}:raise ValueError('Unsupported ordinary text parameter')
         return TextFileNode(*common,base/params['file_path'],max_chars=params.get('max_chars'),tool_channels=params.get('tool_channels'))
     register_node(NodeCodec('text_file',TextFileNode,encode_text,decode_text,parameter_fields=['file_path','max_chars','tool_channels'],description='UTF-8 text file',resources=('file_path',)))
     from datanet.core.agent_node import AgentNode
-    register_node(NodeCodec('agent',AgentNode,lambda node,base:{'file_path':os.path.relpath(node.file_path,base),'creation_options':node.creation_options},lambda common,p,base:AgentNode(*common,file_path=base/p['file_path'],creation_options=p.get('creation_options')),parameter_fields=['file_path','creation_options'],resources=('file_path',),local_read=False,local_write=False,local_schema=False))
+    register_node(NodeCodec('agent',AgentNode,lambda node,base:{'file_path':Path(os.path.relpath(node.file_path,base)).as_posix(),'creation_options':node.creation_options},lambda common,p,base:AgentNode(*common,file_path=base/p['file_path'],creation_options=p.get('creation_options')),parameter_fields=['file_path','creation_options'],resources=('file_path',),local_read=False,local_write=False,local_schema=False))
     from datanet.core.pulse_node import PulseNode
     from datanet.core.json_values import thaw
     from dataclasses import asdict
@@ -117,13 +118,21 @@ def reference_parameters(type_id, parameters, ids):
             continue
         parameters[label] = [ids[x] for x in parameters[label]] if mode == 'many' else ids[parameters[label]]
 
+def resource_roots(node):
+    codec=codec_for_node(node)
+    return [(label,Path(getattr(node,label)).resolve(),'file') for label in codec.resources]+[(label,Path(getattr(node,label)).resolve(),'directory') for label in codec.resource_directories]
+
 def resource_paths(node, writable=False):
-    result = []
-    for label in codec_for_node(node).resources:
-        field = getattr(type(node), label, None)
-        if writable and isinstance(field, property) and (field.fset is None):
-            continue
-        result.append((node, label, getattr(node, label)))
+    result=[]
+    for label,path,kind in resource_roots(node):
+        field=getattr(type(node),label,None)
+        if writable and isinstance(field,property) and field.fset is None:continue
+        if kind=='file':result.append((node,label,path));continue
+        if not path.exists():continue
+        if not path.is_dir():raise ValueError('Node resource directory is not a directory')
+        for child in sorted(path.rglob('*')):
+            if child.is_symlink():raise ValueError('Linked node resources are not portable')
+            if child.is_file() and not child.name.endswith(('.lock','-wal','-shm','-journal','.tmp')):result.append((node,label,child))
     return result
 
 def register_toolbox(name, installer):

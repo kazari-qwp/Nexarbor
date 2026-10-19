@@ -1,3 +1,4 @@
+from .resource_data import read_data,write_data,encode_bytes,decode_data
 from datanet.core.component_registry import resource_paths, node_enabled
 from .service_registry import ComponentServices
 """Persistent graph operations and component service dispatch."""
@@ -79,9 +80,10 @@ class Backend:
         files=[]
         for name,text in documents.items():
             target=(self.directory/name).resolve()
-            if not target.is_relative_to(self.directory) or not isinstance(text,str):raise ValueError('Initial documents must stay in backend directory')
+            if not target.is_relative_to(self.directory):raise ValueError('Initial documents must stay in backend directory')
+            decode_data(text)
             files.append((target,text))
-        for target,text in files:target.parent.mkdir(parents=True,exist_ok=True);target.write_text(text,encoding='utf-8')
+        for target,text in files:write_data(target,text)
         self.extension_state['document_resources']=sorted(set(self.extension_state.get('document_resources',[]))|{target.relative_to(self.directory).as_posix() for target,_ in files})
 
     def document_files(self):
@@ -89,7 +91,7 @@ class Backend:
         for name in self.extension_state.get('document_resources',[]):
             target=(self.directory/name).resolve()
             if not target.is_relative_to(self.directory):raise ValueError('Document escapes runtime directory')
-            files[name]=target.read_text(encoding='utf-8') if target.exists() else None
+            files[name]=read_data(target)
         return files
 
     @property
@@ -133,11 +135,15 @@ class Backend:
         overrides, images = self.node_locks.overrides(committing)
         network = network_document(self.network,self.directory,node_overrides=overrides)
         files = self.document_files()
+        # A locked directory publishes only its captured old files, including absent new files.
+        for image in images.values():
+            roots=image.get('resource_roots',[])
+            files={name:value for name,value in files.items() if not any((self.directory/name).resolve()==p or kind=='directory' and (self.directory/name).resolve().is_relative_to(p) for _,p,kind in roots)}
         for node in self.network.nodes.values():
             if node.node_id in images: continue
             for _, label, target in resource_paths(node):
                 if target.is_relative_to(self.directory):
-                    files[str(target.relative_to(self.directory))] = target.read_text(encoding='utf-8') if target.exists() else None
+                    files[target.relative_to(self.directory).as_posix()] = read_data(target)
         extra = {**self.extension_state, **self.components.snapshot(self)}
         files.update(extra.pop('files', {}))
         agents = deepcopy(self.agents)
@@ -151,7 +157,7 @@ class Backend:
             tools[node] = deepcopy(image['definitions']); tool_names[node] = list(image['tools'])
             publications[node] = {key[1]: deepcopy(fields) for key, fields in image['published'].items()}
             for path, content in image['files'].items():
-                files[path.relative_to(self.directory).as_posix()] = None if content is None else content.decode('utf-8')
+                files[path.relative_to(self.directory).as_posix()] = encode_bytes(content)
         document = deepcopy({'version': 1, 'network': network, 'agents': agents, 'files': files,
                          'tool_names': tool_names, 'tools': tools, 'node_publications': publications, **extra})
         from .node_records import merge_records
@@ -226,13 +232,7 @@ class Backend:
             target = (self.directory / name).resolve()
             if not target.is_relative_to(self.directory):
                 raise ValueError('Checkpoint file escapes runtime directory')
-            if content is None:
-                target.unlink(missing_ok=True)
-            else:
-                target.parent.mkdir(parents=True, exist_ok=True)
-                temporary = target.with_name(target.name + '.restore.tmp')
-                temporary.write_text(content, encoding='utf-8')
-                temporary.replace(target)
+            write_data(target,content)
 
         self.modules.restore()
         for node, entries in document.get('node_publications', {}).items():

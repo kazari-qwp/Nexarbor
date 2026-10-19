@@ -33,7 +33,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(['state','draft','apply','view'].includes(operation))return rpc('studio_'+operation,params);
   if(operation==='catalog'){
    const catalog=await rpc('studio_catalog');const presets=[];const moduleTools=Object.values(catalog.library).flatMap(m=>(m.manifest.agent_tools??[]).map(t=>{const operation=m.manifest.operations.find(o=>o.name===t.operation);return {ref:'module:'+m.id+'/'+t.id,name:t.name,description:t.description,parameters:operation.parameters,channels:operation.channels,provider:'module',module:m.id,requires:[m.id],tools:[],display_folder:m.origin_kind==='tool'?m.display_folder:undefined};}));
-   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.name??m.manifest.name??m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,requires:m.manifest.requires??[],tools:(m.manifest.agent_tools??[]).map(t=>'module:'+m.id+'/'+t.id),version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,state_schema:m.manifest.state_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库',display_folder:m.origin_kind==='tool'?undefined:m.display_folder}])),nodes:editorNodes(),presets,studio:true,tools:[...officialTools,...runtimeTools,...moduleTools],toolError,contract:catalog.contract};
+   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.name??m.manifest.name??m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,requires:m.manifest.requires??[],tools:(m.manifest.agent_tools??[]).map(t=>'module:'+m.id+'/'+t.id),version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,state_schema:m.manifest.state_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库',display_folder:m.origin_kind==='tool'?undefined:m.display_folder}])),nodes:[...editorNodes(),...await rpc('data_templates')],presets,studio:true,tools:[...officialTools,...runtimeTools,...moduleTools],toolError,contract:catalog.contract};
   }
   if(operation==='preset'){
    if(!/^[a-zA-Z0-9_-]+$/.test(params.id))throw Error('Invalid preset');
@@ -41,6 +41,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
    if(!file.startsWith(directory+path.sep))throw Error('Preset escapes configuration directory');
    return JSON.parse(await fs.readFile(file,'utf8'));
   }
+  if(operation==='data.preview')return rpc('data_preview',params);
   if(operation==='module.call')return rpc('module_access',params);
   if(operation==='tools.visit')return rpc('executor_visit',params);
   if(operation==='run')return rpc('studio_pulse',params);

@@ -299,22 +299,26 @@ class NodeLocks:
             if modules:
                 image['published'] = {key: deepcopy(value) for key, value in modules._published.items() if key[0] == node_id}
             if hasattr(backend, 'directory'):
-                from .component_registry import resource_paths,codec_for_node
+                from .component_registry import resource_paths,resource_roots,codec_for_node
+                from .resource_data import read_bytes
                 for name in codec_for_node(node).parameter_fields:
                     if hasattr(node,name) and name not in image['attrs']:
                         value=getattr(node,name)
                         try:image['attrs'][name]=deepcopy(value)
                         except TypeError:image['attrs'][name]=value  # immutable frozen JSON
+                image['resource_roots']=resource_roots(node)
+                for _,path,_ in image['resource_roots']:
+                    if not path.is_relative_to(backend.directory.resolve()):raise ValueError('Transactional node resources must stay in the backend directory')
                 for _, _, path in resource_paths(node):
                     path = Path(path).resolve()
                     if not path.is_relative_to(backend.directory.resolve()):
                         raise ValueError('Transactional node resources must stay in the backend directory')
                     if path.exists() and not path.is_file():
                         raise ValueError('Directory-backed nodes need a transactional resource adapter')
-                    image['files'][path] = path.read_bytes() if path.exists() else None
+                    image['files'][path] = read_bytes(path)
                 for other in backend.network.nodes.values():
                     if other.node_id in group.nodes:continue
-                    if any(Path(path).resolve() in image['files'] for _,_,path in resource_paths(other)):
+                    if any(a==b or ka=='directory' and b.is_relative_to(a) or kb=='directory' and a.is_relative_to(b) for _,a,ka in image['resource_roots'] for _,b,kb in resource_roots(other)):
                         raise ValueError('Nodes sharing a resource file must be locked together')
             group.images[node_id] = image
         if hasattr(backend,'snapshot'):
@@ -394,12 +398,16 @@ class NodeLocks:
                 for key, value in image['published'].items():
                     modules._published[key] = deepcopy(value)
                     backend.network.metadata_registry.register('module:' + repr(key), lambda target, key=key: modules._metadata_fields(key, target))
+            from .component_registry import resource_paths
+            for _,_,path in resource_paths(node):
+                if path not in image['files']:path.unlink(missing_ok=True)
             for path, content in image['files'].items():
                 if content is None: path.unlink(missing_ok=True)
                 else:
                     path.parent.mkdir(parents=True, exist_ok=True)
                     temporary = path.with_name(path.name + '.node-rollback.tmp')
                     temporary.write_bytes(content); temporary.replace(path)
+            if hasattr(node,'resources_restored'):node.resources_restored()
 
     def overrides(self, committing=None):
         entries, images = {}, {}

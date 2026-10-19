@@ -1,0 +1,170 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "data.local",
+  "name": "本地数据读写",
+  "version": "1.0.0",
+  "description": "通过 ctx 读写当前节点的数据；可被沿频道和强度抵达此节点的访问调用。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "value",
+    "csv",
+    "sqlite",
+    "knowledge_collection",
+    "text_file"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "read_only": {
+        "type": "boolean",
+        "title": "只读",
+        "default": false
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "inspect",
+      "channels": [
+        "data",
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "read",
+      "channels": [
+        "data",
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "query",
+      "channels": [
+        "data",
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "request": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "request"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "write",
+      "channels": [
+        "data",
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "value": {},
+          "mode": {
+            "enum": [
+              "insert",
+              "update",
+              "upsert"
+            ]
+          }
+        },
+        "required": [
+          "key",
+          "value"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "check",
+      "channels": [
+        "data",
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "write": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "write"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "boolean"
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "inspect",
+      "name": "查看数据结构",
+      "description": "查看本节点的数据类型、主键及字段。",
+      "operation": "inspect"
+    },
+    {
+      "id": "read",
+      "name": "读取本地数据",
+      "description": "按主键读取当前节点的数据，不接受路径或其他节点 ID。",
+      "operation": "read"
+    },
+    {
+      "id": "query",
+      "name": "查询本地数据",
+      "description": "按字段条件或语义检索本节点；语义检索需要本地嵌入模型。",
+      "operation": "query"
+    },
+    {
+      "id": "write",
+      "name": "写入本地数据",
+      "description": "写入本节点的 JSON 值、表格记录或知识内容。",
+      "operation": "write"
+    }
+  ]
+}

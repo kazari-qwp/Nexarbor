@@ -6,10 +6,14 @@ export function normalizeHistory(entry,modules={}){
  let config,kind=entry.kind;
  if(entry.asset){const {state,...asset}=entry.asset;config={asset};kind=asset.kind;}
  else if(entry.snapshot?.nodes?.length){
-  const snapshot=entry.snapshot,nodes=snapshot.nodes,mapping=new Map(nodes.map((n,i)=>[n.node_id,'@'+i])),files=new Map(Object.entries(snapshot.files??{})),documents=[];
+  const snapshot=entry.snapshot,nodes=snapshot.nodes,mapping=new Map(nodes.map((n,i)=>[n.node_id,'@'+i])),files=new Map(Object.entries(snapshot.files??{}).map(([name,value])=>[name.replaceAll('\\','/'),value])),documents=[];
+  const folders=new Set(nodes.flatMap(n=>['directory','storage_path'].map(k=>n.parameters?.[k]).filter(v=>typeof v==='string').map(v=>v.replaceAll('\\','/').replace(/\/$/,''))));
   const paths=new Map();
   const translate=value=>{
    if(typeof value==='string'){
+    const normalized=value.replaceAll('\\','/');
+    if(folders.has(normalized)){if(!paths.has(normalized)){paths.set(normalized,'directory:'+paths.size);documents.push(Object.fromEntries([...files].filter(([name])=>name.startsWith(normalized+'/')).map(([name,data])=>[name.slice(normalized.length+1),data])));}return paths.get(normalized);}
+    value=files.has(normalized)?normalized:value;
     if(files.has(value)){if(!paths.has(value)){paths.set(value,'document:'+paths.size);documents.push(files.get(value));}return paths.get(value);}
     return value;
    }

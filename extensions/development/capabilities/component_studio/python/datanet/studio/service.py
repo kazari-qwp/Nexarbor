@@ -506,7 +506,9 @@ class Studio:
             self.backend.external_tools.validate_node(node)
             if hasattr(node,'file_path') and not node.file_path.is_relative_to(self.backend.directory):raise ValueError('Data files must stay in the network directory')
         for name,content in document.get('files',{}).items():
-            if not (self.backend.directory/name).resolve().is_relative_to(self.backend.directory.resolve()) or not isinstance(content,str):raise ValueError('Invalid network document path')
+            if not (self.backend.directory/name).resolve().is_relative_to(self.backend.directory.resolve()):raise ValueError('Invalid network document path')
+            from datanet.core.resource_data import decode_data
+            decode_data(content)
         old=self.backend.snapshot()
         try:
             self.backend.modules.clear();self.backend.network=candidate;candidate.use_metadata_registry(self.backend.metadata_registry)

@@ -1,5 +1,7 @@
-import React,{useState} from 'react';
+import React,{useRef,useState} from 'react';
 import {Box,Network,Save,Trash2} from 'lucide-react';
+import {mergeDataEdit} from './data-edit.js';
+import {DataPanel} from './data-panel.jsx';
 import {ValueEditor} from './fields.jsx';
 import {attachResource,nodeTools} from './resources.js';
 import {ModuleConfig} from './module-config.jsx';
@@ -7,6 +9,7 @@ import {ModuleConfig} from './module-config.jsx';
 // 待放置资源只编辑独立快照；保存或查看都不会创建运行节点。
 export function TemplateDetails({value,catalog,api,onSave}){
  const [snapshot,setSnapshot]=useState(()=>structuredClone(value.snapshot)),[name,setName]=useState(value.name),[index,setIndex]=useState(0),[error,setError]=useState(''),[saving,setSaving]=useState(false);
+ const snapshotRef=useRef(snapshot);snapshotRef.current=snapshot;
  const node=snapshot.nodes[index],network=snapshot.nodes.length>1,Icon=network?Network:Box;
  const change=fn=>setSnapshot(old=>{const next=structuredClone(old);fn(next.nodes[index],next);return next;});
  const attach=asset=>{setError('');try{const doc=attachResource({network:{nodes:snapshot.nodes},files:snapshot.files},node.node_id,asset,catalog);setSnapshot({...snapshot,nodes:doc.network.nodes});}catch(e){setError(e.message);}};
@@ -16,6 +19,7 @@ export function TemplateDetails({value,catalog,api,onSave}){
   {value.file&&<label>{value.kind==='node'?'磁盘节点文件':'磁盘网络文件'}<code className="stored-network-path" title={value.file}>{value.file}</code></label>}
   {network&&<label>编辑节点<select aria-label="预设中的节点" value={index} onChange={e=>setIndex(Number(e.target.value))}>{snapshot.nodes.map((n,i)=><option key={n.node_id} value={i}>{n.name}</option>)}</select></label>}
   {node?<><label>名称<input aria-label="模板节点名称" value={node.name} onChange={e=>change(n=>n.name=e.target.value)}/></label><label>描述<textarea aria-label="模板节点描述" value={node.description??''} onChange={e=>change(n=>n.description=e.target.value)}/></label><label>节点内散度<input aria-label="模板节点散度" type="number" value={node.divergence??-1} onChange={e=>change(n=>n.divergence=Number(e.target.value))}/></label>
+   {node.modules?.['data.local']&&<DataPanel key={node.node_id} node={node} files={snapshot.files} api={api} onChange={value=>{const next=mergeDataEdit(snapshotRef.current,value);snapshotRef.current=next;setSnapshot(next);}}/>}
    <details><summary>节点参数</summary><ValueEditor label="节点参数" value={node.parameters??{}} onChange={v=>change(n=>n.parameters=v)}/></details>
    {node.parameters?.file_path&&<label>关联文档<textarea aria-label="模板节点文档" rows={8} value={snapshot.files[node.parameters.file_path]??''} onChange={e=>change((n,s)=>s.files[n.parameters.file_path]=e.target.value)}/></label>}
    {node.type==='agent'&&<details><summary>Agent 执行配置</summary><ValueEditor label="执行配置" value={node.execution} onChange={v=>change(n=>n.execution=v)}/></details>}

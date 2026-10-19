@@ -8,16 +8,17 @@ export function nodeKind(node){
   if(node.type==='agent')return 'Agent';
   if(node.type==='text_file')return '文本';
   if(node.type==='pulse')return '脉冲';
+  if(['value','csv','sqlite','knowledge_collection','llamaindex'].includes(node.type))return '数据';
   if(node.modules['context.sources'])return '上下文';
   if(Object.keys(node.modules).some(x=>x.startsWith('world.')))return '业务';
   return '节点';
 }
-export const colors={'居民':'#78d8bc','Agent':'#78d8bc','场所':'#8fb7f5','文本':'#d8c080','脉冲':'#c5a7f0','上下文':'#d8c080','业务':'#a4afc0','节点':'#a4afc0'};
+export const colors={'居民':'#78d8bc','Agent':'#78d8bc','场所':'#8fb7f5','文本':'#d8c080','脉冲':'#c5a7f0','数据':'#d8c080','上下文':'#d8c080','业务':'#a4afc0','节点':'#a4afc0'};
 export function layoutNodes(document,saved={}){
   const counters={},positions={};
   for(const node of document.network.nodes){
     const kind=nodeKind(node);if(kind==='文本')continue;
-    const column={'场所':0,'业务':1,'居民':2,'Agent':2,'脉冲':3,'节点':3,'上下文':4}[kind];
+    const column={'场所':0,'业务':1,'居民':2,'Agent':2,'脉冲':3,'节点':3,'数据':4,'上下文':4}[kind];
     const row=counters[column]??0;counters[column]=row+1;
     positions[node.node_id]={x:column*270,y:row*115};
   }

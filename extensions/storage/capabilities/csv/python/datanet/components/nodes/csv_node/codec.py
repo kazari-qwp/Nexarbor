@@ -19,4 +19,4 @@ def decode(common, params, base):
     return node
 
 def register():
-    register_node(NodeCodec('csv', CsvNode, encode, decode, parameter_fields=['file_path', 'key_column', 'dtype'], description='CSV 表格节点。按指定主键列读取记录，支持字段条件查询和记录写入。适合实验记录、清单等结构化表格数据，不提供语义检索。', resources=(), references={}, local_write=True))
+    register_node(NodeCodec('csv', CsvNode, encode, decode, parameter_fields=['file_path', 'key_column', 'dtype'], description='CSV 表格节点。按指定主键列读取记录，支持字段条件查询和记录写入。适合实验记录、清单等结构化表格数据，不提供语义检索。', resources=('file_path',), references={}, local_write=True))

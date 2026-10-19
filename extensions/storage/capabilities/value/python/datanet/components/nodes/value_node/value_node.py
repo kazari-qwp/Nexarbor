@@ -5,6 +5,11 @@ from datanet.core.node import Node, NodeResult
 from datanet.core.write_support import validate_write
 
 class ValueNode(Node):
+    signal_type = 'value'
+
+    def install_local_tools(self):
+        """当前协议由节点上的 data.local 模块显式提供工具。"""
+        pass
 
     def write(self, key: str, value: Any, *, mode: str='upsert') -> NodeResult:
         validate_write(key, mode)
@@ -20,6 +25,8 @@ class ValueNode(Node):
     def __init__(self, node_id: str, name: str, data_kind: str, value: Any, *, description: str=''):
         super().__init__(node_id, name, data_kind, description=description)
         self._value = deepcopy(value)
+
+    value=property(lambda self:deepcopy(self._value),lambda self,value:setattr(self,'_value',deepcopy(value)))
 
     def get_schema(self) -> dict:
         names = {type(None): 'null', bool: 'boolean', int: 'integer', float: 'number', str: 'string', list: 'array', dict: 'object'}

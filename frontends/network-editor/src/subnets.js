@@ -1,4 +1,17 @@
 const clone=value=>structuredClone(value);
+const normalizePath=value=>value.replaceAll('\\','/');
+const dataFiles=['file_path','content_path','metadata_path','db_path'];
+const dataDirectories=['directory','storage_path'];
+const ownedPaths=node=>[...dataFiles,...dataDirectories].map(key=>node.parameters?.[key]).filter(value=>typeof value==='string'&&value);
+function requireData(nodes,files={}){
+ const names=new Set(Object.keys(files).map(normalizePath));
+ for(const node of nodes)for(const field of [...dataFiles,...dataDirectories]){
+  const value=node.parameters?.[field];if(typeof value!=='string'||!value)continue;const path=normalizePath(value);
+  if(path.startsWith('/')||path.includes(':')||path.split('/').some(part=>part==='..'||part==='.'))throw Error('请先把节点数据导入网络目录，再复制节点');
+  if(dataFiles.includes(field)&&!names.has(path))throw Error('节点数据资源缺失，不能生成只有外观的副本：'+path);
+ }
+}
+
 export const selectionKey=s=>JSON.stringify([s.nodes.slice().sort(),s.edges.slice().sort()]);
 
 export function selectionStep(nodes,edges,selected,grow=true){
@@ -22,10 +35,12 @@ export function copySubnet(document,ids,mode,layout={},selectedEdges=[]){
   if(!edges.length)throw Error('请先选中需要复制的节点或连接');
   return {nodes:[],edges,files:{},positions:{}};
  }
+ requireData(nodes,document.files);
  for(const node of nodes){node.context_cursor=null;if(mode==='internal')node.connections.interfaces=node.connections.interfaces.filter(link=>selected.has(link.target_node_id));}
  // 文档作为独立副本保留，粘贴时只映射明确的路径字段。
- const names=new Set();const scan=value=>{if(typeof value==='string'&&Object.hasOwn(document.files??{},value))names.add(value);else if(Array.isArray(value))value.forEach(scan);else if(value&&typeof value==='object')Object.values(value).forEach(scan);};scan(nodes);
- return {nodes,files:Object.fromEntries([...names].map(name=>[name,document.files[name]])),positions:Object.fromEntries(ids.filter(id=>layout[id]).map(id=>[id,clone(layout[id])]))};
+ const names=new Set(),files=document.files??{},entries=Object.keys(files);const scan=value=>{if(typeof value==='string'){const normalized=normalizePath(value);for(const name of entries)if(normalizePath(name)===normalized)names.add(name);}else if(Array.isArray(value))value.forEach(scan);else if(value&&typeof value==='object')Object.values(value).forEach(scan);};scan(nodes.map(n=>n.type==='value'?{...n,parameters:{}}:n));
+ for(const node of nodes)for(const root of ownedPaths(node))for(const name of entries)if(normalizePath(name).startsWith(normalizePath(root).replace(/\/$/,'')+'/'))names.add(name);
+ return {nodes,files:Object.fromEntries([...names].map(name=>[name,clone(document.files[name])])),positions:Object.fromEntries(ids.filter(id=>layout[id]).map(id=>[id,clone(layout[id])]))};
 }
 function schemaRefs(value,schema,mapping){
  if(schema?.format==='node-id'&&typeof value==='string')return mapping[value]??value;
@@ -35,11 +50,12 @@ function schemaRefs(value,schema,mapping){
 }
 function documentRefs(value,paths){
  if(Array.isArray(value))return value.map(v=>documentRefs(v,paths));
- if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,(k==='file'||k==='path'||k==='document'||k.endsWith('_path'))&&typeof v==='string'&&paths[v]?paths[v]:documentRefs(v,paths)]));
+ if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,(k==='file'||k==='path'||k==='document'||k==='directory'||k.endsWith('_path'))&&typeof v==='string'&&paths[v]?paths[v]:documentRefs(v,paths)]));
  return value;
 }
 export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
  if(!bookmark.snapshot.nodes.length)return {edges:clone(bookmark.snapshot.edges)};
+ requireData(bookmark.snapshot.nodes,bookmark.snapshot.files);
  const next=clone(document),nonce=crypto.randomUUID(),mapping=Object.create(null),paths=Object.create(null),allocated=new Set(next.network.nodes.map(n=>n.node_id));
  let batch=nonce,space=1;while(Object.keys(next.files??{}).some(name=>name.startsWith('copies/'+batch+'/')))batch=nonce+'-'+space++;
  if(new Set(bookmark.snapshot.nodes.map(n=>n.node_id)).size!==bookmark.snapshot.nodes.length)throw Error('副本中有重复节点编号');
@@ -48,11 +64,12 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
   while(allocated.has(id))id=base+'-'+index++;
   mapping[node.node_id]=id;allocated.add(id);
  }
- // 一个副本拥有自己的文档空间；引用同一源文档的副本节点仍共享该副本内的文档。
- for(const name of Object.keys(bookmark.snapshot.files))paths[name]='copies/'+batch+'/'+name.split(/[\\/]/).filter(p=>p&&p!=='.'&&p!=='..'&&!p.includes(':')).join('/');
+ // 独立资源空间同时覆盖正文、数据库和整个知识目录；嵌入模型不属于节点数据。
+ const copiedPath=name=>'copies/'+batch+'/'+normalizePath(name).split('/').filter(p=>p&&p!=='.'&&p!=='..'&&!p.includes(':')).join('/');
+ for(const name of [...Object.keys(bookmark.snapshot.files),...bookmark.snapshot.nodes.flatMap(ownedPaths)])paths[name]=copiedPath(name);
  const ids=new Set([...next.network.nodes.map(n=>n.node_id),...Object.values(mapping)]),nodes=[];
  for(const original of bookmark.snapshot.nodes){
-  let node=documentRefs(clone(original),paths);node.node_id=mapping[original.node_id];node.context_cursor=null;
+  let node=documentRefs({...clone(original),parameters:{}},paths);node.parameters=clone(original.parameters);for(const field of [...dataFiles,...dataDirectories])if(typeof node.parameters[field]==='string'&&paths[node.parameters[field]])node.parameters[field]=paths[node.parameters[field]];node.node_id=mapping[original.node_id];node.context_cursor=null;
   node.management_parent_id=mapping[node.management_parent_id]??(ids.has(node.management_parent_id)?node.management_parent_id:'root');
   if(node.management_parent_id===node.node_id)node.management_parent_id='root';
   node.connections.interfaces=node.connections.interfaces.map(link=>({...link,target_node_id:mapping[link.target_node_id]??link.target_node_id})).filter(link=>ids.has(link.target_node_id));
@@ -62,7 +79,7 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
   }
   nodes.push(node);
  }
- next.network.nodes.push(...nodes);next.files??={};for(const [name,content] of Object.entries(bookmark.snapshot.files))next.files[paths[name]]=content;
+ next.network.nodes.push(...nodes);next.files??={};for(const [name,content] of Object.entries(bookmark.snapshot.files))next.files[paths[name]]=clone(content);
  const saved=bookmark.snapshot.positions??{},source=nodes.map((_,i)=>saved[bookmark.snapshot.nodes[i].node_id]??{x:(i%4)*150,y:Math.floor(i/4)*150});
  const minX=Math.min(...source.map(p=>p.x)),minY=Math.min(...source.map(p=>p.y)),layout={...positions};
  nodes.forEach((node,i)=>layout[node.node_id]={x:point.x+source[i].x-minX,y:point.y+source[i].y-minY});

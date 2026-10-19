@@ -13,6 +13,11 @@ def quote_identifier(name: str) -> str:
     return '"' + name.replace('"', '""') + '"'
 
 class SqliteNode(Node):
+    signal_type = 'sqlite'
+
+    def install_local_tools(self):
+        """当前协议由节点上的 data.local 模块显式提供工具。"""
+        pass
 
     def write_many(self, values):
         """Parameterised batch upserts in one database transaction."""
