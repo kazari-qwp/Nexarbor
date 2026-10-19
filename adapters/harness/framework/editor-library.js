@@ -59,7 +59,7 @@ export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
     if(p.folder!=null&&!nodeTree.folders.some(f=>f.id===p.folder))throw Error('节点文件夹已不存在');
     const folder=p.folder==null||inOfficial(p.folder)?'stored-nodes':p.folder;
     const existing=library.nodeTemplates.find(e=>e.originBookmark===book.id&&(nodeTree.items[e.id]?.folder??'stored-nodes')===folder);
-    const template=await nodeStore.save({storageKind:'node',existingId:existing?.id,document:{network:{version:8,nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??book.snapshot.nodes[0].description??'',mode:book.mode,positions:book.snapshot.positions??{},originBookmark:book.id,display_folder:folder}});
+    const template=await nodeStore.save({storageKind:'node',existingId:existing?.id,document:{network:{version:8,nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??book.snapshot.nodes[0].description??'',mode:book.mode,positions:book.snapshot.positions??{},entryEdges:structuredClone(book.snapshot.edges??[]),originBookmark:book.id,display_folder:folder}});
     library.nodeTemplates=(await nodeStore.list(options)).presets;nodeTree.items[template.id]??={folder};
     delete nodeTree.items[template.id].archivedAt;delete nodeTree.items[template.id].deletedAt;delete nodeTree.items[template.id].resource;
    }else if(p.action==='preset.save'){
@@ -68,7 +68,7 @@ export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
     const ancestors=new Set();for(let id=p.folder;id!=null&&!ancestors.has(id);id=tree.folders.find(f=>f.id===id)?.parent)ancestors.add(id);
     const storageKind=ancestors.has('stored-networks')?'network':'fragment';
     const existing=library.presets.find(e=>e.storageKind===storageKind&&e.originBookmark===book.id&&(tree.items[e.id]?.folder??null)===(p.folder??null));
-    const preset=await store.save({storageKind,existingId:existing?.id,document:{network:{version:8,nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??'',mode:book.mode,positions:book.snapshot.positions??{},originBookmark:book.id,display_folder:p.folder??null,runtime}});
+    const preset=await store.save({storageKind,existingId:existing?.id,document:{network:{version:8,nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??'',mode:book.mode,positions:book.snapshot.positions??{},entryEdges:structuredClone(book.snapshot.edges??[]),originBookmark:book.id,display_folder:p.folder??null,runtime}});
     library.presets=(await store.list(options)).presets;tree.items[preset.id]??={folder:p.folder??null};
     delete tree.items[preset.id].archivedAt;delete tree.items[preset.id].resource;
    }else if(p.action==='network.save'){

@@ -102,3 +102,25 @@ test('missing backing data and external resource paths fail instead of creating 
  const source=structuredClone(document);delete source.files['a.md'];assert.throws(()=>copySubnet(source,['a'],'internal'),/数据资源缺失/);assert.throws(()=>pasteSubnet(document,{snapshot:{nodes:[a],files:{}}},{x:0,y:0}),/数据资源缺失/);
  source.network.nodes[0].parameters.file_path='../external.md';assert.throws(()=>copySubnet(source,['a'],'internal'),/导入网络目录/);
 });
+
+test('one selected incoming edge becomes an anonymous entry; every A/B paste binds it to a fresh internal target independent of selection order',()=>{
+ const source=structuredClone(document);source.network.nodes.find(n=>n.node_id==='c').connections.interfaces=[edge('b')];const before=structuredClone(source);
+ for(const mode of ['internal','external'])for(const order of [['a','b'],['b','a']]){
+  const snapshot=copySubnet(source,order,mode,{},['c|0','a|0']);assert.equal(snapshot.edges.length,1);assert.equal(snapshot.edges[0].target,'b');assert.equal(Object.hasOwn(snapshot.edges[0],'source'),false);
+  // A 保存内部接入口，但仍去掉节点自身指向外部的出边。
+  assert.equal(snapshot.nodes.find(n=>n.node_id==='a').connections.interfaces.some(e=>e.target_node_id==='c'),mode==='external');
+  const result=pasteSubnet(source,{snapshot},{x:10,y:20},{},{},{source:'c'}),copied=result.document.network.nodes.slice(source.network.nodes.length),target=copied.find(n=>n.name==='b');
+  assert.equal(result.attachedEntry,true);assert.equal(result.document.network.nodes.find(n=>n.node_id==='c').connections.interfaces.at(-1).target_node_id,target.node_id);assert.notEqual(target.node_id,'b');assert.deepEqual(result.document.network.nodes.find(n=>n.node_id==='c').connections.interfaces.at(-1).metadata,edge('b').metadata);
+  assert.equal(copied.find(n=>n.name==='a').connections.interfaces[0].target_node_id,target.node_id);
+ }
+ assert.deepEqual(source,before);
+});
+
+test('entry placement depends only on the saved structure: imported/reordered snapshots work, multiple anonymous entries are ignored',()=>{
+ const snapshot={nodes:[structuredClone(b),structuredClone(a)],files:{'a.md':'a','b.md':'b'},positions:{},edges:[{metadata:edge('a').metadata,target:'a'}]};
+ let pasted=pasteSubnet(document,{snapshot},{x:0,y:0},{},{},{source:'c'});assert.equal(pasted.attachedEntry,true);assert.equal(pasted.document.network.nodes.find(n=>n.node_id==='c').connections.interfaces[0].target_node_id,pasted.document.network.nodes.find(n=>n.name==='a'&&n.node_id!=='a').node_id);
+ for(const entries of [[],[...snapshot.edges,...snapshot.edges],[{metadata:edge('x').metadata,target:'missing'}]]){
+  const result=pasteSubnet(document,{snapshot:{...snapshot,edges:entries}},{x:0,y:0},{},{},{source:'c'});assert.equal(result.nodes.length,2);assert.equal(result.attachedEntry,false);assert.equal(result.document.network.nodes.find(n=>n.node_id==='c').connections.interfaces.length,0);
+ }
+ assert.equal(pasteSubnet(document,{snapshot},{x:0,y:0}).attachedEntry,false);
+});

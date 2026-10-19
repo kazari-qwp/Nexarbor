@@ -13,9 +13,9 @@ try{
  const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
  client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});
  page=await client.firstWindow();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await expect(page.getByRole('button',{name:'组件工作室',exact:true})).toBeVisible({timeout:20000});
- await page.getByRole('button',{name:'组件工作室',exact:true}).click();
- const studio=page.getByRole('dialog',{name:'组件工作室',exact:true});await studio.getByRole('button',{name:'从空白制作组件',exact:true}).click();
+ await expect(page.locator('.topbar-actions').getByRole('button',{name:'Agent',exact:true})).toBeVisible({timeout:20000});
+ await page.locator('.topbar-actions').getByRole('button',{name:'Agent',exact:true}).click();await page.getByRole('menuitem',{name:'组件/模块制作agent',exact:true}).click();
+ const studio=page.getByRole('dialog',{name:'组件工作室',exact:true});await studio.getByRole('button',{name:'从空白制作组件',exact:true}).click();await studio.getByRole('button',{name:'展开源码栏',exact:true}).click();
  const work=(await api('studio.catalog')).workspaces[0];
  await expect(studio.getByRole('button',{name:'打开文件 AGENTS.md',exact:true})).toHaveCount(0);
  await expect(studio.getByRole('button',{name:'打开文件 module.py',exact:true})).toBeVisible();
@@ -77,8 +77,7 @@ try{
  await page.getByLabel('书签类型',{exact:true}).selectOption('edge');await expect(page.locator('.bookmark-card')).toHaveCount(2);
  await page.locator('.bookmark-card.external').dragTo(node('a'));await expect(page.locator('.react-flow__edge')).toHaveCount(5);
  await page.locator('.bookmark-card.internal').dragTo(node('a'));
- await expect(page.getByLabel('连接起点',{exact:true})).toHaveValue('a');await expect(page.getByLabel('连接终点',{exact:true})).toHaveValue('');
- await page.getByLabel('连接终点',{exact:true}).selectOption('root');await page.getByRole('button',{name:'建立连接',exact:true}).click();await expect(page.locator('.react-flow__edge')).toHaveCount(6);
+ await expect(page.locator('.placing-edge')).toHaveCount(1);await node('root').click();await expect(page.locator('.react-flow__edge')).toHaveCount(6);
  // 历史中的边和节点使用同一组复制键；复制本身不改历史顺序。
  const edgeHistory=page.locator('.history-card[data-history-kind="edge"]').first();await edgeHistory.hover();
  const beforeHistory=(await books()).history.map(e=>e.kind+e.id),beforeBooks=(await books()).bookmarks.length;
@@ -90,7 +89,7 @@ try{
  await page.keyboard.press('Control+y');await expect(page.locator('.react-flow__node')).toHaveCount(5);
  await page.keyboard.press('Control+s');await expect.poll(async()=>(await api('state')).draft.document.network.nodes.length).toBe(5);
  await page.screenshot({path:path.join(directory,'02-bookmarks-history.png')});
- await page.getByRole('button',{name:'设置',exact:true}).hover();await page.getByRole('menuitem',{name:'自定义快捷键',exact:true}).click();const settings=page.getByRole('dialog',{name:'客户端设置',exact:true});
+ await client.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(i=>i.label==='设置').submenu.items.find(i=>i.label==='自定义快捷键').click());const settings=page.getByRole('dialog',{name:'客户端设置',exact:true});
  await settings.getByLabel('内部复制／A 模式',{exact:true}).press('F6');await settings.getByLabel('保留外联／B 模式',{exact:true}).press('F7');
  await settings.getByLabel('累加点选修饰键',{exact:true}).selectOption('Control');await settings.getByLabel('滚轮扩缩选区修饰键',{exact:true}).selectOption('Alt');
  await settings.getByLabel('拖动建立连接鼠标键',{exact:true}).selectOption('0');await settings.getByLabel('拖动建立连接修饰键',{exact:true}).selectOption('Alt');
@@ -104,8 +103,8 @@ try{
  const p=await node('a').boundingBox(),q=await node('b').boundingBox();await page.keyboard.down('Alt');await page.mouse.move(p.x+p.width/2,p.y+p.height/2);await page.mouse.down();await page.mouse.move(q.x+q.width/2,q.y+q.height/2,{steps:10});await page.mouse.up();await page.keyboard.up('Alt');await expect(page.getByLabel('连接起点',{exact:true})).toHaveValue('a');await expect(page.getByLabel('连接终点',{exact:true})).toHaveValue('b');await page.getByRole('button',{name:'取消',exact:true}).click();
  await page.getByRole('button',{name:'校验并更新网络',exact:true}).click();await expect(page.getByRole('button',{name:'校验并更新网络',exact:true})).toBeDisabled({timeout:10000});
  await client.close();client=null;await host.close();host=await startStudio({directory});
- client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));
- await page.getByRole('button',{name:'设置',exact:true}).hover();await page.getByRole('menuitem',{name:'自定义快捷键',exact:true}).click();await expect(page.getByRole('dialog',{name:'客户端设置',exact:true}).getByLabel('内部复制／A 模式',{exact:true})).toHaveValue('F6');
+ client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));await expect(page.locator('.bookmark-dock')).toBeVisible({timeout:20000});
+ await client.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(i=>i.label==='设置').submenu.items.find(i=>i.label==='自定义快捷键').click());await expect(page.getByRole('dialog',{name:'客户端设置',exact:true}).getByLabel('内部复制／A 模式',{exact:true})).toHaveValue('F6');
  expect((await books()).bookmarks.length).toBeGreaterThan(0);expect((await books()).categories.some(c=>c.name==='实验分类')).toBe(true);expect(errors).toEqual([]);
  await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify({passed:true,filesSeparated:true,deleteArchives:true,nodeLinkButton:true,rightDrag:true,shiftSelection:true,oneUnitWheel:true,bookmarkToggle:true,renameHoverOnly:true,categories:true,pagination:true,pureEdgeRules:true,dragPaste:true,undoRedo:true,historyCopy:true,historyOrder:true,customShortcuts:true,customMouse:true,restartRestores:true,modelCalls:0,errors},null,2));
  console.log('PASS 编辑器完整交互：'+directory);

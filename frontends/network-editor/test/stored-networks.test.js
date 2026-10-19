@@ -31,3 +31,11 @@ test('preset archive keeps real files, confirmed deletion removes only the selec
  value=await mutate({action:'asset.purge',kind:'preset',id:preset.id,confirm:preset.id});assert.equal(value.presets.length,0);assert.equal(value.bookmarks.length,1);assert.deepEqual(value.history[0].snapshot,snapshot);
  await assert.rejects(fs.stat(preset.file),{code:'ENOENT'});await assert.rejects(fs.stat(preset.metadataFile),{code:'ENOENT'});
 });
+
+test('entry connectors persist through bookmark, network preset, node preset and history without storing their old source',async()=>{
+ await fs.mkdir(root,{recursive:true});const directory=await fs.mkdtemp(path.join(root,'entry-')),library=editorLibrary(directory),mutate=p=>library('editor.library.update',p),snapshot=structuredClone(editorNodes()[0].snapshot),target=snapshot.nodes[0].node_id;const extra=structuredClone(snapshot.nodes[0]);extra.node_id='second';snapshot.nodes.push(extra);
+ snapshot.edges=[{target,metadata:{channels:['tick'],threshold:2,multiplier:3,attributes:{label:'接入口'}}}];const book={id:'entry',name:'可连接节点',mode:'internal',snapshot,category:'default',createdAt:1};await mutate({action:'bookmark.patch',changes:[{id:book.id,value:book}]});
+ let value=await mutate({action:'preset.save',bookId:book.id}),saved=value.presets[0];assert.deepEqual(saved.snapshot.edges,snapshot.edges);assert.equal(JSON.parse(await fs.readFile(saved.file,'utf8')).network.version,8);assert.equal(JSON.parse(await fs.readFile(saved.file,'utf8')).edges,undefined);
+ const single={...book,id:'single-entry',snapshot:{...snapshot,nodes:snapshot.nodes.slice(0,1)}};await mutate({action:'bookmark.patch',changes:[{id:single.id,value:single}]});value=await mutate({action:'node.save',bookId:single.id});assert.deepEqual(value.nodeTemplates[0].snapshot.edges,snapshot.edges);
+ await mutate({action:'history.push',entries:[{kind:'node',id:'entry-use',label:book.name,snapshot}]});const kept=await editorLibrary(directory)('editor.library');assert.deepEqual(kept.history[0].snapshot.edges,snapshot.edges);assert.deepEqual(kept.presets[0].snapshot.edges,snapshot.edges);assert.deepEqual(kept.nodeTemplates[0].snapshot.edges,snapshot.edges);
+});

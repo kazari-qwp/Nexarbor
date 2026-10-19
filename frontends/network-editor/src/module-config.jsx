@@ -1,5 +1,7 @@
 import React,{useEffect,useMemo,useRef,useState} from 'react';
 import Form from '@rjsf/core';
+import {Plus,Trash2,ArrowUp,ArrowDown,Copy,X} from 'lucide-react';
+import './schema-buttons.css';
 import validator from '@rjsf/validator-ajv8';
 import {getDefaultFormState,deepEquals} from '@rjsf/utils';
 const protocol='nexarbor-module-frontend/v1';
@@ -14,11 +16,23 @@ export function enrichSchema(schema,nodes=[]){
   for(const key of ['oneOf','anyOf','allOf'])if(result[key])result[key]=result[key].map(value=>enrichSchema(value,nodes));
   return result;
 }
+// 使用真正的 SVG 图标，避免默认 Bootstrap 字体未加载时留下空白按钮。
+function ActionButton({icon:Icon,label,className='',id,onClick,disabled,style}){
+  return <button type="button" id={id} className={'schema-action '+className} title={label} aria-label={label} onClick={onClick} disabled={disabled} style={style}><Icon size={14}/></button>;
+}
+const buttonTemplates={
+  AddButton:props=><ActionButton {...props} className="schema-add" icon={Plus} label="添加"/>,
+  RemoveButton:props=><ActionButton {...props} className="schema-remove" icon={Trash2} label="删除此项"/>,
+  MoveUpButton:props=><ActionButton {...props} icon={ArrowUp} label="上移"/>,
+  MoveDownButton:props=><ActionButton {...props} icon={ArrowDown} label="下移"/>,
+  CopyButton:props=><ActionButton {...props} icon={Copy} label="复制此项"/>,
+  ClearButton:props=><ActionButton {...props} icon={X} label="清空此项"/>,
+};
 export function SchemaForm({schema,value,onChange,nodes=[],readOnly=false}){
   const enriched=useMemo(()=>enrichSchema(schema,nodes),[schema,nodes]);
   // 默认值只用于展示；库的初始化回调不能把浏览表单变成网络编辑。
   const displayed=useMemo(()=>getDefaultFormState(validator,enriched,value,enriched),[enriched,value]);
-  return <Form schema={enriched} validator={validator} formData={displayed} disabled={readOnly}
+  return <Form templates={{ButtonTemplates:buttonTemplates}} schema={enriched} validator={validator} formData={displayed} disabled={readOnly}
     onChange={event=>{if(!deepEquals(event.formData,displayed))onChange(event.formData);}} liveValidate={false} omitExtraData={false}
     uiSchema={{'ui:submitButtonOptions':{norender:true}}}><span/></Form>;
 }

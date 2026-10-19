@@ -29,7 +29,7 @@ function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
    if(!valid(document,storageKind))throw Error(singleNode?'节点预设需要包含一个节点的 v8 文档':'需要当前 v8 网络文档');
    info={nodeCount:document.network.nodes.length,hasRoot:document.network.nodes.some(n=>n.node_id==='root')};summaries.set(file,{stamp:stat,info});
   }
-  return {id:storageKind+':'+name,name:editor.name??path.basename(name,'.json'),description:editor.description??'',mode:editor.mode??'internal',...info,...(summary?{lazySnapshot:true}:{snapshot:{nodes:document.network.nodes,files:document.files??{},positions:editor.positions??{}}}),originBookmark:editor.originBookmark,display_folder:editor.display_folder,storageKind,file,metadataFile,runtime:summary?undefined:editor.runtime,application:editor.application};
+  return {id:storageKind+':'+name,name:editor.name??path.basename(name,'.json'),description:editor.description??'',mode:editor.mode??'internal',...info,...(summary?{lazySnapshot:true}:{snapshot:{nodes:document.network.nodes,files:document.files??{},positions:editor.positions??{},...(editor.entryEdges?.length?{edges:structuredClone(editor.entryEdges)}:{})}}),originBookmark:editor.originBookmark,display_folder:editor.display_folder,storageKind,file,metadataFile,runtime:summary?undefined:editor.runtime,application:editor.application};
  };
  const load=async(id,options={})=>{
   const separator=id.indexOf(':'),kind=id.slice(0,separator),name=id.slice(separator+1);

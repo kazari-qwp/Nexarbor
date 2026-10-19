@@ -64,7 +64,7 @@ export class MakerManager{
  }
  async publish(p){
   const release=await this.rpc('studio_publish',p);
-  if(this.project&&release.id&&release.manifest){await this.project.install('module',release.id);const work=await this.rpc('studio_read',{id:p.id});release.git=await this.project.branch(work);}
+  if(this.project&&release.id&&release.manifest){await this.project.install('module',release.id);await this.rpc('studio_project_modules');const work=await this.rpc('studio_read',{id:p.id});release.git=await this.project.branch(work);}
   if(release.kind==='component-presets'){
    const library=editorLibrary(this.directory),before=await library('editor.library'),bookmarks=release.presets.map((preset,index)=>({id:'maker-preset-'+hash({workspace:release.workspace,index}).slice(0,24),kind:'module',name:preset.name,description:preset.description,asset:{kind:'module',id:preset.module,config:preset.config},category:'default',createdAt:Date.now(),originMaker:release.workspace}));
    await library('editor.library.update',{action:'bookmark.patch',changes:bookmarks.map(value=>({id:value.id,expected:before.bookmarks.find(b=>b.id===value.id)??null,value}))});

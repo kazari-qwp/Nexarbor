@@ -29,7 +29,7 @@ export function normalizeHistory(entry,modules={}){
    value.connections.interfaces=value.connections.interfaces.map(link=>({...link,target_node_id:mapping.get(link.target_node_id)??link.target_node_id}));
    return translate(value);
   });
-  kind=nodes.length===1?'node':'network';config={nodes:normalized,documents};
+  kind=nodes.length===1?'node':'network';config={nodes:normalized,documents,...(snapshot.edges?.length?{entries:snapshot.edges.map(e=>({metadata:e.metadata,...(e.target?{target:mapping.get(e.target)??e.target}:{})}))}:{})};
  }else if(entry.snapshot?.edges?.length||entry.metadata){
   kind='edge';config={edges:(entry.snapshot?.edges??[{metadata:entry.metadata,target:entry.target}]).map(e=>({metadata:e.metadata,...(e.target?{target:e.target}:{})}))};
  }

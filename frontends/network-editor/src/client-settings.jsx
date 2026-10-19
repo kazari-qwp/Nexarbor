@@ -1,12 +1,13 @@
-import React,{useState} from 'react';
-import {X,ChevronDown,Settings2} from 'lucide-react';
+import React,{useEffect,useRef,useState} from 'react';
+import {X,ChevronDown,Bot,Box,Network} from 'lucide-react';
 import {defaultShortcuts,shortcuts,keyName} from './shortcuts.js';
 const modifiers=[['None','无'],['Shift','Shift'],['Control','Ctrl'],['Alt','Alt'],['Meta','Meta']];
-export function ClientMenu({onShortcuts,onArchive}){
- const [open,setOpen]=useState(false);
- return <div className="client-menu" onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOpen(false);}} onKeyDown={e=>{if(e.key==='Escape')setOpen(false);if(e.key==='ArrowDown')setOpen(true);}}>
-  <button aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(value=>!value)}><Settings2 size={15}/>设置<ChevronDown size={12}/></button>
-  {open&&<div role="menu" aria-label="设置菜单"><button role="menuitem" onClick={()=>{setOpen(false);onShortcuts();}}>自定义快捷键</button><button role="menuitem" onClick={()=>{setOpen(false);onArchive();}}>资源归档</button></div>}
+export function AgentMenu({onComponent,onNetwork}){
+ const [open,setOpen]=useState(false),closeTimer=useRef();
+ useEffect(()=>()=>clearTimeout(closeTimer.current),[]);
+ return <div className="client-menu" onMouseEnter={()=>{clearTimeout(closeTimer.current);setOpen(true);}} onMouseLeave={()=>{closeTimer.current=setTimeout(()=>setOpen(false),140);}} onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOpen(false);}} onKeyDown={e=>{if(e.key==='Escape')setOpen(false);if(e.key==='ArrowDown')setOpen(true);}}>
+  <button aria-label="Agent" aria-haspopup="menu" aria-expanded={open} onClick={()=>setOpen(true)}><Bot size={15}/>Agent<ChevronDown size={12}/></button>
+  {open&&<div role="menu" aria-label="Agent 菜单"><button role="menuitem" onClick={()=>{setOpen(false);onComponent();}}><Box size={14}/>组件/模块制作agent</button><button role="menuitem" onClick={()=>{setOpen(false);onNetwork();}}><Network size={14}/>网络预设制作agent</button></div>}
  </div>;
 }
 export function ClientSettings({value,onSave,onClose}){

@@ -1,3 +1,4 @@
+import {ContextMenu} from './context-menu.jsx';
 import React,{useEffect,useRef,useState} from 'react';
 import {Bookmark,History,Plus,LayoutGrid,List,Save,Trash2} from 'lucide-react';
 import {pointerMatches} from './shortcuts.js';
@@ -26,8 +27,6 @@ function historyPreview(entry,books){
 }
 export function BookmarkDock({library,catalog,category,onCategory,onNewCategory,onHover,onLocate,onRename,onRenameHistory,onOpenBook,onSavePreset,onRemove,bindings,focus,view='thumbnail',onView}){
  const [type,setType]=useState('all'),[historyType,setHistoryType]=useState('all'),[page,setPage]=useState(0),[capacity,setCapacity]=useState(6),[menu,setMenu]=useState(null);
- const menuRef=useRef();
- useEffect(()=>{if(!menu)return;const close=e=>{if(!menuRef.current?.contains(e.target))setMenu(null);};const escape=e=>{if(e.key==='Escape')setMenu(null);};window.addEventListener('pointerdown',close,true);window.addEventListener('keydown',escape,true);return()=>{window.removeEventListener('pointerdown',close,true);window.removeEventListener('keydown',escape,true);};},[menu]);
  const items=useRef(),compact=view==='thumbnail',pageSize=compact?capacity:6;
  const available=b=>!isAsset(b)||resourceAvailable(catalog,library.assets,b.asset.kind,b.asset.id);
  const books=library.bookmarks.filter(b=>(b.category??'default')===category&&matchesType(b,type)&&available(b)),pages=Math.max(1,Math.ceil(books.length/pageSize)),current=Math.min(page,pages-1);
@@ -46,6 +45,6 @@ export function BookmarkDock({library,catalog,category,onCategory,onNewCategory,
    {!library.history.length&&<p>创建或使用节点、边、书签时记录。</p>}
    {library.history.map(entry=>({entry,book:historyPreview(entry,library.bookmarks)})).filter(({book})=>matchesType(book,historyType)&&available(book)).map(({entry,book})=><button className={'history-card '+(isAsset(book)?'asset-card '+book.asset.kind:book.mode)} draggable key={entry.kind+entry.id} data-history-kind={entry.kind} data-history-id={entry.id} aria-label={'历史 '+entry.label} title={isAsset(book)?resourceTitle(book):entry.label} onPointerEnter={()=>onHover({kind:'history',entry})} onClick={()=>onLocate(entry)} onMouseDown={e=>{if(pointerMatches(e,bindings.renameBookmark)){e.preventDefault();onRenameHistory?.(entry);}}} onAuxClick={e=>e.preventDefault()} onDragStart={e=>{e.dataTransfer.setData('application/x-nexarbor-history',JSON.stringify({kind:entry.kind,id:entry.id}));e.dataTransfer.effectAllowed='copy';}}>{isAsset(book)?<AssetPreview book={book} catalog={catalog}/>:compact?<Thumbnail book={book}/>:<><i>{entry.kind==='node'?'点':entry.kind==='edge'?'边':'签'}</i><span>{entry.kind==='bookmark'?'子网书签':entry.label}</span></>}</button>)}
   </div></section>
-  {menu&&<div className="resource-context-menu" ref={menuRef} role="menu" aria-label="书签操作" style={{left:menu.x,top:menu.y}}><button role="menuitem" aria-label={menu.book.snapshot?.nodes.length===1?"保存书签至节点栏":"保存书签至网络预设"} disabled={isAsset(menu.book)||!menu.book.snapshot?.nodes.length} title={menu.book.snapshot?.nodes.length===1?"保存完整节点至当前节点目录":"网络书签保存至当前浏览的预设目录"} onClick={()=>{onSavePreset(menu.book.id);setMenu(null);}}><Save size={13}/><span>保存</span><small>{bindings.savePreset}</small></button><button role="menuitem" aria-label="删除书签" onClick={()=>{onRemove(menu.book.id);setMenu(null);}}><Trash2 size={13}/><span>删除</span></button></div>}
+  {menu&&<ContextMenu x={menu.x} y={menu.y} label="书签操作" onClose={()=>setMenu(null)}><button role="menuitem" aria-label={menu.book.snapshot?.nodes.length===1?"保存书签至节点栏":"保存书签至网络预设"} disabled={isAsset(menu.book)||!menu.book.snapshot?.nodes.length} title={menu.book.snapshot?.nodes.length===1?"保存完整节点至当前节点目录":"网络书签保存至当前浏览的预设目录"} onClick={()=>{onSavePreset(menu.book.id);setMenu(null);}}><Save size={13}/><span>保存</span><small>{bindings.savePreset}</small></button><button role="menuitem" aria-label="删除书签" onClick={()=>{onRemove(menu.book.id);setMenu(null);}}><Trash2 size={13}/><span>删除</span></button></ContextMenu>}
  </div>;
 }

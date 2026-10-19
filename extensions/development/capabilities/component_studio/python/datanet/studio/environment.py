@@ -47,7 +47,8 @@ def prepare(studio,p):
     write_json(home/'initial.json',document)
     library=deepcopy(studio.library)
     for name,release in library.items():
-        original=studio.root/release['folder'];destination=home/'runtime/studio'/release['folder']
+        original=studio.root/release['folder'];destination=home/'runtime/studio/releases'/name/release['version']/release['digest']
+        release['folder']=str(destination.relative_to(home/'runtime/studio'));release['origin']='environment'
         for relative,content in sources(original).items():
             target=destination/relative;target.parent.mkdir(parents=True,exist_ok=True);target.write_text(content,encoding='utf-8')
     if metadata.get('kind')!='network':
@@ -74,7 +75,7 @@ def operate(studio,p):
     setup=read_json(home/'setup.json',{})
     if setup['fingerprint']!=digest(sources(studio.folder(p['id']))):raise ValueError('源码已修改，请 reset 创建新测试环境；原测试副本保留')
     temporary=home/'temp';temporary.mkdir(exist_ok=True)
-    env=dict(os.environ,PYTHONUTF8='1',PYTHONDONTWRITEBYTECODE='1',TEMP=str(temporary),TMP=str(temporary))
+    env=dict(os.environ,DATANET_PROJECT_RESOURCES_ONLY='0',DATANET_PROJECT_DIRECTORY=str(home/'runtime'),PYTHONUTF8='1',PYTHONDONTWRITEBYTECODE='1',TEMP=str(temporary),TMP=str(temporary))
     request={k:v for k,v in p.items() if k!='id'}
     completed=subprocess.run([sys.executable,'-m','datanet.studio.environment',str(home)],input=json.dumps(request),text=True,encoding='utf-8',capture_output=True,timeout=35,cwd=PROJECT,env=env,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
     if completed.returncode:raise ValueError('测试环境执行失败：'+completed.stderr[-5000:])

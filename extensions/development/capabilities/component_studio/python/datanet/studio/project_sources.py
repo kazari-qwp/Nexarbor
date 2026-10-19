@@ -1,4 +1,4 @@
-"""本地项目组件入口与不可变执行缓存；不改核心协议。"""
+"""项目源码入口与发布内容缓存；项目运行直接读取本地源码。"""
 import os
 from pathlib import Path
 from hashlib import sha256
@@ -19,25 +19,34 @@ def materialize(folder,files,root):
         try:os.link(blob,target)
         except OSError:target.write_bytes(data)
 
-def load(studio):
+def scan(studio):
+    """只从项目 modules/ 读取；同名资源由本地文件决定，缓存不作为回退来源。"""
     from .service import sources,digest,read_json
     from .contract import manifest
     root=Path(os.environ.get('DATANET_PROJECT_DIRECTORY',studio.backend.directory)).resolve()/'modules'
-    errors=[];added=[];before=studio.library.copy()
-    if not root.is_dir():return dict(imported=[],errors=[])
+    metadata=read_json(root.parent/'nexarbor.json',{}).get('resources',{}).get('modules',{})
+    result={};errors=[]
+    if not root.is_dir():return result
     for folder in sorted(root.iterdir()):
-        if not folder.is_dir() or not (folder/'module.json').is_file():continue
+        if not folder.is_dir() or folder.name.startswith('.'):continue
         try:
             if not folder.resolve().is_relative_to(root.resolve()):raise ValueError('模块不能链接到项目目录之外')
             spec=manifest(folder);name=spec['id']
-            files=sources(folder);fingerprint=digest(files)
-            if studio.library.get(name,{}).get('digest')==fingerprint:continue
-            destination=studio.root/'releases'/name/spec['version']/fingerprint
-            materialize(destination,files,studio.root)
-            defaults=read_json(destination/'example.json',{})
-            studio.library[name]=dict(id=name,version=spec['version'],digest=fingerprint,folder=str(destination.relative_to(studio.root)),manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin_kind='module',origin='project');added.append(name)
+            if folder.name!=name:raise ValueError('模块目录名必须与 module.json 的 id 一致')
+            files=sources(folder);defaults=read_json(folder/'example.json',{})
+            result[name]=dict(id=name,version=spec['version'],digest=digest(files),folder=str(folder.resolve()),manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin_kind=metadata.get(name,{}).get('origin_kind','module'),display_folder=metadata.get(name,{}).get('display_folder'),origin='project')
         except Exception as error:errors.append(folder.name+'：'+str(error))
-    try:studio._load_releases()
-    except Exception as error:studio.library=before;studio._load_releases();errors.append(str(error));added=[]
-    if added:studio.persist_library()
-    return dict(imported=added,errors=errors)
+    if errors:raise ValueError('项目模块读取失败：'+'；'.join(errors))
+    return result
+
+def load(studio):
+    before=studio.library.copy()
+    try:
+        studio.library=studio.select_releases(studio.library)
+        studio._load_releases()
+    except Exception:
+        studio.library=before
+        raise
+    added=[name for name,release in studio.library.items() if release.get('origin')=='project' and before.get(name)!=release]
+    if studio.library!=before:studio.persist_library()
+    return dict(imported=added,errors=[])

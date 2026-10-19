@@ -61,18 +61,20 @@ class Studio:
         self.backend=backend;self.root=backend.directory/'studio';self.root.mkdir(exist_ok=True)
         self.work=self.root/'work';self.work.mkdir(exist_ok=True)
         self.removed=set(read_json(self.root/'removed-modules.json',[]))
+        self.project_only=os.environ.get('DATANET_PROJECT_RESOURCES_ONLY')=='1'
         self.standard_releases={}
         for name,source in getattr(backend.components,'standard_modules',{}).items():
             if name in self.removed:continue
             files=sources(source['folder']);fingerprint=digest(files);spec=source['manifest']
             destination=self.root/'releases'/name/spec['version']/fingerprint
+            if self.project_only:destination=Path(source['folder']).resolve()
             if not destination.exists():
                 temporary=destination.with_name(fingerprint+'.tmp-'+uuid4().hex)
                 for file,content in files.items():
                     path=temporary/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
                 temporary.rename(destination)
             defaults=read_json(destination/'example.json',{})
-            self.standard_releases[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin='standard')
+            self.standard_releases[name]=dict(id=name,version=spec['version'],folder=str(destination if self.project_only else destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin='standard')
         self.library=self.select_releases(read_json(self.root/'library.json',{}))
         self.persist_library()
         for name in self.removed:
@@ -92,9 +94,11 @@ class Studio:
                 and release.get('id')==name and release.get('manifest',{}).get('id')==name)
 
     def select_releases(self,releases):
-        selected={**self.standard_releases,**releases}
+        selected={**self.standard_releases,**{name:r for name,r in releases.items() if r.get('origin')!='project'}}
         for name,release in releases.items():
             if self.standard_owned(name,release):selected[name]=self.standard_releases[name]
+        from .project_sources import scan
+        selected.update(scan(self))
         return {name:release for name,release in selected.items() if name not in self.removed}
 
     def persist_library(self):
@@ -116,6 +120,7 @@ class Studio:
             spec=manifest(folder)
             for dependency in spec['requires']:
                 if dependency not in self.library:raise ValueError('Missing module dependency: '+dependency)
+                if self.project_only and self.library[dependency].get('origin')!='project':raise ValueError('请先下载依赖模块到项目：'+dependency)
                 load(dependency)
             reserved=getattr(self.backend.components,'module_extensions',{}).get(name)
             if reserved:
@@ -125,7 +130,12 @@ class Studio:
             else:spec,create=factory(folder)
             factories[name]=create
             visiting.remove(name);done.add(name)
-        for name in self.library:load(name)
+        for name,release in self.library.items():
+            if not self.project_only or release.get('origin')=='project':load(name)
+        if self.project_only:
+            for name in self.library:
+                if name not in factories:
+                    self.backend.components.module_types.pop(name,None);self.backend.components.module_owners.pop(name,None)
         for name,create in factories.items():
             self.backend.components.module_types[name]=create
             self.backend.components.module_owners[name]='capabilities/component_studio'
@@ -427,7 +437,9 @@ class Studio:
         return self.library[name]
     def mount(self,p):
         if self.running:raise ValueError('Wait until the signal completes')
-        module=self.library[p['module']];folder=self.root/module['folder']
+        module=self.library[p['module']]
+        if self.project_only and module.get('origin')!='project':raise ValueError('请先下载模块到项目文件夹：'+p['module'])
+        folder=self.root/module['folder']
         config=p.get('config',read_json(folder/'example.json',{}).get('config',{}))
         defaults=read_json(folder/'example.json',{})
         node=self.backend.network.nodes[p['node']]
@@ -445,17 +457,18 @@ class Studio:
             raise
         self._bind();return self.state()
     def release_delete_info(self,p):
-        """只检查本工作区发布目录；永远不接受来自页面的文件路径。"""
+        """只检查项目源码或本工作区发布目录；永远不接受来自页面的文件路径。"""
         name=p.get('module');release=self.library.get(name)
         if release is None:raise ValueError('组件已不在发布库中')
-        root=(self.root/'releases').resolve();target=(root/name).resolve()
+        local=release.get('origin')=='project'
+        root=(Path(os.environ['DATANET_PROJECT_DIRECTORY'])/'modules').resolve() if local else (self.root/'releases').resolve();target=(root/name).resolve()
         if target==root or not target.is_relative_to(root) or not target.is_dir():raise ValueError('组件文件不属于本工作区发布目录')
         registered=(self.root/release['folder']).resolve()
         if not registered.is_relative_to(target):raise ValueError('组件登记目录与组件编号不一致')
         files=[]
         for file in target.rglob('*'):
             if not file.resolve().is_relative_to(target):raise ValueError('组件发布目录含外部链接，不能删除')
-            if file.is_file():files.append(str(file.relative_to(self.root)))
+            if file.is_file():files.append(str(file.relative_to(root)))
         blockers=[]
         if name in getattr(self.backend.components,'module_extensions',{}):blockers.append('官方扩展模块，只可归档，不能删除')
         for node in getattr(self.backend.network,'nodes',{}).values():
@@ -468,7 +481,7 @@ class Studio:
             if id!=name and name in other['manifest']['requires']:blockers.append('依赖模块：'+id)
         if self.running or self.backend.modules.executing or self.backend.network.signals._active:blockers.append('网络中仍有组件或信号执行')
         return dict(canDelete=not blockers,reason='；'.join(blockers),blockers=blockers,ownership='workspace-release',path=str(target),files=files,
-                    scope='删除本工作区此模块的全部发布版本；独立工作副本和项目共享源码保留。')
+                    scope='删除当前项目内此模块的源码；Git 中的已提交版本保留。' if local else '删除本工作区此模块的全部发布版本；独立工作副本和项目共享源码保留。')
     def delete_release(self,p):
         self.backend.node_locks.lifecycle()
         name=p.get('module')
@@ -476,7 +489,7 @@ class Studio:
         with self.lock:
             info=self.release_delete_info(p)
             if not info['canDelete']:raise ValueError(info['reason'])
-            target=Path(info['path']);root=(self.root/'releases').resolve();temporary=(root/('.deleting-'+uuid4().hex)).resolve()
+            target=Path(info['path']);root=target.parent;temporary=(root/('.deleting-'+uuid4().hex)).resolve()
             if not target.is_relative_to(root) or not temporary.is_relative_to(root):raise ValueError('删除目标越出工作区')
             target.rename(temporary);old=self.library.copy();removed=self.removed.copy()
             try:
@@ -599,5 +612,5 @@ def register(services):
         b.studio._load_releases()
         b.studio.persist_library()
     services.restorers.append(restore)
-    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'revision':False,'project_modules':True,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'revision':False,'project_modules':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

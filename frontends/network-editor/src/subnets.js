@@ -40,7 +40,9 @@ export function copySubnet(document,ids,mode,layout={},selectedEdges=[]){
  // 文档作为独立副本保留，粘贴时只映射明确的路径字段。
  const names=new Set(),files=document.files??{},entries=Object.keys(files);const scan=value=>{if(typeof value==='string'){const normalized=normalizePath(value);for(const name of entries)if(normalizePath(name)===normalized)names.add(name);}else if(Array.isArray(value))value.forEach(scan);else if(value&&typeof value==='object')Object.values(value).forEach(scan);};scan(nodes.map(n=>n.type==='value'?{...n,parameters:{}}:n));
  for(const node of nodes)for(const root of ownedPaths(node))for(const name of entries)if(normalizePath(name).startsWith(normalizePath(root).replace(/\/$/,'')+'/'))names.add(name);
- return {nodes,files:Object.fromEntries([...names].map(name=>[name,clone(document.files[name])])),positions:Object.fromEntries(ids.filter(id=>layout[id]).map(id=>[id,clone(layout[id])]))};
+ // 显式选中的外部入边作为无头接入口保存；只记书签内的终点，不记原起点。
+ const incoming=document.network.nodes.filter(n=>!selected.has(n.node_id)).flatMap(n=>n.connections.interfaces.flatMap((link,i)=>selectedEdges.includes(n.node_id+'|'+i)&&selected.has(link.target_node_id)?[{target:link.target_node_id,metadata:clone(link.metadata)}]:[]));
+ return {nodes,...(incoming.length?{edges:incoming}:{}),files:Object.fromEntries([...names].map(name=>[name,clone(document.files[name])])),positions:Object.fromEntries(ids.filter(id=>layout[id]).map(id=>[id,clone(layout[id])]))};
 }
 function schemaRefs(value,schema,mapping){
  if(schema?.format==='node-id'&&typeof value==='string')return mapping[value]??value;
@@ -53,7 +55,7 @@ function documentRefs(value,paths){
  if(value&&typeof value==='object')return Object.fromEntries(Object.entries(value).map(([k,v])=>[k,(k==='file'||k==='path'||k==='document'||k==='directory'||k.endsWith('_path'))&&typeof v==='string'&&paths[v]?paths[v]:documentRefs(v,paths)]));
  return value;
 }
-export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
+export function pasteSubnet(document,bookmark,point,catalog={},positions={},options={}){
  if(!bookmark.snapshot.nodes.length){if(bookmark.snapshot.edges?.length)return {edges:clone(bookmark.snapshot.edges)};throw Error('空网络没有可拖入的节点，请使用“打开完整网络”');}
  requireData(bookmark.snapshot.nodes,bookmark.snapshot.files);
  const next=clone(document),nonce=crypto.randomUUID(),mapping=Object.create(null),paths=Object.create(null),allocated=new Set(next.network.nodes.map(n=>n.node_id));
@@ -80,10 +82,14 @@ export function pasteSubnet(document,bookmark,point,catalog={},positions={}){
   nodes.push(node);
  }
  next.network.nodes.push(...nodes);next.files??={};for(const [name,content] of Object.entries(bookmark.snapshot.files))next.files[paths[name]]=clone(content);
+ // 只按快照的最终结构判断，和选择／保存入口及数组顺序无关。
+ const incoming=(bookmark.snapshot.edges??[]).filter(e=>!e.source),entry=incoming.length===1?incoming[0]:null,from=next.network.nodes.find(n=>n.node_id===options.source),entryTarget=entry&&mapping[entry.target];
+ const attachedEntry=!!(from&&entryTarget);if(attachedEntry)from.connections.interfaces.push({target_node_id:entryTarget,metadata:clone(entry.metadata)});
+ const placement=attachedEntry?{x:point.x+140,y:point.y-40}:point;
  const saved=bookmark.snapshot.positions??{},source=nodes.map((_,i)=>saved[bookmark.snapshot.nodes[i].node_id]??{x:(i%4)*150,y:Math.floor(i/4)*150});
  const minX=Math.min(...source.map(p=>p.x)),minY=Math.min(...source.map(p=>p.y)),layout={...positions};
- nodes.forEach((node,i)=>layout[node.node_id]={x:point.x+source[i].x-minX,y:point.y+source[i].y-minY});
- return {document:next,layout,nodes:nodes.map(n=>n.node_id)};
+ nodes.forEach((node,i)=>layout[node.node_id]={x:placement.x+source[i].x-minX,y:placement.y+source[i].y-minY});
+ return {document:next,layout,nodes:nodes.map(n=>n.node_id),attachedEntry};
 }
 
 // 历史复用与书签共用粘贴逻辑。单边只带终点，起点由落点决定。

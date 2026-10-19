@@ -50,12 +50,12 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   }
   if(preset&&!isAsset(preset)){
    preset=await hydrate(preset);
-   const old=preset.snapshot;if(!old.nodes.length&&!old.edges?.length)throw Error('空网络没有可保存的书签内容');snapshot=old.nodes.length?copySubnet({network:{nodes:old.nodes},files:old.files},old.nodes.map(n=>n.node_id),mode,old.positions):{...clone(old),edges:old.edges.map(edge=>({metadata:clone(edge.metadata),...(mode==='external'&&edge.target?{target:edge.target}:{})}))};preset=null;
+   const old=preset.snapshot;if(!old.nodes.length&&!old.edges?.length)throw Error('空网络没有可保存的书签内容');snapshot=old.nodes.length?{...copySubnet({network:{nodes:old.nodes},files:old.files},old.nodes.map(n=>n.node_id),mode,old.positions),...(old.edges?.length?{edges:clone(old.edges)}:{})}:{...clone(old),edges:old.edges.map(edge=>({metadata:clone(edge.metadata),...(mode==='external'&&edge.target?{target:edge.target}:{})}))};preset=null;
   }
   signature=category+':'+signature;
-  if(lastCopy.current?.signature===signature&&lastCopy.current.mode===mode&&current.current.bookmarks.some(b=>b.id===lastCopy.current.id)){await remove(lastCopy.current.id);return;}
+  if(frame.toggle!==false&&lastCopy.current?.signature===signature&&lastCopy.current.mode===mode&&current.current.bookmarks.some(b=>b.id===lastCopy.current.id)){await remove(lastCopy.current.id);return;}
   const book=preset?{id:crypto.randomUUID(),name:preset.name,description:preset.description,kind:preset.asset.kind,asset:clone(preset.asset),category,createdAt:Date.now()}:{id:crypto.randomUUID(),name:snapshot.nodes.length===1?snapshot.nodes[0].name:snapshot.nodes.length?snapshot.nodes.length+' 节点子网':'连接书签',mode,category,createdAt:Date.now(),snapshot};
-  await patch([{id:book.id,expected:null,value:book}]);lastCopy.current={id:book.id,signature,mode};setFocus(book.id);setOpen(true);
+  await patch([{id:book.id,expected:null,value:book}]);lastCopy.current=frame.toggle===false?null:{id:book.id,signature,mode};setFocus(book.id);setOpen(true);
  };
  const created=(before,after,layout={})=>{
   lastCopy.current=null;const entries=[],oldIds=new Set(before.network.nodes.map(n=>n.node_id));
@@ -72,13 +72,14 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  const place=(book,point,usage)=>{
   const ctx=latest.current.context();
   if(isAsset(book)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach([book],nodeId);if(usage.usedBookmark)usedBook(book);else usedHistory(usage.usedHistory);return;}
-  const result=pasteSubnet(ctx.document,book,ctx.flow.screenToFlowPosition(point),ctx.catalog,ctx.layout);
+  const source=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;
+  const result=pasteSubnet(ctx.document,book,ctx.flow.screenToFlowPosition(point),ctx.catalog,ctx.layout,{source});
   const used=()=>usage.usedBookmark?usedBook(book):usedHistory(usage.usedHistory);
   if(result.edges){
    const source=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id??'';
    const missing=result.edges.some(e=>!ctx.document.network.nodes.some(n=>n.node_id===e.target));
    if(source&&!missing){const next=clone(ctx.document),n=next.network.nodes.find(n=>n.node_id===source);for(const e of result.edges)n.connections.interfaces.push({target_node_id:e.target,metadata:clone(e.metadata)});latest.current.onPaste({document:next,layout:ctx.layout,nodes:[source]});used();}
-   else{const templates=result.edges.map(e=>({source,target:ctx.document.network.nodes.some(n=>n.node_id===e.target)?e.target:'',...e.metadata,...usage}));latest.current.onEdgeTemplate({...templates[0],queue:templates.slice(1)});}
+   else{const templates=result.edges.map(e=>({source,target:ctx.document.network.nodes.some(n=>n.node_id===e.target)?e.target:'',...e.metadata,...usage}));latest.current.onEdgeTemplate({...templates[0],queue:templates.slice(1),point});}
   }else{latest.current.onPaste(result);used();}
  };
  const drop=(id,point)=>{const book=current.current.bookmarks.find(b=>b.id===id);if(!book)throw Error('书签已不存在');place(book,point,{usedBookmark:id});};
@@ -90,7 +91,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   // 等待磁盘快照期间用户仍可编辑；只合并到最新草稿，避免覆盖其他操作。
   const latestContext=latest.current.context();
   let result={document:latestContext.document,layout:latestContext.layout,nodes:[]};const position=ctx.flow.screenToFlowPosition(point),ids=[];
-  for(const [i,preset] of presets.entries()){result=pasteSubnet(result.document,preset,{x:position.x+i*150,y:position.y+i*70},ctx.catalog,result.layout);ids.push(...result.nodes);}
+  for(const [i,preset] of presets.entries()){result=pasteSubnet(result.document,preset,{x:position.x+i*150,y:position.y+i*70},ctx.catalog,result.layout,{source:presets.length===1?document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id:undefined});ids.push(...result.nodes);}
   latest.current.onPaste({...result,nodes:ids});presets.forEach(usedBook);
  };
  const openAsset=value=>latest.current.onOpenAsset({...clone(value),detailKey:crypto.randomUUID()});
@@ -105,6 +106,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  };
  return {library,category,setCategory,focus,open,setOpen,hover,hovered,pending,afterPending:enqueue,
   copy:mode=>{const ctx=latest.current.context(),frame={area:hover.current?clone(hover.current):null,category:latest.current.category,ctx:{...ctx,document:clone(ctx.document),selection:clone(ctx.selection),layout:clone(ctx.layout)}};return enqueue(()=>copy(mode,frame));},
+  copySelection:(mode,selection)=>{const ctx=latest.current.context(),frame={area:{kind:'canvas'},toggle:false,category:latest.current.category,ctx:{...ctx,document:clone(ctx.document),selection:clone(selection??ctx.selection),layout:clone(ctx.layout)}};return enqueue(()=>copy(mode,frame));},
   remove:id=>enqueue(()=>remove(id)),removeHovered,created,drop,dropHistory,dropResource,locate,record,usedHistory,saveAsset,
   openBook:book=>openAsset({...book,sourceBookmark:book.id}),
   savePreset:id=>enqueue(async()=>{const book=current.current.bookmarks.find(b=>b.id===id),node=!isAsset(book)&&book?.snapshot?.nodes.length===1;await update({action:node?'node.save':'preset.save',bookId:id,folder:node?nodeFolder.current:presetFolder.current});latest.current.note(node?'节点完整配置已保存到节点栏；官方目录或根目录下保存时归入“已保存节点”':'已保存到当前网络预设目录');}),

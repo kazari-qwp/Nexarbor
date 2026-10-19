@@ -50,3 +50,9 @@ test('binary databases and knowledge directories deduplicate by payload rather t
  assert.notEqual(copied.snapshot.nodes[0].parameters.directory,node.parameters.directory);assert.equal(normalizeHistory(original).id,normalizeHistory(copied).id);
  const binary=Object.values(copied.snapshot.files).find(v=>typeof v==='object');binary.data='BAUG';assert.notEqual(normalizeHistory(original).id,normalizeHistory(copied).id);assert.equal(source.files['data/wiki/catalog.sqlite3'].data,'AAECAw==');
 });
+
+test('history distinguishes plain nodes from entry connectors while normalizing copied internal entry targets',()=>{
+ const n={node_id:'one',name:'节点',type:'node',parameters:{},modules:{},connections:{interfaces:[]}},snapshot={nodes:[n],files:{},positions:{}},entry={kind:'node',id:'old',label:'节点',snapshot};
+ const plain=normalizeHistory(entry),connected=normalizeHistory({...entry,snapshot:{...snapshot,edges:[{target:'one',metadata:{channels:['tick'],threshold:1,multiplier:1,attributes:{}}}]}});
+ assert.notEqual(plain.configKey,connected.configKey);const copy=structuredClone(connected);copy.snapshot.nodes[0].node_id='new-id';copy.snapshot.edges[0].target='new-id';assert.equal(normalizeHistory(copy).configKey,connected.configKey);
+});
