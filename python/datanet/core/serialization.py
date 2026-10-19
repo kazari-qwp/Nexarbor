@@ -79,6 +79,7 @@ def network_document(network: Network, base: str | Path, *, node_overrides=None)
     if getattr(network, 'archived_entries', None):
         entries.extend(network.archived_entries())
     document = {'version': 8, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
+    if getattr(network,'repeat_unit_count',None) is not None:document.update(repeat_unit_count=network.repeat_unit_count,repeat_unit=network.repeat_unit)
     _build(document, path.parent)
     return document
 
@@ -104,10 +105,14 @@ def _fields(value, expected, label):
 def _build(document, base):
     if not isinstance(document, dict) or type(document.get('version')) is not int or document['version'] != 8:
         raise ValueError('不支持的网络配置版本')
-    _fields(document, ('version', 'nodes', 'delegations', 'signals'), '网络配置')
+    from .preset_repetition import REPEAT_FIELDS,validate_repetition
+    _fields({k:v for k,v in document.items() if k not in REPEAT_FIELDS}, ('version', 'nodes', 'delegations', 'signals'), '网络配置')
+    validate_repetition(document)
     if not isinstance(document['nodes'], list):
         raise ValueError('nodes 必须是列表')
     network = Network()
+    network.repeat_unit_count=document.get('repeat_unit_count')
+    network.repeat_unit=list(document.get('repeat_unit') or [])
     for entry in document['nodes']:
         _fields({k: v for k, v in entry.items() if k not in ('modules', 'offered_tools', 'toolboxes', 'expose', 'management_parent_id', 'execution', 'inputs', 'context_cursor', 'module_strength')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
         node_id = _string(entry['node_id'], 'node_id')

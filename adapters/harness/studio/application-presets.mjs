@@ -34,6 +34,16 @@ export async function installApplicationPresets(directory,root,{returnPresets=tr
   const preset=await store.save({storageKind:'network',document,editor:{name:app.name,description:app.description,mode:'internal',positions:{},display_folder:'stored-networks',originBookmark:'application:'+app.id,application:app.id,runtime}});
   installed.applications[app.id]=preset.id;await save();
  }
+ // 数量化小组单独作为零件预设，不改变三个完整应用。
+ if(!applicationIds||applicationIds.includes('fixed_groups_v3')){
+  installed.units??={};for(const [id,name]of [['collaboration','协作小组'],['discussion','讨论小组']]){
+   if(installed.units[id])continue;
+   const existing=(await store.list({summary:true})).presets.find(p=>p.originBookmark==='unit-preset:'+id);
+   if(existing){installed.units[id]=existing.id;continue;}
+   const document=JSON.parse(await fs.readFile(path.join(root,'configs/fixed_groups_v3/presets',id+'.json'),'utf8'));
+   const preset=await store.save({storageKind:'fragment',document,editor:{name,description:'在右侧填写可重复单元数量，再拖入画布；公共资源保留一份。',mode:'internal',positions:{},originBookmark:'unit-preset:'+id}});installed.units[id]=preset.id;
+  }await save();
+ }
  if(!returnPresets)return;
  return (await store.list()).presets.filter(p=>Object.values(installed.applications).includes(p.id));
 }

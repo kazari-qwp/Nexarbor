@@ -1,0 +1,268 @@
+{
+  "network": {
+    "version": 8,
+    "nodes": [
+      {
+        "type": "agent",
+        "node_id": "collab_eng",
+        "name": "协作小组成员",
+        "description": "可重复成员；工作区数量参数决定实例数量。",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "data/collab_eng.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "board_tasks",
+              "metadata": {
+                "channels": [
+                  "knowledge",
+                  "tools"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "board_notice",
+              "metadata": {
+                "channels": [
+                  "chat",
+                  "tools"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "agents.context": {
+            "config": {
+              "persona": "你是协作组的工程成员，主动认领实现类任务，重视可复现的交付。",
+              "common": "工作流程：在共享任务板先检索或读取任务与当前 revision，再用写入工具认领并带上 expected_revision；遇到版本冲突必须重新读取最新 revision 后再重试，不要盲目覆盖。没有领导，自己认领。需要公告时用公共公告箱。不访问讨论板。私人记忆用 remember 和 recall，只属于自己。",
+              "map": "共享任务板只连接协作组；公共讨论板只连接讨论组；公共公告箱六名成员都可读写。"
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "self",
+                "records",
+                "movement",
+                "info"
+              ]
+            }
+          },
+          "tools.collector": {
+            "config": {},
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "tools",
+                "self",
+                "chat",
+                "knowledge"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "channels": [
+            "self",
+            "tools",
+            "chat",
+            "knowledge"
+          ],
+          "prepare": [
+            {
+              "module": "agents.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ],
+          "max_steps": 12,
+          "timeout_seconds": 180
+        },
+        "context_cursor": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "board_tasks",
+        "name": "共享任务板",
+        "description": "协作组共享任务知识集合，使用 expected_revision 乐观并发",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "node",
+        "parameters": {
+          "file_path": "data/board_tasks.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "collab_eng",
+              "metadata": {
+                "channels": [
+                  "knowledge",
+                  "records"
+                ],
+                "threshold": 3,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "knowledge.collection": {
+            "config": {
+              "title": "共享任务板",
+              "read_only": false,
+              "max_entries": 200,
+              "history_limit": 20
+            },
+            "state": {
+              "documents": {
+                "task-eng": {
+                  "id": "task-eng",
+                  "title": "任务：工程可行性",
+                  "text": "状态：待认领\n说明：评估实现路径、接口和风险；认领时把状态改为已认领并写上自己的成员 ID。",
+                  "tags": [
+                    "任务",
+                    "工程",
+                    "待认领"
+                  ],
+                  "key": null,
+                  "revision": 1,
+                  "deleted": false,
+                  "history": []
+                },
+                "task-pm": {
+                  "id": "task-pm",
+                  "title": "任务：需求与验收范围",
+                  "text": "状态：待认领\n说明：梳理用户价值、范围边界和验收条件；认领时把状态改为已认领并写上自己的成员 ID。",
+                  "tags": [
+                    "任务",
+                    "产品",
+                    "待认领"
+                  ],
+                  "key": null,
+                  "revision": 1,
+                  "deleted": false,
+                  "history": []
+                },
+                "task-qa": {
+                  "id": "task-qa",
+                  "title": "任务：回归与边界验证",
+                  "text": "状态：待认领\n说明：列出正常、错误、权限、重复执行和并发场景；认领时把状态改为已认领并写上自己的成员 ID。",
+                  "tags": [
+                    "任务",
+                    "测试",
+                    "待认领"
+                  ],
+                  "key": null,
+                  "revision": 1,
+                  "deleted": false,
+                  "history": []
+                }
+              },
+              "idempotency": {}
+            },
+            "access": {
+              "strength": 3,
+              "channels": [
+                "knowledge",
+                "tools"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "context_cursor": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "board_notice",
+        "name": "公共公告箱",
+        "description": "六名成员共享的公共公告消息箱",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "node",
+        "parameters": {
+          "file_path": "data/board_notice.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "collab_eng",
+              "metadata": {
+                "channels": [
+                  "chat",
+                  "records"
+                ],
+                "threshold": 3,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "messages.box": {
+            "config": {
+              "read_policy": "reachable",
+              "send_cost": 0,
+              "max_messages": 200,
+              "require_agent": true
+            },
+            "state": {},
+            "access": {
+              "strength": 3,
+              "channels": [
+                "chat",
+                "records",
+                "tools"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "context_cursor": null,
+        "inputs": null
+      }
+    ],
+    "signals": {},
+    "delegations": [],
+    "repeat_unit_count": 3,
+    "repeat_unit": [
+      "collab_eng"
+    ]
+  },
+  "files": {
+    "data/collab_eng.md": "你是协作组的工程成员。流程：在共享任务板先用 knowledge_search 或 knowledge_get 查看任务和当前 revision，再用 knowledge_put 认领并带上 expected_revision；遇到版本冲突必须重新 knowledge_get 读取最新 revision 后再重试。没有人领导，自己认领。需要公告时用公共公告箱。不要访问讨论板。私人记忆只写在自己的记忆里。",
+    "data/board_tasks.md": "协作组共享任务板。使用知识集合保存任务，成员自行检索和认领；写入必须带 expected_revision，冲突后重新读取再重试。没有领导 Agent。",
+    "data/board_notice.md": "本小组的共享公告箱，所有成员均可读取和发送公告。"
+  }
+}

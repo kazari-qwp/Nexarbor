@@ -70,12 +70,15 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  const usedBook=book=>record([isAsset(book)?assetHistory(book):{kind:'bookmark',id:book.id??book.resourceId??crypto.randomUUID(),label:book.name,mode:book.mode,snapshot:clone(book.snapshot)}]);
  const historyEntry=ref=>current.current.history.find(e=>e.kind===ref.kind&&e.id===ref.id);
  const usedHistory=ref=>{const entry=historyEntry(ref);if(entry)record([entry]);};
- const place=(book,point,usage)=>{
+ const withDraft=book=>{const draft=latest.current.context().resourceDraft;return draft?.snapshot&&((book.resourceId&&draft.resourceId===book.resourceId&&draft.kind===book.kind)||(!book.resourceId&&draft.sourceBookmark===book.id))?{...book,name:draft.name,snapshot:clone(draft.snapshot)}:book;};
+ const materialize=book=>api('preset.expand',{snapshot:book.snapshot}).then(snapshot=>({...book,snapshot}));
+ const place=async(book,point,usage)=>{
+  book=withDraft(book);const original=book;if(book.snapshot?.repeat_unit_count!=null)book=await materialize(book);
   const ctx=latest.current.context();
   if(isAsset(book)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach([book],nodeId);if(usage.usedBookmark)usedBook(book);else usedHistory(usage.usedHistory);return;}
   const source=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;
   const result=pasteSubnet(ctx.document,book,ctx.flow.screenToFlowPosition(point),ctx.catalog,ctx.layout,{source});
-  const used=()=>usage.usedBookmark?usedBook(book):usedHistory(usage.usedHistory);
+  const used=()=>usage.usedBookmark?usedBook(original):usedHistory(usage.usedHistory);
   if(result.edges){
    const source=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id??'';
    const missing=result.edges.some(e=>!ctx.document.network.nodes.some(n=>n.node_id===e.target));
@@ -83,17 +86,18 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
    else{const templates=result.edges.map(e=>({source,target:ctx.document.network.nodes.some(n=>n.node_id===e.target)?e.target:'',...e.metadata,...usage}));latest.current.onEdgeTemplate({...templates[0],queue:templates.slice(1),point});}
   }else{latest.current.onPaste(result);used();}
  };
- const drop=(id,point)=>{const book=current.current.bookmarks.find(b=>b.id===id);if(!book)throw Error('书签已不存在');place(book,point,{usedBookmark:id});};
- const dropHistory=(ref,point)=>{const entry=historyEntry(ref);if(!entry)throw Error('该历史条目已移除');const ctx=latest.current.context();place(historyBookmark(entry,current.current.bookmarks,ctx.document,ctx.layout),point,{usedHistory:ref});};
+ const drop=(id,point)=>{const book=current.current.bookmarks.find(b=>b.id===id);if(!book)throw Error('书签已不存在');return place(book,point,{usedBookmark:id});};
+ const dropHistory=(ref,point)=>{const entry=historyEntry(ref);if(!entry)throw Error('该历史条目已移除');const ctx=latest.current.context();return place(historyBookmark(entry,current.current.bookmarks,ctx.document,ctx.layout),point,{usedHistory:ref});};
  const dropResource=async(ref,point)=>{
   const ctx=latest.current.context(),presets=[...new Set(ref.ids??[ref.id])].map(id=>resource(ctx.assetsCatalog,ref.kind,id,current.current.assets));
   if(presets.every(isAsset)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach(presets,nodeId);record(presets.map(assetHistory));return;}
-  for(let i=0;i<presets.length;i++)presets[i]=await hydrate(presets[i]);
+  for(let i=0;i<presets.length;i++)presets[i]=withDraft(await hydrate(presets[i]));
+  const originals=[...presets];for(let i=0;i<presets.length;i++)if(presets[i].snapshot?.repeat_unit_count!=null)presets[i]=await materialize(presets[i]);
   // 等待磁盘快照期间用户仍可编辑；只合并到最新草稿，避免覆盖其他操作。
   const latestContext=latest.current.context();
   let result={document:latestContext.document,layout:latestContext.layout,nodes:[]};const position=ctx.flow.screenToFlowPosition(point),ids=[];
   for(const [i,preset] of presets.entries()){result=pasteSubnet(result.document,preset,{x:position.x+i*150,y:position.y+i*70},ctx.catalog,result.layout,{source:presets.length===1?document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id:undefined});ids.push(...result.nodes);}
-  latest.current.onPaste({...result,nodes:ids});presets.forEach(usedBook);
+  latest.current.onPaste({...result,nodes:ids});originals.forEach(usedBook);
  };
  const openAsset=value=>latest.current.onOpenAsset({...clone(value),detailKey:crypto.randomUUID()});
  const saveAsset=value=>enqueue(async()=>{
@@ -110,7 +114,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   copySelection:(mode,selection)=>{const ctx=latest.current.context(),frame={area:{kind:'canvas'},toggle:false,category:latest.current.category,ctx:{...ctx,document:clone(ctx.document),selection:clone(selection??ctx.selection),layout:clone(ctx.layout)}};return enqueue(()=>copy(mode,frame));},
   remove:id=>enqueue(()=>remove(id)),removeHovered,created,drop,dropHistory,dropResource,locate,record,usedHistory,saveAsset,
   openBook:book=>openAsset({...book,sourceBookmark:book.id}),
-  savePreset:id=>enqueue(async()=>{const book=current.current.bookmarks.find(b=>b.id===id),node=!isAsset(book)&&singleOwnedNode(book?.snapshot?.nodes);await update({action:node?'node.save':'preset.save',bookId:id,folder:node?nodeFolder.current:presetFolder.current});latest.current.note(node?'节点完整配置已保存到节点栏；官方目录或根目录下保存时归入“已保存节点”':'已保存到当前网络预设目录');}),
+  savePreset:id=>enqueue(async()=>{const book=current.current.bookmarks.find(b=>b.id===id),node=!isAsset(book)&&book?.snapshot?.repeat_unit_count==null&&singleOwnedNode(book?.snapshot?.nodes);await update({action:node?'node.save':'preset.save',bookId:id,folder:node?nodeFolder.current:presetFolder.current});latest.current.note(node?'节点完整配置已保存到节点栏；官方目录或根目录下保存时归入“已保存节点”':'已保存到当前网络预设目录');}),
   saveNetwork:()=>enqueue(async()=>{const ctx=latest.current.context(),name=(await textPrompt('保存全网',(ctx.document.network.nodes[0]?.name??'未命名')+'网络'))?.trim();if(!name)return;await update({action:'network.save',name,document:clone(ctx.document),layout:clone(ctx.layout)});latest.current.note('完整网络已写入磁盘，位于“已存储网络”分类');}),
   folderChanged:(kind,id)=>{if(kind==='preset')presetFolder.current=id;if(kind==='node')nodeFolder.current=id;},
   reload:()=>enqueue(()=>api('editor.library.index').then(accept)),

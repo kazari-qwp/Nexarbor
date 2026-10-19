@@ -1,0 +1,222 @@
+{
+  "network": {
+    "version": 8,
+    "nodes": [
+      {
+        "type": "agent",
+        "node_id": "discuss_eng",
+        "name": "讨论小组成员",
+        "description": "可重复成员；工作区数量参数决定实例数量。",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "agent",
+        "parameters": {
+          "file_path": "data/discuss_eng.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "board_discuss",
+              "metadata": {
+                "channels": [
+                  "chat",
+                  "tools"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "board_notice",
+              "metadata": {
+                "channels": [
+                  "chat",
+                  "tools"
+                ],
+                "threshold": 1,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "agents.context": {
+            "config": {
+              "persona": "你是讨论组的工程成员，说话克制，关注可实施性、接口、风险和验证。",
+              "common": "工作流程：先用公共讨论板的读取工具看最近消息，再用发送工具发表工程观点；需要公告时用公共公告箱发送。不访问共享任务板。私人记忆用 remember 和 recall，只属于自己，不向他人展示。",
+              "map": "公共讨论板只连接讨论组；共享任务板只连接协作组；公共公告箱六名成员都可读写。"
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "self",
+                "records",
+                "movement",
+                "info"
+              ]
+            }
+          },
+          "tools.collector": {
+            "config": {},
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "tools",
+                "self",
+                "chat"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "channels": [
+            "self",
+            "tools",
+            "chat",
+            "knowledge"
+          ],
+          "prepare": [
+            {
+              "module": "agents.context",
+              "operation": "prepare",
+              "arguments": {}
+            }
+          ],
+          "max_steps": 12,
+          "timeout_seconds": 180
+        },
+        "context_cursor": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "board_discuss",
+        "name": "公共讨论板",
+        "description": "讨论组共享公共消息板",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "node",
+        "parameters": {
+          "file_path": "data/board_discuss.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "discuss_eng",
+              "metadata": {
+                "channels": [
+                  "chat",
+                  "records"
+                ],
+                "threshold": 3,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "messages.box": {
+            "config": {
+              "read_policy": "reachable",
+              "send_cost": 0,
+              "max_messages": 200,
+              "require_agent": true
+            },
+            "state": {},
+            "access": {
+              "strength": 3,
+              "channels": [
+                "chat",
+                "records",
+                "tools"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "context_cursor": null,
+        "inputs": null
+      },
+      {
+        "type": "node",
+        "node_id": "board_notice",
+        "name": "公共公告箱",
+        "description": "六名成员共享的公共公告消息箱",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": "node",
+        "parameters": {
+          "file_path": "data/board_notice.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "discuss_eng",
+              "metadata": {
+                "channels": [
+                  "chat",
+                  "records"
+                ],
+                "threshold": 3,
+                "multiplier": 1,
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "messages.box": {
+            "config": {
+              "read_policy": "reachable",
+              "send_cost": 0,
+              "max_messages": 200,
+              "require_agent": true
+            },
+            "state": {},
+            "access": {
+              "strength": 3,
+              "channels": [
+                "chat",
+                "records",
+                "tools"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "context_cursor": null,
+        "inputs": null
+      }
+    ],
+    "signals": {},
+    "delegations": [],
+    "repeat_unit_count": 3,
+    "repeat_unit": [
+      "discuss_eng"
+    ]
+  },
+  "files": {
+    "data/discuss_eng.md": "你是讨论组的工程成员。关注可实施性、接口、风险和验证。流程：先用公共讨论板读取最近消息，再用发送工具发表观点；需要公告时用公共公告箱。不要访问共享任务板。私人记忆只写在自己的记忆里。",
+    "data/board_discuss.md": "讨论组公共消息板。只连接讨论组三名成员，用于从工程、产品、测试三个角度持续讨论。",
+    "data/board_notice.md": "本小组的共享公告箱，所有成员均可读取和发送公告。"
+  }
+}

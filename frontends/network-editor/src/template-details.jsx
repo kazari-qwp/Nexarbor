@@ -1,3 +1,4 @@
+import {validRepeatMetadata} from '../../../shared/graph/preset-parameters.js';
 import {ModuleAccess} from './module-access.jsx';
 import React,{useEffect,useRef,useState} from 'react';
 import {Box,Network,Save,Trash2,FolderOpen} from 'lucide-react';
@@ -19,8 +20,9 @@ export function TemplateDetails({value,catalog,api,onSave,onOpenNetwork,onDraft}
  const attach=asset=>{setError('');try{const doc=attachResource({network:{nodes:snapshot.nodes},files:snapshot.files},node.node_id,asset,catalog);setSnapshot({...snapshot,nodes:doc.network.nodes});}catch(e){setError(e.message);}};
  const unmount=id=>{const dependents=Object.keys(node.modules).filter(name=>catalog.modules[name]?.requires?.includes(id));if(dependents.length){setError('请先卸载依赖此模块的模块：'+dependents.map(name=>catalog.modules[name]?.label??name).join('、'));return;}setError('');change(n=>delete n.modules[id]);};
  const clear=async()=>{const beforeNode=structuredClone(node),response=await api('data.preview',{node:beforeNode,files:snapshotRef.current.files,operation:'clear'});const next=mergeClearedData(snapshotRef.current,{...response,beforeNode});snapshotRef.current=next;setSnapshot(next);setDataEpoch(v=>v+1);};
- const save=async()=>{setError('');setSaving(true);try{if(!name.trim())throw Error('书签名称不能为空');await onSave({...value,name:name.trim(),snapshot});}catch(e){setError(e.message);}finally{setSaving(false);}};
+ const save=async()=>{setError('');setSaving(true);try{if(!name.trim())throw Error('书签名称不能为空');if(!validRepeatMetadata(snapshot))throw Error('可重复单元数量必须是 1 至 100 的整数');await onSave({...value,name:name.trim(),snapshot});}catch(e){setError(e.message);}finally{setSaving(false);}};
  return <section className="resource-details" aria-label={network?'网络预设详情':'节点模板详情'}><div className="inspector-intro"><Icon size={22}/><strong>{value.name}</strong><small>{snapshot.nodes.length} 个节点 · 待放置配置</small></div><p className="muted">{value.description||'在这里编辑模板，保存后从书签拖入画布。每次放置都会分配新编号。'}</p><label>书签名称<input aria-label="资源书签名称" value={name} onChange={e=>setName(e.target.value)}/></label>
+  {snapshot.repeat_unit_count!=null&&<label>可重复单元数量<input aria-label="可重复单元数量" type="number" min="1" max="100" step="1" value={snapshot.repeat_unit_count} onChange={e=>{const count=e.target.value===''?'':Number(e.target.value);setSnapshot(old=>({...old,repeat_unit_count:count}));}}/><small>拖入时按此数量生成，公共节点保持一份。保存书签可保留这个数量。</small></label>}
   {value.storageKind==='network'&&onOpenNetwork&&<button className="primary" aria-label="打开完整网络" onClick={()=>onOpenNetwork(value)}><FolderOpen size={14}/>打开完整网络</button>}
   {value.file&&<label>{value.kind==='node'?'磁盘节点文件':'磁盘网络文件'}<code className="stored-network-path" title={value.file}>{value.file}</code></label>}
   {network&&<label>编辑节点<select aria-label="预设中的节点" value={index} onChange={e=>setIndex(Number(e.target.value))}>{snapshot.nodes.map((n,i)=><option key={n.node_id} value={i}>{n.name}</option>)}</select></label>}

@@ -1,3 +1,4 @@
+import {repeatMetadata,validRepeatMetadata} from '../../../shared/graph/preset-parameters.js';
 import {singleOwnedNode,ownershipRoots} from '../../../shared/graph/ownership.js';
 import {projectDirectory} from './project-directory.js';
 import fs from 'node:fs/promises';
@@ -9,7 +10,7 @@ export const storedNetworks=directory=>storedDocuments(projectDirectory(director
 export const storedNodes=directory=>storedDocuments(projectDirectory(directory),{rootName:'node_presets',parts:{node:'nodes'},label:'节点预设',singleNode:true});
 function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
  const base=path.resolve(directory),root=path.join(base,rootName),summaries=new Map();
- const valid=(document,kind)=>document.network?.version===8&&Array.isArray(document.network.nodes)&&(singleNode?singleOwnedNode(document.network.nodes):kind==='network'||document.network.nodes.length>0);
+ const valid=(document,kind)=>document.network?.version===8&&validRepeatMetadata(document.network)&&Array.isArray(document.network.nodes)&&(singleNode?singleOwnedNode(document.network.nodes):kind==='network'||document.network.nodes.length>0);
  const checked=async(folder,file)=>{
   const actualBase=await fs.realpath(base),actualFolder=await fs.realpath(folder);
   if(!actualFolder.startsWith(actualBase+path.sep))throw Error(label+'目录越出当前工作区');
@@ -28,9 +29,9 @@ function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
   if(!summary||!info){
    document=JSON.parse(await fs.readFile(file,'utf8'));
    if(!valid(document,storageKind))throw Error(singleNode?'节点预设需要包含一个节点的 v8 文档':'需要当前 v8 网络文档');
-   info={nodeCount:document.network.nodes.length,hasRoot:document.network.nodes.some(n=>n.node_id==='root')};summaries.set(file,{stamp:stat,info});
+   info={...repeatMetadata(document.network),nodeCount:document.network.nodes.length,hasRoot:document.network.nodes.some(n=>n.node_id==='root')};summaries.set(file,{stamp:stat,info});
   }
-  return {id:storageKind+':'+name,name:editor.name??path.basename(name,'.json'),description:editor.description??'',mode:editor.mode??'internal',...info,...(summary?{lazySnapshot:true}:{snapshot:{nodes:document.network.nodes,files:document.files??{},positions:editor.positions??{},...(editor.entryEdges?.length?{edges:structuredClone(editor.entryEdges)}:{})}}),originBookmark:editor.originBookmark,display_folder:editor.display_folder,storageKind,file,metadataFile,runtime:summary?undefined:editor.runtime,application:editor.application};
+  return {id:storageKind+':'+name,name:editor.name??path.basename(name,'.json'),description:editor.description??'',mode:editor.mode??'internal',...info,...(summary?{lazySnapshot:true}:{snapshot:{...repeatMetadata(document.network),nodes:document.network.nodes,files:document.files??{},positions:editor.positions??{},...(editor.entryEdges?.length?{edges:structuredClone(editor.entryEdges)}:{})}}),originBookmark:editor.originBookmark,display_folder:editor.display_folder,storageKind,file,metadataFile,runtime:summary?undefined:editor.runtime,application:editor.application};
  };
  const load=async(id,options={})=>{
   const separator=id.indexOf(':'),kind=id.slice(0,separator),name=id.slice(separator+1);
@@ -55,7 +56,7 @@ function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
   const file=existing?.file??path.join(folder,randomUUID()+'.json'),metadataFile=file.slice(0,-5)+'.editor.json';await checked(folder,file);await checked(folder,metadataFile);
   // JSON 保留完整网络格式；摘要与布局是可重建的编辑资料，不是数据副本。
   await atomic(file,document);
-  await atomic(metadataFile,{version:1,...editor,documentStamp:stamp(await fs.stat(file)),summary:{nodeCount:document.network.nodes.length,hasRoot:document.network.nodes.some(n=>n.node_id==='root')}});
+  await atomic(metadataFile,{version:1,...editor,documentStamp:stamp(await fs.stat(file)),summary:{...repeatMetadata(document.network),nodeCount:document.network.nodes.length,hasRoot:document.network.nodes.some(n=>n.node_id==='root')}});
   return load(storageKind+':'+path.basename(file));
  };
  const inspect=async id=>{const preset=await load(id,{summary:true});return {canDelete:true,scope:'删除当前工作区的'+(singleNode?'节点预设':preset.storageKind==='network'?'完整网络':'零件预设')+'文件及编辑资料；独立书签和历史缓存保留',path:preset.file,files:[preset.file,preset.metadataFile]};};

@@ -1,3 +1,4 @@
+import {repeatMetadata,validRepeatMetadata} from '../../../shared/graph/preset-parameters.js';
 import {singleOwnedNode,ownershipRoots} from '../../../shared/graph/ownership.js';
 import {projectDirectory} from './project-directory.js';
 import {readFile,writeFile,rename} from 'node:fs/promises';
@@ -16,6 +17,7 @@ export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
  const valid=bookmark=>{
   if(bookmark?.asset){validAsset(bookmark.asset);if(bookmark.kind!==bookmark.asset.kind||typeof bookmark.id!=='string'||typeof bookmark.name!=='string'||!bookmark.name.trim()||bookmark.name.length>160)throw Error('无效资源书签');return;}
   if(!bookmark||typeof bookmark.id!=='string'||!['internal','external'].includes(bookmark.mode)||typeof bookmark.name!=='string'||!bookmark.name.trim()||bookmark.name.length>160||!Array.isArray(bookmark.snapshot?.nodes)||(!bookmark.snapshot.nodes.length&&!bookmark.snapshot.edges?.length))throw Error('无效的子网书签');
+  if(!validRepeatMetadata(bookmark.snapshot))throw Error('可重复单元数量或声明无效');
   if(!bookmark.snapshot.nodes.length&&bookmark.snapshot.edges.some(e=>Object.hasOwn(e,'source')||(bookmark.mode==='internal'&&Object.hasOwn(e,'target'))))throw Error('纯边书签不能保存起点，A 模式不能保存终点');
  };
  return async(operation,p={})=>{
@@ -56,20 +58,20 @@ export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
    }else if(p.action==='category.add'){
     if(typeof p.category?.id!=='string'||typeof p.category.name!=='string'||!p.category.name.trim()||p.category.name.length>80||library.categories.some(c=>c.id===p.category.id||c.name===p.category.name))throw Error('分类名称无效或已存在');library.categories.push(p.category);
    }else if(p.action==='node.save'){
-    const book=library.bookmarks.find(b=>b.id===p.bookId);if(!book||book.asset||!singleOwnedNode(book.snapshot?.nodes))throw Error('请选择单节点书签');
+    const book=library.bookmarks.find(b=>b.id===p.bookId);if(!book||book.asset||book.snapshot?.repeat_unit_count!=null||!singleOwnedNode(book.snapshot?.nodes))throw Error('请选择单节点书签');
     if(p.folder!=null&&!nodeTree.folders.some(f=>f.id===p.folder))throw Error('节点文件夹已不存在');
     const folder=p.folder==null||inOfficial(p.folder)?'stored-nodes':p.folder;
     const existing=library.nodeTemplates.find(e=>e.originBookmark===book.id&&(nodeTree.items[e.id]?.folder??'stored-nodes')===folder);
-    const template=await nodeStore.save({storageKind:'node',existingId:existing?.id,document:{network:{version:8,nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??ownershipRoots(book.snapshot.nodes)[0].description??'',mode:book.mode,positions:book.snapshot.positions??{},entryEdges:structuredClone(book.snapshot.edges??[]),originBookmark:book.id,display_folder:folder}});
+    const template=await nodeStore.save({storageKind:'node',existingId:existing?.id,document:{network:{version:8,...repeatMetadata(book.snapshot),nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??ownershipRoots(book.snapshot.nodes)[0].description??'',mode:book.mode,positions:book.snapshot.positions??{},entryEdges:structuredClone(book.snapshot.edges??[]),originBookmark:book.id,display_folder:folder}});
     library.nodeTemplates=(await nodeStore.list(options)).presets;nodeTree.items[template.id]??={folder};
     delete nodeTree.items[template.id].archivedAt;delete nodeTree.items[template.id].deletedAt;delete nodeTree.items[template.id].resource;
    }else if(p.action==='preset.save'){
-    const book=library.bookmarks.find(b=>b.id===p.bookId);if(!book||book.asset||book.snapshot?.nodes.length<2)throw Error('请选择包含多个节点的网络书签');
+    const book=library.bookmarks.find(b=>b.id===p.bookId);if(!book||book.asset||(book.snapshot?.nodes.length<1||(book.snapshot?.nodes.length<2&&book.snapshot.repeat_unit_count==null)))throw Error('请选择包含多个节点的网络书签');
     const tree=library.assets.preset??={folders:[],items:{}};if(p.folder!=null&&!tree.folders.some(f=>f.id===p.folder))throw Error('预设文件夹已不存在');
     const ancestors=new Set();for(let id=p.folder;id!=null&&!ancestors.has(id);id=tree.folders.find(f=>f.id===id)?.parent)ancestors.add(id);
     const storageKind=ancestors.has('stored-networks')?'network':'fragment';
     const existing=library.presets.find(e=>e.storageKind===storageKind&&e.originBookmark===book.id&&(tree.items[e.id]?.folder??null)===(p.folder??null));
-    const preset=await store.save({storageKind,existingId:existing?.id,document:{network:{version:8,nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??'',mode:book.mode,positions:book.snapshot.positions??{},entryEdges:structuredClone(book.snapshot.edges??[]),originBookmark:book.id,display_folder:p.folder??null,runtime}});
+    const preset=await store.save({storageKind,existingId:existing?.id,document:{network:{version:8,...repeatMetadata(book.snapshot),nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??'',mode:book.mode,positions:book.snapshot.positions??{},entryEdges:structuredClone(book.snapshot.edges??[]),originBookmark:book.id,display_folder:p.folder??null,runtime}});
     library.presets=(await store.list(options)).presets;tree.items[preset.id]??={folder:p.folder??null};
     delete tree.items[preset.id].archivedAt;delete tree.items[preset.id].resource;
    }else if(p.action==='network.save'){

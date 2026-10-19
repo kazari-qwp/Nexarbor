@@ -85,6 +85,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
    return JSON.parse(await fs.readFile(file,'utf8'));
   }
   if(operation==='data.preview')return rpc('data_preview',params);
+  if(operation==='preset.expand')return rpc('preset_expand',params);
   if(operation==='data.clear')return rpc('data_clear',params);
   if(operation==='module.call')return rpc('module_access',params);
   if(operation==='tools.visit')return rpc('executor_visit',params);

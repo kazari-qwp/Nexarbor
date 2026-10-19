@@ -1,3 +1,4 @@
+import {repeatMetadata} from '../../../shared/graph/preset-parameters.js';
 import {singleOwnedNode,ownershipRoots} from '../../../shared/graph/ownership.js';
 const clone=value=>structuredClone(value);
 export const isAsset=value=>!!value?.asset&&['tool','module'].includes(value.asset.kind);
@@ -10,7 +11,7 @@ export function resource(catalog,kind,id,organization={}){
  const item=organization[kind]?.items?.[id]??{};
  const local=kind==='module'?!!catalog.localResources?.modules[id]:kind==='tool'?!!catalog.localResources?.tools[id]||!!catalog.localResources?.modules[spec.module]:kind==='preset'?!spec.application||!!catalog.localResources?.presets[id]:true;
  const base={kind,local,name:item.name??(kind==='module'?spec.label:spec.name),description:spec.description??''};
- return ['node','preset'].includes(kind)?{...base,resourceId:id,mode:spec.mode,snapshot:spec.snapshot?clone(spec.snapshot):undefined,lazySnapshot:spec.lazySnapshot,nodeCount:spec.nodeCount,file:spec.file,storageKind:spec.storageKind}:{...base,asset:kind==='module'?{kind,id,...clone(spec.defaults??{config:{},state:{},access:{strength:0,channels:[]}})}:{kind,id,channels:clone(spec.channels??['tools'])}};
+ return ['node','preset'].includes(kind)?{...base,...repeatMetadata(spec),resourceId:id,mode:spec.mode,snapshot:spec.snapshot?clone(spec.snapshot):undefined,lazySnapshot:spec.lazySnapshot,nodeCount:spec.nodeCount,file:spec.file,storageKind:spec.storageKind}:{...base,asset:kind==='module'?{kind,id,...clone(spec.defaults??{config:{},state:{},access:{strength:0,channels:[]}})}:{kind,id,channels:clone(spec.channels??['tools'])}};
 }
 export function resources(catalog,kind,organization={},includeArchived=false){
  const ids=kind==='module'?Object.keys(catalog.modules??{}):kind==='tool'?(catalog.tools??[]).map(t=>t.ref):(catalog[kind==='node'?'nodes':'presets']??[]).map(t=>t.id);return ids.filter(id=>includeArchived||resourceAvailable(catalog,organization,kind,id)).map(id=>resource(catalog,kind,id,organization));
@@ -70,7 +71,7 @@ export function folderResources(tree,entries,id){
  const folders=new Set([id]);for(const parent of folders)for(const f of tree.folders)if(f.parent===parent)folders.add(f.id);return entries.filter(e=>folders.has(tree.items[resourceId(e)]?.folder??null));
 }
 export const assetHistory=book=>({kind:book.asset.kind,id:book.id??book.asset.id,label:book.name,description:book.description??'',asset:clone(book.asset)});
-export const contentType=value=>isAsset(value)?value.asset.kind:!value.snapshot?.nodes.length?(value.kind==='preset'||value.storageKind==='network'?'network':'edge'):singleOwnedNode(value.snapshot.nodes)?'node':'network';
+export const contentType=value=>isAsset(value)?value.asset.kind:value.snapshot?.repeat_unit_count!=null?'network':!value.snapshot?.nodes.length?(value.kind==='preset'||value.storageKind==='network'?'network':'edge'):singleOwnedNode(value.snapshot.nodes)?'node':'network';
 export const matchesType=(value,type)=>type==='all'||contentType(value)===type||(['internal','external'].includes(type)&&contentType(value)==='network'&&value.mode===type);
 
 export function moduleProblems(node,catalog,runtime={}){

@@ -290,6 +290,9 @@ class Backend:
         return {'ok': True, 'agents': changed}
 
     def dispatch(self, method, p):
+        if method=='preset_expand':
+            from .preset_repetition import expand_snapshot
+            return expand_snapshot(p['snapshot'],p.get('count'),dict(self.components.module_types))
         if method not in ('persistence_info','persistence_latest_point'):
             self.node_locks.wait_prepared_sync()
         from contextlib import nullcontext
