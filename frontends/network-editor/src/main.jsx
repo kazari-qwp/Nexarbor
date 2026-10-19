@@ -1,3 +1,4 @@
+import {createEditorClient} from '../../../communication/editor-client.js';
 import {SubnodeSettings,editorSubnode} from './subnodes.jsx';
 import {ChannelList} from './channel-list.jsx';
 import {CanvasMenu} from './canvas-menu.jsx';
@@ -51,10 +52,7 @@ const NetworkAdminPanel=deferred(()=>import('./network-admin.jsx'),'NetworkAdmin
 const fragment=new URLSearchParams(location.hash.slice(1));
 const token=fragment.get('token')??sessionStorage.getItem('nexarbor-token')??'';
 if(fragment.has('token')){sessionStorage.setItem('nexarbor-token',token);history.replaceState(null,'',location.pathname);}
-async function api(operation,params={}){
-  const response=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':token},body:JSON.stringify({operation,params})});
-  const result=await response.json();if(!response.ok||result.error)throw new Error(result.error??'请求失败');return result.value;
-}
+const api=createEditorClient({token});
 const icons={'居民':UserRound,'Agent':UserRound,'场所':MapPin,'文本':FileText,'数据':Box,'脉冲':Activity,'上下文':Layers,'业务':Box,'节点':Box,'亚节点':Box};
 const nodeTypes={network:NetworkNode};
 function Toast({message,onClose}){return message&&<div role="status" className="toast"><span>{message}</span><button onClick={onClose}><X size={14}/></button></div>;}

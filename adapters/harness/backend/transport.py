@@ -1,48 +1,16 @@
-"""Duplex JSON-RPC transport. Reverse calls never hold the graph transaction lock."""
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import asdict, is_dataclass
-from threading import Event, Lock, RLock
-import json
-import sys
-import uuid
+"""Harness application routing and lifecycle over the reusable JSON-RPC transport."""
+from threading import RLock
+from datanet.communication.jsonrpc import JsonRpcTransport
 
 
-class Transport:
+class Transport(JsonRpcTransport):
     def __init__(self, backend, output=None):
-        self.backend, self.output = backend, output or sys.stdout
-        self.pending, self.output_lock, self.pending_lock = {}, Lock(), Lock()
+        super().__init__(output=output, host_timeout=lambda method, params:
+            max(600, params.get('timeout_ms', 180000) / 1000 + 30) if method == 'run' else 600)
+        self.backend = backend
         self.application_lock = RLock()
-        self.workers = ThreadPoolExecutor(max_workers=64, thread_name_prefix='datanet-rpc')
         self.application = None
-        backend.commit_observer=lambda commit_id:self.write(dict(notification='core/committed',commit_id=commit_id))
-
-    def write(self, value):
-        def encode(item):
-            if is_dataclass(item):
-                return asdict(item)
-            raise TypeError(type(item).__name__)
-        line = json.dumps(value, default=encode, ensure_ascii=False, allow_nan=False)
-        with self.output_lock:
-            self.output.write(line + '\n')
-            self.output.flush()
-
-    def host(self, method, params):
-        token, event = uuid.uuid4().hex, Event()
-        record = {'event': event}
-        with self.pending_lock:
-            self.pending[token] = record
-        self.write(dict(host_id=token, method=method, params=params))
-        try:
-            timeout = max(600, params.get('timeout_ms', 180000) / 1000 + 30) if method == 'run' else 600
-            if not event.wait(timeout):
-                raise TimeoutError('Harness port timeout: ' + method)
-            response = record['response']
-            if response.get('error'):
-                raise RuntimeError(response['error'])
-            return response.get('result')
-        finally:
-            with self.pending_lock:
-                self.pending.pop(token, None)
+        backend.commit_observer = lambda commit_id: self.write(dict(notification='core/committed', commit_id=commit_id))
 
     def dispatch(self, method, p):
         from datanet.core.application import Application
@@ -91,36 +59,8 @@ class Transport:
             return app.disable(p['component'])
         raise ValueError('Unknown application operation: ' + action)
 
-    def answer(self, request):
-        try:
-            self.write(dict(id=request['id'], result=self.dispatch(request['method'], request.get('params', {}))))
-        except Exception as error:
-            self.write(dict(id=request.get('id'), error=str(error) or type(error).__name__))
-
-    def run(self, stream):
-        try:
-            for line in stream:
-                try:
-                    request = json.loads(line)
-                except Exception as error:
-                    self.write(dict(id=None, error=str(error)))
-                    continue
-                if 'host_id' in request:
-                    with self.pending_lock:
-                        record = self.pending.get(request['host_id'])
-                        if record:
-                            record['response'] = request
-                            record['event'].set()
-                else:
-                    self.workers.submit(self.answer, request)
-        finally:
-            with self.pending_lock:
-                for record in self.pending.values():
-                    record['response'] = {'error': 'Harness connection closed'}
-                    record['event'].set()
-            self.workers.shutdown(wait=True)
-            if self.application:
-                for plugin in self.application.plugins.values():
-                    if hasattr(plugin, 'close'):
-                        plugin.close()
-            self.backend.close()
+    def close(self):
+        if self.application:
+            for plugin in self.application.plugins.values():
+                if hasattr(plugin, 'close'): plugin.close()
+        self.backend.close()

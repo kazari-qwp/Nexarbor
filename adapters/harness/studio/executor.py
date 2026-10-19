@@ -25,8 +25,8 @@ class NativeExecutor:
             backend.components.rpc('executor_'+method,lambda b,p,method=method:getattr(self,method)(p),mutation=mutation)
     def binding(self,actor):
         node=self.backend.network.nodes[actor]
-        from datanet.studio.network_work import validate_execution
-        validate_execution(node,self.backend)
+        from datanet.core.execution_binding import validate_execution_binding
+        validate_execution_binding(node,self.backend.network,getattr(self.backend.components,'module_types',{}))
         if not isinstance(node,AgentNode):raise TypeError('Native execution requires an Agent node')
         binding=dict(node.execution_binding or {})
         from datanet.core.channel_filters import resolve

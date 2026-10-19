@@ -4,41 +4,9 @@ from .assembly import assemble_document
 from datanet.core.serialization import _build
 
 def validate_execution(node,backend,*,allow_missing=False,network=None):
-    """在制作阶段检查宿主执行配置，避免只有图结构合法却无法启动。"""
-    binding=node.execution_binding
-    if not binding:return
-    if binding.get('executor')!='harness':raise ValueError('此制作宿主只支持 executor=harness')
-    if node.signal_type!='agent':raise ValueError('只有 Agent 节点可以绑定 Harness 执行器')
-    if set(binding)-{'executor','strength','channels','max_steps','timeout_seconds','prepare','channel_mode','channel_modes','tool_sources'}:raise ValueError('Harness执行配置只支持executor/strength/channels/max_steps/timeout_seconds/prepare')
-    strength=binding.get('strength',0)
-    if type(strength) not in (int,float) or not 0<=strength<=32:raise ValueError('执行器strength须为0至32')
-    from datanet.core.channel_filters import resolve,mode
-    channels=binding.get('channels',[])
-    mode(binding.get('channel_mode',binding.get('channel_modes',{}).get('channels','allow')))
-    if not isinstance(channels,list) or any(not isinstance(c,str) or not c for c in channels) or len(set(channels))!=len(channels):raise ValueError('执行器channels须为唯一非空字符串列表')
-    if type(binding.get('max_steps',12)) is not int or not 1<=binding.get('max_steps',12)<=100:raise ValueError('执行器max_steps须为1至100')
-    timeout=binding.get('timeout_seconds',90)
-    if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('执行器timeout_seconds须为1至600')
-    from datanet.core.json_values import names
-    names(binding.get('tool_sources',[]),'execution.tool_sources')
-    prepare=binding.get('prepare',[])
-    if not isinstance(prepare,list):raise ValueError('execution.prepare须为操作对象数组，不是true或单个对象')
-    for item in prepare:
-        if not isinstance(item,dict) or set(item)-{'node','module','operation','arguments','channels'} or not {'module','operation'}<=set(item):raise ValueError('prepare每项声明module/operation/arguments')
-        target=(network or backend.network).nodes.get(item.get('node',node.node_id))
-        if target is None:
-            if allow_missing:continue
-            raise ValueError('prepare引用不存在的节点')
-        selected=item.get('channels',channels)
-        if not isinstance(selected,list) or any(c not in channels for c in selected):raise ValueError('准备接口频道必须在执行器授权内')
-        module=item['module'];operation=item['operation']
-        if module not in target.modules:
-            if allow_missing:continue
-            raise ValueError('prepare引用未装配的模块：'+str(module))
-        definition=backend.components.module_types.get(module)
-        if definition is None and allow_missing:continue
-        if definition is None or operation not in definition.operations:raise ValueError('prepare引用未知模块操作')
-        definition.validate(item.get('arguments',{}),definition.operations[operation]['parameters'])
+    from datanet.core.execution_binding import validate_execution_binding
+    if node.execution_binding and node.execution_binding.get('executor')!='harness':raise ValueError('此制作宿主只支持 executor=harness')
+    return validate_execution_binding(node,network or backend.network,backend.components.module_types,allow_missing=allow_missing)
 
 def validate_network(document,backend,library,*,allow_missing=False):
     if not isinstance(document,dict) or set(document)!={'network','files'}:raise ValueError('预设使用 {network, files} 成品格式')
