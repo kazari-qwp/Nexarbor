@@ -12,7 +12,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  const enqueue=job=>{pending.current++;const result=queue.current.then(job).finally(()=>pending.current--);queue.current=result.catch(()=>{});return result;};
  latest.current={context,onPaste,onEdgeTemplate,onLocate,onOpenAsset,onAssetAttach,note,category};
  const accept=value=>{if(value.version>=current.current.version){current.current=value;setLibrary(value);}return value;};
- useEffect(()=>{api('editor.library').then(accept).catch(note);},[]);
+ useEffect(()=>{api('editor.library.index').then(accept).catch(note);},[]);
  useEffect(()=>{const track=e=>{pointer.current={x:e.clientX,y:e.clientY};};window.addEventListener('pointermove',track,true);return()=>window.removeEventListener('pointermove',track,true);},[]);
  const hovered=()=>{
   const point=pointer.current??hover.current?.point;if(!point)return hover.current;
@@ -24,7 +24,8 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   else if(element?.closest('.node-link-gesture'))area={kind:'canvas'};
   hover.current=area;return area;
  };
- const update=p=>api('editor.library.update',p).then(accept);
+ const hydrate=async value=>value.lazySnapshot?{...value,...await api('editor.resource.load',{kind:value.kind,id:value.resourceId}),lazySnapshot:false}:value;
+ const update=p=>api('editor.library.update',{...p,summary:true}).then(accept);
  const record=entries=>{if(entries.length)enqueue(()=>update({action:'history.push',entries})).catch(latest.current.note);};
  const patch=changes=>update({action:'bookmark.patch',changes});
  const remove=async id=>{const book=current.current.bookmarks.find(b=>b.id===id);if(book)await patch([{id,expected:book,value:null}]);lastCopy.current=null;};
@@ -48,6 +49,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
    signature=selectionKey(ctx.selection);snapshot=copySubnet(ctx.document,ctx.selection.nodes,mode,ctx.layout,ctx.selection.edges);
   }
   if(preset&&!isAsset(preset)){
+   preset=await hydrate(preset);
    const old=preset.snapshot;snapshot=old.nodes.length?copySubnet({network:{nodes:old.nodes},files:old.files},old.nodes.map(n=>n.node_id),mode,old.positions):{...clone(old),edges:old.edges.map(edge=>({metadata:clone(edge.metadata),...(mode==='external'&&edge.target?{target:edge.target}:{})}))};preset=null;
   }
   signature=category+':'+signature;
@@ -81,10 +83,13 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  };
  const drop=(id,point)=>{const book=current.current.bookmarks.find(b=>b.id===id);if(!book)throw Error('书签已不存在');place(book,point,{usedBookmark:id});};
  const dropHistory=(ref,point)=>{const entry=historyEntry(ref);if(!entry)throw Error('该历史条目已移除');const ctx=latest.current.context();place(historyBookmark(entry,current.current.bookmarks,ctx.document,ctx.layout),point,{usedHistory:ref});};
- const dropResource=(ref,point)=>{
+ const dropResource=async(ref,point)=>{
   const ctx=latest.current.context(),presets=[...new Set(ref.ids??[ref.id])].map(id=>resource(ctx.assetsCatalog,ref.kind,id,current.current.assets));
   if(presets.every(isAsset)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach(presets,nodeId);record(presets.map(assetHistory));return;}
-  let result={document:ctx.document,layout:ctx.layout,nodes:[]};const position=ctx.flow.screenToFlowPosition(point),ids=[];
+  for(let i=0;i<presets.length;i++)presets[i]=await hydrate(presets[i]);
+  // 等待磁盘快照期间用户仍可编辑；只合并到最新草稿，避免覆盖其他操作。
+  const latestContext=latest.current.context();
+  let result={document:latestContext.document,layout:latestContext.layout,nodes:[]};const position=ctx.flow.screenToFlowPosition(point),ids=[];
   for(const [i,preset] of presets.entries()){result=pasteSubnet(result.document,preset,{x:position.x+i*150,y:position.y+i*70},ctx.catalog,result.layout);ids.push(...result.nodes);}
   latest.current.onPaste({...result,nodes:ids});presets.forEach(usedBook);
  };
@@ -105,7 +110,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   savePreset:id=>enqueue(async()=>{const book=current.current.bookmarks.find(b=>b.id===id),node=!isAsset(book)&&book?.snapshot?.nodes.length===1;await update({action:node?'node.save':'preset.save',bookId:id,folder:node?nodeFolder.current:presetFolder.current});latest.current.note(node?'节点完整配置已保存到节点栏；官方目录或根目录下保存时归入“已保存节点”':'已保存到当前网络预设目录');}),
   saveNetwork:()=>enqueue(async()=>{const ctx=latest.current.context(),name=(await textPrompt('保存全网',ctx.document.network.nodes.find(n=>n.node_id==='root')?.name+'网络'))?.trim();if(!name)return;await update({action:'network.save',name,document:clone(ctx.document),layout:clone(ctx.layout)});latest.current.note('完整网络已写入磁盘，位于“已存储网络”分类');}),
   folderChanged:(kind,id)=>{if(kind==='preset')presetFolder.current=id;if(kind==='node')nodeFolder.current=id;},
-  reload:()=>enqueue(()=>api('editor.library').then(accept)),
+  reload:()=>enqueue(()=>api('editor.library.index').then(accept)),
   assetAction:p=>enqueue(()=>update(p)),
   bindings:shortcuts(library.settings.shortcuts),resetCopy:()=>{lastCopy.current=null;},
   async rename(book){const name=(await textPrompt('书签名称',book.name))?.trim();if(!name||name===book.name)return;await patch([{id:book.id,expected:book,value:{...book,name}}]);},

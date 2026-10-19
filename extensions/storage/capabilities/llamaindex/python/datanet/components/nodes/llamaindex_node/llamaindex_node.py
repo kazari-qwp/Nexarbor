@@ -7,6 +7,7 @@ from hashlib import sha256
 from datanet.core.storage_paths import storage_path
 from .storage import VersionStorage
 from .local_fs import local_filesystem
+from .startup import require_vector_runtime,remote_enabled,remote_call,RemoteEmbedding
 from datanet.core.node import Node, NodeResult
 
 class LlamaIndexNode(Node):
@@ -44,6 +45,7 @@ class LlamaIndexNode(Node):
 
     @staticmethod
     def _documents(input_files):
+        require_vector_runtime()
         if not isinstance(input_files, list) or not input_files:
             raise ValueError('input_files 必须是非空文件路径列表')
         if any((not isinstance(p, (str, Path)) or not str(p).strip() for p in input_files)):
@@ -57,15 +59,23 @@ class LlamaIndexNode(Node):
             raise ValueError('未读取到文档')
         return documents
 
+    def _remote(self):
+        return remote_enabled(self.embedding_config,self._embed_model)
+
     @property
     def embed_model(self):
+        if self._remote():
+            if self._embed_model is None:self._embed_model=RemoteEmbedding()
+            return self._embed_model
         if self._embed_model is None:
+            require_vector_runtime()
             from llama_index.embeddings.huggingface import HuggingFaceEmbedding
             config = self.embedding_config
             self._embed_model = HuggingFaceEmbedding(model_name=config['model_path'], local_files_only=True, device=config['device'], max_length=config['max_length'], embed_batch_size=config['batch_size'])
         return self._embed_model
 
     def _load_folder(self, folder):
+        require_vector_runtime()
         from llama_index.core import StorageContext, load_index_from_storage
         from llama_index.core.node_parser import SentenceSplitter
         settings = json.loads((folder / 'node_config.json').read_text(encoding='utf-8'))
@@ -82,6 +92,8 @@ class LlamaIndexNode(Node):
         return (self.storage_path / 'current.json').exists()
 
     def ingest(self, input_files, *, chunk_size=512, chunk_overlap=64):
+        if self._remote():return remote_call(self,'ingest',([str(p) for p in input_files],),dict(chunk_size=chunk_size,chunk_overlap=chunk_overlap))
+        require_vector_runtime()
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock, self._storage.lock:
             return self._ingest(input_files, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
@@ -103,6 +115,7 @@ class LlamaIndexNode(Node):
         return {'status': 'ok', 'documents': len(documents), 'chunks': len(index.index_struct.nodes_dict)}
 
     def load(self):
+        if self._remote():return remote_call(self,'load')
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock, self._storage.lock:
             self._refresh()
@@ -119,11 +132,13 @@ class LlamaIndexNode(Node):
             self._version = version
 
     def update_documents(self, input_files):
+        if self._remote():return remote_call(self,'update_documents',([str(p) for p in input_files],))
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock, self._storage.lock:
             return self._update_documents(input_files)
 
     def delete_documents(self, input_files):
+        if self._remote():return remote_call(self,'delete_documents',([str(p) for p in input_files],))
         paths={str(Path(path).resolve()) for path in input_files}
         self.storage_path.parent.mkdir(parents=True,exist_ok=True)
         with self._lock,self._storage.lock:
@@ -161,6 +176,8 @@ class LlamaIndexNode(Node):
         return self.search(query, top_k)
 
     def search(self, query, top_k=5):
+        if self._remote():return NodeResult(**remote_call(self,'search',(query,top_k)))
+        require_vector_runtime()
         self._validate_query(query, top_k)
         self.storage_path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock, self._storage.lock:

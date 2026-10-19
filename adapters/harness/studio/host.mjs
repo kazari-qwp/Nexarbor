@@ -8,24 +8,30 @@ import {MakerManager} from './makers/manager.mjs';
 import {nativeMakerFactory} from './makers/connection.mjs';
 import {installApplicationPresets} from './application-presets.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
-export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,components=[],templates=[],onOpenNetwork}={}){
+export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,components=[],templates=[],onOpenNetwork,onProgress=()=>{}}={}){
  await fs.mkdir(directory,{recursive:true});const temporary=path.join(directory,'temp');await fs.mkdir(temporary,{recursive:true});
  const profile=JSON.parse(await fs.readFile(path.join(root,'extensions/development/extension.json'),'utf8'));profile.select=[...new Set([...profile.select,...components])];
- const child=spawn(python,[path.join(root,'adapters/harness/studio/server.py'),directory],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1',PYTHONPATH:path.join(root,'python'),DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:path.join(root,'extensions/development'),DATANET_COMPONENT_SELECTION:JSON.stringify(profile.select),DATANET_COMPONENT_PROFILE:'{}',...(initialNetwork?{DATANET_INITIAL_NETWORK:path.resolve(initialNetwork)}:{}),TEMP:temporary,TMP:temporary,TMPDIR:temporary}});
+ onProgress('正在恢复网络…');const startTime=performance.now(),timings={};const mark=name=>{timings[name]=Math.round(performance.now()-startTime);};
+ const child=spawn(python,[path.join(root,'adapters/harness/studio/server.py'),directory],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1',DATANET_DEFER_VECTORS:'1',PYTHONPATH:path.join(root,'python'),DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:path.join(root,'extensions/development'),DATANET_COMPONENT_SELECTION:JSON.stringify(profile.select),DATANET_COMPONENT_PROFILE:'{}',...(initialNetwork?{DATANET_INITIAL_NETWORK:path.resolve(initialNetwork)}:{}),TEMP:temporary,TMP:temporary,TMPDIR:temporary}});
  let serial=0,closed=false;const pending=new Map();let diagnostics='';child.stderr.on('data',chunk=>{diagnostics=(diagnostics+chunk).slice(-16000);});
  const official=new OfficialToolsRunner(directory);let officialTools=[],runtimeTools=[],toolError=null;
  const native=new NativeRunner(directory,(method,params)=>rpc(method,params));
  const lines=readline.createInterface({input:child.stdout});lines.on('line',line=>{try{const response=JSON.parse(line);if(response.notification){native.notify();return;}if(response.host_id){(response.method.startsWith('network-admin-')?adminRequest(response.method.slice(14),response.params):response.method==='official-tool-invoke'?official.request('invoke',response.params):native.request(response.method,response.params)).then(result=>child.stdin.write(JSON.stringify({host_id:response.host_id,result})+'\n'),error=>child.stdin.write(JSON.stringify({host_id:response.host_id,error:error.message})+'\n'));return;}const p=pending.get(response.id);if(!p)return;pending.delete(response.id);clearTimeout(p.timer);Object.hasOwn(response,'error')?p.reject(Error(response.error||'宿主调用失败，未提供错误说明')):p.resolve(response.result);}catch{}});
  const fail=error=>{for(const p of pending.values()){clearTimeout(p.timer);p.reject(error);}pending.clear();};
- child.on('error',fail);child.on('exit',code=>fail(Error('开发后端已退出 '+code+'\n'+diagnostics)));
- const rpc=(method,params={})=>new Promise((resolve,reject)=>{if(closed)return reject(Error('后端已关闭'));const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('开发操作超时：'+method));},method==='studio_pulse'?(Math.min(3600,params.timeout_seconds??300*(params.cycles??1))+30)*1000:method==='executor_run'?660000:45000);pending.set(id,{resolve,reject,timer});child.stdin.write(JSON.stringify({id,method,params})+'\n');});
+ child.stdin.on('error',fail);child.on('error',fail);child.on('exit',code=>fail(Error('开发后端已退出 '+code+'\n'+diagnostics)));
+ const rpc=(method,params={})=>new Promise((resolve,reject)=>{if(closed||child.exitCode!==null)return reject(Error('后端已关闭'));const id=++serial,timer=setTimeout(()=>{pending.delete(id);reject(Error('开发操作超时：'+method));},method==='studio_pulse'?(Math.min(3600,params.timeout_seconds??300*(params.cycles??1))+30)*1000:method==='executor_run'?660000:method==='data_preview'||method==='module_access'?240000:45000);pending.set(id,{resolve,reject,timer});child.stdin.write(JSON.stringify({id,method,params})+'\n');});
+ let officialLoading=null,officialState='idle',officialNeeded=false;
+ const loadOfficial=()=>officialLoading??=(async()=>{officialState='loading';try{const tools=await official.start();await rpc('official_register',{tools});officialTools=tools.map(t=>({...t,ref:'harness:'+t.name,provider:'harness'}));officialState='ready';toolError=null;return officialTools;}catch(error){officialState='error';toolError=error.message;officialLoading=null;await official.close();throw error;}})();
  let openingNetwork=false;
  const request=async(operation,params)=>{
+  if(operation==='startup.status')return {timings,officialState,toolError,vector:await rpc('studio_vector_status')};
+  if(operation==='apply'){const needed=params.document.network.nodes.some(n=>(n.offered_tools??[]).some(o=>o.ref.startsWith('harness:')));if(needed)await loadOfficial();const result=await rpc('studio_apply',params);officialNeeded=needed;return result;}
+  if(officialNeeded&&['module.call','tools.visit','run','view'].includes(operation))await loadOfficial();
   if(operation==='preset.open'){
    if(!onOpenNetwork)throw Error('请通过 Nexarbor 桌面客户端打开完整网络');
    if(openingNetwork)throw Error('正在打开完整网络');
-   const {storedNetworks}=await import('../framework/stored-networks.js'),preset=(await storedNetworks(directory).list()).presets.find(p=>p.id===params.id&&p.storageKind==='network');
-   if(!preset||!preset.snapshot.nodes.some(n=>n.node_id==='root'))throw Error('该预设没有根节点，请将它拖入当前网络使用');
+   const {storedNetworks}=await import('../framework/stored-networks.js'),preset=await storedNetworks(directory).load(params.id);
+   if(preset.storageKind!=='network'||!preset.snapshot.nodes.some(n=>n.node_id==='root'))throw Error('该预设没有根节点，请将它拖入当前网络使用');
    openingNetwork=true;setTimeout(()=>Promise.resolve(onOpenNetwork(preset)).catch(()=>{}).finally(()=>{openingNetwork=false;}),150);
    return {opening:true,name:preset.name};
   }
@@ -42,8 +48,9 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(operation==='module.frontend')return rpc('studio_frontend',params);
   if(['state','draft','apply','view'].includes(operation))return rpc('studio_'+operation,params);
   if(operation==='catalog'){
+   if(params.official)await loadOfficial();
    const catalog=await rpc('studio_catalog');const presets=[];const moduleTools=Object.values(catalog.library).flatMap(m=>(m.manifest.agent_tools??[]).map(t=>{const operation=m.manifest.operations.find(o=>o.name===t.operation);return {ref:'module:'+m.id+'/'+t.id,name:t.name,description:t.description,parameters:operation.parameters,channels:operation.channels,provider:'module',module:m.id,requires:[m.id],tools:[],display_folder:m.origin_kind==='tool'?m.display_folder:undefined};}));
-   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.name??m.manifest.name??m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,requires:m.manifest.requires??[],tools:(m.manifest.agent_tools??[]).map(t=>'module:'+m.id+'/'+t.id),version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,state_schema:m.manifest.state_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库',display_folder:m.origin_kind==='tool'?undefined:m.display_folder}])),nodes:[...editorNodes(),...await rpc('data_templates')],presets,canOpenNetworks:!!onOpenNetwork,studio:true,tools:[...officialTools,...runtimeTools,...moduleTools],toolError,contract:catalog.contract};
+   return {modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{label:m.name??m.manifest.name??m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,requires:m.manifest.requires??[],tools:(m.manifest.agent_tools??[]).map(t=>'module:'+m.id+'/'+t.id),version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,state_schema:m.manifest.state_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库',display_folder:m.origin_kind==='tool'?undefined:m.display_folder}])),nodes:[...editorNodes(),...await rpc('data_templates')],presets,toolsReady:officialState==='ready',canOpenNetworks:!!onOpenNetwork,studio:true,tools:[...officialTools,...runtimeTools,...moduleTools],toolError,contract:catalog.contract};
   }
   if(operation==='preset'){
    if(!/^[a-zA-Z0-9_-]+$/.test(params.id))throw Error('Invalid preset');
@@ -70,14 +77,20 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   }
   throw Error('此开发工作台未启用该业务入口：'+operation);
  };
- await rpc('ping');await installApplicationPresets(directory,root);
+ let closeJob;
+ const close=()=>closeJob??=(async()=>{await server?.close();await makers?.close();await native.close();await official.close();if(child.exitCode===null)await rpc('studio_vector_close').catch(()=>{});closed=true;child.stdin.end();await new Promise(resolve=>{if(child.exitCode!==null)return resolve();const timer=setTimeout(()=>{child.kill();resolve();},10000);child.once('exit',()=>{clearTimeout(timer);resolve();});});fail(Error('开发后端已关闭'));})();
+ let server,makers,adminRequest;
+ try{
+ await rpc('ping');mark('pythonReady');onProgress('正在准备画布…');officialNeeded=await rpc('studio_official_needed');await installApplicationPresets(directory,root,{returnPresets:false});mark('presetsReady');
  if(components.includes('capabilities/runtime_ports'))runtimeTools=(await rpc('runtime_catalog')).map(t=>({...t,owner:'可选宿主端口'}));
  if(components.includes('capabilities/template_instantiation')){if(templates.length)await rpc('templates_register',{templates});runtimeTools.push(...(await rpc('templates_catalog')).map(t=>({...t,owner:'固定模板端口'})));}
- const makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory},callback))});await makers.initialize();
- const adminRequest=(method,p)=>{if(method==='start')return makers.start(p);if(method==='status')return makers.read(p);if(method==='cancel')return makers.cancel(p);throw Error('未知局部管理员宿主操作');};
- try{officialTools=await official.start();await rpc('official_register',{tools:officialTools});officialTools=officialTools.map(t=>({...t,ref:'harness:'+t.name,provider:'harness'}));}catch(error){toolError=error.message;await official.close();}
- const server=await startEditorServer({web:path.join(root,'extensions/editor/capabilities/network_editor/web'),directory,runtime:{components,templates},request,chat:(operation,p)=>rpc(operation==='chat.read'?'executor_read':'executor_run',p),recover:()=>{throw Error('请先保存完整开发恢复点');}});
- return {...server,directory,request,rpc:(method,p={})=>method.startsWith('studio_agent_')?request('studio.agent.'+method.slice(13),p):method==='studio_publish'?makers.publish(p):rpc(method,p),async close(){if(closed)return;await server.close();await makers.close();await native.close();await official.close();closed=true;child.stdin.end();await new Promise(resolve=>{if(child.exitCode!==null)return resolve();const timer=setTimeout(()=>{child.kill();resolve();},10000);child.once('exit',()=>{clearTimeout(timer);resolve();});});fail(Error('开发后端已关闭'));}};
+ makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory},callback))});await makers.initialize();
+ adminRequest=(method,p)=>{if(method==='start')return makers.start(p);if(method==='status')return makers.read(p);if(method==='cancel')return makers.cancel(p);throw Error('未知局部管理员宿主操作');};
+ // 原生 Agent 与制作运行器已有按需启动；官方工具同样不阻塞画布。
+ server=await startEditorServer({web:path.join(root,'extensions/editor/capabilities/network_editor/web'),directory,runtime:{components,templates},request,chat:async(operation,p)=>{if(operation!=='chat.read'&&officialNeeded)await loadOfficial();return rpc(operation==='chat.read'?'executor_read':'executor_run',p);},recover:()=>{throw Error('请先保存完整开发恢复点');}});
+ mark('ready');await fs.writeFile(path.join(directory,'startup-timings.json'),JSON.stringify(timings,null,2));
+ return {...server,directory,timings,request,rpc:(method,p={})=>method.startsWith('studio_agent_')?request('studio.agent.'+method.slice(13),p):method==='studio_publish'?makers.publish(p):rpc(method,p),close};
+ }catch(error){await close().catch(()=>{});throw error;}
 }
 export async function startStudioProfile(file,overrides={}){
  const base=path.dirname(path.resolve(file)),profile=JSON.parse(await fs.readFile(file,'utf8'));

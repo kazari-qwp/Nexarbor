@@ -8,7 +8,7 @@ export function resource(catalog,kind,id,organization={}){
  const spec=definition(catalog,kind,id);if(!spec)throw Error('该资源已不在当前目录中');
  const item=organization[kind]?.items?.[id]??{};
  const base={kind,name:item.name??(kind==='module'?spec.label:spec.name),description:spec.description??''};
- return ['node','preset'].includes(kind)?{...base,resourceId:id,mode:spec.mode,snapshot:clone(spec.snapshot),file:spec.file,storageKind:spec.storageKind}:{...base,asset:kind==='module'?{kind,id,...clone(spec.defaults??{config:{},state:{},access:{strength:0,channels:[]}})}:{kind,id,channels:clone(spec.channels??['tools'])}};
+ return ['node','preset'].includes(kind)?{...base,resourceId:id,mode:spec.mode,snapshot:spec.snapshot?clone(spec.snapshot):undefined,lazySnapshot:spec.lazySnapshot,nodeCount:spec.nodeCount,file:spec.file,storageKind:spec.storageKind}:{...base,asset:kind==='module'?{kind,id,...clone(spec.defaults??{config:{},state:{},access:{strength:0,channels:[]}})}:{kind,id,channels:clone(spec.channels??['tools'])}};
 }
 export function resources(catalog,kind,organization={},includeArchived=false){
  const ids=kind==='module'?Object.keys(catalog.modules??{}):kind==='tool'?(catalog.tools??[]).map(t=>t.ref):(catalog[kind==='node'?'nodes':'presets']??[]).map(t=>t.id);return ids.filter(id=>includeArchived||resourceAvailable(catalog,organization,kind,id)).map(id=>resource(catalog,kind,id,organization));

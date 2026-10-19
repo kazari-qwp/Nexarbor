@@ -17,9 +17,13 @@ export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
   if(!bookmark.snapshot.nodes.length&&bookmark.snapshot.edges.some(e=>Object.hasOwn(e,'source')||(bookmark.mode==='internal'&&Object.hasOwn(e,'target'))))throw Error('纯边书签不能保存起点，A 模式不能保存终点');
  };
  return async(operation,p={})=>{
+  if(operation==='editor.resource.load'){if(!['node','preset'].includes(p.kind))throw Error('该资源无需加载网络快照');return (p.kind==='node'?nodeStore:store).load(p.id);}
   const result=queue.then(async()=>{
    const library=await read();
-   const [stored,nodes]=await Promise.all([store.list(),nodeStore.list()]);library.presets=stored.presets;library.presetErrors=stored.errors;library.nodeTemplates=nodes.presets;library.nodeErrors=nodes.errors;
+   const summary=operation==='editor.library.index'||p.summary===true;
+   // 删除模块前仍检查所有磁盘预设的真实引用；目录展示无需读取正文。
+   const options={summary:summary&&!((operation==='editor.resource.inspect'||p.action==='asset.purge')&&['module','tool'].includes(p.kind))};
+   const [stored,nodes]=await Promise.all([store.list(options),nodeStore.list(options)]);library.presets=stored.presets;library.presetErrors=stored.errors;library.nodeTemplates=nodes.presets;library.nodeErrors=nodes.errors;
    const presetTree=library.assets.preset??={folders:[],items:{}};
    if(!presetTree.folders.some(f=>f.id==='stored-networks'))presetTree.folders.unshift({id:'stored-networks',name:'已存储网络',parent:null,system:true});
    for(const preset of library.presets)if(!Object.hasOwn(presetTree.items,preset.id))presetTree.items[preset.id]={folder:presetTree.folders.some(f=>f.id===preset.display_folder)?preset.display_folder:preset.storageKind==='network'?'stored-networks':null};
@@ -35,7 +39,7 @@ export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
    for(const kind of ['module','tool'])for(const spec of definitions(kind))if(spec.display_folder!==undefined&&!Object.hasOwn(library.assets[kind]?.items??{},spec.id)){
     const tree=library.assets[kind]??={folders:[],items:{}};tree.items[spec.id]={folder:tree.folders.some(f=>f.id===spec.display_folder)?spec.display_folder:null};reconciled=true;
    }
-   if(operation==='editor.library')return reconciled?write(library):library;
+   if(operation==='editor.library'||operation==='editor.library.index')return reconciled?write(library):library;
    if(operation==='editor.resource.inspect'){
     if(p.kind==='node')return library.nodeTemplates.some(n=>n.id===p.id)?nodeStore.inspect(p.id):{canDelete:false,reason:'官方节点模板不可彻底删除，可以归档或恢复'};
     if(p.kind==='preset')return store.inspect(p.id);
@@ -55,7 +59,7 @@ export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
     const folder=p.folder==null||inOfficial(p.folder)?'stored-nodes':p.folder;
     const existing=library.nodeTemplates.find(e=>e.originBookmark===book.id&&(nodeTree.items[e.id]?.folder??'stored-nodes')===folder);
     const template=await nodeStore.save({storageKind:'node',existingId:existing?.id,document:{network:{version:8,nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??book.snapshot.nodes[0].description??'',mode:book.mode,positions:book.snapshot.positions??{},originBookmark:book.id,display_folder:folder}});
-    library.nodeTemplates=(await nodeStore.list()).presets;nodeTree.items[template.id]??={folder};
+    library.nodeTemplates=(await nodeStore.list(options)).presets;nodeTree.items[template.id]??={folder};
     delete nodeTree.items[template.id].archivedAt;delete nodeTree.items[template.id].deletedAt;delete nodeTree.items[template.id].resource;
    }else if(p.action==='preset.save'){
     const book=library.bookmarks.find(b=>b.id===p.bookId);if(!book||book.asset||book.snapshot?.nodes.length<2)throw Error('请选择包含多个节点的网络书签');
@@ -64,17 +68,18 @@ export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
     const storageKind=ancestors.has('stored-networks')?'network':'fragment';
     const existing=library.presets.find(e=>e.storageKind===storageKind&&e.originBookmark===book.id&&(tree.items[e.id]?.folder??null)===(p.folder??null));
     const preset=await store.save({storageKind,existingId:existing?.id,document:{network:{version:8,nodes:structuredClone(book.snapshot.nodes),signals:{},delegations:[]},files:structuredClone(book.snapshot.files??{})},editor:{name:book.name,description:book.description??'',mode:book.mode,positions:book.snapshot.positions??{},originBookmark:book.id,display_folder:p.folder??null,runtime}});
-    library.presets=(await store.list()).presets;tree.items[preset.id]??={folder:p.folder??null};
+    library.presets=(await store.list(options)).presets;tree.items[preset.id]??={folder:p.folder??null};
     delete tree.items[preset.id].archivedAt;delete tree.items[preset.id].resource;
    }else if(p.action==='network.save'){
     if(typeof p.name!=='string'||!p.name.trim()||p.name.length>160||!p.document?.network?.nodes.some(n=>n.node_id==='root'))throw Error('完整网络需要名称和根节点');
     const preset=await store.save({storageKind:'network',document:structuredClone(p.document),editor:{name:p.name.trim(),mode:'internal',positions:p.layout??{},display_folder:'stored-networks',runtime}});
-    library.presets=(await store.list()).presets;presetTree.items[preset.id]={folder:'stored-networks'};
+    library.presets=(await store.list(options)).presets;presetTree.items[preset.id]={folder:'stored-networks'};
    }else if(['asset.archive','asset.restore','asset.purge'].includes(p.action)){
     if(!['tool','module','node','preset'].includes(p.kind))throw Error('无效资源类型');library.assets[p.kind]??={folders:[],items:{}};const tree=library.assets[p.kind];
     const entries=p.action==='asset.purge'?[{id:p.id}]:p.entries;if(!Array.isArray(entries)||!entries.length||entries.length>1000)throw Error('请选择资源');
     for(const {id} of entries){
-     const spec=definition(p.kind,id);if(typeof id!=='string'||!spec)throw Error('资源已不在目录中');
+     let spec=definition(p.kind,id);
+     if(p.action==='asset.archive'&&spec?.lazySnapshot)spec=await (p.kind==='node'?nodeStore:store).load(id);if(typeof id!=='string'||!spec)throw Error('资源已不在目录中');
      if(!Object.hasOwn(tree.items,id))Object.defineProperty(tree.items,id,{value:{folder:null},enumerable:true,writable:true,configurable:true});const item=tree.items[id];
      if(p.action==='asset.archive'){delete item.deletedAt;item.archivedAt=Date.now();item.resource={kind:p.kind,name:item.name??(p.kind==='module'?spec.label:spec.name),description:spec.description??'',...(['node','preset'].includes(p.kind)?{resourceId:id,mode:spec.mode,storageKind:spec.storageKind,snapshot:structuredClone(spec.snapshot)}:{asset:p.kind==='module'?{kind:p.kind,id,...structuredClone(spec.defaults)}:{kind:p.kind,id,channels:['tools']}})};}
      else if(p.action==='asset.restore'){if(item.deletedAt)throw Error('资源已彻底删除');delete item.archivedAt;delete item.resource;}

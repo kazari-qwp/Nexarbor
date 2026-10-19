@@ -13,6 +13,16 @@ import os,json
 class StudioTransport(Transport):
     def dispatch(self,method,p):
         # Long Agent work yields to callback RPCs; each tool still commits atomically.
+        if method=='studio_vector_close':
+            from datanet.components.nodes.llamaindex_node.startup import close
+            close();return True
+        if method=='studio_vector_status':
+            from datanet.components.nodes.llamaindex_node.startup import status
+            return status()
+        if method=='studio_official_needed':
+            return any(o['ref'].startswith('harness:') for n in self.backend.network.nodes.values() for o in n.offered_tools)
+        if method=='data_preview':
+            return self.backend.components.routes['data_preview'](self.backend,p)
         if method=='official_register':
             async def execute(actor,name,arguments):
                 return await asyncio.to_thread(self.host,'official-tool-invoke',dict(actor=actor,name=name,arguments=arguments))
@@ -59,4 +69,9 @@ def main():
     transport.run(sys.stdin)
 
 if __name__=='__main__':
-    sys.stdin.reconfigure(encoding='utf-8');sys.stdout.reconfigure(encoding='utf-8');main()
+    sys.stdin.reconfigure(encoding='utf-8');sys.stdout.reconfigure(encoding='utf-8')
+    try:main()
+    except Exception:
+        # 初始化中途失败也可能已经创建运行线程；必须退出并释放本进程的工作区锁。
+        import traceback
+        traceback.print_exc();sys.stderr.flush();os._exit(1)
