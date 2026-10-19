@@ -61,6 +61,7 @@ class Studio:
         self.backend=backend;self.root=backend.directory/'studio';self.root.mkdir(exist_ok=True)
         self.work=self.root/'work';self.work.mkdir(exist_ok=True)
         self.removed=set(read_json(self.root/'removed-modules.json',[]))
+        backend.modules.allow_missing=True
         self.project_only=os.environ.get('DATANET_PROJECT_RESOURCES_ONLY')=='1'
         self.standard_releases={}
         for name,source in getattr(backend.components,'standard_modules',{}).items():
@@ -110,35 +111,48 @@ class Studio:
         write_json(file,self.library)
 
     def _load_releases(self):
-        visiting=set();done=set();factories={}
+        visiting=set();done=set();factories={};issues=dict(getattr(self,'source_issues',{}))
         def load(name):
-            if name in done:return
-            if name in visiting:raise ValueError('Module dependency cycle')
-            visiting.add(name);release=self.library[name]
-            folder=self.root/release['folder']
-            if digest(sources(folder))!=release['digest']:raise ValueError('Published module changed: '+name)
-            spec=manifest(folder)
-            for dependency in spec['requires']:
-                if dependency not in self.library:raise ValueError('Missing module dependency: '+dependency)
-                if self.project_only and self.library[dependency].get('origin')!='project':raise ValueError('请先下载依赖模块到项目：'+dependency)
-                load(dependency)
-            reserved=getattr(self.backend.components,'module_extensions',{}).get(name)
-            if reserved:
-                official=self.backend.components.standard_modules.get(name)
-                if not official or digest(sources(official['folder']))!=self.library[name]['digest']:raise PermissionError('官方扩展模块不能由制作产物替换：'+name)
-                create=reserved[0]
-            else:spec,create=factory(folder)
-            factories[name]=create
-            visiting.remove(name);done.add(name)
+            if name in done:return name in factories
+            if name in visiting:
+                issues[name]='模块依赖成环：'+name;return False
+            release=self.library.get(name)
+            if name in getattr(self,'source_issues',{}):done.add(name);return False
+            if release is None or self.project_only and release.get('origin')!='project':
+                issues.setdefault(name,'缺少本地模块：'+name);done.add(name);return False
+            visiting.add(name)
+            try:
+                folder=self.root/release['folder']
+                if digest(sources(folder))!=release['digest']:raise ValueError('模块文件发生变化，请重新载入：'+name)
+                spec=manifest(folder)
+                for dependency in spec['requires']:
+                    if not load(dependency):
+                        issues[name]='依赖模块不可用：'+dependency+'；'+issues[dependency][:240]
+                        done.add(name);return False
+                reserved=getattr(self.backend.components,'module_extensions',{}).get(name)
+                if reserved:
+                    official=self.backend.components.standard_modules.get(name)
+                    if not official or digest(sources(official['folder']))!=release['digest']:raise PermissionError('官方模块文件与宿主接口不匹配：'+name)
+                    create=reserved[0]
+                else:spec,create=factory(folder)
+                factories[name]=create;done.add(name);return True
+            except Exception as error:
+                issues[name]='模块无法加载：'+name+'；'+(str(error) or type(error).__name__).splitlines()[0][:220]
+                done.add(name);return False
+            finally:visiting.discard(name)
         for name,release in self.library.items():
             if not self.project_only or release.get('origin')=='project':load(name)
-        if self.project_only:
-            for name in self.library:
-                if name not in factories:
-                    self.backend.components.module_types.pop(name,None);self.backend.components.module_owners.pop(name,None)
+        for name in set(self.library)|set(issues):
+            if name not in factories:
+                self.backend.components.module_types.pop(name,None);self.backend.components.module_owners.pop(name,None)
         for name,create in factories.items():
             self.backend.components.module_types[name]=create
             self.backend.components.module_owners[name]='capabilities/component_studio'
+        self.module_issues=issues;self.backend.components.module_issues=issues
+        self.backend.components.module_dependencies={name:release['manifest']['requires'] for name,release in self.library.items()}
+    def module_problem(self,name):
+        if name in self.backend.components.module_types:return None
+        return self.module_issues.get(name,'缺少本地模块：'+name)
     def folder(self,id):
         if not isinstance(id,str) or not re.fullmatch('[a-zA-Z0-9_-]{1,80}',id):raise ValueError('Invalid work copy ID')
         target=(self.work/id).resolve()
@@ -150,7 +164,7 @@ class Studio:
         return target
     def catalog(self,p=None):
         samples=read_json(RESOURCE/'samples.json',[])
-        library={name:dict(release,name=release['manifest'].get('name') or getattr(self.backend.components,'standard_modules',{}).get(name,{}).get('manifest',{}).get('name') or release['manifest'].get('frontend',{}).get('title') or name) for name,release in self.library.items()}
+        library={name:dict(release,available=self.module_problem(name) is None,unavailableReason=self.module_problem(name),name=release['manifest'].get('name') or getattr(self.backend.components,'standard_modules',{}).get(name,{}).get('manifest',{}).get('name') or release['manifest'].get('frontend',{}).get('title') or name) for name,release in self.library.items()}
         return dict(workspaces=[dict(id=p.name,**read_json(p/'workspace.json',{})) for p in self.work.iterdir() if p.is_dir()],
                     samples=samples,library=library,jobs=list(self.jobs.values()),contract='nexarbor-module/v3')
     def create(self,p):
@@ -510,8 +524,11 @@ class Studio:
     def _bind(self):
         from .sdk_services import bind_modules
         for node in self.backend.network.nodes.values():
-            for name,spec in assemble(dict(type=node.signal_type,modules=node.modules),self.library,self.backend.components.module_types).items():
-                if name not in node.modules:self.backend.modules.mount(node.node_id,name,spec['config'],spec['state'],access=spec['access'])
+            for name,spec in assemble(dict(type=node.signal_type,modules=node.modules),{k:v for k,v in self.library.items() if k in self.backend.components.module_types and (node.node_id,k) not in self.backend.modules.unavailable},self.backend.components.module_types,allow_missing=True).items():
+                if name not in node.modules and name in self.backend.components.module_types:
+                    try:self.backend.modules.mount(node.node_id,name,spec['config'],spec['state'],access=spec['access'])
+                    except Exception as error:
+                        node.modules[name]=deepcopy(spec);self.backend.modules.unavailable[(node.node_id,name)]='模块无法装配：'+name+'；'+(getattr(error,'message',str(error)) or type(error).__name__).splitlines()[0][:220]
         bind_modules(self.backend)
     def town(self,p):
         raise ValueError('The previous town preset has not been migrated to component v3')
@@ -540,7 +557,8 @@ class Studio:
         snapshot=self.backend.snapshot();document=snapshot['network']
         files={name:content if content is not None else '' for name,content in snapshot['files'].items()}
         names={entry['node_id']:entry['name'] for entry in document['nodes']}
-        return dict(mode='组件开发 · Harness后端',live=dict(document=dict(network=document,files=files),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),
+        problems={node.node_id:{name:self.backend.modules.unavailable[(node.node_id,name)] for name in node.modules if (node.node_id,name) in self.backend.modules.unavailable} for node in self.backend.network.nodes.values()}
+        return dict(moduleProblems={node:entries for node,entries in problems.items() if entries},mode='组件开发 · Harness后端',live=dict(document=dict(network=document,files=files),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),
                     job=dict(self.run_state),studio=True)
     def draft(self,p):
         previous=read_json(self.root/'draft.json',{'version':0})
@@ -553,7 +571,7 @@ class Studio:
             raise ValueError('Wait until component access and detached signals complete before replacing the graph')
         if p.get('base_commit')!=self.backend.store.head:raise ValueError('Network changed; reload before applying')
         from .network_work import validate_network
-        document=validate_network(p['document'],self.backend,self.library);candidate=_build(document['network'],self.backend.directory)
+        document=validate_network(p['document'],self.backend,self.library,allow_missing=True);candidate=_build(document['network'],self.backend.directory)
         for node in candidate.nodes.values():
             self.backend.external_tools.validate_node(node)
             if hasattr(node,'file_path') and not node.file_path.is_relative_to(self.backend.directory):raise ValueError('Data files must stay in the network directory')
@@ -578,7 +596,8 @@ class Studio:
         draft=read_json(self.root/'draft.json',{'version':0})
         draft.update(document=document,layout=p.get('layout',{}),applied=True)
         write_json(self.root/'draft.json',draft)
-        return dict(valid=True,document=document,draft=draft,commit=self.backend.store.head)
+        warnings=[node+'/'+name+'：'+reason for (node,name),reason in self.backend.modules.unavailable.items()]
+        return dict(valid=True,document=document,draft=draft,commit=self.backend.store.head,warnings=warnings)
     def view(self,p):
         actor=p['actor'];strength=p.get('strength',2);paths={}
         channels={channel for n in self.backend.network.nodes.values() for edge in n.interfaces for channel in edge.metadata.channels}
@@ -591,8 +610,9 @@ class Studio:
     def graph_validate(self,p):
         try:
             from .network_work import validate_network
-            validate_network(p['document'],self.backend,self.library)
-            return dict(valid=True,errors=[],warnings=[])
+            document=validate_network(p['document'],self.backend,self.library,allow_missing=p.get('allow_missing',False))
+            warnings=[node['name']+'：'+problem for node in document['network']['nodes'] for name in node['modules'] if (problem:=self.module_problem(name))]
+            return dict(valid=True,errors=[],warnings=warnings)
         except Exception as error:return dict(valid=False,errors=[dict(path='network',message=str(error))],warnings=[])
     def close(self):
         if getattr(self,'closed',False):return

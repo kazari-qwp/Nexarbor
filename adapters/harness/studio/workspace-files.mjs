@@ -55,7 +55,7 @@ export class WorkspaceFiles{
   if(!portable&&(!bundle?.network||!bundle?.files))throw Error('请选择 Nexarbor 网络文件');
   const document=clone(portable?bundle.document:bundle);
   if(document?.network?.version!==8||!Array.isArray(document.network.nodes)||!document.files||typeof document.files!=='object'||new Set(document.network.nodes.map(n=>n.node_id)).size!==document.network.nodes.length||document.network.nodes.some(n=>typeof n.node_id!=='string'||typeof n.name!=='string'||typeof n.type!=='string'||!Array.isArray(n.connections?.interfaces)||!n.modules||!n.parameters))throw Error('网络文档结构无效');
-  const check=await this.rpc('studio_graph_validate',{document});
+  const check=await this.rpc('studio_graph_validate',{document,allow_missing:true});
   const agents=portable?clone(bundle.agents??{}):{},prefixes=portable?bundle.contexts??{}:{},nodes=new Map(document.network.nodes.map(n=>[n.node_id,n]));
   for(const [id,binding] of Object.entries(agents))if(nodes.get(id)?.type!=='agent'||typeof binding!=='object'||(binding.session_id&&!prefixes[id]))throw Error('网络文件缺少 Agent 日志前缀：'+id);
   for(const id of Object.keys(prefixes))if(nodes.get(id)?.type!=='agent'||agents[id]?.session_id!==prefixes[id].cursor?.session_id)throw Error('日志标记与 Agent 节点不匹配：'+id);
@@ -67,7 +67,7 @@ export class WorkspaceFiles{
  }
  async apply(p){
   const state=await this.rpc('studio_state');if(p.base_commit!==state.live.commit)throw Error('网络已经变化，请刷新后再校验并更新');
-  const check=await this.rpc('studio_graph_validate',{document:p.document});if(!check.valid)return check;
+  const check=await this.rpc('studio_graph_validate',{document:p.document,allow_missing:true});if(!check.valid)return check;
   const saved=await this.state(),imported=p.importToken&&p.importToken===saved?.importToken;
   let agents,contexts,base_commit=p.base_commit;
   if(imported){agents=clone(saved.agents);contexts=clone(saved.contexts);}

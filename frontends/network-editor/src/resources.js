@@ -47,7 +47,7 @@ export function nodeTools(node,catalog){
 }
 export function completeModules(document,catalog){
  let result=document;
- for(const node of document.network.nodes)for(const [id,spec] of Object.entries(node.modules??{}))if(catalog.modules?.[id])result=attachResource(result,node.node_id,{kind:'module',id,...clone(spec)},catalog);
+ for(const node of document.network.nodes)for(const [id,spec] of Object.entries(node.modules??{}))if(catalog.modules?.[id]&&catalog.modules[id].available!==false)result=attachResource(result,node.node_id,{kind:'module',id,...clone(spec)},catalog);
  return result;
 }
 export function resourceRelations(value,catalog){
@@ -71,3 +71,12 @@ export function folderResources(tree,entries,id){
 export const assetHistory=book=>({kind:book.asset.kind,id:book.id??book.asset.id,label:book.name,description:book.description??'',asset:clone(book.asset)});
 export const contentType=value=>isAsset(value)?value.asset.kind:!value.snapshot?.nodes.length?(value.kind==='preset'||value.storageKind==='network'?'network':'edge'):value.snapshot.nodes.length===1?'node':'network';
 export const matchesType=(value,type)=>type==='all'||contentType(value)===type||(['internal','external'].includes(type)&&contentType(value)==='network'&&value.mode===type);
+
+export function moduleProblems(node,catalog,runtime={}){
+ const result={};for(const id of Object.keys(node.modules??{})){
+  const definition=catalog.modules?.[id],reported=runtime[node.node_id]?.[id];
+  if(definition?.available===false)result[id]=definition.unavailableReason??('缺少本地模块：'+id);
+  else if(reported)result[id]=definition&&/^(缺少|模块源码缺失)/.test(reported)?'模块尚未装配，请校验并更新网络：'+id:reported;
+  else if(!definition)result[id]='缺少本地模块：'+id;
+ }return result;
+}

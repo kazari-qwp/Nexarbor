@@ -25,17 +25,21 @@ def scan(studio):
     from .contract import manifest
     root=Path(os.environ.get('DATANET_PROJECT_DIRECTORY',studio.backend.directory)).resolve()/'modules'
     metadata=read_json(root.parent/'nexarbor.json',{}).get('resources',{}).get('modules',{})
-    result={};errors=[]
+    result={};errors=[];studio.source_issues={}
     if not root.is_dir():return result
     for folder in sorted(root.iterdir()):
         if not folder.is_dir() or folder.name.startswith('.'):continue
         try:
             if not folder.resolve().is_relative_to(root.resolve()):raise ValueError('模块不能链接到项目目录之外')
+            missing=[name for name in ('module.json','module.py') if not (folder/name).is_file()]
+            if missing:
+                studio.source_issues[folder.name]='模块源码缺失：'+folder.name+'（'+', '.join(missing)+'）'
+                continue
             spec=manifest(folder);name=spec['id']
             if folder.name!=name:raise ValueError('模块目录名必须与 module.json 的 id 一致')
             files=sources(folder);defaults=read_json(folder/'example.json',{})
             result[name]=dict(id=name,version=spec['version'],digest=digest(files),folder=str(folder.resolve()),manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin_kind=metadata.get(name,{}).get('origin_kind','module'),display_folder=metadata.get(name,{}).get('display_folder'),origin='project')
-        except Exception as error:errors.append(folder.name+'：'+str(error))
+        except Exception as error:studio.source_issues[folder.name]='模块文件无法读取：'+folder.name+'；'+(str(error) or type(error).__name__).splitlines()[0][:220]
     if errors:raise ValueError('项目模块读取失败：'+'；'.join(errors))
     return result
 

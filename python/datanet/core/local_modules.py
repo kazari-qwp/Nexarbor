@@ -80,12 +80,16 @@ class NodeModules:
         self._owners, self._nodes = {}, {}
         self._bindings = []
         self.executing = 0
+        # 工作室可保留不可装配的声明；默认宿主仍严格拒绝。
+        self.allow_missing = False
+        self.unavailable = {}
 
     def _check(self, key, generation=None):
         self.backend.node_locks._check()
         if generation is not None and self._generations.get(key) is not generation:
             raise PermissionError('Module instance has been replaced')
         instance = self.instances.get(key)
+        if instance is None and key in self.unavailable:raise PermissionError(self.unavailable[key])
         if instance is None or not instance.active: raise PermissionError('Node module is not active')
         owner = self._owners.get(key)
         if owner and owner not in self.backend.components.enabled:
@@ -518,6 +522,8 @@ class NodeModules:
         return {key[1]: self._published[key]}
 
     def _remove(self, key, *, unmount=False):
+        if key not in self.instances:
+            self.unavailable.pop(key,None);return
         instance = self.instances[key]
         try:
             # Teardown may release its own resources; API authority is not reactivated.
@@ -537,6 +543,7 @@ class NodeModules:
     def clear(self):
         for node, runtime in self._bindings: runtime.unbind(node)
         self._bindings = []
+        self.unavailable = {}
         errors = []
         for key in reversed(list(self.instances)):
             try: self._remove(key)
@@ -552,9 +559,30 @@ class NodeModules:
             for node in self.backend.network.nodes.values():
                 validate_modules(node.modules)
                 for name, spec in node.modules.items():
-                    if name not in self.factories: raise ValueError('Missing node module component: ' + name)
-                    self.instances[(node.node_id, name)] = self.create(name, node, spec)
-            for key, instance in self.instances.items(): self._run(key, instance.install)
+                    if name not in self.factories:
+                        if not self.allow_missing:raise ValueError('Missing node module component: ' + name)
+                        self.unavailable[(node.node_id,name)]=getattr(self.backend.components,'module_issues',{}).get(name,'缺少模块实现：'+name)
+                        continue
+                    try:self.instances[(node.node_id, name)] = self.create(name, node, spec)
+                    except Exception as error:
+                        if not self.allow_missing:raise
+                        self.unavailable[(node.node_id,name)]='模块无法创建：'+name+'；'+(getattr(error,'message',str(error)) or type(error).__name__).splitlines()[0][:220]
+            for key, instance in list(self.instances.items()):
+                try:self._run(key, instance.install)
+                except Exception as error:
+                    if not self.allow_missing:raise
+                    try:self._remove(key)
+                    finally:self.instances.pop(key,None)
+                    self.unavailable[key]='模块无法装配：'+key[1]+'；'+(getattr(error,'message',str(error)) or type(error).__name__).splitlines()[0][:220]
+            if self.allow_missing:
+                dependencies=getattr(self.backend.components,'module_dependencies',{})
+                changed=True
+                while changed:
+                    changed=False
+                    for key in list(self.instances):
+                        dependency=next((dep for dep in dependencies.get(key[1],[]) if (key[0],dep) in self.unavailable),None)
+                        if dependency:
+                            self._remove(key);self.instances.pop(key,None);self.unavailable[key]='依赖模块不可用：'+dependency;changed=True
             self.bind_signals()
         except BaseException:
             self.clear()
@@ -599,9 +627,10 @@ class NodeModules:
     def bind_signals(self):
         runtime = self.backend.network.signals
         old = {node for node, bound in self._bindings if bound is runtime}
-        for key, module in self.instances.items():
+        for key, module in list(self.instances.items()):
             if module.active and module.receivers and key[0] in runtime.bindings and key[0] not in old:
-                raise ValueError('Node already has a host signal handler')
+                if not self.allow_missing:raise ValueError('Node already has a host signal handler')
+                self._remove(key);self.instances.pop(key,None);self.unavailable[key]='模块信号处理与节点宿主处理器冲突：'+key[1]
         for node, runtime in self._bindings: runtime.unbind(node)
         self._bindings = []; runtime = self.backend.network.signals
         for node in self.backend.network.nodes.values():

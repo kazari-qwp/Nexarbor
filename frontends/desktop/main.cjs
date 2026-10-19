@@ -2,11 +2,12 @@ const {app,BrowserWindow,dialog,Menu,shell,ipcMain}=require('electron');
 const fs=require('node:fs'),path=require('node:path');
 const {readConnection,localNavigation,activeConnection}=require('./connection.cjs');
 const {WorkspaceSession}=require('./workspace-session.cjs');
+const {requireProject,briefReason}=require('./project-launch.cjs');
 const {pathToFileURL}=require('node:url');
 const {createHash}=require('node:crypto');
 app.setName('Nexarbor Workbench');let window,studio,closing=false,workspaceHome;
 const started=performance.now(),retiring=new Set(),startup={};let transition=Promise.resolve(),desktopSession,projectMode=process.argv.some(value=>value==='--project'||value.startsWith('--project='));
-function enqueueStart(fn){const next=transition.catch(()=>{}).then(()=>closing?undefined:fn());transition=next;return next;}
+function enqueueStart(fn){const next=transition.catch(()=>{}).then(()=>closing?undefined:fn()).catch(projectFailed);transition=next;return next;}
 function open(...args){return enqueueStart(()=>startOpen(...args));}
 function development(...args){return enqueueStart(()=>startDevelopment(...args));}
 function openStoredNetwork(...args){return enqueueStart(()=>startStoredNetwork(...args));}
@@ -24,8 +25,18 @@ const folderProject=fs.existsSync(path.join(process.cwd(),'nexarbor.json'))?proc
 const userData=flag('--user-data-dir');if(userData){fs.mkdirSync(path.resolve(userData),{recursive:true});app.setPath('userData',path.resolve(userData));}
 const primary=app.requestSingleInstanceLock({project:flag('--project')??folderProject??null});
 if(!primary)app.quit();
-else app.on('second-instance',(_event,argv,_workingDirectory,additionalData)=>{if(window){if(window.isMinimized())window.restore();window.show();window.focus();}const index=argv.indexOf('--project'),chosen=additionalData?.project??(index>=0?argv[index+1]:argv.find(value=>value.startsWith('--project='))?.slice(10));if(chosen){switchProject(chosen).catch(error=>dialog.showErrorBox('无法打开项目',error.message));}});
+else app.on('second-instance',(_event,argv,_workingDirectory,additionalData)=>{if(window){if(window.isMinimized())window.restore();window.show();window.focus();}const index=argv.indexOf('--project'),chosen=additionalData?.project??(index>=0?argv[index+1]:argv.find(value=>value.startsWith('--project='))?.slice(10));if(chosen){switchProject(chosen).catch(projectFailed);}});
 
+// 所有项目打开失败统一回到项目首页；诊断独立保存，避免阻塞错误弹窗。
+async function projectFailed(error){
+ if(closing||!window||window.isDestroyed())return;
+ const reason=briefReason(error),previous=studio,failedHome=workspaceHome;
+ await flushPage().catch(()=>{});studio=null;workspaceHome=undefined;desktopSession=undefined;projectMode=false;
+ await fs.promises.writeFile(path.join(app.getPath('userData'),'last-project-error.json'),JSON.stringify({time:new Date().toISOString(),project:failedHome,reason,detail:String(error?.stack??error).replace(/([#&]token=)[a-f0-9]+/gi,'$1[redacted]').slice(-16000)},null,2)).catch(()=>{});
+ await window.loadFile(path.join(__dirname,'projects.html'),{hash:'reason='+encodeURIComponent(reason)});
+ if(previous){const job=previous.close().catch(()=>{}).finally(()=>retiring.delete(job));retiring.add(job);}
+ return {error:reason};
+}
 function projectRoot(){
  for(const start of [process.env.NEXARBOR_ROOT,__dirname].filter(Boolean)){
   let directory=path.resolve(start);
@@ -33,7 +44,7 @@ function projectRoot(){
  }
  throw Error('找不到项目开发后端。请设置 NEXARBOR_ROOT 指向包含源码和Python运行时的目录。');
 }
-async function startWorkspace(spec){
+async function startWorkspace(spec,startupWarnings=spec.startupWarnings??[]){
  let next;
  try{
   progress('正在恢复网络…');record('backendStarting');
@@ -41,17 +52,33 @@ async function startWorkspace(spec){
   const connection=await activeConnection(path.join(spec.directory,'editor-connection.json'));
   if(connection){await activate(connection,null,spec);return;}
   const root=projectRoot(),{startStudio}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href);
-  next=await startStudio({...spec,projectDirectory:workspaceHome,onOpenProject:()=>projectAction('open'),onCreateProject:()=>projectAction('new'),onRevealFile:file=>{shell.showItemInFolder(file);return {revealed:true};},onOpenNetwork:openStoredNetwork,onImportNetwork:bundle=>enqueueStart(()=>startImportedNetwork(bundle)),onProgress:progress});next.launchSpec=spec;record('backendReady');await activate(next.url,next,spec);
+  next=await startStudio({...spec,startupWarnings,projectDirectory:workspaceHome,onOpenProject:()=>projectAction('open'),onCreateProject:()=>projectAction('new'),onRevealFile:file=>{shell.showItemInFolder(file);return {revealed:true};},onOpenNetwork:openStoredNetwork,onImportNetwork:bundle=>enqueueStart(()=>startImportedNetwork(bundle)),onProgress:progress});next.launchSpec=spec;record('backendReady');await activate(next.url,next,spec);
  }catch(error){
   if(next&&next!==studio)await next.close().catch(()=>{});
   if(error.message.includes('runtime.lock'))for(let attempt=0;attempt<6;attempt++){const connection=await activeConnection(path.join(spec.directory,'editor-connection.json'));if(connection){await activate(connection,null,spec);return;}await new Promise(resolve=>setTimeout(resolve,400));}
-  if(closing)return;if(studio)await restoreStudio();else progress('工作区暂未就绪，请从工作台菜单重试');
-  await dialog.showMessageBox(window,{type:'error',title:'工作台未启动',message:error.message});
+  // 运行缓存坏了也先尝试项目中独立保存的网络；旧目录完整保留。
+  try{
+   const root=projectRoot(),{readProjectBundle}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/project.mjs')).href),bundle=await readProjectBundle(workspaceHome);
+   if(bundle){
+    const {startStudio}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href),recovery={...spec,directory:path.join(workspaceHome,'.nexarbor/runs','recovery-'+require('node:crypto').randomUUID()),initialNetwork:undefined,startupWarnings:[...startupWarnings,'原运行记录无法载入，已打开项目中保存的网络。原数据目录完整保留。原因：'+briefReason(error)]};
+    next=await startStudio({...recovery,projectDirectory:workspaceHome,onOpenProject:()=>projectAction('open'),onCreateProject:()=>projectAction('new'),onRevealFile:file=>{shell.showItemInFolder(file);return {revealed:true};},onOpenNetwork:openStoredNetwork,onImportNetwork:bundle=>enqueueStart(()=>startImportedNetwork(bundle)),onProgress:progress});next.launchSpec=recovery;await activate(next.url,next,recovery);return;
+   }
+  }catch(recoveryError){if(next&&next!==studio)await next.close().catch(()=>{});error=recoveryError;}
+  await projectFailed(error);
  }
 }
 async function startDevelopment(profile,{useWorkspace=false}={}){
  const root=projectRoot();workspaceHome??=path.resolve(flag('--project')??folderProject??flag('--workspace')??process.env.NEXARBOR_WORKSPACE??path.join(root,'build/workbench-v3'));desktopSession??=new WorkspaceSession(workspaceHome);
- if(useWorkspace&&!profile&&!flag('--network')){const saved=await desktopSession.read();if(saved.last){await startWorkspace(saved.last);return;}}
+ if(!profile&&!flag('--network'))await requireProject(workspaceHome);
+ const startupWarnings=[];
+ if(useWorkspace&&!profile&&!flag('--network')){
+  let saved;
+  try{saved=await desktopSession.read();}catch(error){
+   const {readProjectBundle}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/project.mjs')).href);if(!await readProjectBundle(workspaceHome))throw error;
+   const damaged=path.join(workspaceHome,'desktop-session.json');await fs.promises.rename(damaged,damaged+'.unreadable-'+require('node:crypto').randomUUID()+'.json');startupWarnings.push('上次打开位置的记录损坏，已从项目网络恢复；原记录已保留。');saved={};
+  }
+  if(saved.last){await startWorkspace(saved.last);return;}
+ }
  const defaultDirectory=(!projectMode&&flag('--workspace')||fs.existsSync(path.join(workspaceHome,'checkpoints.sqlite3')))?workspaceHome:path.join(workspaceHome,'.nexarbor/runs/main');
  let spec={directory:defaultDirectory,...(flag('--network')?{initialNetwork:path.resolve(flag('--network'))}:{})};
  if(profile){const base=path.dirname(path.resolve(profile)),config=JSON.parse(await fs.promises.readFile(profile,'utf8')),application=path.dirname(base)===path.join(root,'configs')?path.basename(base):undefined;
@@ -59,7 +86,7 @@ async function startDevelopment(profile,{useWorkspace=false}={}){
   const relative=path.relative(path.join(root,'build'),directory),inWorkspace=directory===workspaceHome||directory.startsWith(workspaceHome+path.sep);if(!inWorkspace&&(relative.startsWith('..')||path.isAbsolute(relative)))throw Error('应用运行目录须位于项目 build 内；其他目录请显式指定 --workspace');
   spec={directory,application,initialNetwork:config.network?path.resolve(base,config.network):undefined,components:config.components??[],templates:config.templates?JSON.parse(await fs.promises.readFile(path.resolve(base,config.templates),'utf8')):[]};
  }
- await startWorkspace(spec);
+ await startWorkspace(spec,startupWarnings);
 }
 async function startStoredNetwork(preset){
  const root=projectRoot(),key=preset.application??createHash('sha256').update(preset.file).digest('hex').slice(0,20);
@@ -93,15 +120,16 @@ async function createProject(){
  await project.initialize();await project.commitPaths(['nexarbor.json','.gitignore','打开项目.cmd','modules','tools','node_presets','network_presets','networks'],'初始化项目');
  await showLoading();await switchProject(directory);return {created:true,path:directory};
 }
-async function projectAction(action){try{return await (action==='new'?createProject():chooseProject());}catch(error){await dialog.showMessageBox(window,{type:'error',title:action==='new'?'无法新建项目':'无法打开项目',message:error.message});return {error:error.message};}}
+async function projectAction(action){try{return await (action==='new'?createProject():chooseProject());}catch(error){return projectFailed(error);}}
 function dispatch(name){if(localNavigation(window.webContents.getURL()))window.webContents.executeJavaScript('window.dispatchEvent(new Event('+JSON.stringify(name)+'))').catch(()=>{});}
 async function chooseProfile(){const result=await dialog.showOpenDialog(window,{title:'选择应用配置（profile.json）',properties:['openFile'],filters:[{name:'应用配置',extensions:['json']}]});if(!result.canceled)await development(result.filePaths[0]);}
 async function startOpen(file){
- try{workspaceHome??=path.dirname(path.resolve(file));desktopSession??=new WorkspaceSession(workspaceHome);const url=readConnection(file);await activate(url,null);fs.writeFileSync(path.join(app.getPath('userData'),'last-connection.json'),JSON.stringify({file:path.resolve(file)}));}
- catch(error){await dialog.showMessageBox(window,{type:'error',title:'无法打开工作台',message:'请先在 Harness 中启动工作台后重试。',detail:error.message});}
+ try{workspaceHome??=path.dirname(path.resolve(file));desktopSession??=new WorkspaceSession(workspaceHome);const url=readConnection(file);if(!await activeConnection(file))throw Error('工作台连接已经失效');await activate(url,null);fs.writeFileSync(path.join(app.getPath('userData'),'last-connection.json'),JSON.stringify({file:path.resolve(file)}));}
+ catch(error){await projectFailed(error);}
 }
 ipcMain.handle('nexarbor-project',async(event,action)=>{
- if(event.sender!==window?.webContents||event.senderFrame?.url!==pathToFileURL(path.join(__dirname,'projects.html')).href||!['open','new'].includes(action))throw Error('项目入口不可用');
+ const sender=new URL(event.senderFrame?.url??'about:blank');sender.hash='';sender.search='';
+ if(event.sender!==window?.webContents||sender.href!==pathToFileURL(path.join(__dirname,'projects.html')).href||!['open','new'].includes(action))throw Error('项目入口不可用');
  return projectAction(action);
 });
 if(primary)app.whenReady().then(async()=>{
@@ -118,6 +146,6 @@ if(primary)app.whenReady().then(async()=>{
  let file=flag('--connection');
  if(file)await open(file);else if(flag('--project')||folderProject||flag('--workspace')||flag('--profile')||flag('--network'))await development(flag('--profile'),{useWorkspace:true});else await window.loadFile(path.join(__dirname,'projects.html'));
  if(!window.isDestroyed()&&!window.isVisible())window.show();
-});
+}).catch(projectFailed);
 app.on('window-all-closed',()=>app.quit());
 app.on('before-quit',event=>{if(closing)return;event.preventDefault();closing=true;transition.catch(()=>{}).then(async()=>{await flushPage();record('pageSavedOnQuit');}).catch(error=>{startup.saveError=error.message;record('pageSaveFailedOnQuit');}).then(()=>Promise.allSettled([studio?.close(),...retiring])).finally(()=>app.quit());});
