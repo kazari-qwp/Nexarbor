@@ -1,6 +1,7 @@
 // Local development host. Electron Renderer has no OS bridge or Node privileges.
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {spawn} from 'node:child_process';import readline from 'node:readline';
 import {startEditorServer} from '../framework/editor-server.js';
+import {WorkspaceFiles} from './workspace-files.mjs';
 import {NativeRunner} from './runtime/runner.mjs';
 import {OfficialToolsRunner} from './runtime/official-runner.mjs';
 import {editorNode,editorNodes} from '../framework/editor-nodes.js';
@@ -9,7 +10,7 @@ import {nativeMakerFactory} from './makers/connection.mjs';
 import {installApplicationPresets} from './application-presets.mjs';
 import {parallelTownTemplates,updateTownRuntime} from './town-layout.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
-export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,application,components=[],templates=[],onOpenNetwork,onProgress=()=>{}}={}){
+export async function startStudio({directory=path.join(root,'build/workbench-v3'),python=path.join(root,'.venv/Scripts/python.exe'),initialNetwork,makerRunnerFactory,application,components=[],templates=[],onOpenNetwork,onImportNetwork,onProgress=()=>{}}={}){
  await fs.mkdir(directory,{recursive:true});const temporary=path.join(directory,'temp');await fs.mkdir(temporary,{recursive:true});
  const profile=JSON.parse(await fs.readFile(path.join(root,'extensions/development/extension.json'),'utf8'));profile.select=[...new Set([...profile.select,...components])];
  onProgress('正在恢复网络…');const startTime=performance.now(),timings={};const mark=name=>{timings[name]=Math.round(performance.now()-startTime);};
@@ -17,6 +18,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  let serial=0,closed=false;const pending=new Map();let diagnostics='';child.stderr.on('data',chunk=>{diagnostics=(diagnostics+chunk).slice(-16000);});
  const official=new OfficialToolsRunner(directory);let officialTools=[],runtimeTools=[],toolError=null;
  const native=new NativeRunner(directory,(method,params)=>rpc(method,params));
+ const workspaceFiles=new WorkspaceFiles(directory,(method,p)=>rpc(method,p),native,{components,templates});
  const lines=readline.createInterface({input:child.stdout});lines.on('line',line=>{try{const response=JSON.parse(line);if(response.notification){native.notify();return;}if(response.host_id){(response.method.startsWith('network-admin-')?adminRequest(response.method.slice(14),response.params):response.method==='official-tool-invoke'?official.request('invoke',response.params):native.request(response.method,response.params)).then(result=>child.stdin.write(JSON.stringify({host_id:response.host_id,result})+'\n'),error=>child.stdin.write(JSON.stringify({host_id:response.host_id,error:error.message})+'\n'));return;}const p=pending.get(response.id);if(!p)return;pending.delete(response.id);clearTimeout(p.timer);Object.hasOwn(response,'error')?p.reject(Error(response.error||'宿主调用失败，未提供错误说明')):p.resolve(response.result);}catch{}});
  const fail=error=>{for(const p of pending.values()){clearTimeout(p.timer);p.reject(error);}pending.clear();};
  child.stdin.on('error',fail);child.on('error',fail);child.on('exit',code=>fail(Error('开发后端已退出 '+code+'\n'+diagnostics)));
@@ -25,8 +27,12 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  const loadOfficial=()=>officialLoading??=(async()=>{officialState='loading';try{const tools=await official.start();await rpc('official_register',{tools});officialTools=tools.map(t=>({...t,ref:'harness:'+t.name,provider:'harness'}));officialState='ready';toolError=null;return officialTools;}catch(error){officialState='error';toolError=error.message;officialLoading=null;await official.close();throw error;}})();
  let openingNetwork=false;
  const request=async(operation,params)=>{
+  if(operation==='state')return {...await rpc('studio_state'),...(params.resume!==false?{workspace:await workspaceFiles.state()}:{})};
+  if(operation==='workspace.import.local')return workspaceFiles.request('workspace.import',params);
+  if(operation==='workspace.import'&&onImportNetwork){setTimeout(()=>Promise.resolve(onImportNetwork(params.bundle)).catch(()=>{}),100);return {opening:true};}
+  if(operation.startsWith('workspace.'))return workspaceFiles.request(operation,params);
   if(operation==='startup.status')return {timings,officialState,toolError,vector:await rpc('studio_vector_status')};
-  if(operation==='apply'){const needed=params.document.network.nodes.some(n=>(n.offered_tools??[]).some(o=>o.ref.startsWith('harness:')));if(needed)await loadOfficial();const result=await rpc('studio_apply',params);officialNeeded=needed;return result;}
+  if(operation==='apply'){const needed=params.document.network.nodes.some(n=>(n.offered_tools??[]).some(o=>o.ref.startsWith('harness:')));if(needed)await loadOfficial();const result=await workspaceFiles.request('workspace.apply',params);officialNeeded=needed;return result;}
   if(officialNeeded&&['module.call','tools.visit','run','view'].includes(operation))await loadOfficial();
   if(operation==='preset.open'){
    if(!onOpenNetwork)throw Error('请通过 Nexarbor 桌面客户端打开完整网络');
@@ -79,7 +85,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   throw Error('此开发工作台未启用该业务入口：'+operation);
  };
  let closeJob;
- const close=()=>closeJob??=(async()=>{await server?.close();await makers?.close();await native.close();await official.close();if(child.exitCode===null)await rpc('studio_vector_close').catch(()=>{});closed=true;child.stdin.end();await new Promise(resolve=>{if(child.exitCode!==null)return resolve();const timer=setTimeout(()=>{child.kill();resolve();},10000);child.once('exit',()=>{clearTimeout(timer);resolve();});});fail(Error('开发后端已关闭'));})();
+ const close=()=>closeJob??=(async()=>{await server?.close();await makers?.close();await native.close();await workspaceFiles.close();await official.close();if(child.exitCode===null)await rpc('studio_vector_close').catch(()=>{});closed=true;child.stdin.end();await new Promise(resolve=>{if(child.exitCode!==null)return resolve();const timer=setTimeout(()=>{child.kill();resolve();},10000);child.once('exit',()=>{clearTimeout(timer);resolve();});});fail(Error('开发后端已关闭'));})();
  let server,makers,adminRequest;
  try{
  await rpc('ping');mark('pythonReady');onProgress('正在准备画布…');officialNeeded=await rpc('studio_official_needed');await installApplicationPresets(directory,root,{returnPresets:false});mark('presetsReady');
@@ -87,6 +93,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  if(application==='npc_town_v3')templates=parallelTownTemplates(templates);
  if(components.includes('capabilities/template_instantiation')){if(templates.length)await rpc('templates_register',{templates});runtimeTools.push(...(await rpc('templates_catalog')).map(t=>({...t,owner:'固定模板端口'})));}
  if(application==='npc_town_v3')await updateTownRuntime(rpc,directory);
+ workspaceFiles.runtime={components,templates};
  makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory},callback))});await makers.initialize();
  adminRequest=(method,p)=>{if(method==='start')return makers.start(p);if(method==='status')return makers.read(p);if(method==='cancel')return makers.cancel(p);throw Error('未知局部管理员宿主操作');};
  // 原生 Agent 与制作运行器已有按需启动；官方工具同样不阻塞画布。

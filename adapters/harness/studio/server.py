@@ -21,6 +21,12 @@ class StudioTransport(Transport):
             return status()
         if method=='studio_official_needed':
             return any(o['ref'].startswith('harness:') for n in self.backend.network.nodes.values() for o in n.offered_tools)
+        if method=='studio_apply':
+            # 业务处理返回时外围事务尚未提交；在同一事务锁内返回最终编号。
+            with self.backend._transaction_lock:
+                result=super().dispatch(method,p)
+                result['commit']=self.backend.store.head
+                return result
         if method=='data_preview':
             return self.backend.components.routes['data_preview'](self.backend,p)
         if method=='official_register':

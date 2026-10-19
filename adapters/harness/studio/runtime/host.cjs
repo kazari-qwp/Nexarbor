@@ -61,8 +61,14 @@ async function refresh(entry){
  if(view.inputs.length)await agentRpc(entry,'executor_ack',{actor:entry.actor,events:view.inputs.map(e=>({source:e.source,id:e.id}))});
  return view;
 }
+function retire(entry){entry.retired=true;entry.agent.cancel('user');for(const dispose of entry.tools.values())dispose();agents.delete(entry.actor);}
 async function agentFor(p){
- if(agents.has(p.actor))return agents.get(p.actor);
+ if(agents.has(p.actor)){
+  const current=agents.get(p.actor);
+  if(!p.session_id||current.agent.id===p.session_id)return current;
+  if(current.running)throw Error('请等待当前 Agent 完成后切换上下文分支');
+  retire(current);
+ }
  const scope=crypto.createHash('sha256').update(config.directory+'\0'+p.actor).digest('hex').slice(0,24);let id=p.session_id||'nexarbor-'+scope,cursor=p.context_cursor;
  if(cursor){
   const head=await checkpoints.positions.captureStored(id);
@@ -98,10 +104,11 @@ async function run(p){
 }
 async function close(){if(closed)return;closed=true;for(const e of agents.values())e.agent.cancel('user');try{await checkpoints?.checkpoint();}catch{}await checkpoints?.stop();await host?.fiber.dispose();clearInterval(keepAlive);}
 async function captureContexts(p){
+ if(p.requireIdle&&[...agents.values()].some(e=>e.running))throw Error('请等待当前 Agent 完成后保存上下文');
  const result={};
  for(const [actor,id] of Object.entries(p.bindings)){
-  const entry=agents.get(actor);
-  if(entry&&entry.agent.id!==id)throw Error('Agent binding changed during context capture');
+  let entry=agents.get(actor);
+  if(entry&&entry.agent.id!==id){if(entry.running)throw Error('Agent binding changed during context capture');retire(entry);entry=null;}
   result[actor]=entry?await checkpoints.positions.capture(entry.agent.session,{allowPending:true}):await checkpoints.positions.captureStored(id);
  }
  return result;

@@ -16,8 +16,8 @@ try{
  await page.getByRole('button',{name:'网络文档',exact:true}).click();
  const docs=page.getByRole('dialog',{name:'网络文档',exact:true});await docs.getByRole('button',{name:'world/common.md',exact:true}).click();
  await docs.locator('.cm-content').click();await page.keyboard.press('Control+End');await page.keyboard.insertText('\n桌面文档验证。');
- await docs.getByRole('button',{name:'关闭网络文档',exact:true}).click();await page.getByRole('button',{name:'应用网络',exact:true}).click();
- await expect(page.getByRole('button',{name:'应用网络',exact:true})).toBeDisabled();
+ await docs.getByRole('button',{name:'关闭网络文档',exact:true}).click();await page.getByRole('button',{name:'校验并更新网络',exact:true}).click();
+ await expect(page.getByRole('button',{name:'校验并更新网络',exact:true})).toBeDisabled();
  const state=await page.evaluate(async()=>{const r=await fetch('/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':sessionStorage.getItem('nexarbor-token')},body:JSON.stringify({operation:'state',params:{}})});return (await r.json()).value;});
  expect(state.live.document.files['world/common.md']).toContain('桌面文档验证。');
  expect(errors).toEqual([]);await fs.writeFile(path.join(run,'verification.json'),JSON.stringify({passed:true,pureNetworkConfig:true,nodes:31,generatedComponents:12,immutableSourceVisible:true,documentEditingAndApply:true,modelCalls:0,errors},null,2));console.log('PASS Agent-made town desktop:',run);

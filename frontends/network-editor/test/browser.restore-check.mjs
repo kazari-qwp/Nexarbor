@@ -17,7 +17,7 @@ expect(restored.live.sessions.root.session_id).not.toBe(JSON.parse(await fs.read
 const history=await read('chat.read',{actor:'world/npc/alice'});expect(history.messages.filter(m=>m.role==='assistant').length).toBeGreaterThan(0);
 const browser=await chromium.launch({channel:'msedge',headless:true});const page=await browser.newPage({viewport:{width:1600,height:1000}});const errors=[];page.on('pageerror',e=>errors.push(e.message));
 try{
- await page.goto(target.url);await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
+ await page.goto(target.url);await expect(page.getByRole('button',{name:'保存',exact:true})).toBeVisible();
  await expect(page.locator('.left-panel').getByRole('button',{name:'阿青',exact:true})).toBeVisible();
  await page.screenshot({path:path.join(run,'06-restored-graph.png')});
  await page.locator('.left-panel').getByRole('button',{name:'阿青',exact:true}).click();await expect(page.locator('.chat-message.assistant').first()).toBeVisible();

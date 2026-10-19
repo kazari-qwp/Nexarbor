@@ -1,10 +1,11 @@
 const {app,BrowserWindow,dialog,Menu,MenuItem,shell}=require('electron');
 const fs=require('node:fs'),path=require('node:path');
 const {readConnection,localNavigation,activeConnection}=require('./connection.cjs');
+const {WorkspaceSession}=require('./workspace-session.cjs');
 const {pathToFileURL}=require('node:url');
 const {createHash}=require('node:crypto');
 app.setName('Nexarbor Workbench');let window,studio,closing=false,workspaceHome;
-const started=performance.now(),retiring=new Set(),startup={};let transition=Promise.resolve();
+const started=performance.now(),retiring=new Set(),startup={};let transition=Promise.resolve(),desktopSession;
 function enqueueStart(fn){const next=transition.catch(()=>{}).then(()=>closing?undefined:fn());transition=next;return next;}
 function open(...args){return enqueueStart(()=>startOpen(...args));}
 function development(...args){return enqueueStart(()=>startDevelopment(...args));}
@@ -16,7 +17,8 @@ function progress(message){
 }
 async function clearProgress(){if(window&&!window.isDestroyed())await window.webContents.executeJavaScript('document.getElementById("network-transition")?.remove()').catch(()=>{});}
 async function restoreStudio(){if(!studio||window.isDestroyed())return;try{if(new URL(window.webContents.getURL()).origin!==new URL(studio.url).origin)await window.loadURL(studio.url);}finally{await clearProgress();}}
-async function activate(url,next){if(closing||window.isDestroyed()){await next?.close();return;}const previous=studio;await window.loadURL(url);studio=next;await clearProgress();record("networkLoaded");if(previous&&previous!==next){const job=previous.close().catch(error=>{startup.retirementError=error.message;}).finally(()=>retiring.delete(job));retiring.add(job);}}
+async function flushPage(){if(window&&!window.isDestroyed()&&localNavigation(window.webContents.getURL()))await window.webContents.executeJavaScript('window.nexarborWorkspace?.flush()');}
+async function activate(url,next,spec=next?.launchSpec){if(closing||window.isDestroyed()){await next?.close();return;}const previous=studio;await flushPage();if(window.webContents.getURL().split('#')[0]!==url.split('#')[0])await window.loadURL(url);studio=next;if(spec&&desktopSession)await desktopSession.remember(spec);await clearProgress();record("networkLoaded");if(previous&&previous!==next){const job=previous.close().catch(error=>{startup.retirementError=error.message;}).finally(()=>retiring.delete(job));retiring.add(job);}}
 const flag=name=>{const i=process.argv.indexOf(name);return i>=0?process.argv[i+1]:process.argv.find(value=>value.startsWith(name+'='))?.slice(name.length+1);};
 const userData=flag('--user-data-dir');if(userData){fs.mkdirSync(path.resolve(userData),{recursive:true});app.setPath('userData',path.resolve(userData));}
 const primary=app.requestSingleInstanceLock();
@@ -30,56 +32,62 @@ function projectRoot(){
  }
  throw Error('找不到项目开发后端。请设置 NEXARBOR_ROOT 指向包含源码和Python运行时的目录。');
 }
-async function startDevelopment(profile,{useWorkspace=false}={}){
- let requestedDirectory,next;
- try{
-  const root=projectRoot(),override=useWorkspace&&flag('--workspace');
-  const spec=profile?JSON.parse(fs.readFileSync(profile,'utf8')):null;
-  const directory=path.resolve(override||(profile?path.resolve(path.dirname(profile),spec.runtime_directory??'runtime'):flag('--workspace')??process.env.NEXARBOR_WORKSPACE??path.join(root,'build/workbench-v3')));
-  requestedDirectory=directory;workspaceHome??=directory;record('backendStarting');progress('正在恢复网络…');
-  if(studio&&path.resolve(studio.directory)===directory){await activate(studio.url,studio);return;}
-  const connection=await activeConnection(path.join(directory,'editor-connection.json'));
-  if(connection){await activate(connection,null);return;}
-  const {startStudio,startStudioProfile}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href);
-  const options={onOpenNetwork:openStoredNetwork,onProgress:progress};
-  next=profile?await startStudioProfile(profile,{...(override?{directory}:{}),...options}):await startStudio({directory,initialNetwork:flag('--network'),...options});
-  record('backendReady');await activate(next.url,next);
- }catch(error){
-  if(next&&next!==studio)await next.close().catch(()=>{});
-  if(requestedDirectory&&error.message.includes('runtime.lock'))for(let attempt=0;attempt<6;attempt++){const connection=await activeConnection(path.join(requestedDirectory,'editor-connection.json'));if(connection){await activate(connection,null);return;}await new Promise(resolve=>setTimeout(resolve,400));}
-  if(closing)return;
-  if(studio)await restoreStudio();else progress('工作区暂未就绪，请从工作台菜单重试');
-  await dialog.showMessageBox(window,{type:'error',title:'工作台未启动',message:error.message.includes('runtime.lock')?'工作区正在其他窗口启动，请稍后重试':error.message});
- }
-}
-async function startStoredNetwork(preset){
+async function startWorkspace(spec){
  let next;
  try{
-  progress('正在打开 '+preset.name+'…');
+  progress('正在恢复网络…');record('backendStarting');
+  if(studio&&path.resolve(studio.directory)===path.resolve(spec.directory)){await activate(studio.url,studio,spec);return;}
+  const connection=await activeConnection(path.join(spec.directory,'editor-connection.json'));
+  if(connection){await activate(connection,null,spec);return;}
   const root=projectRoot(),{startStudio}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href);
-  const key=preset.application??createHash('sha256').update(preset.file).digest('hex').slice(0,20);
-  if(!/^[a-zA-Z0-9_-]+$/.test(key))throw Error('完整网络标识无效');
-  const directory=path.join(workspaceHome??path.join(root,'build/workbench-v3'),'network_runs',key);
-  if(studio&&path.resolve(studio.directory)===directory){await activate(studio.url,studio);return;}
-  const connection=await activeConnection(path.join(directory,'editor-connection.json'));
-  if(connection){await activate(connection,null);return;}
-  next=await startStudio({directory,application:preset.application,initialNetwork:preset.file,components:preset.runtime?.components??[],templates:preset.runtime?.templates??[],onOpenNetwork:openStoredNetwork,onProgress:progress});
-  await activate(next.url,next);
+  next=await startStudio({...spec,onOpenNetwork:openStoredNetwork,onImportNetwork:bundle=>enqueueStart(()=>startImportedNetwork(bundle)),onProgress:progress});next.launchSpec=spec;record('backendReady');await activate(next.url,next,spec);
  }catch(error){
   if(next&&next!==studio)await next.close().catch(()=>{});
-  if(closing)return;
-  if(studio)await restoreStudio();
-  await dialog.showMessageBox(window,{type:'error',title:'无法打开完整网络',message:error.message});
+  if(error.message.includes('runtime.lock'))for(let attempt=0;attempt<6;attempt++){const connection=await activeConnection(path.join(spec.directory,'editor-connection.json'));if(connection){await activate(connection,null,spec);return;}await new Promise(resolve=>setTimeout(resolve,400));}
+  if(closing)return;if(studio)await restoreStudio();else progress('工作区暂未就绪，请从工作台菜单重试');
+  await dialog.showMessageBox(window,{type:'error',title:'工作台未启动',message:error.message});
  }
+}
+async function startDevelopment(profile,{useWorkspace=false}={}){
+ const root=projectRoot();workspaceHome??=path.resolve(flag('--workspace')??process.env.NEXARBOR_WORKSPACE??path.join(root,'build/workbench-v3'));desktopSession??=new WorkspaceSession(workspaceHome);
+ if(useWorkspace&&!profile&&!flag('--network')){const saved=await desktopSession.read();if(saved.last){await startWorkspace(saved.last);return;}}
+ let spec={directory:workspaceHome,...(flag('--network')?{initialNetwork:path.resolve(flag('--network'))}:{})};
+ if(profile){const base=path.dirname(path.resolve(profile)),config=JSON.parse(await fs.promises.readFile(profile,'utf8')),application=path.dirname(base)===path.join(root,'configs')?path.basename(base):undefined;
+  const fallback=path.resolve(base,config.runtime_directory??'runtime'),directory=useWorkspace&&flag('--workspace')?workspaceHome:application?await desktopSession.application(application,fallback):fallback;
+  const relative=path.relative(path.join(root,'build'),directory),inWorkspace=directory===workspaceHome||directory.startsWith(workspaceHome+path.sep);if(!inWorkspace&&(relative.startsWith('..')||path.isAbsolute(relative)))throw Error('应用运行目录须位于项目 build 内；其他目录请显式指定 --workspace');
+  spec={directory,application,initialNetwork:config.network?path.resolve(base,config.network):undefined,components:config.components??[],templates:config.templates?JSON.parse(await fs.promises.readFile(path.resolve(base,config.templates),'utf8')):[]};
+ }
+ await startWorkspace(spec);
+}
+async function startStoredNetwork(preset){
+ const root=projectRoot(),key=preset.application??createHash('sha256').update(preset.file).digest('hex').slice(0,20);
+ if(!/^[a-zA-Z0-9_-]+$/.test(key))throw Error('完整网络标识无效');
+ const directory=preset.application?await desktopSession.application(preset.application):path.join(workspaceHome,'network_runs',key);
+ await startWorkspace({directory,application:preset.application,initialNetwork:preset.file,components:preset.runtime?.components??[],templates:preset.runtime?.templates??[]});
+}
+async function startImportedNetwork(bundle){
+ let next;
+ try{
+  progress('正在导入网络和 Agent 上下文…');
+  const root=projectRoot(),{startStudio}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href),spec={directory:path.join(workspaceHome,'network_runs','import-'+require('node:crypto').randomUUID()),components:bundle.runtime?.components??[],templates:bundle.runtime?.templates??[]};
+  const document=bundle.format==='nexarbor-network/v1'?bundle.document:bundle;
+  if(!Array.isArray(document?.network?.nodes))throw Error('网络文件缺少节点列表');
+  const {editorNode}=await import(pathToFileURL(path.join(root,'adapters/harness/framework/editor-nodes.js')).href);await fs.promises.mkdir(spec.directory,{recursive:true});
+  // 固定模板先登记现有节点身份；业务配置与上下文在校验更新时一起装配。
+  const bootstrap=path.join(spec.directory,'import-bootstrap.json');await fs.promises.writeFile(bootstrap,JSON.stringify({network:{version:8,nodes:document.network.nodes.map(n=>editorNode('node',n.node_id,n.name)),signals:{},delegations:[]},files:{}}));
+  next=await startStudio({...spec,initialNetwork:bootstrap,onOpenNetwork:openStoredNetwork,onImportNetwork:value=>enqueueStart(()=>startImportedNetwork(value)),onProgress:progress});await next.request('workspace.import.local',{bundle});next.launchSpec=spec;await activate(next.url,next,spec);
+ }catch(error){await next?.close().catch(()=>{});await clearProgress();await dialog.showMessageBox(window,{type:'error',title:'无法导入网络',message:error.message});}
 }
 async function choose(){const result=await dialog.showOpenDialog(window,{title:'选择工作台连接记录',properties:['openFile'],filters:[{name:'工作台连接',extensions:['json']}]});if(!result.canceled)await open(result.filePaths[0]);}
 async function chooseProfile(){const result=await dialog.showOpenDialog(window,{title:'选择应用配置（profile.json）',properties:['openFile'],filters:[{name:'应用配置',extensions:['json']}]});if(!result.canceled)await development(result.filePaths[0]);}
 async function startOpen(file){
- try{const url=readConnection(file);await activate(url,null);fs.writeFileSync(path.join(app.getPath('userData'),'last-connection.json'),JSON.stringify({file:path.resolve(file)}));}
+ try{workspaceHome??=path.dirname(path.resolve(file));desktopSession??=new WorkspaceSession(workspaceHome);const url=readConnection(file);await activate(url,null);fs.writeFileSync(path.join(app.getPath('userData'),'last-connection.json'),JSON.stringify({file:path.resolve(file)}));}
  catch(error){await dialog.showMessageBox(window,{type:'error',title:'无法打开工作台',message:'请先在 Harness 中启动工作台后重试。',detail:error.message});}
 }
 if(primary)app.whenReady().then(async()=>{
  window=new BrowserWindow({width:1500,height:960,minWidth:1000,minHeight:680,title:'Nexarbor · 网络工作台',backgroundColor:'#101720',show:true,webPreferences:{contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true}});
+ // 先完成最后一次页面写入，再销毁窗口，覆盖右上角关闭按钮的退出路径。
+ window.on('close',event=>{if(!closing){event.preventDefault();setImmediate(()=>app.quit());}});
  record('windowCreated');window.once('ready-to-show',()=>{window.show();record('firstFrame');});
  await window.loadFile(path.join(__dirname,'loading.html'));
  window.webContents.on('page-title-updated',event=>{event.preventDefault();window.setTitle('Nexarbor · 网络工作台');});
@@ -93,4 +101,4 @@ if(primary)app.whenReady().then(async()=>{
  if(!window.isDestroyed()&&!window.isVisible())window.show();
 });
 app.on('window-all-closed',()=>app.quit());
-app.on('before-quit',event=>{if(closing)return;event.preventDefault();closing=true;transition.catch(()=>{}).then(()=>Promise.allSettled([studio?.close(),...retiring])).finally(()=>app.quit());});
+app.on('before-quit',event=>{if(closing)return;event.preventDefault();closing=true;transition.catch(()=>{}).then(async()=>{await flushPage();record('pageSavedOnQuit');}).catch(error=>{startup.saveError=error.message;record('pageSaveFailedOnQuit');}).then(()=>Promise.allSettled([studio?.close(),...retiring])).finally(()=>app.quit());});

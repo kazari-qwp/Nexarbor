@@ -43,12 +43,12 @@ try{
  // 独立模块前端编辑，保存为配置书签，不改变节点或运行实例。
  await item('module','metadata.fields').click();const detail=page.getByLabel('模块资源详情',{exact:true}),frame=detail.frameLocator('iframe');
  await frame.getByRole('button',{name:'＋ 添加元数据',exact:true}).click();await frame.getByLabel('字段名称').fill('金币');await frame.getByLabel('字段类型').selectOption('number');await frame.getByLabel('字段值').fill('12');await frame.getByRole('button',{name:'保存配置',exact:true}).click();
- await expect(frame.getByText('已写入网络草稿，应用网络后生效',{exact:true})).toBeVisible();
+ await expect(frame.getByText('已写入网络草稿，校验并更新网络后生效',{exact:true})).toBeVisible();
  await detail.getByRole('button',{name:'Save · 保存至书签',exact:true}).click();await expect.poll(async()=>(await library()).bookmarks.length).toBe(1);
  let preset=(await library()).bookmarks[0];expect(preset.asset.config).toEqual({fields:{金币:12}});expect((await api('state')).live.document.network.nodes.find(n=>n.node_id==='a').modules).toEqual({});expect((await library()).history).toEqual(historyBefore);
  await expect(book(preset.id)).toHaveClass(/module/);await expect(book(preset.id)).toHaveText('元数据模板');await expect(book(preset.id)).toHaveAttribute('title',/^元数据模板：/);
  await book(preset.id).dragTo(node('a'));await expect(node('a').getByRole('button',{name:'装配节点的模块，1 个',exact:true})).toBeVisible();
- await page.getByRole('button',{name:'应用网络',exact:true}).click();await expect(page.getByRole('button',{name:'应用网络',exact:true})).toBeDisabled();expect((await api('state')).live.document.network.nodes.find(n=>n.node_id==='a').modules['metadata.fields'].config.fields.金币).toBe(12);
+ await page.getByRole('button',{name:'校验并更新网络',exact:true}).click();await expect(page.getByRole('button',{name:'校验并更新网络',exact:true})).toBeDisabled();expect((await api('state')).live.document.network.nodes.find(n=>n.node_id==='a').modules['metadata.fields'].config.fields.金币).toBe(12);
  // 当前挂载项顶部两个图标，保存配置和卸载；书签操作不截断撤销。
  await page.getByRole('button',{name:'保存模块 metadata.fields至书签',exact:true}).click();await expect.poll(async()=>(await library()).bookmarks.length).toBe(2);
  await page.getByRole('button',{name:'删除模块 metadata.fields',exact:true}).click();await expect(node('a').getByRole('button',{name:'装配节点的模块，0 个',exact:true})).toBeVisible();await page.keyboard.press('Control+z');await node('a').hover();await expect(node('a').getByRole('button',{name:'装配节点的模块，1 个',exact:true})).toBeVisible();
@@ -81,7 +81,7 @@ try{
  const win=await client.browserWindow(page);await win.evaluate(w=>w.setSize(1120,760));await page.waitForTimeout(400);const smaller=await node('a').boundingBox();expect(smaller.width).toBeLessThan(zoom.width);expect(await page.locator('.react-flow__node').evaluateAll(ns=>ns.map(n=>n.style.transform))).toEqual(positions);
  await win.evaluate(w=>w.maximize());await page.waitForTimeout(450);expect((await node('a').boundingBox()).width).toBeGreaterThan(smaller.width);await page.screenshot({path:path.join(directory,'02-window-resize.png')});
  await win.evaluate(w=>w.unmaximize());await page.waitForTimeout(350);expect(Math.abs((await node('a').boundingBox()).width-smaller.width)).toBeLessThan(3);
- await page.getByRole('button',{name:'保存草稿',exact:true}).click();await client.close();client=null;await host.close();host=await startStudio({directory});await launch();
+ await page.getByRole('button',{name:'保存',exact:true}).click();await client.close();client=null;await host.close();host=await startStudio({directory});await launch();
  for(const kind of ['tool','module']){await expect(tree(kind)).not.toHaveAttribute('open','');await tree(kind).locator(':scope>summary').click();}
  expect((await library()).assets.module.items['metadata.fields']).toEqual({folder:child,name:'元数据模板'});expect((await library()).assets.module.folders.find(f=>f.id===parent).name).toBe('分类一');
  expect((await page.locator('.left-panel').boundingBox()).width).toBe((await library()).settings.panels.leftWidth);await expect(book(picture.id).locator('img')).toBeVisible();expect(errors).toEqual([]);

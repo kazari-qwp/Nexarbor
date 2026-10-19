@@ -9,7 +9,7 @@ const api=async(operation,params={})=>{const response=await fetch('http://'+host
 const library=()=>api('editor.library'),tree=kind=>page.locator('[data-resource-library="'+kind+'"]'),item=(kind,id)=>tree(kind).locator('[data-resource-id="'+id+'"]'),book=id=>page.locator('[data-bookmark-id="'+id+'"]'),canvas=()=>page.locator('.node-link-gesture');
 const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
 const launch=async()=>{client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));await expect(canvas()).toBeVisible({timeout:20000});};
-const draft=async()=>{await page.getByRole('button',{name:'保存草稿',exact:true}).click();await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeEnabled();return (await api('state')).draft.document;};
+const draft=async()=>{await page.getByRole('button',{name:'保存',exact:true}).click();await expect(page.getByRole('button',{name:'保存',exact:true})).toBeEnabled();return (await api('state')).draft.document;};
 const drop=async(source,count,x=430,y=320)=>{const before=await page.locator('.react-flow__node').count();await source.dragTo(canvas(),{targetPosition:{x,y}});await expect(page.locator('.react-flow__node')).toHaveCount(before+count);return draft();};
 const openTree=async kind=>{if(!await tree(kind).evaluate(e=>e.open))await tree(kind).locator(':scope>summary').click();};
 try{

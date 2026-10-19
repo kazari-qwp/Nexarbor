@@ -7,7 +7,7 @@ const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
 const client=await _electron.launch({executablePath:path.resolve('../../build/desktop/Nexarbor Workbench-win32-x64/Nexarbor Workbench.exe'),args:['--connection',records[0].file,'--user-data-dir='+path.join(run,'desktop-test-profile')],env,timeout:30000});
 try{
  const page=await client.firstWindow();const errors=[];page.on('pageerror',error=>errors.push(error.message));
- await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'保存',exact:true})).toBeVisible();
  expect(await client.evaluate(({BrowserWindow})=>{const w=BrowserWindow.getAllWindows()[0];w.setBounds({width:1600,height:1000});const p=w.webContents.getLastWebPreferences();return {contextIsolation:p.contextIsolation,nodeIntegration:p.nodeIntegration,sandbox:p.sandbox,webSecurity:p.webSecurity};})).toEqual({contextIsolation:true,nodeIntegration:false,sandbox:true,webSecurity:true});
  expect(await page.evaluate(()=>({node:typeof window.require,token:location.hash}))).toEqual({node:'undefined',token:''});
  await expect(page).toHaveTitle('Nexarbor · 网络工作台');

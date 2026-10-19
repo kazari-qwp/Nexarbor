@@ -3,7 +3,7 @@ const run=path.resolve('../../build/routing-v7');const fixture=await visualFixtu
 const client=await _electron.launch({executablePath:path.resolve('../../build/desktop/Nexarbor Workbench-win32-x64/Nexarbor Workbench.exe'),args:['--connection',path.join(run,'editor-connection.json'),'--user-data-dir='+path.join(run,'desktop-profile')],env});
 try{
  const page=await client.firstWindow();const errors=[];page.on('pageerror',e=>errors.push(e.message));
- await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();await expect(page.locator('[data-routing="avoiding"]')).toHaveCount(6);
+ await expect(page.getByRole('button',{name:'保存',exact:true})).toBeVisible();await expect(page.locator('[data-routing="avoiding"]')).toHaveCount(6);
  await page.locator('.react-flow__controls-fitview').click();await page.waitForTimeout(400);
  const snapshot=()=>page.evaluate(()=>({viewport:document.querySelector('.react-flow__viewport').style.transform,nodes:Object.fromEntries([...document.querySelectorAll('.react-flow__node')].map(n=>[n.dataset.id,n.style.transform])),paths:Object.fromEntries([...document.querySelectorAll('.react-flow__edge')].map(e=>[e.dataset.id,e.querySelector('.react-flow__edge-path').getAttribute('d')]))}));
  const initial=await snapshot();await page.getByRole('group',{name:'节点类型显示'}).getByRole('button',{name:'Agent',exact:true}).click();const hidden=await snapshot();expect(hidden.viewport).toBe(initial.viewport);for(const [id,p] of Object.entries(hidden.paths))expect(p).toBe(initial.paths[id]);

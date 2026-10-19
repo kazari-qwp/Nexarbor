@@ -7,7 +7,7 @@ for(const name of await fs.readdir(root)){const file=path.join(root,name,'editor
 records.sort((a,b)=>b.mtime-a.mtime);const connection=JSON.parse(await fs.readFile(records[0].file,'utf8'));
 const browser=await chromium.launch({channel:'msedge',headless:true});const page=await browser.newPage({viewport:{width:1600,height:1000}}),errors=[];page.on('pageerror',e=>errors.push(e.message));
 try{
- await page.goto(connection.url);await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
+ await page.goto(connection.url);await expect(page.getByRole('button',{name:'保存',exact:true})).toBeVisible();
  for(const name of ['access.read','access.write'])await page.getByRole('group',{name:'连接频道显示'}).getByRole('button',{name,exact:true}).click();
  await page.locator('.react-flow__controls-fitview').click();
  const npc=page.locator('.react-flow__node[data-id="world/npc/alice"]'),time=page.locator('.react-flow__node[data-id="world/time"]');

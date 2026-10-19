@@ -46,7 +46,7 @@ export async function startEditorServer({web,directory,request,chat,recover,runt
         if(supplied.length!==expected.length||!timingSafeEqual(supplied,expected))return send(res,401,{error:'请从本次启动地址打开编辑器'});
         if(!req.headers['content-type']?.startsWith('application/json'))return send(res,415,{error:'JSON required'});
         const chunks=[];let bytes=0;
-        for await(const chunk of req){bytes+=chunk.length;if(bytes>8_000_000)return send(res,413,{error:'请求超过8MB'});chunks.push(chunk);}
+        for await(const chunk of req){bytes+=chunk.length;if(bytes>256_000_000)return send(res,413,{error:'网络文件超过256MB'});chunks.push(chunk);}
         const {operation,params={}}=JSON.parse(Buffer.concat(chunks).toString('utf8'));
         const value=['editor.library','editor.library.index','editor.library.update','editor.resource.inspect','editor.resource.load'].includes(operation)?await library(operation,params):operation?.startsWith('chat.')?await chat(operation,params):operation==='recover'?await recover(params):await request(operation,params);
         return send(res,200,{value:operation==='module.frontend'?frontend(value):value});

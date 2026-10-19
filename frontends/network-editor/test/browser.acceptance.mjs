@@ -11,7 +11,7 @@ try{
  await page.goto(connection.url);
  if(!process.argv.includes('--finish-only')){
  if(!process.argv.includes('--continue-built')){
- await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'保存',exact:true})).toBeVisible();
  if(!await page.getByText('让网络定义行动空间',{exact:true}).isVisible()){
   await page.getByRole('button',{name:'新建空网络',exact:true}).click();
   await waitApi('template',()=>page.getByRole('button',{name:'添加到草稿',exact:true}).click());
@@ -40,8 +40,8 @@ try{
  await addResident('alice','阿青','[Editor A]');await addResident('bob','阿白','[Editor B]');
  await page.getByRole('button',{name:'清除筛选',exact:true}).click();
  const validation=await waitApi('validate',()=>page.getByRole('button',{name:'检查配置',exact:true}).click());expect(validation.valid,JSON.stringify(validation)).toBeTruthy();
- await waitApi('draft',()=>page.getByRole('button',{name:'保存草稿',exact:true}).click());
- const applied=await waitApi('apply',()=>page.getByRole('button',{name:'应用网络',exact:true}).click());expect(applied.applied,JSON.stringify(applied)).toBeTruthy();
+ await waitApi('draft',()=>page.getByRole('button',{name:'保存',exact:true}).click());
+ const applied=await waitApi('apply',()=>page.getByRole('button',{name:'校验并更新网络',exact:true}).click());expect(applied.applied,JSON.stringify(applied)).toBeTruthy();
  }
  for(const b of await page.getByRole('group',{name:'节点类型显示'}).getByRole('button').all())if(await b.textContent()!=='居民')await b.click();await page.locator('.react-flow__controls-fitview').click();
  const alice=page.locator('[data-id="world/npc/alice"]');await waitApi('view',()=>alice.click());
@@ -73,7 +73,7 @@ try{
  const oldOrigin=new URL(page.url()).origin;
  await page.getByRole('button',{name:'恢复为独立分支',exact:true}).first().click();
  await page.waitForURL(url=>url.origin!==oldOrigin,{timeout:30000});
- await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
+ await expect(page.getByRole('button',{name:'保存',exact:true})).toBeVisible();
  await expect(page.getByText('Native Mock',{exact:true})).toBeVisible();
  await page.screenshot({path:path.join(run,'07-restored-workbench.png')});
  await fs.writeFile(path.join(run,'browser-verification.json'),JSON.stringify({passed:true,createdFromEmptyInUi:true,places:2,residents:2,linkedInUi:true,nativeChat:true,parallel:true,pulseReturned:true,actionBudget:true,restoredWorkbench:true,modelApiCalls:0,errors},null,2));

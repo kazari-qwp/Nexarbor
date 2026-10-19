@@ -541,7 +541,9 @@ class Studio:
         old=self.backend.snapshot()
         try:
             self.backend.modules.clear();self.backend.network=candidate;candidate.use_metadata_registry(self.backend.metadata_registry)
-            self.backend.agents={id:deepcopy(binding) for id,binding in old['agents'].items() if id in candidate.nodes and isinstance(candidate.nodes[id],AgentNode)}
+            bindings=p.get('agent_bindings',old['agents'])
+            if not isinstance(bindings,dict) or any(not isinstance(v,dict) or (v.get('session_id') is not None and not isinstance(v['session_id'],str)) for v in bindings.values()):raise ValueError('Agent 上下文绑定无效')
+            self.backend.agents={id:deepcopy(binding) for id,binding in bindings.items() if id in candidate.nodes and isinstance(candidate.nodes[id],AgentNode)}
             for binding in self.backend.agents.values():
                 if binding.get('manager_id',binding.get('creator_node_id')) not in self.backend.agents:binding['manager_id']=None
                 if binding.get('creator_node_id') not in candidate.nodes:binding['creator_node_id']=None

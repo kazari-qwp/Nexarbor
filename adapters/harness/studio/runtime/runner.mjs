@@ -6,7 +6,7 @@ export class NativeRunner{
  async start(){
   if(this.starting)return this.starting;
   this.starting=(async()=>{
-   const credentials=this.options.credentials??await harnessCredentials({directory:this.directory});
+   const credentials=this.options.noCredentials?undefined:this.options.credentials??await harnessCredentials({directory:this.directory});
    const root=fileURLToPath(new URL('../../../../',import.meta.url));
    const executable=await harnessExecutable();
    const child=this.child=spawn(executable,['--experimental-vm-modules',this.options.script??fileURLToPath(new URL('./host.cjs',import.meta.url))],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,ELECTRON_RUN_AS_NODE:'1',TEMP:path.join(this.directory,'temp'),TMP:path.join(this.directory,'temp'),TMPDIR:path.join(this.directory,'temp')}});

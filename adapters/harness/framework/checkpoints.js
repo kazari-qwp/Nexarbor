@@ -65,6 +65,20 @@ export class NativePositions{
       return {header:structuredClone(handle.header),events};
     }finally{await handle.close();}
   }
+  async exportPrefix(cursor){return {cursor:structuredClone(cursor),...await this.read(cursor)};}
+  async importPrefix(prefix,id='nexarbor-import-'+randomUUID()){
+    const {cursor,header,events}=prefix??{};
+    if(cursor?.adapter!=='deepseek-harness'||cursor.version!==1||header?.id!==cursor.session_id||!Array.isArray(events)||events.length!==cursor.event_count||!Number.isSafeInteger(cursor.inherited_event_count)||cursor.inherited_event_count<0||cursor.inherited_event_count>events.length)throw Error('Invalid portable Agent context');
+    if(headerHash(header)!==cursor.header_hash)throw Error('Portable Agent header checksum mismatch');
+    let digest=cursor.header_hash;
+    for(const [i,event] of events.entries()){if(event.seq!==i)throw Error('Portable Agent log is not contiguous');digest=chain(digest,event);}
+    if(digest!==cursor.prefix_hash)throw Error('Portable Agent log prefix checksum mismatch');
+    const child={...header,id,createdAt:Date.now(),parentSession:cursor.session_id,isSeeded:true};
+    const seed=events.length?buildForkSeed(events,events.length-1):[];
+    const handle=durableSessionHandle(await this.ctx.get('sessionPersistence').create(child,{inheritedEventCount:events.length}));
+    try{if(seed.length)await handle.append(seed);await handle.flush();}finally{await handle.close();}
+    return this.captureStored(id);
+  }
   async fork(cursor,id='datanet-recovery-'+randomUUID()){
     const {header,events}=await this.read(cursor),seed=events.length?buildForkSeed(events,events.length-1):[];
     const child={...header,id,createdAt:Date.now(),parentSession:cursor.session_id,isSeeded:true};

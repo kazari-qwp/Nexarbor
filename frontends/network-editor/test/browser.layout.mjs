@@ -9,7 +9,7 @@ const snapshot=()=>page.evaluate(()=>({viewport:document.querySelector('.react-f
  nodes:Object.fromEntries([...document.querySelectorAll('.react-flow__node')].map(n=>[n.dataset.id,{position:n.style.transform,z:Number(n.style.zIndex)}])),
  edges:Object.fromEntries([...document.querySelectorAll('.react-flow__edge')].map(e=>[e.dataset.id,{path:e.querySelector('.react-flow__edge-path')?.getAttribute('d'),z:Number(e.closest('svg').style.zIndex)}]))}));
 try{
- await page.goto(connection.url);await expect(page.getByRole('button',{name:'保存草稿',exact:true})).toBeVisible();
+ await page.goto(connection.url);await expect(page.getByRole('button',{name:'保存',exact:true})).toBeVisible();
  await expect.poll(()=>page.locator('[data-routing="avoiding"]').count()).toBeGreaterThan(20);
  const initial=await snapshot(),channel={click:async()=>{for(const name of ['access.read','access.write'])await page.getByRole('group',{name:'连接频道显示'}).getByRole('button',{name,exact:true}).click();}};
  await channel.click();const reduced=await snapshot();expect(reduced.viewport).toBe(initial.viewport);
