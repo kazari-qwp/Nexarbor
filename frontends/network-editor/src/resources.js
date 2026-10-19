@@ -7,7 +7,8 @@ export const resourceAvailable=(catalog,organization,kind,id)=>!!definition(cata
 export function resource(catalog,kind,id,organization={}){
  const spec=definition(catalog,kind,id);if(!spec)throw Error('该资源已不在当前目录中');
  const item=organization[kind]?.items?.[id]??{};
- const base={kind,name:item.name??(kind==='module'?spec.label:spec.name),description:spec.description??''};
+ const local=kind==='module'?!!catalog.localResources?.modules[id]:kind==='tool'?!!catalog.localResources?.tools[id]||!!catalog.localResources?.modules[spec.module]:kind==='preset'?!spec.application||!!catalog.localResources?.presets[id]:true;
+ const base={kind,local,name:item.name??(kind==='module'?spec.label:spec.name),description:spec.description??''};
  return ['node','preset'].includes(kind)?{...base,resourceId:id,mode:spec.mode,snapshot:spec.snapshot?clone(spec.snapshot):undefined,lazySnapshot:spec.lazySnapshot,nodeCount:spec.nodeCount,file:spec.file,storageKind:spec.storageKind}:{...base,asset:kind==='module'?{kind,id,...clone(spec.defaults??{config:{},state:{},access:{strength:0,channels:[]}})}:{kind,id,channels:clone(spec.channels??['tools'])}};
 }
 export function resources(catalog,kind,organization={},includeArchived=false){

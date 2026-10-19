@@ -183,20 +183,22 @@ class Studio:
             available.append(dict(id=name,version=release['version'],manifest=f'dependencies/{name}/module.json',guide=f'dependencies/{name}/README.md'))
         if available:write_json(folder/'dependencies/catalog.json',available)
         original=sources(folder)
-        write_json(self.root/'baselines'/f'{id}.json',original)
+        from .git_baselines import save as baseline
+        write_json(self.root/'baselines'/f'{id}.json',baseline(self,id,original))
         write_json(folder/'workspace.json',{'label':p.get('name') or {'module':selected['name'],'tool':'制作工具','network':'制作网络预设'}[kind],'sample':sample,'kind':kind,'display_folder':p.get('display_folder')})
         write_json(self.root/'metadata'/f'{id}.json',{'sample':sample,'kind':kind,'label':selected['name']})
         return self.read(dict(id=id))
     def read(self,p):
         folder=self.folder(p['id']);files=sources(folder);files.pop('workspace.json',None)
-        original=read_json(self.root/'baselines'/f'{p["id"]}.json',{})
+        from .git_baselines import read as baseline
+        original=baseline(self,read_json(self.root/'baselines'/f'{p["id"]}.json',{}))
         owned,references=split_files(files)
         if (folder/'reference').exists():
             for f in (folder/'reference').rglob('*'):
                 if f.is_file() and f.suffix in TEXT:
                     if not f.resolve().is_relative_to(folder.resolve()) or f.stat().st_size>1024*1024:raise ValueError('参考资料越界或超过1MiB')
                     references[f.relative_to(folder).as_posix()]=f.read_text(encoding='utf-8')
-        return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files),**{k:read_json(folder/'workspace.json',{}).get(k,default) for k,default in [('display_folder',None),('kind','module')]})
+        return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files),**{k:read_json(folder/'workspace.json',{}).get(k,default) for k,default in [('display_folder',None),('kind','module'),('origin',None)]})
     def dependencies(self,p):
         folder=self.folder(p['id']);catalog=read_json(folder/'dependencies/catalog.json',[])
         known={item['id']:item for item in catalog}
@@ -268,6 +270,12 @@ class Studio:
         old=(folder/'network.json').read_text(encoding='utf-8')
         self.save(dict(id=p['id'],file='network.json',content=json.dumps(document,ensure_ascii=False,indent=2),expected=sha256(old.encode()).hexdigest()))
         return dict(copied=True,file='network.json',nodes=len(document['network']['nodes']))
+    def project_modules(self,p):
+        from .project_sources import load
+        return load(self)
+    def revision(self,p):
+        from .revisions import create
+        return create(self,p)
     def fork(self,p):
         release=self.release_read(p);workspace=self.create({'sample':'blank'});folder=self.folder(workspace['id'])
         for name,content in release['files'].items():
@@ -400,20 +408,22 @@ class Studio:
             from .network_work import check_work
             return dict(kind='network',id=p['id'],document=check_work(folder,self.backend,self.library)['document'],name=p.get('name') or metadata['label'],display_folder=metadata.get('display_folder'),digest=fingerprint)
         spec=json.loads(files['module.json']);name=spec['id']
+        if metadata.get('immutable_revision'):
+            if metadata.get('branch_module')!=name:raise ValueError('修改分支的模块ID不可更换，请保留宿主分配的修订ID')
+            if name in self.library and self.library[name]['digest']!=fingerprint:raise ValueError('该修订已发布；请从该版本建立新的修改副本')
         if name in getattr(self.backend.components,'module_extensions',{}):raise PermissionError('官方扩展模块不能发布替代实现')
         if any(module==name for _,module in self.backend.modules.instances):raise ValueError('Unmount active instances before replacing their module')
         if any(dep not in self.library for dep in spec['requires']):raise ValueError('Publish dependencies first')
         destination=self.root/'releases'/name/spec['version']/fingerprint
-        destination.mkdir(parents=True,exist_ok=True)
-        for file,content in files.items():
-            path=destination/file;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
+        from .project_sources import materialize
+        materialize(destination,files,self.root)
         old=self.library.copy()
         manifest(destination)
-        self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}),display_folder=metadata.get('display_folder'),origin_kind=metadata.get('kind','module'))
+        self.library[name]=dict(id=name,version=spec['version'],folder=str(destination.relative_to(self.root)),digest=fingerprint,manifest=spec,defaults=read_json(destination/'example.json',{}).get('config',{}),mount_defaults=read_json(destination/'example.json',{}),display_folder=metadata.get('display_folder'),origin_kind=metadata.get('kind','module'),origin=metadata.get('origin'))
         try:self._load_releases()
         except BaseException:self.library=old;raise
         self.removed.discard(name);write_json(self.root/'removed-modules.json',sorted(self.removed))
-        write_json(self.root/'library.json',self.library)
+        self.persist_library()
         return self.library[name]
     def mount(self,p):
         if self.running:raise ValueError('Wait until the signal completes')
@@ -589,5 +599,5 @@ def register(services):
         b.studio._load_releases()
         b.studio.persist_library()
     services.restorers.append(restore)
-    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'revision':False,'project_modules':True,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

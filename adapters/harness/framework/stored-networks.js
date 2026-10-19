@@ -1,10 +1,11 @@
+import {projectDirectory} from './project-directory.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
 
 // 目录只取摘要；打开、拖动、检查引用时才读取对应完整文档。
-export const storedNetworks=directory=>storedDocuments(directory,{rootName:'network_presets',parts:{fragment:'fragments',network:'networks'},label:'网络预设'});
-export const storedNodes=directory=>storedDocuments(directory,{rootName:'node_presets',parts:{node:'nodes'},label:'节点预设',singleNode:true});
+export const storedNetworks=directory=>storedDocuments(projectDirectory(directory),{rootName:'network_presets',parts:{fragment:'fragments',network:'networks'},label:'网络预设'});
+export const storedNodes=directory=>storedDocuments(projectDirectory(directory),{rootName:'node_presets',parts:{node:'nodes'},label:'节点预设',singleNode:true});
 function storedDocuments(directory,{rootName,parts,label,singleNode=false}){
  const base=path.resolve(directory),root=path.join(base,rootName),summaries=new Map();
  const valid=(document,kind)=>document.network?.version===8&&Array.isArray(document.network.nodes)&&(singleNode?document.network.nodes.length===1:kind==='network'||document.network.nodes.length>0);

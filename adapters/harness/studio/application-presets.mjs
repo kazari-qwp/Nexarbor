@@ -10,13 +10,13 @@ export const applications=[
  {id:'npc_town_v3',name:'NPC小镇',description:'19 节点完整小镇：时刻、居民、地点、移动、资源、交易与家庭。'}
 ];
 // 每个工作区首次安装一份独立成品副本；重启不覆盖用户的编辑、归档或删除。
-export async function installApplicationPresets(directory,root,{returnPresets=true}={}){
+export async function installApplicationPresets(directory,root,{returnPresets=true,applicationIds}={}){
  const store=storedNetworks(directory),base=path.join(directory,'network_presets');await fs.mkdir(base,{recursive:true});
  if(!(await fs.realpath(base)).startsWith((await fs.realpath(directory))+path.sep))throw Error('成品网络目录越出工作区');
  const file=path.join(base,'applications-installed.json');let installed;
  try{installed=JSON.parse(await fs.readFile(file,'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;installed={version:1,applications:{}};}
  const save=async()=>{const temp=file+'.'+randomUUID()+'.tmp';await fs.writeFile(temp,JSON.stringify(installed,null,2)+'\n');await fs.rename(temp,file);};
- for(const app of applications){
+ for(const app of applications.filter(app=>!applicationIds||applicationIds.includes(app.id))){
   if(installed.applications[app.id]){
    if(app.id==='npc_town_v3'&&!installed.townLayoutV2){
     const preset=await store.load(installed.applications[app.id]).catch(error=>{if(error.code==='ENOENT')return null;throw error;});

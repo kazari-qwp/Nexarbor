@@ -4,6 +4,7 @@ module.exports=async function(p){
  const loader=await require('../runtime/loader.cjs')(),native=loader.native,{Context}=native('cordis'),host=new Context();
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']])await host.plugin(native(name)[service]??native(name).default);
  await host.plugin(native('dsh-session-title').SessionTitleService,{fallbackMaxWords:12,fallbackMaxBytes:120,maxTitleBytes:256});
+ await host.plugin(native('dsh-attachment-local').LocalAttachmentStore,{dshHome:p.directory});
  const persistence=native('dsh-session-persistence-jsonl');await host.plugin(persistence.default??persistence,{root:path.join(p.directory,'maker-logs')});
  await host.plugin((await loader.load(p.root+'/adapters/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
  const grant=require(path.join(loader.root,'yaml')).parse(await fs.readFile(p.credentials,'utf8')).records['deepseek-account-platform/default'];

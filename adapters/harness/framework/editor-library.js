@@ -1,3 +1,4 @@
+import {projectDirectory} from './project-directory.js';
 import {readFile,writeFile,rename} from 'node:fs/promises';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
@@ -7,7 +8,7 @@ import {storedNetworks,storedNodes} from './stored-networks.js';
 
 // 仅保存编辑资料，不参与网络运行和核心快照。
 export function editorLibrary(directory,{catalog,inspect,purge,runtime}={}){
- const file=path.join(directory,'editor-library.json'),store=storedNetworks(directory),nodeStore=storedNodes(directory);let queue=Promise.resolve();
+ const file=path.join(projectDirectory(directory),'editor-library.json'),store=storedNetworks(directory),nodeStore=storedNodes(directory);let queue=Promise.resolve();
  const read=async()=>{let value;try{value=JSON.parse(await readFile(file,'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;value={version:0,bookmarks:[],history:[]};}const library={categories:[{id:'default',name:'默认分类'}],settings:{},assets:{},presets:[],nodeTemplates:[],...value};return library;};
  const write=async library=>{library.version++;const {presets,presetErrors,nodeTemplates,nodeErrors,...metadata}=library;const encoded=JSON.stringify(metadata);if(Buffer.byteLength(encoded)>8_000_000)throw Error('书签资料超过 8 MB，请移除不需要的书签');const temporary=file+'.'+randomUUID()+'.tmp';await writeFile(temporary,encoded);await rename(temporary,file);return library;};
  const validAsset=asset=>{if(!asset||!['tool','module'].includes(asset.kind)||typeof asset.id!=='string'||!asset.id||asset.id.length>300)throw Error('无效工具或模块引用');if(asset.kind==='module'&&(!asset.config||typeof asset.config!=='object'||Array.isArray(asset.config)))throw Error('模块预设配置必须是对象');if(asset.kind==='tool'&&(!Array.isArray(asset.channels)||asset.channels.some(c=>typeof c!=='string')))throw Error('无效工具频道');};

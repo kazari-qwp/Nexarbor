@@ -85,5 +85,5 @@ export class WorkspaceFiles{
   if(result.valid){await atomic(this.file,{version:1,document:result.document,layout:p.layout??{},view:p.view??saved?.view??{},base_commit:result.commit,dirty:false,agents,contexts,updatedAt:new Date().toISOString()});result.contextBranches=Object.keys(contexts).length;}
   return result;
  }
- request(operation,p={}){const handlers={'workspace.save':()=>this.save(p),'workspace.export':()=>this.save(p,{portable:true}),'workspace.import':()=>this.import(p),'workspace.view':()=>this.view(p),'workspace.apply':()=>this.apply(p)};if(!Object.hasOwn(handlers,operation))throw Error('未知工作区操作');return this.serial(handlers[operation]);}
+ request(operation,p={}){const handlers={'workspace.save':()=>this.save(p),'workspace.commit':async()=>{const saved=await this.save(p);if(!this.project)throw Error('当前工作区没有 Git 项目');const prefixes=Object.keys(saved.contexts??{}).length?await this.logs.request('export',{contexts:saved.contexts}):{};return {...saved,git:await this.project.commit({saved,prefixes,message:p.message,runtime:this.runtime})};},'workspace.export':()=>this.save(p,{portable:true}),'workspace.import':()=>this.import(p),'workspace.view':()=>this.view(p),'workspace.apply':()=>this.apply(p)};if(!Object.hasOwn(handlers,operation))throw Error('未知工作区操作');return this.serial(handlers[operation]);}
 }
