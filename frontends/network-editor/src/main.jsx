@@ -1,3 +1,4 @@
+import {MessageContent} from './message-content.jsx';
 import {createEditorClient} from '../../../communication/editor-client.js';
 import {SubnodeSettings,editorSubnode} from './subnodes.jsx';
 import {ChannelList} from './channel-list.jsx';
@@ -59,10 +60,7 @@ const api=createEditorClient({token});
 const icons={'居民':UserRound,'Agent':UserRound,'场所':MapPin,'文本':FileText,'数据':Box,'脉冲':Activity,'上下文':Layers,'业务':Box,'节点':Box,'亚节点':Box};
 const nodeTypes={network:NetworkNode};
 function Toast({message,onClose}){return message&&<div role="status" className="toast"><span>{message}</span><button onClick={onClose}><X size={14}/></button></div>;}
-function MessageBlocks({message,previews}){
-  const blocks=typeof message.content==='string'?[{type:'text',text:message.content}]:message.content??[];
-  return blocks.map((block,j)=>block.type==='text'?<p key={j}>{block.text}</p>:block.type==='image'?<figure key={j} className="chat-image">{previews?.[block.attachment?.attachmentId]?<img alt={block.attachment?.name??'工具图片'} src={previews[block.attachment.attachmentId]}/>:<figcaption>{block.attachment?.name??'图片'}</figcaption>}</figure>:<details key={j}><summary>{block.type} {block.name??''}</summary><pre>{JSON.stringify(block,null,2)}</pre></details>);
-}
+function MessageBlocks({message,previews}){return <MessageContent message={message} previews={previews} api={api}/>;}
 function ChatMessage({message,name,previews}){
   return <div className={'chat-message '+message.role}>{message.role==='system'?<details><summary>系统提示词</summary><MessageBlocks message={message} previews={previews}/></details>:<><div className="message-role">{message.role==='assistant'?name:message.role==='user'?'输入':'工具'}</div><MessageBlocks message={message} previews={previews}/></>}</div>;
 }

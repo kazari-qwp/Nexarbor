@@ -2,6 +2,18 @@
 
 用户可以说“让当前商店支持赊账”或“让讨论成员投票”，不必预先提供模块设计。先查看当前网络，找出目标节点、已有记录与接口，再搜索可复用能力。用配置解决差异；缺少的能力才做成通用组件。模块 Agent 产出组件包和装配说明，网络 Agent 产出网络配置。
 
+## 先看图，再查局部
+
+有观察工具时，先 `view_network(source="current")`，不要先导出全网 JSON。总览保留活动节点，折叠亚节点和纯资料文本。图上的 N/E 编号可直接用于观察查询；业务调用和写入使用 `inspect_nodes` 返回的真实节点 ID。
+
+- 一次 `inspect_nodes(nodes=["N3","N8"], section="modules")` 看相关节点的模块表；亚节点的表单独列出。
+- 需要局部关系时用 `view_network(nodes=["N3"], hops=1, include_subnodes=true, include_text=true)`；图太杂就按频道或模块筛选。
+- 大图先看完整概览，按需要用返回的 `view` 和框编号 `region="R2"` 放大局部；框之间有重叠，布局不变。小图没有区域框，无须多查一次。
+- `inspect_modules(modules=["模块ID"])` 看接口，`inspect_nodes(section="config", modules=["模块ID"])` 看实际参数；状态另用 `section="state"`，大字段用 `fields` 缩小范围。
+- `inspect_edges` 核对精确方向、频道黑白名单和强度；同向平行边在图上会合并绘制，不能据此推断配置相同。按需 `read_resource(module="模块ID", file="README.md")` 查文档。
+
+网络制作可观察 `source="candidate"`；`current/environment` 需要用户启用当前网络测试授权。`environment` 是已经 reset 的测试副本；观察只读，不能替代测试。写入或测试后会刷新快照，其他查询沿用同一快照，避免把旧图和新状态混在一起。局部管理员依旧只看到可达性裁剪的来源，不会因能画图而得到全网权限。
+
 开启测试副本后有 test_environment 工具：
 
 1. `action=reset, source=current` 复制当前网络、模块状态和受管理文本；网络制作也能 `source=candidate` 测试 network.json。

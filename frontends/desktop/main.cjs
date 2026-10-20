@@ -1,3 +1,4 @@
+if(process.argv.includes('--network-renderer')){require('./network-view.cjs');return;}
 const {app,BrowserWindow,dialog,Menu,shell,ipcMain}=require('electron');
 const fs=require('node:fs'),path=require('node:path');
 const {readConnection,localNavigation,activeConnection}=require('./connection.cjs');

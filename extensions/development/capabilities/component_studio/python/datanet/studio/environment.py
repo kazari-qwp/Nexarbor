@@ -66,7 +66,7 @@ def prepare(studio,p):
 def operate(studio,p):
     from .service import sources,digest,read_json,PROJECT
     action=p.get('action','inspect')
-    if action not in ('reset','inspect','mount','call','signal'):raise ValueError('未知测试环境操作')
+    if action not in ('reset','inspect','mount','call','signal','snapshot'):raise ValueError('未知测试环境操作')
     index=studio.root/'environments'/p['id']/'active.json'
     if action=='reset':home=prepare(studio,p)
     elif not index.exists():raise ValueError('请先 reset，复制当前网络或候选网络')
@@ -117,6 +117,9 @@ def worker(home,request):
             result=backend.runtime.run(backend.signals.propagate(Signal(request['actor'],request['channels'],request.get('strength',2),content=request.get('arguments',{}),max_deliveries=1000,timeout_seconds=20,node_timeout_seconds=5)))
         backend.dispatch('save',{})
         graph=network_document(backend.network,backend.directory)
+        if action=='snapshot':
+            document=backend.snapshot()
+            return dict(ok=True,document={key:document[key] for key in ('network','files')})
         summary=[dict(id=n['node_id'],name=n['name'],type=n['type'],modules=n['modules'] if request.get('node')==n['node_id'] else list(n['modules']),edges=n['connections']['interfaces']) for n in graph['nodes'] if not request.get('node') or request['node']==n['node_id']]
         value=dict(ok=True,result=result,nodes=summary,disabled=['模型执行','外部工具','节点工具箱'],source=setup['source'])
         write_json(home/'last-result.json',value);return value

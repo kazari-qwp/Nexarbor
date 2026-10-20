@@ -1,9 +1,11 @@
+import {NetworkObserver,indexNetwork,observerTools,readObservedResource} from './network-observer.mjs';
+import {NetworkRenderer} from './network-renderer.mjs';
 import fs from 'node:fs/promises';import path from 'node:path';import {createHash,randomUUID} from 'node:crypto';
 import {makerTools} from './tools.mjs';import {editorNode} from '../../framework/editor-nodes.js';import {storedNetworks} from '../../framework/stored-networks.js';
 import {editorLibrary} from '../../framework/editor-library.js';
 const hash=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex'),pause=ms=>new Promise(r=>setTimeout(r,ms));
 export class MakerManager{
- constructor(directory,rpc,{runnerFactory}={}){this.directory=directory;this.rpc=rpc;this.runnerFactory=runnerFactory;this.jobs=new Map();this.sessions=new Map();this.root=path.join(directory,'studio');this.connected=false;this.closed=false;}
+ constructor(directory,rpc,{runnerFactory}={}){this.directory=directory;this.rpc=rpc;this.runnerFactory=runnerFactory;this.jobs=new Map();this.sessions=new Map();this.root=path.join(directory,'studio');this.connected=false;this.closed=false;this.observations=new Map();this.observationIndices=new Map();this.renderer=new NetworkRenderer(directory);}
  async initialize(){try{for(const [id,s] of Object.entries(JSON.parse(await fs.readFile(path.join(this.root,'native-maker-sessions.json'),'utf8'))))this.sessions.set(id,s);}catch(e){if(e.code!=='ENOENT')throw e;}let files=[];try{files=await fs.readdir(path.join(this.root,'maker-evidence'));}catch(e){if(e.code!=='ENOENT')throw e;}for(const file of files.filter(n=>/^[a-zA-Z0-9_-]+\.json$/.test(n))){const job=JSON.parse(await fs.readFile(path.join(this.root,'maker-evidence',file),'utf8'));if(job.status==='running'){job.status='interrupted';job.error='宿主重启中断了制作，可保留工作分支后继续';}this.jobs.set(job.id,job);}}
  status(){return {connected:this.connected,authority:'本机 Harness SDK',jobs:[...this.jobs.values()].sort((a,b)=>(a.started??0)-(b.started??0)).map(j=>this.public(j)),backend:'native-sdk'};}
  public(job){const {instructions,...value}=job;return structuredClone(value);}
@@ -20,10 +22,10 @@ export class MakerManager{
   const prefix=hash({kind,allow,references,tools});let source;
   if(p.fork_session||p.resume_session){source=this.sessions.get(p.fork_session??p.resume_session);if(!source||source.prefix!==prefix)throw Error('教程或可用工具前缀已变化，请新开会话');if(p.resume_session&&source.workspace!==p.id)throw Error('继续历史只能用于原工作副本，换副本请分叉');}
   const id=randomUUID(),job={id,workspace:p.id,kind,status:'running',phase:'coding',started:Date.now(),deadline:Date.now()+timeout*1000,repairs:0,children:[],tool_events:[],allow_component_creation:allow,allow_network_testing:testing,hidden_modules:p.hidden_modules??[],scoped:!!scoped,prefix,source_session:p.fork_session??p.resume_session,auto_publish:p.auto_publish!==false};this.jobs.set(id,job);
-  const instructions=workspace.references['AGENTS.md']+'\n\n当前职责：'+(kind==='network'?'网络预设组装；只产出 network.json 和 README。先按需读 lessons/06-presets.md。':kind==='tool'?'模块／工具制作；必须有 agent_tools，可调差异用配置。先按需读 lessons/01-local.md。':'模块／工具制作；先查目录复用，再按需读 lessons/01-local.md。')+(scoped?'\n这是局部管理员任务：先读 reference/局部网络说明.md。root仅是当前管理员锚点；保留已有节点及其运行状态。禁止补全或猜测副本外节点。':'')+(testing?'\n用户可能只表达当前网络里想要的效果。先按需读 lessons/07-environment.md，再用测试副本理解场景，自己抽象可复用方案、验证并报告。':'');
+  const instructions='理解网络先 view_network 看图，inspect_nodes 批量读模块表，inspect_modules 按需查接口。source=candidate 观察候选网络，获得用户授权后 source=current 观察当前网络，source=environment 查看已 reset 的测试副本；编号与快照绑定。避免先读完整 network.json 和全部状态。\n'+workspace.references['AGENTS.md']+'\n\n当前职责：'+(kind==='network'?'网络预设组装；只产出 network.json 和 README。先按需读 lessons/06-presets.md。':kind==='tool'?'模块／工具制作；必须有 agent_tools，可调差异用配置。先按需读 lessons/01-local.md。':'模块／工具制作；先查目录复用，再按需读 lessons/01-local.md。')+(scoped?'\n这是局部管理员任务：先读 reference/局部网络说明.md。root仅是当前管理员锚点；保留已有节点及其运行状态。禁止补全或猜测副本外节点。':'')+(testing?'\n用户可能只表达当前网络里想要的效果。先按需读 lessons/07-environment.md，再用测试副本理解场景，自己抽象可复用方案、验证并报告。':'');
   try{
    const created=await this.runner.request('create',{task:id,directory:workspace.directory,name:p.name??p.id,kind,instructions,tools,model:p.model,model_signature:source?.model_signature,max_steps:p.max_steps??70,...(!p.fork_session&&!p.resume_session&&workspace.origin?.consult_cursor?{fork_cursor:workspace.origin.consult_cursor}:{}),...(p.fork_session?{fork_cursor:p.seed_only?source.seed_cursor:source.cursor}:p.resume_session?{resume_session:p.resume_session}:{})});Object.assign(job,created);this.sessions.set(job.session_id,{workspace:p.id,prefix,kind,seed_cursor:created.seed_cursor,model_signature:created.model_signature});await this.saveSessions();
-   this.run(job,p.requirement,p.max_repairs??3,p.attachments??[]).catch(e=>{job.status='failed';job.error=e.message;this.persist(job).catch(()=>{});});return this.public(job);
+   this.run(job,p.requirement,p.max_repairs??3,p.attachments??[]).catch(e=>{this.observations.delete(job.id);job.status='failed';job.error=e.message;this.persist(job).catch(()=>{});});return this.public(job);
   }catch(e){job.status='failed';job.error=e.message;throw e;}
  }
  async saveSessions(){await fs.writeFile(path.join(this.root,'native-maker-sessions.json'),JSON.stringify(Object.fromEntries(this.sessions),null,2));}
@@ -42,14 +44,17 @@ export class MakerManager{
    if(job.repairs++>=maxRepairs){job.status='failed';job.phase='validation_failed';break;}
    await this.disk();job.phase='coding';prompt='宿主验证未通过，请根据日志局部修复；不修改教程、依赖和宿主检查。\n'+check.log.slice(-16000);
   }
-  job.finished=Date.now();await this.persist(job);
+  this.observations.delete(job.id);job.finished=Date.now();await this.persist(job);
  }
  async read(p){let job=this.jobs.get(p.task);if(!job){if(!/^[a-zA-Z0-9_-]{1,80}$/.test(p.task))throw Error('未知制作任务');try{job=JSON.parse(await fs.readFile(path.join(this.root,'maker-evidence',p.task+'.json'),'utf8'));}catch{throw Error('制作任务已不在内存中，请查看工作副本或证据');}if(job.status==='running')job={...job,status:'interrupted',error:'宿主重启中断了制作，请保留副本并重新发起'};return this.public(job);}if(job.status==='running'&&job.session_id){try{Object.assign(job,await this.runner.request('read',{session_id:job.session_id}));}catch(e){job.read_error=e.message;}}return this.public(job);}
- async cancel(p){const job=this.jobs.get(p.task);if(!job)throw Error('未知制作任务');job.status='cancelled';if(job.session_id)await this.runner.request('cancel',{session_id:job.session_id});for(const task of job.children){if(this.jobs.get(task)?.status==='running')await this.cancel({task});}await this.persist(job);return this.public(job);}
+ async cancel(p){const job=this.jobs.get(p.task);if(!job)throw Error('未知制作任务');job.status='cancelled';this.observations.delete(job.id);if(job.session_id)await this.runner.request('cancel',{session_id:job.session_id});for(const task of job.children){if(this.jobs.get(task)?.status==='running')await this.cancel({task});}await this.persist(job);return this.public(job);}
  async tool(p){
+  if(this.closed)throw Error('制作宿主已关闭');
   if(this.advisor?.has(p.task))return this.advisor.tool(p);
   const job=this.jobs.get(p.task);if(!job||job.status!=='running')throw Error('制作任务已停止');const allowed=makerTools(job.kind,job.allow_component_creation,job.allow_network_testing).map(t=>t.name);if(!allowed.includes(p.tool))throw Error('该制作任务未获准使用此工具');
   job.tool_events.push({tool:p.tool,path:p.arguments?.path,time:Date.now(),content_hash:p.arguments?.content?hash(p.arguments.content):undefined});
+  if(p.tool==='read_resource'||observerTools.some(t=>t.name===p.tool))return this.observe(job,p.tool,p.arguments??{});
+  if(['write_file','edit_file','network_patch','copy_current_network'].includes(p.tool)||p.tool==='test_environment'&&p.arguments?.action!=='inspect'){const held=this.observations.get(job.id);if(held){held.epoch++;held.observer=null;}}
   if(p.tool==='validate'){job.validation_attempts=(job.validation_attempts??0)+1;if(job.validation_attempts>20)throw Error('本任务已达到 20 次验证上限，请报告未解决问题并结束');const check=await this.validate(job.workspace);return {status:check.status,log:check.log};}
   if(p.tool==='node_template')return editorNode(p.arguments.kind,p.arguments.id,p.arguments.name);
   if(p.tool==='copy_current_network')return this.rpc('studio_copy_current',{id:job.workspace});
@@ -62,6 +67,25 @@ export class MakerManager{
   if(p.tool==='component_status'){if(!job.children.includes(p.arguments.task))throw Error('只能查看当前预设委托的组件');const child=this.jobs.get(p.arguments.task),end=Date.now()+Math.min(30,Math.max(0,p.arguments.wait_seconds??15))*1000;while(child.status==='running'&&job.status==='running'&&Date.now()<end)await pause(500);return {task:child.id,status:child.status,release:child.release,validation_log:child.validation_log,error:child.error};}
   return this.rpc('studio_maker_tool',{id:job.workspace,tool:p.tool,arguments:p.arguments,hidden:job.hidden_modules});
  }
+ observe(job,name,args){
+  let state=this.observations.get(job.id);if(!state){state={source:job.kind==='network'?'candidate':'current',epoch:0,tail:Promise.resolve(),observer:null};this.observations.set(job.id,state);}
+  const result=state.tail.then(async()=>{
+   if(job.status!=='running')throw Error('制作任务已停止');
+   const source=args.source??state.source;
+   if(['current','environment'].includes(source)&&!job.allow_network_testing)throw Error('当前任务未获准读取用户网络；请使用 candidate');
+   if(!state.observer||state.source!==source||args.refresh){
+    const epoch=state.epoch,document=await this.rpc('studio_observe',{id:job.workspace,source});
+    const resources={},catalog=await this.rpc('studio_catalog');
+    for(const id of new Set(document.network.nodes.flatMap(n=>Object.keys(n.modules??{}))))if(catalog.library[id]&&!job.hidden_modules.includes(id))resources[id]=await this.rpc('studio_release_read',{module:id});
+    if(epoch!==state.epoch)throw Error('读取期间副本已变化，请重新观察');
+    const key=job.workspace+'|'+source,index=indexNetwork(document,this.observationIndices.get(key));this.observationIndices.set(key,index);
+    const snapshot={document,resources,source,observerIndex:index,selection:{nodes:[],edges:[]}},id=hash({document,resources,index,source});state.observer=new NetworkObserver(snapshot,id);state.source=source;
+   }
+   const observer=state.observer;observer.check(args);if(name==='read_resource')return readObservedResource(observer.snapshot,observer.id,args);
+   return observer.execute(name,args,scene=>this.renderer.render(scene));
+  });state.tail=result.then(()=>{},()=>{});return result;
+ }
+
  async publish(p){
   const release=await this.rpc('studio_publish',p);
   if(this.project&&release.id&&release.manifest){await this.project.install('module',release.id);await this.rpc('studio_project_modules');const work=await this.rpc('studio_read',{id:p.id});release.git=await this.project.branch(work);}
@@ -76,5 +100,5 @@ export class MakerManager{
   const ancestors=new Set();for(let id=folder;id!=null&&!ancestors.has(id);id=tree.folders.find(f=>f.id===id)?.parent)ancestors.add(id);
   const preset=await storedNetworks(this.directory).save({storageKind:ancestors.has('stored-networks')?'network':'fragment',document:release.document,editor:{name:release.name,mode:'internal',display_folder:folder,originMaker:release.id}});return {kind:'network',...preset};
  }
- async close(){this.closed=true;await this.advisor?.close();for(const j of this.jobs.values())if(j.status==='running')await this.cancel({task:j.id}).catch(()=>{});await this.runner?.close();}
+ async close(){this.renderer.close();this.observations.clear();this.closed=true;await this.advisor?.close();for(const j of this.jobs.values())if(j.status==='running')await this.cancel({task:j.id}).catch(()=>{});await this.runner?.close();}
 }

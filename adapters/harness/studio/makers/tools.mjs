@@ -1,3 +1,4 @@
+import {observerTools,observerResourceTool} from './network-observer.mjs';
 const object=properties=>({type:'object',properties,additionalProperties:false}),str={type:'string'};
 const tool=(name,description,properties={},required=[])=>({name,description,parameters:{...object(properties),required}});
 export function makerTools(kind,allowCreation=false,allowTesting=false){
@@ -7,5 +8,6 @@ export function makerTools(kind,allowCreation=false,allowTesting=false){
  if(kind==='network'&&allowTesting)common.push(tool('copy_current_network','把当前正式网络的配置和受管理文本复制为network.json草稿；清空信号运行及原生日志位置，不修改正式网络。'));
  if(kind==='network'&&allowCreation)common.push(tool('request_component','委托统一模块／工具 Agent 制作缺少的通用组件。返回任务编号，稍后查状态。',{kind:{enum:['module','tool']},name:str,requirement:str},['kind','name','requirement']),tool('component_status','检查本任务委托的组件，默认等待15秒，最多30秒；通过验证并发布后才可引用，避免快速空轮询。',{task:str,wait_seconds:{type:'integer',minimum:0,maximum:30}},['task']));
  if(allowTesting)common.push(tool('test_environment','在当前网络或候选网络的独立副本中试装/调用/发信号。先 reset，源码改变后再次 reset；真实外部工具和模型始终禁用。按需读 lessons/07-environment.md。',{action:{enum:['reset','inspect','mount','call','signal']},source:{enum:['current','candidate']},node:str,actor:str,module:str,operation:str,arguments:{type:'object'},config:{type:'object'},state:{type:'object'},access:object({strength:{type:'number',minimum:0},channels:{type:'array',items:str}}),strength:{type:'number',minimum:0},channels:{type:'array',items:str}},['action']));
+ if(kind==='network'||allowTesting)common.push(...[...observerTools,observerResourceTool].map(t=>({...structuredClone(t),parameters:{...structuredClone(t.parameters),properties:{...structuredClone(t.parameters.properties),source:{enum:['candidate','current','environment'],description:'candidate 候选网络；current 用户授权的当前网络；environment 已 reset 的测试副本。'},refresh:{type:'boolean',description:'重新固定观察快照。修改副本或测试后会自动刷新。'}}}})));
  return common;
 }

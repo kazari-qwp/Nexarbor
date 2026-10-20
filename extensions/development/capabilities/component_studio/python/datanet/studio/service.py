@@ -280,6 +280,23 @@ class Studio:
     def environment(self,p):
         from .environment import operate
         return operate(self,p)
+    def observe(self,p):
+        """Return only the work copy's authorized graph; projection and images live in the adapter/frontend."""
+        folder=self.folder(p['id']);source=p.get('source','candidate')
+        scoped=getattr(self.backend,'network_administrator',None)
+        if source=='candidate':
+            if read_json(folder/'workspace.json',{}).get('kind')!='network':raise ValueError('组件副本请使用 current 或 environment 观察网络')
+            document=read_json(folder/'network.json',{})
+            if scoped and scoped.has(p['id']):document=scoped.check(p['id'],document)
+        elif source=='current':
+            snapshot=scoped.source(p['id']) if scoped and scoped.has(p['id']) else self.backend.snapshot()
+            document={key:snapshot[key] for key in ('network','files')}
+        elif source=='environment':
+            from .environment import operate
+            return operate(self,dict(id=p['id'],action='snapshot'))['document']
+        else:raise ValueError('未知观察来源')
+        if document.get('network',{}).get('version')!=8 or not isinstance(document['network'].get('nodes'),list):raise ValueError('当前副本还没有有效网络，请先建立 network.json')
+        return deepcopy(document)
     def copy_current(self,p):
         folder=self.folder(p['id'])
         if read_json(folder/'workspace.json',{}).get('kind')!='network':raise ValueError('仅网络制作副本可以复制当前配置')
@@ -643,5 +660,5 @@ def register(services):
         b.studio._load_releases()
         b.studio.persist_library()
     services.restorers.append(restore)
-    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'copy_current':False,'release_read':False,'fork':False,'revision':False,'project_modules':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'frontend_preview':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'observe':False,'copy_current':False,'release_read':False,'fork':False,'revision':False,'project_modules':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'frontend_preview':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)
