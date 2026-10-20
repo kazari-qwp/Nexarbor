@@ -52,7 +52,7 @@ class NativeExecutor:
             await self.module_tools.visit(node_id,target,strength=binding.get('strength',0),channels=binding.get('channels',[]))
         timeout=options.get('timeout_seconds',binding.get('timeout_seconds',90))
         if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('Invalid executor timeout')
-        request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=binding.get('max_steps',12),session_id=self.backend.agents.get(node_id,{}).get('session_id'),context_cursor=node.context_cursor)
+        request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=binding.get('max_steps',12),session_id=self.backend.agents.get(node_id,{}).get('session_id'),context_cursor=node.context_cursor,model=binding.get('model'),model_signature=self.backend.agents.get(node_id,{}).get('model_signature'))
         try:
             async with self.backend.node_locks.suspend_access():
                 with self.backend.node_locks.export_owner(node_id) as ticket:
@@ -176,7 +176,7 @@ class NativeExecutor:
     def bind(self,p):
         with self.backend.node_locks.access_sync([p['actor']]):
             self.binding(p['actor'])
-            self.backend.agents.setdefault(p['actor'],{}).update(session_id=p['session_id'],executor='harness')
+            self.backend.agents.setdefault(p['actor'],{}).update(session_id=p['session_id'],executor='harness',model_signature=p.get('model_signature'))
             if p.get('context_cursor') is not None: self.backend.network.nodes[p['actor']].context_cursor=p['context_cursor']
             return {'ok':True}
     def prune(self,p):

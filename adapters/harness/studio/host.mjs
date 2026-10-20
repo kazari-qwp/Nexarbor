@@ -1,3 +1,5 @@
+import {ExternalTextFiles} from './external-text.mjs';
+import {ModelConnections} from './model-connections.mjs';
 import {pythonExecutable} from './runtime-paths.mjs';
 import {Project,readProjectBundle,readProjectRuntime} from './project.mjs';import {registerProjectDirectory} from '../framework/project-directory.js';
 // Local development host. Electron Renderer has no OS bridge or Node privileges.
@@ -14,7 +16,7 @@ import {installApplicationPresets} from './application-presets.mjs';
 import {parallelTownTemplates,updateTownRuntime,updateTownQueries} from './town-layout.mjs';
 import {subnodeTownTemplates,updateTownSubnodes} from './subnode-town.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
-export async function startStudio({directory=path.join(root,'build/workbench-v3'),python,initialNetwork,makerRunnerFactory,application,components=[],templates=[],onOpenNetwork,onImportNetwork,onOpenProject,onCreateProject,onRevealFile,projectDirectory=directory,applicationPresets,startupWarnings=[],onProgress=()=>{}}={}){
+export async function startStudio({directory=path.join(root,'build/workbench-v3'),python,initialNetwork,makerRunnerFactory,application,components=[],templates=[],onOpenNetwork,onImportNetwork,onOpenProject,onCreateProject,onRevealFile,projectDirectory=directory,applicationPresets,startupWarnings=[],onProgress=()=>{},modelDirectory,onOpenText,onChooseText}={}){
  python??=await pythonExecutable(root);
  registerProjectDirectory(directory,projectDirectory);
  if(!application){const savedRuntime=await readProjectRuntime(projectDirectory);if(savedRuntime){components=[...new Set([...components,...(savedRuntime.components??[])])];if(!templates.length)templates=savedRuntime.templates??[];application=savedRuntime.application;}}
@@ -26,8 +28,10 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  const child=spawn(python,[path.join(root,'adapters/harness/studio/server.py'),directory],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1',DATANET_DEFER_VECTORS:'1',PYTHONPATH:path.join(root,'python'),DATANET_PRODUCT_ROOT:root,DATANET_COMPONENT_ROOT:path.join(root,'extensions/development'),DATANET_COMPONENT_SELECTION:JSON.stringify(profile.select),DATANET_COMPONENT_PROFILE:'{}',DATANET_PROJECT_DIRECTORY:projectDirectory,DATANET_PROJECT_RESOURCES_ONLY:path.resolve(projectDirectory)!==path.resolve(directory)?'1':'0',...(initialNetwork?{DATANET_INITIAL_NETWORK:path.resolve(initialNetwork)}:{}),TEMP:temporary,TMP:temporary,TMPDIR:temporary}});
  let serial=0,closed=false;const pending=new Map();let diagnostics='';child.stderr.on('data',chunk=>{diagnostics=(diagnostics+chunk).slice(-16000);});
  const official=new OfficialToolsRunner(directory);let officialTools=[],runtimeTools=[],toolError=null;
- const native=new NativeRunner(directory,(method,params)=>rpc(method,params));
  const project=new Project(projectDirectory,directory,(method,p)=>rpc(method,p));
+ const modelConnections=new ModelConnections({project,directory,configDirectory:modelDirectory});
+ const externalText=new ExternalTextFiles({directory,project,onOpen:onOpenText,onChoose:onChooseText,onReveal:onRevealFile,preferences:()=>modelConnections.preferences()});
+ const native=new NativeRunner(directory,(method,params)=>rpc(method,params),{modelResolver:choice=>modelConnections.runtime(choice,'project')});
  const workspaceFiles=new WorkspaceFiles(directory,(method,p)=>rpc(method,p),native,{components,templates});
  const lines=readline.createInterface({input:child.stdout});lines.on('line',line=>{try{const response=JSON.parse(line);if(response.notification){native.notify();return;}if(response.host_id){(response.method.startsWith('network-admin-')?adminRequest(response.method.slice(14),response.params):response.method==='official-tool-invoke'?official.request('invoke',response.params):native.request(response.method,response.params)).then(result=>child.stdin.write(JSON.stringify({host_id:response.host_id,result})+'\n'),error=>child.stdin.write(JSON.stringify({host_id:response.host_id,error:error.message})+'\n'));return;}const p=pending.get(response.id);if(!p)return;pending.delete(response.id);clearTimeout(p.timer);Object.hasOwn(response,'error')?p.reject(Error(response.error||'宿主调用失败，未提供错误说明')):p.resolve(response.result);}catch{}});
  const fail=error=>{for(const p of pending.values()){clearTimeout(p.timer);p.reject(error);}pending.clear();};
@@ -37,6 +41,8 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  const loadOfficial=()=>officialLoading??=(async()=>{officialState='loading';try{const tools=await official.start();await rpc('official_register',{tools});officialTools=tools.map(t=>({...t,ref:'harness:'+t.name,provider:'harness'}));officialState='ready';toolError=null;return officialTools;}catch(error){officialState='error';toolError=error.message;officialLoading=null;await official.close();throw error;}})();
  let openingNetwork=false;
  const request=async(operation,params)=>{
+  if(operation?.startsWith('text.external.'))return externalText.request(operation,params);
+  if(operation?.startsWith('models.')||operation?.startsWith('preferences.'))return modelConnections.request(operation,params);
   if(operation==='project.restore')return project.restore(params.commit);
   if(operation==='project.info')return project.info();
   if(operation==='project.install'){const value=await project.install(params.kind,params.id);await rpc('studio_project_modules');return value;}
@@ -44,6 +50,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(operation==='project.open'){if(!onOpenProject)throw Error('请从桌面客户端选择项目文件夹');setTimeout(()=>onOpenProject(),50);return {opening:true};}
   if(operation==='file.reveal'){if(!onRevealFile)throw Error('当前连接未启用文件定位');let requested=params.path.replace(/:(\d+)(?::\d+)?$/,'');const file=await fs.realpath(path.resolve(projectDirectory,requested));const allowed=[await fs.realpath(projectDirectory),await fs.realpath(root)];if(!allowed.some(base=>file===base||file.startsWith(base+path.sep)))throw Error('文件不在当前项目或制作后端内');return onRevealFile(file);}
   if(operation==='state')return {startupWarnings,...await rpc('studio_state'),...(params.resume!==false?{workspace:await workspaceFiles.state()}:{})};
+  if(['workspace.commit','workspace.export','workspace.save','apply'].includes(operation)){const before=params.document??(await rpc('studio_state')).live.document,document=await externalText.sync(before);params={...params,document,...(operation==='apply'?{}:{dirty:!!params.dirty||JSON.stringify(before.files)!==JSON.stringify(document.files)})};}
   if(operation==='workspace.import.local')return workspaceFiles.request('workspace.import',params);
   if(operation==='workspace.import'&&onImportNetwork){setTimeout(()=>Promise.resolve(onImportNetwork(params.bundle)).catch(()=>{}),100);return {opening:true};}
   if(operation==='workspace.commit')await project.ensureResources(params.dirty?params.document:(await rpc('studio_state')).live.document,{allowMissing:true});
@@ -118,7 +125,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  workspaceFiles.runtime={components,templates,application};workspaceFiles.project=project;
  if(restoreBundle){const staged=await workspaceFiles.request('workspace.import',{bundle:restoreBundle});if(!restoreBundle.dirty&&staged.validation.valid)await workspaceFiles.request('workspace.apply',{...staged,base_commit:staged.base_commit});}
  if(application==='npc_town_v3')try{await updateTownQueries(rpc,directory);await updateTownSubnodes(rpc,directory);}catch(error){startupWarnings.push('小镇上下文配置未能自动更新：'+error.message);}
- makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory},callback))});await makers.initialize();makers.project=project;makers.advisor=new Advisors(directory,rpc,makers,()=>request('catalog',{}));
+ makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory,modelResolver:(choice,meta)=>modelConnections.runtime(choice,meta.kind==='network'?'network':'component')},callback))});await makers.initialize();makers.project=project;makers.advisor=new Advisors(directory,rpc,makers,()=>request('catalog',{}));
  adminRequest=(method,p)=>{if(method==='start')return makers.start(p);if(method==='status')return makers.read(p);if(method==='cancel')return makers.cancel(p);throw Error('未知局部管理员宿主操作');};
  // 原生 Agent 与制作运行器已有按需启动；官方工具同样不阻塞画布。
  server=await startEditorServer({web:path.join(root,'extensions/editor/capabilities/network_editor/web'),directory,runtime:{components,templates},request,chat:async(operation,p)=>{if(operation!=='chat.read'&&officialNeeded)await loadOfficial();return rpc(operation==='chat.read'?'executor_read':'executor_run',p);},recover:()=>{throw Error('请先保存完整开发恢复点');}});

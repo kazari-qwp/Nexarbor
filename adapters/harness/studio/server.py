@@ -59,7 +59,7 @@ class StudioTransport(Transport):
             with self.backend.node_locks.access_sync([p['actor']]):
                 node=self.backend.network.nodes[p['actor']]
                 with self.backend.node_locks.export_owner(node.node_id) as ticket:
-                    return self.host('agent-read',dict(actor=node.node_id,name=node.name,session_id=self.backend.agents.get(node.node_id,{}).get('session_id'),context_cursor=node.context_cursor,node_access_ticket=ticket))
+                    return self.host('agent-read',dict(actor=node.node_id,name=node.name,session_id=self.backend.agents.get(node.node_id,{}).get('session_id'),context_cursor=node.context_cursor,node_access_ticket=ticket,model=(node.execution_binding or {}).get('model'),model_signature=self.backend.agents.get(node.node_id,{}).get('model_signature')))
         return super().dispatch(method,p)
 
 def main():
@@ -68,7 +68,7 @@ def main():
     if document:
         for node in document['network']['nodes']:
             file=node.get('parameters',{}).get('file_path')
-            if file is not None and (Path(file).is_absolute() or '..' in Path(file).parts):raise ValueError('应用初始网络的文本与记忆路径必须在运行目录内')
+            if node['type']!='text_file' and file is not None and (Path(file).is_absolute() or '..' in Path(file).parts):raise ValueError('应用初始网络的文本与记忆路径必须在运行目录内')
     backend=Backend(sys.argv[1],initial_document=document);remote=HarnessRemote(backend.studio)
     backend.studio.workspace_busy=lambda id:any(j['workspace']==id and j['status']=='running' for j in remote.jobs.values())
     for method in ['connect','start','read','cancel','status']:

@@ -5,7 +5,15 @@ def validate_execution_binding(node,network,definitions,*,allow_missing=False):
     if not binding:return
     if not isinstance(binding.get('executor'),str) or not binding['executor']:raise ValueError('执行器标识不能为空')
     if node.signal_type!='agent':raise ValueError('只有 Agent 节点可以绑定执行器')
-    if set(binding)-{'executor','strength','channels','max_steps','timeout_seconds','prepare','channel_mode','channel_modes','tool_sources'}:raise ValueError('执行配置只支持executor/strength/channels/max_steps/timeout_seconds/prepare')
+    if set(binding)-{'executor','strength','channels','max_steps','timeout_seconds','prepare','channel_mode','channel_modes','tool_sources','model'}:raise ValueError('执行配置含未知字段')
+    model=binding.get('model')
+    if model is not None:
+        if not isinstance(model,dict) or set(model)-{'connection','model','reasoning_effort','max_tokens','context_window'}:raise ValueError('模型配置只保存连接引用、模型和生成参数')
+        for key in ('connection','model'):
+            if not isinstance(model.get(key),str) or not model[key].strip() or len(model[key])>300:raise ValueError('模型连接和名称不能为空')
+        if model.get('reasoning_effort') is not None and model['reasoning_effort'] not in ('off','minimal','low','medium','high','xhigh','max'):raise ValueError('模型思考强度无效')
+        for key,limit in [('max_tokens',2000000),('context_window',4000000)]:
+            if key in model and (type(model[key]) is not int or not 1<=model[key]<=limit):raise ValueError('模型生成参数无效：'+key)
     strength=binding.get('strength',0)
     if type(strength) not in (int,float) or not 0<=strength<=32:raise ValueError('执行器strength须为0至32')
     from .channel_filters import mode

@@ -18,7 +18,7 @@ def validate_network(document,backend,library,*,allow_missing=False):
         from datanet.core.node_toolboxes import validate_exposure
         validate_exposure(node)
         backend.external_tools.validate_node(node)
-        if hasattr(node,'file_path') and not node.file_path.is_relative_to(backend.directory):raise ValueError('文档路径必须在网络工作目录内')
+        if node.signal_type!='text_file' and hasattr(node,'file_path') and not node.file_path.is_relative_to(backend.directory):raise ValueError('文档路径必须在网络工作目录内')
         for name,spec in node.modules.items():
             definition=backend.components.module_types.get(name)
             if definition is None:
@@ -33,7 +33,7 @@ def validate_network(document,backend,library,*,allow_missing=False):
     from datanet.core.component_registry import resource_roots
     for node in candidate.nodes.values():
         for _,path,_ in resource_roots(node):
-            if not path.is_relative_to(backend.directory):raise ValueError('节点数据必须在网络工作目录内')
+            if node.signal_type!='text_file' and not path.is_relative_to(backend.directory):raise ValueError('节点数据必须在网络工作目录内')
     from datanet.core.resource_data import decode_data
     for name,content in document['files'].items():
         if not (backend.directory/name).resolve().is_relative_to(backend.directory):raise ValueError('资源必须在网络目录内')

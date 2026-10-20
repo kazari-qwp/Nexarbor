@@ -55,7 +55,7 @@ def ensure_nodes():
     register_node(NodeCodec('node', Node, lambda node, base: {}, lambda common, params, base: Node(*common), description='无本地数据的组织节点，用于连接节点和挂载工具。', local_read=False, local_schema=False))
     from datanet.core.text_node import TextFileNode
     def encode_text(node,base):
-        return {'file_path':Path(os.path.relpath(node.file_path,base)).as_posix(),'max_chars':node.max_chars,'tool_channels':node.tool_channels}
+        return {'file_path':Path(os.path.relpath(node.file_path,base)).as_posix() if node.file_path.is_relative_to(base) else node.file_path.as_posix(),'max_chars':node.max_chars,'tool_channels':node.tool_channels}
     def decode_text(common,params,base):
         if set(params)-{'file_path','max_chars','tool_channels'}:raise ValueError('Unsupported ordinary text parameter')
         return TextFileNode(*common,base/params['file_path'],max_chars=params.get('max_chars'),tool_channels=params.get('tool_channels'))

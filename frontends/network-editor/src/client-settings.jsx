@@ -1,5 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {X,ChevronDown,Bot,Box,Network} from 'lucide-react';
+import {ExternalEditorPreferences} from './models.jsx';
 import {defaultShortcuts,shortcuts,keyName} from './shortcuts.js';
 const modifiers=[['None','无'],['Shift','Shift'],['Control','Ctrl'],['Alt','Alt'],['Meta','Meta']];
 export function AgentMenu({onComponent,onNetwork}){
@@ -10,11 +11,12 @@ export function AgentMenu({onComponent,onNetwork}){
   {open&&<div role="menu" aria-label="Agent 菜单"><button role="menuitem" onClick={()=>{setOpen(false);onComponent();}}><Box size={14}/>组件/模块制作agent</button><button role="menuitem" onClick={()=>{setOpen(false);onNetwork();}}><Network size={14}/>网络预设制作agent</button></div>}
  </div>;
 }
-export function ClientSettings({value,onSave,onClose}){
+export function ClientSettings({api,value,onSave,onClose}){
  const [draft,setDraft]=useState(()=>shortcuts(value)),[error,setError]=useState('');
  const update=(key,value)=>setDraft(d=>({...d,[key]:value}));
  const keyboard=[['copyInternal','内部复制／A 模式'],['copyExternal','保留外联／B 模式'],['deleteBookmark','删除悬停书签（留空跟随复制键）'],['savePreset','保存悬停节点／网络书签至对应目录'],['save','Commit 当前编辑'],['remove','删除画布选中元素'],['undo','撤销'],['redo','重做'],['assetCut','资源目录：剪切'],['assetPaste','资源目录：粘贴'],['assetRename','资源目录：重命名'],['assetNewFolder','资源目录：新建文件夹'],['assetSelectAll','资源目录：全选当前目录'],['assetRemove','资源目录：删除文件夹／归档资源']];
  return <div className="modal-backdrop client-settings"><section className="modal" role="dialog" aria-modal="true" aria-label="客户端设置"><div className="modal-header"><h2>客户端设置 · 快捷操作</h2><button aria-label="关闭客户端设置" onClick={onClose}><X size={18}/></button></div>
+ {api&&<ExternalEditorPreferences api={api}/>}
  <p className="muted">点击按键框后按下新组合键。输入框和源码编辑器保留文本编辑快捷键。</p>
  {keyboard.map(([key,label])=><label key={key}>{label}<input aria-label={label} readOnly value={draft[key]} placeholder="未单独指定" onKeyDown={e=>{e.preventDefault();e.stopPropagation();if(e.key==='Backspace'&&key==='deleteBookmark')update(key,'');else{const name=keyName(e);if(name)update(key,name);}}}/></label>)}
  {[['multiSelect','累加点选修饰键'],['selectionWheel','滚轮扩缩选区修饰键']].map(([key,label])=><label key={key}>{label}<select aria-label={label} value={draft[key]} onChange={e=>update(key,e.target.value)}>{modifiers.filter(([id])=>id!=='None').map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>)}

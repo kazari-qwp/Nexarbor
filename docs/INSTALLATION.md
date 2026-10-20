@@ -5,7 +5,7 @@ Nexarbor 0.8 是独立的桌面工作台，使用 **DeepSeek Harness 原生运�
 ## 安装要求
 
 1. Windows x64，以及已加入 PATH 的 [Git for Windows](https://git-scm.com/downloads/win)。项目的 Commit、修改分支和恢复使用真实 Git。
-2. 安装 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，并在 Harness 内完成 DeepSeek 账户授权。当前适配以 `0.2.0-rc.2` 系列原生 SDK 为基线。
+2. 安装 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，可在 Harness 内完成 DeepSeek 账户授权，也可在工作台配置自己的 API key。当前适配以 `0.2.0-rc.2` 系列原生 SDK 为基线。
 3. 下载 Release 中的 `Nexarbor-0.8.0-win-x64.zip`，完整解压到可写目录，然后双击 `Nexarbor.exe`。压缩包包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
 
 首次启动提供“打开项目文件夹”和“新建项目文件夹”。新建会准备 Git 仓库、资源目录和 `打开项目.cmd`。以后可直接双击项目中的脚本。
@@ -24,6 +24,22 @@ set "DATANET_HARNESS_EXE=D:\Apps\DeepSeek Harness\DeepSeek Harness.exe"
 set "DATANET_HARNESS_CREDENTIALS=D:\HarnessHome\.credentials.yaml"
 start "" "%~dp0Nexarbor.exe"
 ```
+
+## 模型与独立 API 连接
+
+选中 Agent 节点，在右侧“模型”页取消“使用默认模型”，选择服务商连接和模型；点击连接右侧 **+** 可以新增连接，填写名称、服务商、接口类型、Base URL、API key 和模型列表。支持 Chat Completions、Responses 和 Anthropic Messages 兼容接口，实际兼容性以服务商提供的协议为准。模型名可以手动填写，也可查询连接的模型列表。
+
+**同一服务商的不同 key 要建立不同连接。** 每个节点分别保存连接引用；组件／模块制作 Agent 和网络预设制作 Agent 也各有“模型”页。顶部“设置 → 模型与 API”控制当前项目默认值。制作 Agent 的设置点击“保存模型选择”；节点的设置点击“校验并更新网络”生效。修改一条已有连接的 key 会影响使用该连接的所有 Agent；需要独立使用时请新建连接。
+
+API key 使用当前 Windows 账户的 DPAPI 加密，存于 `%LOCALAPPDATA%\Nexarbor\models\`，不放进项目、Commit、网络导出、书签或模型提示词。更换电脑后需重新配置本机连接。切换模型或 key 后，后续运行从当前上下文建立新分支，保留旧历史。无论选择哪种连接，Agent 都由已安装的 Harness 原生 SDK 执行。
+
+## 外部编辑文本
+
+选中文本节点，在“资料”页点击“打开文本文件”，或右键该节点选择同名菜单项。“在资源管理器中显示”会打开所在文件夹并选中文件。默认使用系统关联程序；在“设置 → 外部文本编辑器与快捷键”可填写 VS Code 等编辑器的完整 `.exe` 路径。
+
+项目文本以原始 UTF-8 文件保存在 `context/<网络标识>/` 下，外部编辑器直接打开这份文件。保存后同步到客户端草稿，点击“校验并更新网络”再进入运行网络；Commit 把正文文件及网络一起保存到 Git。若工作台和磁盘同时修改，会显示两份内容供选择。旧版 JSON 文本快照仍可读取。
+
+“资料 → 关联文本文件”也可选择项目外的 UTF-8 文本。外部引用保留绝对路径，运行时直接读取；正文不复制进 Git，也不会随项目回滚。外部文件用文件编辑器修改，客户端显示内容；需要随项目携带时，打开加载后点击“转为项目文本”，再 Commit。复制和书签要求独立资源，外部引用应先转为项目文本。
 
 ## 资源与装配
 

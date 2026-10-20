@@ -585,7 +585,7 @@ class Studio:
         document=validate_network(p['document'],self.backend,self.library,allow_missing=True);candidate=_build(document['network'],self.backend.directory)
         for node in candidate.nodes.values():
             self.backend.external_tools.validate_node(node)
-            if hasattr(node,'file_path') and not node.file_path.is_relative_to(self.backend.directory):raise ValueError('Data files must stay in the network directory')
+            if node.signal_type!='text_file' and hasattr(node,'file_path') and not node.file_path.is_relative_to(self.backend.directory):raise ValueError('Data files must stay in the network directory')
         for name,content in document.get('files',{}).items():
             if not (self.backend.directory/name).resolve().is_relative_to(self.backend.directory.resolve()):raise ValueError('Invalid network document path')
             from datanet.core.resource_data import decode_data

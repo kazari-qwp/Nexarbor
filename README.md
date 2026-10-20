@@ -135,7 +135,7 @@
 
 ## 安装与启动
 
-**运行要求：Windows x64、Git for Windows、已安装并完成账户授权的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)。Agent 执行统一使用 Harness 原生运行时。**
+**运行要求：Windows x64、Git for Windows、已安装的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)。可使用 Harness 账户授权或自行配置 API key；不同 Agent 可独立选择连接和模型。Agent 执行统一使用 Harness 原生运行时。**
 
 从 [0.8 Release](https://github.com/kazari-qwp/Nexarbor/releases/tag/v0.8.0) 下载 `Nexarbor-0.8.0-win-x64.zip`，完整解压后双击 **Nexarbor.exe**。运行包内置 Electron、Python 与基础依赖，启动后即可新建或打开项目文件夹。
 

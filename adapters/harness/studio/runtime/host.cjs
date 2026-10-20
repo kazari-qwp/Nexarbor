@@ -1,7 +1,7 @@
 // Optional, bounded native Agent executor. Only core-declared tools are registered.
 const fs=require('node:fs/promises'),path=require('node:path'),readline=require('node:readline'),crypto=require('node:crypto');
 const toolContent=require('./tool-content.cjs');
-const callbacks=new Map(),agents=new Map();let next=0,host,native,config,history,permissions,createUserMessage,checkpoints;
+const callbacks=new Map(),agents=new Map();let next=0,host,native,config,history,permissions,createUserMessage,checkpoints,modelAdapters;
 const keepAlive=setInterval(()=>{},1000),write=value=>process.stdout.write(JSON.stringify(value)+'\n');
 const rpc=(method,params)=>new Promise((resolve,reject)=>{const host_id=String(++next);callbacks.set(host_id,{resolve,reject});write({host_id,method,params});});
 const plain=value=>JSON.parse(JSON.stringify(value));
@@ -17,15 +17,9 @@ async function init(p){
  const optionsFile=path.join(p.directory,'native-model.json');let options={};try{options=JSON.parse(await fs.readFile(optionsFile,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
  const persistence=native('dsh-session-persistence-jsonl');await host.plugin(persistence.default??persistence,{root:options.native_logs??path.join(p.directory,'native-logs')});
  await host.plugin((await loader.load(p.root+'/adapters/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
- const nativeRoot=loader.root;
- const record=require(path.join(nativeRoot,'yaml')).parse(await fs.readFile(p.credentials,'utf8')).records['deepseek-account-platform/default'];
- if(record?.kind!=='grant'||new URL(record.payload.issuer).origin!=='https://platform.deepseek.com')throw Error('Configure a supported DeepSeek account grant in Harness');
+ modelAdapters=await require('./model-adapters.cjs')({host,native,root:p.root,credentials:p.credentials,defaults:options.model??{}});
  config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:16000,contextWindow:500000,...options.model};config.maxRequests=options.max_requests??240;config.maxSeconds=options.max_seconds??1200;
- const deepseek=native('dsh-llm-deepseek'),models=JSON.parse(await fs.readFile(p.root+'/adapters/harness/runtime/models.json','utf8'));
- const connection=deepseek.resolveAdapterOptions({models,maxTokens:config.model.maxTokens,retryPolicy:{mode:'normal',maxRetries:0},streamIdleTimeoutMs:60000});
- const adapter=new deepseek.DeepSeekAdapter({options:()=>connection,resolveAuth:async c=>{if(new URL(c.baseURL).origin!=='https://api.deepseek.com')throw Error('Unexpected model endpoint');return {headers:{'x-dsh-auth-token':record.payload.token}};},resolveUserId:()=> 'nexarbor-component-studio',prepareExtensions:async()=>({fields:{},accept:async()=>{}})});
- host.llm.registerAdapter(['deepseek-account'],adapter);
- const original=globalThis.fetch;globalThis.fetch=async(url,args)=>{if(new URL(url).origin!=='https://api.deepseek.com')throw Error('Unexpected request endpoint');if(++requestCount>config.maxRequests||Date.now()-started>config.maxSeconds*1000)throw Error('Native execution paid test budget reached');return original(url,args);};
+ const original=globalThis.fetch;globalThis.fetch=async(url,args)=>{if(++requestCount>config.maxRequests||Date.now()-started>config.maxSeconds*1000)throw Error('Native execution request budget reached');return original(url,args);};
  createUserMessage=native('dsh-llm').createUserMessage;
  const instructions=await loader.load(p.root+'/adapters/harness/framework/instructions.js'),tools=await loader.load(p.root+'/adapters/harness/framework/tool-permissions.js');history=new instructions.InstructionHistory(createUserMessage);permissions=new tools.ToolPermissions(createUserMessage);
  checkpoints=new (await loader.load(p.root+'/adapters/harness/framework/checkpoints.js')).NativeCheckpoints(host,agents,rpc);checkpoints.ready=true;
@@ -65,6 +59,16 @@ async function refresh(entry){
 }
 function retire(entry){entry.retired=true;entry.agent.cancel('user');for(const dispose of entry.tools.values())dispose();agents.delete(entry.actor);}
 async function agentFor(p){
+ const selected=await modelAdapters.resolve(p.model_profile);
+ const existing=agents.get(p.actor);
+ if(existing&&existing.modelSignature!==selected.signature){
+  if(existing.running)throw Error('请等待当前 Agent 完成后切换模型');
+  const cursor=await checkpoints.positions.capture(existing.agent.session,{allowPending:true}),id=await checkpoints.positions.fork(cursor,'nexarbor-model-'+crypto.randomUUID());
+  retire(existing);p={...p,session_id:id,context_cursor:await checkpoints.positions.captureStored(id),model_signature:selected.signature};
+ }else if(!existing&&p.session_id&&p.model_signature!==selected.signature){
+  const cursor=p.context_cursor??await checkpoints.positions.captureStored(p.session_id),id=await checkpoints.positions.fork(cursor,'nexarbor-model-'+crypto.randomUUID());
+  p={...p,session_id:id,context_cursor:await checkpoints.positions.captureStored(id),model_signature:selected.signature};
+ }
  if(agents.has(p.actor)){
   const current=agents.get(p.actor);
   if(!p.session_id||current.agent.id===p.session_id)return current;
@@ -77,17 +81,17 @@ async function agentFor(p){
   if(head.event_count!==cursor.event_count||head.prefix_hash!==cursor.prefix_hash){id=await checkpoints.positions.fork(cursor);cursor=await checkpoints.positions.captureStored(id);}
  }
  let agent;
- try{agent=(await host.agentLoop.resume(host,{resumeSessionId:id,agentOptions:config.model})).agent;}
- catch(error){if(!/not found|ENOENT|does not exist/i.test(String(error)))throw error;agent=await host.agentLoop.create(native('dsh-session').SessionId(id),config.model,{cwd:config.directory});}
- const entry={actor:p.actor,agent,tools:new Map(),definitions:new Map(),view:{},steps:0,maxSteps:12,ticket:p.node_access_ticket};agents.set(p.actor,entry);
- host.sessionTitle.rename(agent.session,'小镇组件实测 · '+p.name);
+ try{agent=(await host.agentLoop.resume(host,{resumeSessionId:id,agentOptions:selected.model})).agent;}
+ catch(error){if(!/not found|ENOENT|does not exist/i.test(String(error)))throw error;agent=await host.agentLoop.create(native('dsh-session').SessionId(id),selected.model,{cwd:config.directory});}
+ const entry={actor:p.actor,agent,modelSignature:selected.signature,tools:new Map(),definitions:new Map(),view:{},steps:0,maxSteps:12,ticket:p.node_access_ticket};agents.set(p.actor,entry);
+ host.sessionTitle.rename(agent.session,p.name);
  history.bind(agent.ctx,agent);permissions.bind(agent.ctx,agent);
  agent.ctx.on('session/event',(session,event)=>{if(session===agent.session){if(event.type==='compaction/end'&&!event.data?.error)entry.compacted=true;checkpoints.schedule();}});
  agent.ctx.systemPrompt.section({name:'nexarbor:assembled',order:90,interpolate:false,text:()=>entry.view.system_prompt??''});
  agent.ctx.on('agent/prepare-context',()=>refresh(entry));
  agent.ctx.on('agent/request-tail',async(_p,next)=>[...await next(),...(entry.view.tail??[]).map(text=>({role:'user',content:[{type:'text',text}]}))]);
  agent.ctx.on('agent/request',async(_p,next)=>{if(++entry.steps>entry.maxSteps)throw Error('Agent step budget reached');return next();});
- await agentRpc(entry,'executor_bind',{actor:p.actor,session_id:agent.id,...(cursor?{context_cursor:cursor}:{})});checkpoints.schedule();
+ await agentRpc(entry,'executor_bind',{actor:p.actor,session_id:agent.id,model_signature:selected.signature,...(cursor?{context_cursor:cursor}:{})});checkpoints.schedule();
  return entry;
 }
 async function run(p){
@@ -126,5 +130,5 @@ async function restoreContexts(p){
 readline.createInterface({input:process.stdin}).on('line',line=>{
  let value;try{value=JSON.parse(line);}catch{return;}
  if(value.host_id){const p=callbacks.get(value.host_id);if(p){callbacks.delete(value.host_id);value.error?p.reject(Error(value.error)):p.resolve(value.result);}return;}
- Promise.resolve().then(()=>value.method==='init'?init(value.params):value.method==='shutdown'?close().then(()=>({ok:true})):value.method==='core-commit'?(checkpoints?.schedule(),{ok:true}):value.method==='agent-context-capture'?captureContexts(value.params):value.method==='agent-context-restore'?restoreContexts(value.params):value.method==='agent-run'?run(value.params):value.method==='agent-read'?agentFor(value.params).then(async e=>{const messages=e.agent.session.deriveMessages();return {session_id:e.agent.id,status:e.running?'running':'idle',messages,previews:await toolContent.previews({host,native},messages)};}):value.method==='agent-cancel'?(agents.get(value.params.actor)?.agent.cancel('user'),{ok:true}):Promise.reject(Error('Unknown native operation'))).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:String(error.stack??error)}));
+ Promise.resolve().then(()=>value.method==='init'?init(value.params):value.method==='shutdown'?close().then(()=>({ok:true})):value.method==='core-commit'?(checkpoints?.schedule(),{ok:true}):value.method==='agent-context-capture'?captureContexts(value.params):value.method==='agent-context-restore'?restoreContexts(value.params):value.method==='agent-run'?run(value.params):value.method==='agent-read'?agentFor(value.params).then(async e=>{const messages=e.agent.session.deriveMessages();return {session_id:e.agent.id,status:e.running?'running':'idle',messages,previews:await toolContent.previews({host,native},messages)};}):value.method==='agent-cancel'?(agents.get(value.params.actor)?.agent.cancel('user'),{ok:true}):Promise.reject(Error('Unknown native operation'))).then(result=>write({id:value.id,result}),error=>write({id:value.id,error:modelAdapters?modelAdapters.redact(error):String(error.stack??error)}));
 }).on('close',()=>close().finally(()=>process.exit()));
