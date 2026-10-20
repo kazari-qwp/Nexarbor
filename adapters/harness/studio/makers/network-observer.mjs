@@ -111,11 +111,11 @@ export class NetworkObserver{
   this.check(args);
   if(args.region||args.view){
    if(typeof args.view!=='string'||!/^V[a-f0-9]{16}$/.test(args.view)||typeof args.region!=='string'||!/^R[1-9]\d{0,4}$/.test(args.region))throw Error('局部图需要概览返回的 view 和 region（如 R2）。');
-   if(Object.keys(args).some(k=>!['snapshot','view','region','source','refresh','image'].includes(k)))throw Error('局部图沿用原概览的筛选和布局；改变筛选请重新请求概览。');
+   if(Object.keys(args).some(k=>!['snapshot','view','region','source','refresh','image','show_edge_ids','show_channels'].includes(k)))throw Error('局部图沿用原概览的筛选和布局；改变筛选请重新请求概览。');
    if(args.image===false)throw Error('纯文本查询请使用 nodes/hops 或频道筛选，不使用图片区域。');
-   const picture=await render({snapshot:this.id,view:args.view,region:args.region}),{image,...info}=picture;
+   const picture=await render({snapshot:this.id,view:args.view,region:args.region,...(args.show_edge_ids!==undefined?{showEdgeIds:args.show_edge_ids}:{}),...(args.show_channels!==undefined?{showChannels:args.show_channels}:{})}),{image,...info}=picture;
    const refs=info.visible_nodes??[];delete info.visible_nodes;
-   return this.picture({...this.base(),...info,nodes:refs.slice(0,24).map(r=>this.summary(this.node(r))),...(refs.length>24?{index_omitted:refs.length-24}:{}),hint:'局部与概览沿用同一布局和编号，窗口重叠至少28%。跨框连线可能被裁切；准确方向和属性用 inspect_edges 查询。'},image);
+   return this.picture({...this.base(),...info,nodes:refs.slice(0,24).map(r=>this.summary(this.node(r))),...(refs.length>24?{index_omitted:refs.length-24}:{}),hint:'局部与概览沿用同一布局和编号，相邻窗口适量重叠；索引列出完整可见的节点。跨框连线可能被裁切；准确方向和属性用 inspect_edges 查询。'},image);
   }
   const view=this.view(args);if(args.image===false){const page=args.edge_page??1,pages=Math.max(1,Math.ceil(view.scene.edges.length/40));if(!Number.isInteger(page)||page<1||page>pages)throw Error('edge_page 超出范围，共 '+pages+' 页');return {...view.summary,edge_page:page,edge_pages:pages,edges:view.scene.edges.slice((page-1)*40,page*40).map(e=>({source:e.source,target:e.target,refs:e.refs.slice(0,8),parallel_edges:e.refs.length,channels:e.channels}))};}
   try{const rendered=await render(view.scene),{image,...info}=typeof rendered==='string'?{image:rendered}:rendered;return this.picture({...view.summary,...info,...(info.regions?.length?{detail_hint:'概览框内文字较小，需要时用 view_network({view:"'+info.view+'",region:"R1"}) 查看局部。布局和 N/E 编号不变；也可按节点或频道另开筛选视图。'}:{})},image);}

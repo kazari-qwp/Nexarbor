@@ -12,6 +12,7 @@ let window,ready;const initialized=app.whenReady().then(async()=>{
  app.once('will-quit',()=>server.close());
  window=new BrowserWindow({show:false,width:2400,height:1800,useContentSize:true,backgroundColor:'#101923',webPreferences:{preload:path.join(__dirname,'network-view-preload.cjs'),sandbox:true,contextIsolation:true,nodeIntegration:false,backgroundThrottling:false,offscreen:true}});
  window.webContents.debugger.attach('1.3');
+ window.webContents.on('console-message',event=>{if(event.level==='error')process.stderr.write(String(event.message)+'\n');});
  window.webContents.setWindowOpenHandler(()=>({action:'deny'}));
  window.webContents.on('will-navigate',(e,url)=>{if(url!==origin+'/network-view.html')e.preventDefault();});
  window.webContents.session.webRequest.onBeforeRequest((request,done)=>done({cancel:!request.url.startsWith(origin+'/')&&!request.url.startsWith('data:')}));
@@ -23,12 +24,12 @@ let window,ready;const initialized=app.whenReady().then(async()=>{
 initialized.catch(error=>{process.stderr.write(error.message+'\n');app.quit();});
 async function render(value){
  await initialized;
- const size={width:1500,height:1100};
+ const size={width:1500,height:1250};
  // Windows may clamp a hidden native window to the display's work area.
  // An explicit export viewport keeps the full diagram independent of screen size.
  await window.webContents.debugger.sendCommand('Emulation.setDeviceMetricsOverride',{width:size.width,height:size.height,deviceScaleFactor:1,mobile:false,screenWidth:size.width,screenHeight:size.height});
  const done=new Promise(resolve=>{ready=resolve;});window.webContents.send('network-view:render',{...value.scene,size});
- const status=await done;ready=null;if(status?.error)throw Error(status.error);
+ const status=await done;ready=null;if(!status?.ok)throw Error(status?.error??'网络图片尚未完成排版');
  // Keep the compositor surface fixed. Capture the acknowledged frontend region,
  // avoiding stale offscreen paint buffers and Windows resize/Viz races.
  const image=await window.webContents.debugger.sendCommand('Page.captureScreenshot',{format:'png',fromSurface:true,clip:{x:0,y:0,width:size.width,height:size.height,scale:1},captureBeyondViewport:true});

@@ -11,6 +11,7 @@ export function RichText({text,api,onError=()=>{}}){
  return <div className="message-text markdown-body"><Markdown options={{forceBlock:true,disableParsingRawHTML:true,wrapper:'div',sanitizer:safeUrl,overrides:{a:Link,img:Image}}}>{String(text??'')}</Markdown></div>;
 }
 function resultSummary(text){
+ try{const v=JSON.parse(text);if(v.kind==='detail'&&v.region)return v.region+' 局部 · '+((v.nodes?.length??0)+(v.index_omitted??0))+' 个完整节点';if(v.kind==='overview'&&v.counts)return '网络概览 · '+v.counts.shown_nodes+'/'+v.counts.total_nodes+' 节点'+(v.regions?.length?' · '+v.regions.length+' 个可放大区域':'');}catch{}
  try{const v=JSON.parse(text),parts=[];for(const [key,name] of [['nodes','节点'],['edges','连线'],['modules','模块'],['tools','工具']])if(Array.isArray(v[key]))parts.push(v[key].length+' 个'+name);if(v.counts?.shown_nodes!=null)parts.push('显示 '+v.counts.shown_nodes+'/'+v.counts.total_nodes+' 节点');if(v.status)parts.push(String(v.status));return parts.join(' · ')||'结构化结果';}catch{return String(text).replace(/\s+/g,' ').slice(0,70)||'工具结果';}
 }
 function ToolResult({text,api,onError}){

@@ -30,7 +30,7 @@ export class NetworkRenderer{
   let request;
   if(scene.region){
    const saved=this.views.get(scene.view);if(!saved||saved.snapshot!==scene.snapshot)throw Error('视图已失效或属于其他快照；请重新获取概览。');
-   request={...saved,region:scene.region};
+   request={...saved,region:scene.region,showEdgeIds:scene.showEdgeIds??saved.showEdgeIds,showChannels:scene.showChannels??saved.showChannels};
   }else{
    const view='V'+createHash('sha256').update(JSON.stringify(scene)).digest('hex').slice(0,16);request={...scene,view};
    this.views.delete(view);this.views.set(view,request);if(this.views.size>24)this.views.delete(this.views.keys().next().value);
