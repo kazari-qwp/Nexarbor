@@ -25,8 +25,10 @@ def create(studio,p):
     baseline=sources(folder);write_json(studio.root/'baselines'/f'{work["id"]}.json',save_baseline(studio,work['id'],baseline))
     metadata=read_json(folder/'workspace.json',{});metadata['origin']=p.get('origin',{});metadata['immutable_revision']=True
     if kind!='network':
-        manifest=read_json(folder/'module.json',{});original=manifest['id'];manifest['id']=original+'.rev_'+uuid4().hex[:10]
-        version=manifest.get('version','0.1.0').split('.');manifest['version']='.'.join(version[:2]+[str(int(version[2])+1)])
+        manifest=read_json(folder/'module.json',{});original=manifest['id']
+        if not p.get('preserve_identity',False):
+            manifest['id']=original+'.rev_'+uuid4().hex[:10]
+            version=manifest.get('version','0.1.0').split('.');manifest['version']='.'.join(version[:2]+[str(int(version[2])+1)])
         metadata['branch_module']=manifest['id'];metadata['label']=(manifest.get('name') or original)+' · 修改副本'
         write_json(folder/'module.json',manifest)
     write_json(folder/'workspace.json',metadata)

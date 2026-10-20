@@ -75,7 +75,7 @@ def network_document(network: Network, base: str | Path, *, node_overrides=None)
             connections[label] = [asdict(interface) for interface in getattr(node, label)]
         agent_config = encode_execution(node, path.parent)
         _json_value(agent_config)
-        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'module_strength': node.module_strength, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'modules': node.modules, 'offered_tools': node.offered_tools, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding, 'context_cursor': node.context_cursor, 'inputs': node.inputs.snapshot() if hasattr(node,'inputs') else getattr(node,'_saved_inputs',None)})
+        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'module_strength': node.module_strength, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'modules': node.modules, 'offered_tools': node.offered_tools, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding, 'context_cursor': node.context_cursor, 'inputs': node.inputs.snapshot() if hasattr(node,'inputs') else getattr(node,'_saved_inputs',None),**({'skills':node.skills} if node.skills else {})})
     if getattr(network, 'archived_entries', None):
         entries.extend(network.archived_entries())
     document = {'version': 8, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
@@ -114,7 +114,7 @@ def _build(document, base):
     network.repeat_unit_count=document.get('repeat_unit_count')
     network.repeat_unit=list(document.get('repeat_unit') or [])
     for entry in document['nodes']:
-        _fields({k: v for k, v in entry.items() if k not in ('modules', 'offered_tools', 'toolboxes', 'expose', 'management_parent_id', 'execution', 'inputs', 'context_cursor', 'module_strength')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
+        _fields({k: v for k, v in entry.items() if k not in ('modules', 'offered_tools', 'toolboxes', 'expose', 'management_parent_id', 'execution', 'inputs', 'context_cursor', 'module_strength','skills')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
         node_id = _string(entry['node_id'], 'node_id')
         name = _string(entry['name'], 'name')
         kind = entry['data_kind']
@@ -143,6 +143,10 @@ def _build(document, base):
         node.modules = validate_modules(entry.get('modules', {}))
         from .external_tools import validate_offers
         node.offered_tools = validate_offers(entry.get('offered_tools', []))
+        skills=entry.get('skills',[])
+        if not isinstance(skills,list) or len(skills)>128 or any(not isinstance(s,str) or not s or len(s)>64 for s in skills):raise ValueError('Skills 必须为名称列表')
+        if skills and node_type!='agent':raise ValueError('Skill 只能装配到 Agent 节点')
+        node.skills=list(dict.fromkeys(skills))
         node.management_parent_id = entry.get('management_parent_id')
         node.toolboxes = entry.get('toolboxes', [])
         node.expose = entry.get('expose', [])

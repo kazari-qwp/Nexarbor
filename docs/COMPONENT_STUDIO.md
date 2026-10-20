@@ -10,7 +10,7 @@
 6. 通过后才可发布，发布内容必须与已通过验证的源码摘要一致。修改代码后必须重新验证。发布版本只读，可以建立修改副本。
 7. 选择节点并装配。示例的 state/access 会保留；主界面的模块页可以查看配置、网络访问授权和状态。清单 requires 中的依赖递归补齐，已装实例复用并保留配置、状态及授权。组件之间通过公开操作复用，不拿其他实例引用。
 
-制作会话支持继续或分叉历史；指南前缀变化时应开新会话。固定入口和本地 API 见 [组件说明](LOCAL_MODULES.md) 与 [制作指南](../extensions/development/capabilities/component_studio/resources/MODULE_GUIDE.md)。
+制作会话支持继续或分叉历史；指南前缀变化时应开新会话。固定入口和本地 API 见 [组件说明](LOCAL_MODULES.md) 与 [制作指南](../extensions/development/capabilities/component_studio/resources/skills/make-components/references/MODULE_GUIDE.md)。
 
 制作 Agent 的职责、核心 API 和页面协议统一使用中文说明，保留代码标识和协议字段。每次开始制作时工作副本刷新三份当前规范；规范或依赖接口变更后，旧历史不能继续或分叉。测试文件必须由 unittest 实际收集运行，零项收集不会被当成业务验证通过。
 
@@ -64,7 +64,7 @@
 
 选择节点，进入“模块”，展开模块即可使用它的页面，也可切换到通用表单。页面通过 `NexarborModule` 获得本模块配置和状态的副本，提交的新配置经过 Schema 校验后进入网络草稿，点击“应用网络”生效。它不能调用任意后端 RPC、修改网络授权或读取其他模块。iframe 使用独立来源沙箱，宿主令牌不会交给页面。
 
-组件工作室支持编辑 `.html/.css/.js`，并提供“页面预览”；发布版本仍只读。详细接口和中文界面要求见 [页面开发规范](../extensions/development/capabilities/component_studio/resources/FRONTEND_GUIDE.md)。
+组件工作室支持编辑 `.html/.css/.js`，并提供“页面预览”；发布版本仍只读。详细接口和中文界面要求见 [页面开发规范](../extensions/development/capabilities/component_studio/resources/skills/make-components/references/FRONTEND_GUIDE.md)。
 
 开发组件库附带由真实制作 Agent 编写的 [metadata.fields](../extensions/module_frontend_demo/capabilities/metadata_fields/README.md)：点击“＋ 添加元数据”增加名称、类型和值，支持删除字段，以及字符串、数字、布尔、对象、数组和空值。字段在 `read` 操作或 `metadata.refresh` 信号执行时发布到本节点的模块元数据命名空间。Python 与 HTML 均原样导出，来源摘要见组件内 `provenance.json`。
 
@@ -96,7 +96,7 @@
 
 从资源栏、书签或历史拖工具／模块到节点，装配进入网络草稿，可撤销；点击“应用网络”才影响运行网络。重复装配相同工具引用时更新频道，不重复添加。实际装配才记录使用历史；保存、重命名、整理资源目录不改变历史顺序，也不进入网络撤销队列。
 
-书签与历史均可筛选单节点、单边、网络、工具、模块；书签还保留 A/B 复制筛选。工具采用蓝色背景、模块采用金色背景，悬停显示“名称：描述”，中键可重命名。模块可在清单顶层提供可选的 `preview` 自包含图片，书签和历史有图显示图片，无图或图片失效显示名称。具体格式见 [页面开发规范](../extensions/development/capabilities/component_studio/resources/FRONTEND_GUIDE.md)。预览图只从当前模块目录读取展示信息，不为每条历史重复存储图片。
+书签与历史均可筛选单节点、单边、网络、工具、模块；书签还保留 A/B 复制筛选。工具采用蓝色背景、模块采用金色背景，悬停显示“名称：描述”，中键可重命名。模块可在清单顶层提供可选的 `preview` 自包含图片，书签和历史有图显示图片，无图或图片失效显示名称。具体格式见 [页面开发规范](../extensions/development/capabilities/component_studio/resources/skills/make-components/references/FRONTEND_GUIDE.md)。预览图只从当前模块目录读取展示信息，不为每条历史重复存储图片。
 
 左右侧栏与画布相邻的边缘可拖动调整宽度，宽度按工作区持久化；保留折叠功能，窗口变窄时为画布保留空间。最大化、还原及窗口缩放会同步缩放画布视口，保留查看中心及节点坐标，不触发重新布局。小地图内外尺寸一致，固定在画布右下角，随可见图和视口更新。
 

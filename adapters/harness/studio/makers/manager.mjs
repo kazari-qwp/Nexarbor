@@ -1,3 +1,4 @@
+import {makerGit} from './git-tools.mjs';
 import {NetworkObserver,indexNetwork,observerTools,readObservedResource,readObservedText} from './network-observer.mjs';
 import networkSkill from './network-skill.cjs';
 import {NetworkRenderer} from './network-renderer.mjs';
@@ -19,11 +20,11 @@ export class MakerManager{
   const timeout=p.timeout??600;if(!Number.isInteger(timeout)||timeout<10||timeout>1200)throw Error('制作时限为 10–1200 秒');
   const scoped=await this.rpc('studio_maker_scope',{id:p.id});
   if(scoped){p={...p,auto_publish:scoped.role==='component',allow_network_testing:true,allow_component_creation:p.allow_component_creation===true&&scoped.allow_component_creation};}
-  const allow=kind==='network'&&p.allow_component_creation===true,testing=p.allow_network_testing===true,tools=makerTools(kind,allow,testing),references=Object.entries(workspace.references).sort(([a],[b])=>a.localeCompare(b));
-  const prefix=hash({kind,allow,references,tools,networkSkill:tools.some(t=>t.name==='view_network')?(await networkSkill.bundle()).revision:null});let source;
+  const allow=kind==='network'&&(scoped?p.allow_component_creation===true:true),testing=true,tools=makerTools(kind,allow,testing),references=Object.entries(workspace.references).sort(([a],[b])=>a.localeCompare(b));
+  const prefix=hash({kind,allow,references,tools,skills:await networkSkill.fingerprint()});let source;
   if(p.fork_session||p.resume_session){source=this.sessions.get(p.fork_session??p.resume_session);if(!source||source.prefix!==prefix)throw Error('教程或可用工具前缀已变化，请新开会话');if(p.resume_session&&source.workspace!==p.id)throw Error('继续历史只能用于原工作副本，换副本请分叉');}
   const id=randomUUID(),job={id,workspace:p.id,kind,status:'running',phase:'coding',started:Date.now(),deadline:Date.now()+timeout*1000,repairs:0,children:[],tool_events:[],allow_component_creation:allow,allow_network_testing:testing,hidden_modules:p.hidden_modules??[],scoped:!!scoped,prefix,source_session:p.fork_session??p.resume_session,auto_publish:p.auto_publish!==false};this.jobs.set(id,job);
-  const instructions=workspace.references['AGENTS.md']+'\n\n当前职责：'+(kind==='network'?'网络预设组装；只产出 network.json 和 README。先按需读 lessons/06-presets.md。':kind==='tool'?'模块／工具制作；必须有 agent_tools，可调差异用配置。先按需读 lessons/01-local.md。':'模块／工具制作；先查目录复用，再按需读 lessons/01-local.md。')+(scoped?'\n这是局部管理员任务：先读 reference/局部网络说明.md。root仅是当前管理员锚点；保留已有节点及其运行状态。禁止补全或猜测副本外节点。':'')+(testing?'\n用户可能只表达当前网络里想要的效果。先按需读 lessons/07-environment.md，再用测试副本理解场景，自己抽象可复用方案、验证并报告。':'');
+  const instructions=networkSkill.instructions(kind)+(scoped?'\n这是局部管理员任务：先读 reference/局部网络说明.md。保留已有节点及运行状态，不补全或猜测副本外节点。':'');
   try{
    const created=await this.runner.request('create',{task:id,directory:workspace.directory,name:p.name??p.id,kind,instructions,tools,model:p.model,model_signature:source?.model_signature,max_steps:p.max_steps??70,...(!p.fork_session&&!p.resume_session&&workspace.origin?.consult_cursor?{fork_cursor:workspace.origin.consult_cursor}:{}),...(p.fork_session?{fork_cursor:p.seed_only?source.seed_cursor:source.cursor}:p.resume_session?{resume_session:p.resume_session}:{})});Object.assign(job,created);this.sessions.set(job.session_id,{workspace:p.id,prefix,kind,seed_cursor:created.seed_cursor,model_signature:created.model_signature});await this.saveSessions();
    this.run(job,p.requirement,p.max_repairs??3,p.attachments??[]).catch(e=>{this.observations.delete(job.id);job.status='failed';job.error=e.message;this.persist(job).catch(()=>{});});return this.public(job);
@@ -53,9 +54,14 @@ export class MakerManager{
   if(this.closed)throw Error('制作宿主已关闭');
   if(this.advisor?.has(p.task))return this.advisor.tool(p);
   const job=this.jobs.get(p.task);if(!job||job.status!=='running')throw Error('制作任务已停止');const allowed=makerTools(job.kind,job.allow_component_creation,job.allow_network_testing).map(t=>t.name);if(!allowed.includes(p.tool))throw Error('该制作任务未获准使用此工具');
+  return this.executeTool(job,p);
+ }
+ async executeTool(job,p){
+  const allowed=makerTools(job.kind,job.allow_component_creation,job.allow_network_testing).map(t=>t.name);if(!allowed.includes(p.tool))throw Error('此制作职责不支持该工具');
   job.tool_events.push({tool:p.tool,path:p.arguments?.path,time:Date.now(),content_hash:p.arguments?.content?hash(p.arguments.content):undefined});
   if(['read_resource','read_network_text'].includes(p.tool)||observerTools.some(t=>t.name===p.tool))return this.observe(job,p.tool,p.arguments??{});
   if(['write_file','edit_file','network_patch','copy_current_network'].includes(p.tool)||p.tool==='test_environment'&&p.arguments?.action!=='inspect'){const held=this.observations.get(job.id);if(held){held.epoch++;held.observer=null;}}
+  if(p.tool==='project_git'){if(p.arguments?.action==='restore')this.observations.delete(job.id);return makerGit(this,job,p.arguments);}
   if(p.tool==='validate'){job.validation_attempts=(job.validation_attempts??0)+1;if(job.validation_attempts>20)throw Error('本任务已达到 20 次验证上限，请报告未解决问题并结束');const check=await this.validate(job.workspace);return {status:check.status,log:check.log};}
   if(p.tool==='node_template')return editorNode(p.arguments.kind,p.arguments.id,p.arguments.name);
   if(p.tool==='copy_current_network')return this.rpc('studio_copy_current',{id:job.workspace});

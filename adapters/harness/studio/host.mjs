@@ -1,3 +1,5 @@
+import {SkillResources} from './skills.mjs';
+import {assembleResources} from '../../../shared/graph/resource-assembly.js';
 import {ExternalTextFiles} from './external-text.mjs';
 import {ModelConnections} from './model-connections.mjs';
 import {pythonExecutable} from './runtime-paths.mjs';
@@ -29,9 +31,10 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  let serial=0,closed=false;const pending=new Map();let diagnostics='';child.stderr.on('data',chunk=>{diagnostics=(diagnostics+chunk).slice(-16000);});
  const official=new OfficialToolsRunner(directory);let officialTools=[],runtimeTools=[],toolError=null;
  const project=new Project(projectDirectory,directory,(method,p)=>rpc(method,p));
+ const skills=new SkillResources(project,(method,p)=>rpc(method,p));project.skillResources=skills;
  const modelConnections=new ModelConnections({project,directory,configDirectory:modelDirectory});
  const externalText=new ExternalTextFiles({directory,project,onOpen:onOpenText,onChoose:onChooseText,onReveal:onRevealFile,preferences:()=>modelConnections.preferences()});
- const native=new NativeRunner(directory,(method,params)=>rpc(method,params),{modelResolver:choice=>modelConnections.runtime(choice,'project')});
+ const native=new NativeRunner(directory,async(method,params)=>{const view=await rpc(method,params);if(method==='executor_prepare'){view.skill_bundles=[];view.skill_errors=[];for(const id of view.skills??[])try{view.skill_bundles.push(...await skills.bundles([id]));}catch(error){view.skill_errors.push({id,error:error.message});}}return view;},{modelResolver:choice=>modelConnections.runtime(choice,'project')});
  const workspaceFiles=new WorkspaceFiles(directory,(method,p)=>rpc(method,p),native,{components,templates});
  const lines=readline.createInterface({input:child.stdout});lines.on('line',line=>{try{const response=JSON.parse(line);if(response.notification){native.notify();return;}if(response.host_id){(response.method.startsWith('network-admin-')?adminRequest(response.method.slice(14),response.params):response.method==='official-tool-invoke'?official.request('invoke',response.params):native.request(response.method,response.params)).then(result=>child.stdin.write(JSON.stringify({host_id:response.host_id,result})+'\n'),error=>child.stdin.write(JSON.stringify({host_id:response.host_id,error:error.message})+'\n'));return;}const p=pending.get(response.id);if(!p)return;pending.delete(response.id);clearTimeout(p.timer);Object.hasOwn(response,'error')?p.reject(Error(response.error||'宿主调用失败，未提供错误说明')):p.resolve(response.result);}catch{}});
  const fail=error=>{for(const p of pending.values()){clearTimeout(p.timer);p.reject(error);}pending.clear();};
@@ -43,6 +46,8 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  const request=async(operation,params)=>{
   if(operation?.startsWith('text.external.'))return externalText.request(operation,params);
   if(operation?.startsWith('models.')||operation?.startsWith('preferences.'))return modelConnections.request(operation,params);
+  if(operation==='skills.import'){const value=await project.serial(async()=>{const imported=await skills.import(params.files);await project.installNow('skill',imported.id);return imported;});await rpc('studio_project_modules');return value;}
+  if(operation==='skills.read'){const value=await skills.read(params.id);return {manifest:value.manifest,content:value.content,files:Object.keys(value.files),local:value.local};}
   if(operation==='project.restore')return project.restore(params.commit);
   if(operation==='project.info')return project.info();
   if(operation==='project.install'){const value=await project.install(params.kind,params.id);await rpc('studio_project_modules');return value;}
@@ -57,7 +62,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(operation.startsWith('workspace.'))return workspaceFiles.request(operation,params);
   if(operation.startsWith('advice.'))return makers.advisor.request(operation.slice(7),params);
   if(operation==='startup.status')return {timings,officialState,toolError,vector:await rpc('studio_vector_status')};
-  if(operation==='apply'){await project.ensureResources(params.document,{allowMissing:true});const needed=params.document.network.nodes.some(n=>(n.offered_tools??[]).some(o=>o.ref.startsWith('harness:')));if(needed)await loadOfficial();const result=await workspaceFiles.request('workspace.apply',params);officialNeeded=needed;return result;}
+  if(operation==='apply'){await project.ensureResources(params.document,{allowMissing:true});const catalog=await request('catalog',{});for(const node of params.document.network.nodes)for(const id of node.skills??[])try{params.document=assembleResources(params.document,node.node_id,[{kind:'skill',id}],catalog);}catch{}const needed=params.document.network.nodes.some(n=>(n.offered_tools??[]).some(o=>o.ref.startsWith('harness:')));if(needed)await loadOfficial();const result=await workspaceFiles.request('workspace.apply',params);officialNeeded=needed;return result;}
   if(officialNeeded&&['module.call','tools.visit','run','view'].includes(operation))await loadOfficial();
   if(operation==='preset.open'){
    if(!onOpenNetwork)throw Error('请通过 Nexarbor 桌面客户端打开完整网络');
@@ -74,6 +79,7 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(operation==='resource.inspect'||operation==='resource.purge'){
    if(params.kind==='tool'&&runtimeTools.some(t=>t.ref===params.id)){if(operation==='resource.purge')throw Error('官方宿主端口不可删除');return {canDelete:false,reason:'官方宿主能力只可归档和恢复。',ownership:'official'};}
    if(params.kind==='tool'&&params.id.startsWith('module:')){if(operation==='resource.purge')throw Error('模块携带工具应随实现模块管理');return {canDelete:false,reason:'工具由模块提供，请到对应模块查看实现。独立书签和历史缓存保留。',ownership:'module'};}
+   if(params.kind==='skill'){if(operation==='resource.purge')throw Error('Skill 请在项目的 skills 目录中管理；客户端支持归档和恢复');return {canDelete:false,reason:'Skill 文件在项目 skills 目录内，由 Git 保留版本；可归档和恢复。',ownership:'project'};}
    if(params.kind==='module')return rpc(operation==='resource.inspect'?'studio_release_delete_info':'studio_delete_release',{module:params.id,confirm:params.confirm});
    if(params.kind==='tool'&&officialTools.some(t=>t.ref===params.id)){if(operation==='resource.purge')throw Error('Harness 官方工具不可彻底删除');return {canDelete:false,reason:'Harness 官方工具属于共享安装，只可归档和恢复。',ownership:'official'};}
    throw Error('该工具尚未登记项目自有的文件来源');
@@ -84,8 +90,8 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
   if(['state','draft','apply','view'].includes(operation))return rpc('studio_'+operation,params);
   if(operation==='catalog'){
    if(params.official)await loadOfficial();
-   const catalog=await rpc('studio_catalog'),local=await project.localResources(catalog);const presets=[];const moduleTools=Object.values(catalog.library).flatMap(m=>(m.manifest.agent_tools??[]).map(t=>{const operation=m.manifest.operations.find(o=>o.name===t.operation);return {ref:'module:'+m.id+'/'+t.id,name:t.name,description:t.description,parameters:operation.parameters,channels:operation.channels,provider:'module',module:m.id,requires:[m.id],tools:[],display_folder:m.origin_kind==='tool'?m.display_folder:undefined};}));
-   return {project:{path:projectDirectory,resourceSource:path.resolve(projectDirectory)!==path.resolve(directory)?'project':'library'},localResources:local,modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{available:m.available,unavailableReason:m.unavailableReason,local:!!local.modules[m.id],label:m.name??m.manifest.name??m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,requires:m.manifest.requires??[],tools:(m.manifest.agent_tools??[]).map(t=>'module:'+m.id+'/'+t.id),version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,state_schema:m.manifest.state_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库',display_folder:m.origin_kind==='tool'?undefined:m.display_folder}])),nodes:[...editorNodes(),...await rpc('data_templates')],presets,toolsReady:officialState==='ready',canOpenNetworks:!!onOpenNetwork,studio:true,tools:[...officialTools,...runtimeTools,...moduleTools],toolError,contract:catalog.contract};
+   const catalog=await rpc('studio_catalog'),local=await project.localResources(catalog),skillCatalog=await skills.catalog();local.skills=Object.fromEntries(Object.entries(skillCatalog).filter(([,s])=>s.local));const presets=[];const moduleTools=Object.values(catalog.library).flatMap(m=>(m.manifest.agent_tools??[]).map(t=>{const operation=m.manifest.operations.find(o=>o.name===t.operation);return {ref:'module:'+m.id+'/'+t.id,name:t.name,description:t.description,parameters:operation.parameters,channels:operation.channels,provider:'module',module:m.id,requires:[m.id],tools:[],display_folder:m.origin_kind==='tool'?m.display_folder:undefined};}));
+   return {project:{path:projectDirectory,resourceSource:path.resolve(projectDirectory)!==path.resolve(directory)?'project':'library'},localResources:local,skills:skillCatalog,modules:Object.fromEntries(Object.values(catalog.library).map(m=>[m.id,{available:m.available,unavailableReason:m.unavailableReason,local:!!local.modules[m.id],label:m.name??m.manifest.name??m.manifest.frontend?.title??m.id,description:m.manifest.description??m.manifest.config_schema.description??('已发布 · '+m.version),preview:m.manifest.preview,requires:m.manifest.requires??[],tools:(m.manifest.agent_tools??[]).map(t=>'module:'+m.id+'/'+t.id),version:m.version,node_types:m.manifest.node_types,schema:m.manifest.config_schema,state_schema:m.manifest.state_schema,frontend:m.manifest.frontend,defaults:{config:m.defaults??{},state:m.mount_defaults?.state??{},access:m.mount_defaults?.access??{strength:0,channels:[]}},owner:'组件库',display_folder:m.origin_kind==='tool'?undefined:m.display_folder}])),nodes:[...editorNodes(),...await rpc('data_templates')],presets,toolsReady:officialState==='ready',canOpenNetworks:!!onOpenNetwork,studio:true,tools:[...officialTools,...runtimeTools,...moduleTools],toolError,contract:catalog.contract};
   }
   if(operation==='preset'){
    if(!/^[a-zA-Z0-9_-]+$/.test(params.id))throw Error('Invalid preset');

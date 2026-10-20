@@ -58,7 +58,7 @@ Agent 节点右侧的“模型”页可以独立选择服务商连接、模型�
 
 顶部 Agent 菜单提供“组件／模块制作 Agent”和“网络预设制作 Agent”。右键资源可咨询组件制作 Agent、咨询网络 Agent，或建立修改分支；画布右键可带着当前选择询问网络 Agent，整个网络也会进入咨询范围。
 
-网络咨询、制作器和局部管理员共用 `inspect-network`（查看网络）Skill。会话起初只公布 Skill 名称和短描述；调用原生 `skill` 加载入口后，宿主才挂载观察工具。入口指导基本查询，复杂用法用 `read_skill_reference` 按需读三个任务参考；不会一次注入全部教程。
+网络咨询、制作器和局部管理员共用 `inspect-network`（查看网络）Skill。会话起初只公布 Skill 名称和短描述；调用原生 `skill` 加载入口后，宿主才挂载观察工具。入口指导基本查询，复杂用法用 `read_skill_reference` 按需读任务参考；不会一次注入全部教程。
 
 网络 Agent 通过命令观察网络，不操作键鼠。`view_network` 复用前端节点组件生成图片，默认折叠亚节点、隐藏纯资料文本；承载信号、工具或执行器的文本节点仍保留。图上用 N 编号表示节点，可按需显示 E 连线编号和频道；虚线只表示亚节点归属，不是实际网络连线。布局按连接关系和父子归属紧凑排列，并为节点和编号留出间距；过长的链折行。实线与箭头按起点节点稳定分色，颜色循环使用。相同方向的平行边合并绘制，标出数量，准确属性通过连线查询读取。
 
@@ -79,3 +79,26 @@ N 编号与真实节点 ID 绑定，筛选和布局不重排；新增节点继�
 制作界面以对话为中心，支持图片、链接与文件引用。代码在右侧按需展开，边界可调整宽度。修改在工作副本进行，已有发布版本保留；可复制当前网络到测试环境，在副本中验证后再采用。
 
 参见 [组件工作室](COMPONENT_STUDIO.md)、[模块协议](LOCAL_MODULES.md)和[上下文组装案例](CONTEXT_ASSEMBLER_CASE_STUDY.md)。
+
+## Agent Skills
+
+左栏「工具和 Skills」展开后分别显示工具和 Skills。进入 Skills 可导入含 `SKILL.md` 的 UTF-8 文本文件夹，或下载内置「理解 Nexarbor」。选择 Agent 后的 Skills 页也能装配、查看、移除和保存书签。拖入 Agent 会递归装配依赖并去重，已装模块的配置、状态和授权保留；数字只统计直接一层依赖。移除 Skill 保留独立装配的依赖。书签、历史和归档均支持 Skills 独立筛选。
+
+Skill 保存在项目 `skills/<name>/`，节点只保存 `skills` 名称列表；Commit 同时记录文件和装配关系。各 Agent 的 Skill 目录、加载和参考读取相互独立。模型先看到名称和描述，用原生 `skill` 按需加载入口，再用 `read_skill_reference` 读取该 Skill 内的文本参考；文件不会自动执行。
+
+`SKILL.md` 使用标准 YAML `name`（小写连字符名称）和 `description`。可额外提供 `skill.json`：
+
+```json
+{
+  "format": "nexarbor-skill/v1",
+  "id": "example-skill",
+  "name": "示例技能",
+  "requires": {
+    "modules": ["records.store"],
+    "tools": ["module:records.store/read"],
+    "skills": []
+  }
+}
+```
+
+未声明的依赖默认为空；也可在 SKILL.md 的 `metadata.nexarbor.requires` 声明。循环或缺失依赖会阻止装配，不会留下半套节点配置。Skill 本身不绕开频道、强度或工具权限。项目缺少 Skill 时仍可打开，并在 Agent 工作台提示缺失。

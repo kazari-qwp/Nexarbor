@@ -75,7 +75,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  const place=async(book,point,usage)=>{
   book=withDraft(book);const original=book;if(book.snapshot?.repeat_unit_count!=null)book=await materialize(book);
   const ctx=latest.current.context();
-  if(isAsset(book)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach([book],nodeId);if(usage.usedBookmark)usedBook(book);else usedHistory(usage.usedHistory);return;}
+  if(isAsset(book)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具、模块或 Skill 拖到节点上');await latest.current.onAssetAttach([book],nodeId);if(usage.usedBookmark)usedBook(book);else usedHistory(usage.usedHistory);return;}
   const source=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;
   const result=pasteSubnet(ctx.document,book,ctx.flow.screenToFlowPosition(point),ctx.catalog,ctx.layout,{source});
   const used=()=>usage.usedBookmark?usedBook(original):usedHistory(usage.usedHistory);
@@ -90,7 +90,7 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
  const dropHistory=(ref,point)=>{const entry=historyEntry(ref);if(!entry)throw Error('该历史条目已移除');const ctx=latest.current.context();return place(historyBookmark(entry,current.current.bookmarks,ctx.document,ctx.layout),point,{usedHistory:ref});};
  const dropResource=async(ref,point)=>{
   const ctx=latest.current.context(),presets=[...new Set(ref.ids??[ref.id])].map(id=>resource(ctx.assetsCatalog,ref.kind,id,current.current.assets));
-  if(presets.every(isAsset)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具或模块拖到节点上');latest.current.onAssetAttach(presets,nodeId);record(presets.map(assetHistory));return;}
+  if(presets.every(isAsset)){const nodeId=document.elementFromPoint(point.x,point.y)?.closest('.react-flow__node')?.dataset.id;if(!nodeId)throw Error('请把工具、模块或 Skill 拖到节点上');await latest.current.onAssetAttach(presets,nodeId);record(presets.map(assetHistory));return;}
   for(let i=0;i<presets.length;i++)presets[i]=withDraft(await hydrate(presets[i]));
   const originals=[...presets];for(let i=0;i<presets.length;i++)if(presets[i].snapshot?.repeat_unit_count!=null)presets[i]=await materialize(presets[i]);
   // 等待磁盘快照期间用户仍可编辑；只合并到最新草稿，避免覆盖其他操作。

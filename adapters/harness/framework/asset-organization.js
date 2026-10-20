@@ -1,4 +1,4 @@
-const kinds=new Set(['tool','module','node','preset']);
+const kinds=new Set(['tool','module','skill','node','preset']);
 const name=value=>{if(typeof value!=='string'||!value.trim()||value.length>160)throw Error('名称不能为空或超过 160 字');return value.trim();};
 export function descendantFolders(tree,id){
  const result=new Set([id]);for(const parent of result)for(const f of tree.folders)if(f.parent===parent)result.add(f.id);return result;

@@ -347,7 +347,7 @@ class NodeLocks:
             node = backend.network.nodes[node_id]
             image = dict(attrs={name: deepcopy(getattr(node, name)) for name in (
                 'name', 'description', 'data_kind', 'divergence', 'module_strength', 'management_parent_id',
-                'interfaces', 'modules', 'offered_tools', 'toolboxes', 'expose', 'agent_config', 'execution_binding','context_cursor')},
+                'interfaces', 'modules', 'offered_tools', 'skills', 'toolboxes', 'expose', 'agent_config', 'execution_binding','context_cursor')},
                 tools=dict(node.tools), definitions=deepcopy(node.tool_definitions),
                 agent_definitions=deepcopy(node.agent_tool_definitions), refusals=dict(node.tool_refusals),
                 inputs=node.inputs.snapshot() if hasattr(node, 'inputs') else None,

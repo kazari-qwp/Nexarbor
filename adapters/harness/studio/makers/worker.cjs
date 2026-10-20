@@ -12,11 +12,10 @@ async function create(p){
  const agent=previous?.agent??(id?(await runtime.host.agentLoop.resume(runtime.host,{resumeSessionId:id,agentOptions:selected.model})).agent:await runtime.host.agentLoop.create(runtime.native('dsh-session').SessionId('maker-'+crypto.randomUUID()),selected.model,{cwd:p.directory}));
  const entry={agent,supportsImages:selected.supportsImages!==false,task:p.task,tools:[],steps:0,start_seq:agent.session.seq,kind:p.kind,previews:previous?.previews??[]};sessions.set(agent.id,entry);
  runtime.host.sessionTitle.rename(agent.session,(p.kind==='network'?'网络预设制作':'模块／工具制作')+' · '+p.name);
- entry.prompt=agent.ctx.systemPrompt.section({name:'nexarbor-maker',order:90,interpolate:false,text:p.instructions});
  const skill=require('./network-skill.cjs');
+ entry.prompt=agent.ctx.systemPrompt.section({name:'nexarbor-maker',order:90,interpolate:false,text:p.instructions});
  const register=original=>{const definition=structuredClone(original);if(definition.name==='view_network'&&!entry.supportsImages){definition.description+=' 当前模型使用紧凑拓扑索引。';definition.parameters.properties.image.default=false;}entry.tools.push(agent.ctx.tools.register({...definition,output:{schema:{},render:toolContent.render},execute:async args=>toolContent.prepare(runtime,await rpc({task:entry.task,tool:definition.name,arguments:definition.name==='view_network'&&!entry.supportsImages?{...args,image:false}:args}))}));};
- const observation=p.tools.some(t=>t.name==='view_network');for(const definition of p.tools)if(!observation||!skill.toolNames.has(definition.name))register(definition);
- if(observation)await skill.install(runtime,entry,p.tools.filter(t=>skill.toolNames.has(t.name)),register);
+ await skill.install(runtime,entry,p.tools,register);
  entry.requestHook=agent.ctx.on('agent/request',async(_p,next)=>{if(++entry.steps>(p.max_steps??70))throw Error('制作已达到步骤上限');return next();});
  const cursor=await positions.capture(agent.session,{allowPending:true});return {session_id:agent.id,seed_cursor:cursor,model_signature:selected.signature,model_name:selected.model.model};
 }

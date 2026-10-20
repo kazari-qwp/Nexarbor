@@ -114,7 +114,7 @@ class NativeExecutor:
             if source.startswith('prepare:') and source not in active:node.inputs.update(source,dict(system_prompt='',context=[],tail=[]))
         sources=node.inputs.snapshot();definitions,_=self.definitions(actor)
         return dict(actor=actor,system_prompt='\n\n'.join(v['system_prompt'] for _,v in sorted(sources.items())),
-            context=[dict(id=s+'/'+d['id'],text=d['text']) for s,v in sorted(sources.items()) for d in v['context']],
+            skills=node.skills,context=[dict(id=s+'/'+d['id'],text=d['text']) for s,v in sorted(sources.items()) for d in v['context']],
             inputs=[dict(source=s,**e) for s,e in node.inputs.pending()],tail=node.inputs.tail(),tools=definitions,retained_tools=[v['definition'] for v in self.backend.agents[actor]['tool_history'].values()],
             unavailable={name:self.refusal(actor,name) for name in self.seen.get(actor,{}) if name not in {d['name'] for d in definitions}})
     def invoke(self,p):

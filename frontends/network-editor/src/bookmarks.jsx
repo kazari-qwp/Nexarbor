@@ -8,7 +8,7 @@ import {isAsset,matchesType,resourceTitle,resourceAvailable} from './resources.j
 import './bookmark-dock.css';
 
 export const bookmarkType=book=>isAsset(book)?book.asset.kind:book.snapshot.repeat_unit_count!=null?book.mode:book.snapshot.nodes.length===0?'edge':singleOwnedNode(book.snapshot.nodes)?'node':book.mode;
-const filters=[['all','全部类型'],['node','单节点'],['edge','单边'],['network','网络'],['tool','工具'],['module','模块']];
+const filters=[['all','全部类型'],['node','单节点'],['edge','单边'],['network','网络'],['tool','工具'],['module','模块'],['skill','Skills']];
 function AssetPreview({book,catalog}){
  const [failed,setFailed]=useState(false),preview=book.asset.kind==='module'?catalog?.modules?.[book.asset.id]?.preview:null;
  useEffect(()=>setFailed(false),[preview]);

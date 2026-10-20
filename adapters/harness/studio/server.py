@@ -12,6 +12,9 @@ import os,json
 
 class StudioTransport(Transport):
     def dispatch(self,method,p):
+        if method=='skill_parse':
+            from skill_resources import parse_skill
+            return parse_skill(p)
         # Long Agent work yields to callback RPCs; each tool still commits atomically.
         if method=='studio_vector_close':
             from datanet.components.nodes.llamaindex_node.startup import close

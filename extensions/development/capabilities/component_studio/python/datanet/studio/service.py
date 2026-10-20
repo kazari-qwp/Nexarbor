@@ -27,6 +27,8 @@ from .assembly import assemble,assemble_document
 
 PROJECT=Path(__file__).resolve().parents[7]
 RESOURCE=Path(__file__).resolve().parents[3]/'resources'
+SKILL_GUIDES=RESOURCE/'skills/make-components/references'
+SKILL_LESSONS=[RESOURCE/'skills/nexarbor-basics/references/lessons',SKILL_GUIDES/'lessons',RESOURCE/'skills/make-network/references/lessons']
 TEXT={'.py','.json','.md','.txt','.toml','.html','.css','.js'}
 GUIDES=('AGENTS.md','MODULE_GUIDE.md','FRONTEND_GUIDE.md')
 REQUIRED_FILES={'module.py','module.json','example.json'}
@@ -359,8 +361,9 @@ class Studio:
         folder.rename(archive)
         return dict(deleted=p['id'],archived=True)
     def _write_guides(self,folder):
-        for name in GUIDES:(folder/name).write_text((RESOURCE/name).read_text(encoding='utf-8'),encoding='utf-8')
-        if (RESOURCE/'lessons').is_dir():shutil.copytree(RESOURCE/'lessons',folder/'lessons',dirs_exist_ok=True)
+        for name in GUIDES:(folder/name).write_text((SKILL_GUIDES/name).read_text(encoding='utf-8'),encoding='utf-8')
+        for directory in SKILL_LESSONS:shutil.copytree(directory,folder/'lessons',dirs_exist_ok=True)
+        shutil.copyfile(PROJECT/'adapters/harness/studio/skills/inspect-network/references/测试环境.md',folder/'lessons/07-environment.md')
     def prepare_agent(self,p):
         """新任务使用当前规范；历史指纹由原生会话适配器核对。"""
         self._write_guides(self.folder(p['id']))

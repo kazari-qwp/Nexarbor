@@ -35,6 +35,7 @@ class Node:
         self.tool_refusals: dict[str, Callable[..., Any]] = {}
         self.modules: dict = {}
         self.offered_tools: list[dict] = []
+        self.skills: list[str] = []
         self.toolboxes: list[str] = []
         self.expose: list[str] = []
         self.agent_tool_definitions: dict[str, dict] = {}

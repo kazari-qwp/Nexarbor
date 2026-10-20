@@ -12,6 +12,7 @@ async function init(p){
  config=p;const loader=await require('./loader.cjs')();native=loader.native;
  const {Context}=native('cordis');host=new Context();
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry'],['dsh-skill','SkillRegistry']])await host.plugin(native(name)[service]??native(name).default);
+ if(native('dsh-tool-skill').inject.includes('workingDirectory')){await host.plugin(native('dsh-fs-local').LocalFileSystem,{cwd:p.directory});await host.plugin(native('dsh-working-directory').WorkingDirectoryService,{defaultDirectory:path.resolve(p.directory)});}
  await host.plugin(native('dsh-session-title').SessionTitleService,{fallbackMaxWords:12,fallbackMaxBytes:120,maxTitleBytes:256});
  await host.plugin(native('dsh-attachment-local').LocalAttachmentStore,{dshHome:p.directory});
  const optionsFile=path.join(p.directory,'native-model.json');let options={};try{options=JSON.parse(await fs.readFile(optionsFile,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
@@ -35,6 +36,8 @@ async function refresh(entry){
  }
  const view=await agentRpc(entry,'executor_prepare',{actor:entry.actor});entry.view=view;
  permissions.refusals(entry.agent.ctx,view.unavailable??{});
+ const skillSignature=JSON.stringify((view.skill_bundles??[]).map(s=>[s.name,s.digest]));
+ if(entry.skillSignature!==skillSignature){if(entry.skillLayer)for(const dispose of entry.skillLayer.tools)await dispose();entry.skillLayer={agent:entry.agent,tools:[]};await require('../../runtime/skills.cjs').mount({host,native},entry.skillLayer,view.skill_bundles??[]);entry.skillSignature=skillSignature;}
  const desired=new Set(view.tools.map(t=>t.name));
  for(const definition of view.retained_tools??[]){
   if(entry.definitions.has(definition.name))continue;
@@ -57,14 +60,14 @@ async function refresh(entry){
  if(view.inputs.length)await agentRpc(entry,'executor_ack',{actor:entry.actor,events:view.inputs.map(e=>({source:e.source,id:e.id}))});
  return view;
 }
-function retire(entry){entry.retired=true;entry.agent.cancel('user');for(const dispose of entry.tools.values())dispose();agents.delete(entry.actor);}
+async function retire(entry){entry.retired=true;entry.agent.cancel('user');agents.delete(entry.actor);for(const dispose of entry.tools.values())dispose();if(entry.skillLayer)for(const dispose of entry.skillLayer.tools)await dispose();}
 async function agentFor(p){
  const selected=await modelAdapters.resolve(p.model_profile);
  const existing=agents.get(p.actor);
  if(existing&&existing.modelSignature!==selected.signature){
   if(existing.running)throw Error('请等待当前 Agent 完成后切换模型');
   const cursor=await checkpoints.positions.capture(existing.agent.session,{allowPending:true}),id=await checkpoints.positions.fork(cursor,'nexarbor-model-'+crypto.randomUUID());
-  retire(existing);p={...p,session_id:id,context_cursor:await checkpoints.positions.captureStored(id),model_signature:selected.signature};
+  await retire(existing);p={...p,session_id:id,context_cursor:await checkpoints.positions.captureStored(id),model_signature:selected.signature};
  }else if(!existing&&p.session_id&&p.model_signature!==selected.signature){
   const cursor=p.context_cursor??await checkpoints.positions.captureStored(p.session_id),id=await checkpoints.positions.fork(cursor,'nexarbor-model-'+crypto.randomUUID());
   p={...p,session_id:id,context_cursor:await checkpoints.positions.captureStored(id),model_signature:selected.signature};
@@ -73,7 +76,7 @@ async function agentFor(p){
   const current=agents.get(p.actor);
   if(!p.session_id||current.agent.id===p.session_id)return current;
   if(current.running)throw Error('请等待当前 Agent 完成后切换上下文分支');
-  retire(current);
+  await retire(current);
  }
  const scope=crypto.createHash('sha256').update(config.directory+'\0'+p.actor).digest('hex').slice(0,24);let id=p.session_id||'nexarbor-'+scope,cursor=p.context_cursor;
  if(cursor){
@@ -87,7 +90,7 @@ async function agentFor(p){
  host.sessionTitle.rename(agent.session,p.name);
  history.bind(agent.ctx,agent);permissions.bind(agent.ctx,agent);
  agent.ctx.on('session/event',(session,event)=>{if(session===agent.session){if(event.type==='compaction/end'&&!event.data?.error)entry.compacted=true;checkpoints.schedule();}});
- agent.ctx.systemPrompt.section({name:'nexarbor:assembled',order:90,interpolate:false,text:()=>entry.view.system_prompt??''});
+ agent.ctx.systemPrompt.section({name:'nexarbor:assembled',order:90,interpolate:false,text:()=>[entry.view.system_prompt??'',...(entry.view.skill_errors??[]).map(s=>'Skill '+s.id+' 暂不可用：'+s.error)].join('\n')});
  agent.ctx.on('agent/prepare-context',()=>refresh(entry));
  agent.ctx.on('agent/request-tail',async(_p,next)=>[...await next(),...(entry.view.tail??[]).map(text=>({role:'user',content:[{type:'text',text}]}))]);
  agent.ctx.on('agent/request',async(_p,next)=>{if(++entry.steps>entry.maxSteps)throw Error('Agent step budget reached');return next();});
@@ -114,7 +117,7 @@ async function captureContexts(p){
  const result={};
  for(const [actor,id] of Object.entries(p.bindings)){
   let entry=agents.get(actor);
-  if(entry&&entry.agent.id!==id){if(entry.running)throw Error('Agent binding changed during context capture');retire(entry);entry=null;}
+  if(entry&&entry.agent.id!==id){if(entry.running)throw Error('Agent binding changed during context capture');await retire(entry);entry=null;}
   result[actor]=entry?await checkpoints.positions.capture(entry.agent.session,{allowPending:true}):await checkpoints.positions.captureStored(id);
  }
  return result;
@@ -123,7 +126,7 @@ async function restoreContexts(p){
  const contexts={};
  for(const [actor,cursor] of Object.entries(p.contexts)){
   const entry=agents.get(actor);
-  const restored=await checkpoints.positions.restore(cursor,entry?.agent.session,{onDiverged:()=>{if(entry){entry.retired=true;entry.agent.cancel('user');agents.delete(actor);}}});contexts[actor]=restored.cursor;
+  const restored=await checkpoints.positions.restore(cursor,entry?.agent.session,{onDiverged:()=>{if(entry)void retire(entry);}});contexts[actor]=restored.cursor;
  }
  return {contexts};
 }
