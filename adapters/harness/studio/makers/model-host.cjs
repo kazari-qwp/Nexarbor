@@ -3,6 +3,12 @@ const fs=require('node:fs/promises'),path=require('node:path');
 module.exports=async function(p){
  const loader=await require('../runtime/loader.cjs')(),native=loader.native,{Context}=native('cordis'),host=new Context();
  for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']])await host.plugin(native(name)[service]??native(name).default);
+ await host.plugin(native('dsh-skill').SkillRegistry);
+ // Newer Harness skill loaders resolve the session's committed working directory.
+ if(native('dsh-tool-skill').inject.includes('workingDirectory')){
+  await host.plugin(native('dsh-fs-local').LocalFileSystem,{cwd:p.directory});
+  await host.plugin(native('dsh-working-directory').WorkingDirectoryService,{defaultDirectory:path.resolve(p.directory)});
+ }
  await host.plugin(native('dsh-session-title').SessionTitleService,{fallbackMaxWords:12,fallbackMaxBytes:120,maxTitleBytes:256});
  await host.plugin(native('dsh-attachment-local').LocalAttachmentStore,{dshHome:p.directory});
  const persistence=native('dsh-session-persistence-jsonl');await host.plugin(persistence.default??persistence,{root:path.join(p.directory,'maker-logs')});
