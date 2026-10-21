@@ -59,7 +59,16 @@ def build_python():
     return installed
 
 def main():
-    parser=argparse.ArgumentParser();parser.add_argument('--skip-build',action='store_true');parser.add_argument('--zip-only',action='store_true');args=parser.parse_args()
+    global BASE, TARGET
+    parser=argparse.ArgumentParser()
+    parser.add_argument('--skip-build',action='store_true')
+    parser.add_argument('--zip-only',action='store_true')
+    parser.add_argument('--output-dir',type=Path,default=BASE,help='Directory for release staging, ZIP and checksums')
+    parser.add_argument('--desktop-dir',type=Path,default=ROOT/'build/desktop',help='Separate Electron build directory; avoids replacing a running client')
+    args=parser.parse_args()
+    BASE=args.output_dir.resolve()
+    TARGET=BASE/f'Nexarbor-{VERSION}-win-x64'
+    desktop_dir=args.desktop_dir.resolve()
     if os.name!='nt':raise SystemExit('Windows x64 release must be assembled on Windows.')
     check_town_example(check=True)
     BASE.mkdir(parents=True,exist_ok=True)
@@ -69,8 +78,8 @@ def main():
             npm=shutil.which('npm.cmd') or r'C:\Program Files\nodejs\npm.cmd'
             node=shutil.which('node') or r'C:\Program Files\nodejs\node.exe'
             command([npm,'--prefix','frontends/network-editor','run','build'])
-            command([node,ROOT/'frontends/desktop/package.cjs'])
-        desktop=ROOT/'build/desktop/Nexarbor Workbench-win32-x64'
+            command([node,ROOT/'frontends/desktop/package.cjs','--out',desktop_dir])
+        desktop=desktop_dir/'Nexarbor Workbench-win32-x64'
         if not (desktop/'Nexarbor.exe').is_file():raise SystemExit('Missing desktop build. Run without --skip-build.')
         shutil.copytree(desktop,TARGET,ignore=shutil.ignore_patterns('test','tests','user-data','*.log'))
         names=subprocess.check_output(['git','ls-files','--cached','--others','--exclude-standard','-z'],cwd=ROOT).decode('utf-8').split('\0')

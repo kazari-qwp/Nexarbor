@@ -80,3 +80,5 @@ npm start
 ```
 
 重建 Windows 运行包：`npm run package`。脚本把干净源码、构建后的前端和必要运行依赖装配到 `build/release/`，生成 ZIP 与 SHA-256 校验文件。测试、历史报告、凭据和运行缓存均不打包。
+
+需要在客户端运行期间另行打包时，可使用 `python scripts/package_release.py --output-dir build/release-preview --desktop-dir build/desktop-preview`，将 Electron 构建和运行包放入独立目录。
