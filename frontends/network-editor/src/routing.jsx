@@ -8,10 +8,11 @@ function touches(route,box){
  const points=[route.sourcePoint,...route.bendPoints,route.targetPoint];
  return points.some((b,i)=>{if(!i)return false;const a=points[i-1];return Math.max(a.x,b.x)>=box.x-24&&Math.min(a.x,b.x)<=box.x+NODE_SIZE+24&&Math.max(a.y,b.y)>=box.y-24&&Math.min(a.y,b.y)<=box.y+NODE_SIZE+24;});
 }
-export function RoutedScene({nodes,edges,optimize,dragging:dragActive=false,children}){
+export function RoutedScene({nodes,edges:allEdges,optimize,dragging:dragActive=false,children}){
+ const edges=useMemo(()=>allEdges.filter(e=>!e.ownership),[allEdges]);
  const live=useNodes(),worker=useRef(),cacheRef=useRef(new Map()),positions=useRef(new Map()),pending=useRef(),latest=useRef(),serial=useRef(0),routedTopology=useRef(),lastOptimize=useRef();
  const [cache,setCache]=useState(new Map()),[failed,setFailed]=useState(false);
- const scene=useMemo(()=>{const byId=new Map(live.map(n=>[n.id,n]));return nodes.map(n=>{const current=byId.get(n.id);return {...n,position:current?.position??n.position,dragging:current?.dragging??false,measured:current?.measured??{width:NODE_SIZE,height:NODE_SIZE}};});},[nodes,live]);
+ const scene=useMemo(()=>{const byId=new Map(live.map(n=>[n.id,n]));return nodes.map(n=>{const current=byId.get(n.id);return {...n,position:current?.position??n.position,dragging:current?.dragging??false,measured:{width:current?.measured?.width??n.measured?.width??n.width??NODE_SIZE,height:current?.measured?.height??n.measured?.height??n.height??NODE_SIZE}};});},[nodes,live]);
  const byId=new Map(scene.map(n=>[n.id,n]));
  const dragging=dragActive||scene.some(n=>n.dragging),routes=new Map();
  for(const edge of edges){const entry=cache.get(edge.id);if(entry?.identity===JSON.stringify(edge)){

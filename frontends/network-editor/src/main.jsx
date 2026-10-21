@@ -94,7 +94,8 @@ function App(){
   const [query,setQuery]=useState(''),[hiddenKinds,setHiddenKinds]=useState([]),[hiddenChannels,setHiddenChannels]=useState([]),[local,setLocal]=useState(null),[localOnly,setLocalOnly]=useState(false),[strength,setStrength]=useState(2);
   const [modal,setModal]=useState(null),[wizard,setWizard]=useState({}),[check,setCheck]=useState(null),[chat,setChat]=useState(null),[chatText,setChatText]=useState(''),[chatData,setChatData]=useState(null),[chatError,setChatError]=useState('');
   const [dataEpoch,setDataEpoch]=useState(0);
-  const [cycles,setCycles]=useState(5),[pulse,setPulse]=useState('world/pulse'),[points,setPoints]=useState([]),[newModule,setNewModule]=useState(''),[hoveredEdge,setHoveredEdge]=useState(null);
+  const [cycles,setCycles]=useState(5),[pulse,setPulse]=useState(''),[points,setPoints]=useState([]),[newModule,setNewModule]=useState(''),[hoveredEdge,setHoveredEdge]=useState(null);
+  useEffect(()=>{const pulses=doc?.network.nodes.filter(n=>n.type==='pulse')??[];setPulse(current=>pulses.some(n=>n.node_id===current)?current:pulses[0]?.node_id??'');},[doc]);
   const [selectedIds,setSelectedIds]=useState([]),[arranging,setArranging]=useState(false),[routingTask,setRoutingTask]=useState(null),[dragActive,setDragActive]=useState(false);
   selectionRef.current={nodes:selectedIds,edges:selectedEdgeIds};
   const panelSelectionSignature=assetDetail?.detailKey??selectionKey(selectionRef.current);

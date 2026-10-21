@@ -1,6 +1,6 @@
 // libavoid owns obstacle avoidance, crossing costs, shared trunks and nudging.
 import {createRoutingSession} from '@mr_mint/elkjs-libavoid';
-export const routingOptions={routingType:'orthogonal',shapeBufferDistance:12,segmentPenalty:35,reverseDirectionPenalty:80,crossingPenalty:25,idealNudgingDistance:7,
+export const routingOptions={routingType:'orthogonal',shapeBufferDistance:12,segmentPenalty:35,reverseDirectionPenalty:80,crossingPenalty:0,performUnifyingNudgingPreprocessingStep:false,idealNudgingDistance:7,
   nudgeOrthogonalSegmentsConnectedToShapes:true,nudgeOrthogonalTouchingColinearSegments:true,nudgeSharedPathsWithCommonEndPoint:false};
 export function sceneRouter(options=routingOptions){
   let session,signature;

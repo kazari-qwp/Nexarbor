@@ -7,6 +7,7 @@ async function requireProject(directory){
 }
 function briefReason(error){
  const message=String(error?.message??error??'项目无法读取');
+ if(/Harness.*缺少原生服务|dsh-working-directory/.test(message))return 'Harness 版本不兼容，请在“设置 → DeepSeek Harness 路径”选择 0.2.1 或兼容版本';
  if(/runtime\.lock|could not be acquired/i.test(message))return '项目正被其他进程使用，暂时无法打开';
  if(/ECONNREFUSED|ERR_CONNECTION_REFUSED|ERR_CONNECTION_RESET|ERR_CONNECTION_CLOSED/i.test(message))return '工作台连接已经失效';
  if(/ENOENT|FileNotFoundError|No such file|cannot find|找不到|不存在/i.test(message))return /nexarbor\.json/.test(message)?'找不到项目文件 nexarbor.json':'项目所需的文件或运行环境不存在';

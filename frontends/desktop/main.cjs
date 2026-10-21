@@ -147,7 +147,7 @@ ipcMain.handle('nexarbor-harness',async(event,action,executable)=>{
  }
  if(event.sender!==harnessWindow?.webContents||sender!==page)throw Error('Harness 设置窗口不可用');
  const root=projectRoot(),settings=await import(pathToFileURL(path.join(root,'adapters/harness/framework/harness-installation.js')).href);
- if(action==='get'){const saved=await settings.harnessSettings();return {saved:saved.executable??'',executable:await settings.harnessExecutable(),environment:!!process.env.DATANET_HARNESS_EXE};}
+ if(action==='get'){const saved=await settings.harnessSettings(),executable=await settings.harnessExecutable();let status;try{status=await settings.inspectHarnessExecutable(executable);}catch(error){status={compatible:false,error:error.message};}return {saved:saved.executable??'',executable,environment:!!process.env.DATANET_HARNESS_EXE,status};}
  if(action==='save')return settings.saveHarnessExecutable(executable);
  if(action==='browse'){const selected=await dialog.showOpenDialog(harnessWindow,{title:'选择 DeepSeek Harness.exe',properties:['openFile'],filters:[{name:'可执行文件',extensions:['exe']}]});return selected.canceled?{canceled:true}:{executable:selected.filePaths[0]};}
  throw Error('未知 Harness 设置操作');

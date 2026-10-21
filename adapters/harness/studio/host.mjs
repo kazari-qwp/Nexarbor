@@ -1,3 +1,5 @@
+import {requireCompatibleHarness} from '../framework/harness-installation.js';
+import {isProjectBootstrap} from './project-restore.mjs';
 import {studioRpcTimeout} from './rpc-timeouts.mjs';
 import {SkillResources} from './skills.mjs';
 import {assembleResources} from '../../../shared/graph/resource-assembly.js';
@@ -20,7 +22,13 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  python??=await pythonExecutable(root);
  registerProjectDirectory(directory,projectDirectory);
  if(!application){const savedRuntime=await readProjectRuntime(projectDirectory);if(savedRuntime){components=[...new Set([...components,...(savedRuntime.components??[])])];if(!templates.length)templates=savedRuntime.templates??[];application=savedRuntime.application;}}
- let restoreBundle=null;try{await fs.access(path.join(directory,'checkpoints.sqlite3'));}catch{if(!initialNetwork)restoreBundle=await readProjectBundle(projectDirectory);}
+ const restoreMarker=path.join(directory,'project-restore-pending.json');
+ let restoreBundle=null,checkpointExists=false,restorePending=false;
+ try{await fs.access(path.join(directory,'checkpoints.sqlite3'));checkpointExists=true;}catch{}
+ try{await fs.access(restoreMarker);restorePending=true;}catch{}
+ if(!initialNetwork&&(!checkpointExists||restorePending))restoreBundle=await readProjectBundle(projectDirectory);
+ if(restoreBundle?.document.network.nodes.some(node=>(node.offered_tools??[]).some(tool=>tool.ref.startsWith('harness:'))))await requireCompatibleHarness();
+ if(restoreBundle){await fs.mkdir(directory,{recursive:true});await fs.writeFile(restoreMarker,JSON.stringify({format:'nexarbor-project-restore/v1',project:projectDirectory}));}
  if(restoreBundle){components=[...new Set([...components,...(restoreBundle.runtime.components??[])])];templates=restoreBundle.runtime.templates??templates;application=restoreBundle.runtime.application??application;await fs.mkdir(directory,{recursive:true});initialNetwork=path.join(directory,'project-bootstrap.json');await fs.writeFile(initialNetwork,JSON.stringify({network:{version:8,nodes:restoreBundle.document.network.nodes.map(n=>editorNode('node',n.node_id,n.name)),signals:{},delegations:[]},files:{}}));}
  await fs.mkdir(directory,{recursive:true});const temporary=path.join(directory,'temp');await fs.mkdir(temporary,{recursive:true});
  const profile=JSON.parse(await fs.readFile(path.join(root,'extensions/development/extension.json'),'utf8'));profile.select=[...new Set([...profile.select,...components])];
@@ -125,10 +133,21 @@ export async function startStudio({directory=path.join(root,'build/workbench-v3'
  if(components.includes('capabilities/runtime_ports'))runtimeTools=(await rpc('runtime_catalog')).map(t=>({...t,owner:'可选宿主端口'}));
  if(components.includes('capabilities/template_instantiation')){if(templates.length)await rpc('templates_register',{templates});runtimeTools.push(...(await rpc('templates_catalog')).map(t=>({...t,owner:'固定模板端口'})));}
  workspaceFiles.runtime={components,templates,application};workspaceFiles.project=project;
+ // Retry a previously interrupted import instead of exposing placeholder nodes.
+ if(!restoreBundle&&!initialNetwork){
+  let bootstrap;try{bootstrap=JSON.parse(await fs.readFile(path.join(directory,'project-bootstrap.json'),'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
+  if(bootstrap){const state=await rpc('studio_state');if(isProjectBootstrap(state.live.document,bootstrap)){
+   const saved=await readProjectBundle(projectDirectory);
+   if(saved&&!isProjectBootstrap(saved.document,bootstrap)){restoreBundle=saved;await fs.writeFile(restoreMarker,JSON.stringify({format:'nexarbor-project-restore/v1',project:projectDirectory}));startupWarnings.push('上次项目恢复未完成，已重新载入项目中保存的网络、模块和上下文。');}
+  }}
+ }
+
  if(restoreBundle){
   if(restoreBundle.document.network.nodes.some(node=>(node.offered_tools??[]).some(tool=>tool.ref.startsWith('harness:'))))await loadOfficial();
   const staged=await workspaceFiles.request('workspace.import',{bundle:restoreBundle});
   if(!restoreBundle.dirty){if(!staged.validation.valid)throw Error('项目网络无法载入：'+JSON.stringify(staged.validation.errors??staged.validation));await workspaceFiles.request('workspace.apply',{...staged,base_commit:staged.base_commit});}
+  await fs.unlink(restoreMarker).catch(error=>{if(error.code!=='ENOENT')throw error;});
+  officialNeeded=await rpc('studio_official_needed');
  }
  makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory,modelResolver:(choice,meta)=>modelConnections.runtime(choice,meta.kind==='network'?'network':'component')},callback))});await makers.initialize();makers.project=project;makers.advisor=new Advisors(directory,rpc,makers,()=>request('catalog',{}));
  adminRequest=(method,p)=>{if(method==='start')return makers.start(p);if(method==='status')return makers.read(p);if(method==='cancel')return makers.cancel(p);throw Error('未知局部管理员宿主操作');};

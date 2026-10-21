@@ -10,3 +10,10 @@
 
 /* 源码宽度保留用户偏好，窄窗口时给中央会话留出可用空间。 */
 .conversation-first{--studio-effective-left:var(--studio-left);--studio-effective-code:min(var(--studio-code),calc(100% - var(--studio-effective-left) - 300px))}.conversation-first.left-folded{--studio-effective-left:0px}.studio-layout.conversation-first:not(.code-folded){grid-template-columns:var(--studio-effective-left) minmax(300px,1fr) minmax(260px,var(--studio-effective-code))}.studio-split-grip.right{right:calc(var(--studio-effective-code) - 3px)}
+
+/* Compact maker headings leave room for the conversation itself. */
+.studio-header{gap:8px;padding:6px 12px;min-height:34px}.studio-header>svg{width:16px;height:16px}.studio-header>strong{font-size:13px}.studio-header>button{font-size:11px;padding:4px 7px}.studio-header>button:last-child svg{width:16px;height:16px}
+.studio-conversation>header{gap:6px;padding:4px 10px;min-height:30px;flex-shrink:0}.studio-conversation>header>strong{flex:0 0 auto;font-size:12px;white-space:nowrap}.studio-conversation>header>.studio-agent-tabs{display:flex;align-items:center;gap:3px;margin-left:auto;padding:0;border:0;flex-shrink:0}.studio-conversation>header>.studio-agent-tabs>button{flex:0 0 auto;width:auto;height:24px;padding:2px 10px;font-size:11px;border-color:transparent;background:transparent}.studio-conversation>header>.studio-agent-tabs>button.active{background:#203c36;border-color:#648f82}.studio-conversation-work{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.studio-conversation>header>button{font-size:11px;padding:3px 6px;white-space:nowrap}
+@media(max-width:1100px){.studio-header>span{display:none}.studio-header>strong{margin-right:auto}.studio-conversation-work{max-width:100px}}
+
+.studio-conversation>header{height:34px;min-height:34px;max-height:34px;box-sizing:border-box}.studio-conversation>header>.studio-agent-tabs{height:24px;min-height:0;margin-top:0;margin-bottom:0}.studio-conversation>header>.studio-agent-tabs>button{min-height:0;margin:0;line-height:16px}.studio-conversation-work{min-width:0;flex:0 1 180px}
