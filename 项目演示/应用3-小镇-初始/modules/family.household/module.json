@@ -1,0 +1,121 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "family.household",
+  "name": "居民楼家庭计划",
+  "description": "夫妻双方在场同意后，为可怀孕者写入起始 tick，并连接对应上下文。",
+  "version": "1.1.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "time_channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": [
+          "time"
+        ],
+        "uniqueItems": true,
+        "title": "时间查询频道"
+      },
+      "pregnancy_channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": [
+          "family.pregnancy"
+        ],
+        "uniqueItems": true,
+        "title": "怀孕知识来源频道"
+      },
+      "channel_modes": {
+        "type": "object",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "started": {
+        "type": "object"
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "inspect",
+      "channels": [
+        "agreements",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "plan",
+      "channels": [
+        "agreements",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "partner": {
+            "type": "string",
+            "format": "node-id",
+            "minLength": 1
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "partner",
+          "key"
+        ]
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "inspect",
+      "name": "查看家庭计划",
+      "description": "查看本居民楼的双方同意登记。",
+      "operation": "inspect"
+    },
+    {
+      "id": "plan",
+      "name": "同意家庭计划",
+      "description": "夫妻须同时在自己的居民楼，各自同意后写入怀孕起始时间；不要求同 tick。",
+      "operation": "plan"
+    }
+  ]
+}

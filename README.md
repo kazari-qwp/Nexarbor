@@ -93,6 +93,12 @@
 
 参见 [上下文组装说明与设计案例](docs/CONTEXT_ASSEMBLER_CASE_STUDY.md)。
 
+## 0.9 运行包
+
+完整解压后运行 `Nexarbor.exe`，在首页或“设置 → DeepSeek Harness 路径…”中选择本机 Harness。默认上下文 **600k**、最大输出 **50k**，直接修改 [`configs/agent-defaults.json`](configs/agent-defaults.json) 即可；项目和节点的独立参数优先。
+
+运行包与源码均包含 [`项目演示/`](项目演示/)：讨论协作、资料库、小镇各自的初始和最终状态，共六个项目。最终状态保留实际结果、业务数据和会话分块。使用方法见 [演示说明](项目演示/README.md) 和 [0.9 更新说明](docs/RELEASE_NOTES_v0.9.0.md)。
+
 ## 可直接打开的项目
 
 以下项目随当前主分支源码提供；已发布压缩包的内容以对应 Release 为准。
@@ -150,7 +156,7 @@
 
 **运行要求：Windows x64、Git for Windows、已安装的 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)。可使用 Harness 账户授权或自行配置 API key；不同 Agent 可独立选择连接和模型。Agent 执行统一使用 Harness 原生运行时，当前适配已实测 Harness 0.2.1。**
 
-从 [0.8 Release](https://github.com/kazari-qwp/Nexarbor/releases/tag/v0.8.0) 下载 `Nexarbor-0.8.0-win-x64.zip`，完整解压后双击 **Nexarbor.exe**。运行包内置 Electron、Python 与基础依赖，启动后即可新建或打开项目文件夹。
+从 [0.9 Release](https://github.com/kazari-qwp/Nexarbor/releases/tag/v0.9.0) 下载 `Nexarbor-0.9.0-win-x64.zip`，完整解压后双击 **Nexarbor.exe**。运行包内置 Electron、Python 与基础依赖，启动后即可新建或打开项目文件夹。
 
 模块、工具从资源库下载到当前项目后装配，递归依赖自动补齐。点击“校验并更新网络”使编辑生效，点击 **Commit** 保存版本。向量检索与本地模型依赖按需安装。
 

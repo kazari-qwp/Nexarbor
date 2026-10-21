@@ -1,0 +1,132 @@
+{
+  "type": "node",
+  "node_id": "民政局",
+  "name": "民政局",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "居民楼A",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "医院",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "place.info": {
+      "config": {
+        "visitors_from_edges": false,
+        "description": "民政局，婚姻登记需要双方本人到场并分别同意。",
+        "visitors": []
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "movement.here": {
+      "config": {
+        "timeout_seconds": 60,
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "before_hooks": [
+          {
+            "target": "requester",
+            "module": "records.store",
+            "operation": "apply",
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ]
+      }
+    },
+    "agreements.pair": {
+      "config": {
+        "address": "民政局",
+        "rules": [
+          {
+            "id": "marriage",
+            "title": "婚姻登记",
+            "cost": 1,
+            "require_values": {
+              "adult": true
+            },
+            "pair_field": "spouse",
+            "forbid_existing_pair": true,
+            "set_values": {
+              "married": true
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 3,
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

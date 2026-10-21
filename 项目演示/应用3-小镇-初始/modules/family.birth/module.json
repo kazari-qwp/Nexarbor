@@ -1,0 +1,171 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "family.birth",
+  "name": "医院生产",
+  "description": "待产者本人到医院，以当前总 tick 减去怀孕起始 tick 判断到期，创建独立儿童及上下文和工具亚节点。",
+  "version": "1.0.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "time_channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": [
+          "time"
+        ],
+        "uniqueItems": true,
+        "title": "时间查询频道"
+      },
+      "pregnancy_channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": [
+          "family.pregnancy"
+        ],
+        "uniqueItems": true,
+        "title": "怀孕知识来源频道"
+      },
+      "channel_modes": {
+        "type": "object",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      },
+      "parent_channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": [
+          "family.parent"
+        ],
+        "uniqueItems": true,
+        "title": "家长知识来源频道"
+      },
+      "duration": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 10
+      },
+      "cost": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 1
+      },
+      "templates": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "home": {
+              "type": "string",
+              "format": "node-id"
+            },
+            "template": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "home",
+            "template"
+          ]
+        },
+        "default": []
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "pending": {
+        "type": "object"
+      },
+      "births": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "inspect",
+      "channels": [
+        "service",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "deliver",
+      "channels": [
+        "service",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "key"
+        ]
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "inspect",
+      "name": "查看待产状态",
+      "description": "查看自己的怀孕起始 tick、经过时间和是否到期。",
+      "operation": "inspect"
+    },
+    {
+      "id": "deliver",
+      "name": "办理生产",
+      "description": "待产者本人到医院，满足等待时间后创建儿童；不需要伴侣同时到场，同请求重试不会重复创建。",
+      "operation": "deliver"
+    }
+  ]
+}

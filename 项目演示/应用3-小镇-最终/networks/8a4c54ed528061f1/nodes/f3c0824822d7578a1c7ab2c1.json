@@ -1,0 +1,89 @@
+{
+  "type": "node",
+  "node_id": "存档点",
+  "name": "存档点",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "aggregation": "max",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "每刻",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "tick"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "runtime.periodic_checkpoint": {
+      "access": {
+        "channels": [
+          "tick",
+          "runtime.checkpoint"
+        ],
+        "strength": 1
+      },
+      "config": {
+        "every": 5,
+        "signal_channels": [
+          "tick"
+        ]
+      },
+      "state": {
+        "count": 25,
+        "pending": false,
+        "seen": [
+          "3d8e4776a17a48069b8e08483102c980",
+          "e3453ce21c744270bb7fb54b46a9ca90",
+          "c5f66f9b33284df49605962992082dd7",
+          "47e8748330fc40afaf4a9fa7b215c6e8",
+          "e27ac37abf034255b64bd299a5849453",
+          "e35ff9dc727e4e9480f60cecf91e5da8",
+          "9dfc2a7ce066478b98d473df193af26c",
+          "7ec1f62a943a4e7aa91af6076a58fc9f",
+          "08a265d888bc4ca28fd5af48b27a5d5e",
+          "754399c51ee84caa859657334225e332",
+          "fbe1835f7ce146248329b1cf48184a78",
+          "345c6f267acc4f3280ef6a91752e8109",
+          "15e6955884234d7b95b80fa559a746f5",
+          "aeb0b4945931427dbfcd65b6164b213e",
+          "f905a368630c41e5a5ebbaff75a2279d",
+          "f50d430698074ca3aab5036db32674a3",
+          "3eb47c2d0c9d4d2ca584276024d79c53",
+          "321f576525374497b458507cd574ae2f",
+          "bb29ff38aa774eb4ae5bf3c160876508",
+          "e7a32abf8e764b17865c1971afb01e6c",
+          "1a1a4038dc7b44c3b76631dd85da71b5",
+          "810d445815d74e02a878e7b19688e40d",
+          "05c3605ee812412cbd08f23ddde44580",
+          "950bd8122f174c25ad864d4164423a3f",
+          "81ef835af1ed4980bf755a2f4df02aa3"
+        ]
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "channels": [
+        "runtime.checkpoint"
+      ],
+      "ref": "runtime:checkpoint"
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "context_cursor": null,
+  "inputs": null
+}

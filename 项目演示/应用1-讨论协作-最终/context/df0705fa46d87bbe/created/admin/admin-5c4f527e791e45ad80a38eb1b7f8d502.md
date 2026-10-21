@@ -1,0 +1,365 @@
+# hone：CSV → 嵌套 JSON 实施计划（**FINAL v1.0 定稿**，唯一契约）
+
+> 执行成员看不到讨论记录。**本文件 + 仓库根 `CONTRACT.md`（阶段0 由 A 落盘，内容=本文件 §2/§3）是唯一判定依据**；冲突以本文件为准。
+> 仓库根 `$P=E:\DataNet-模块化成品\build\agent-learning-20261020\node-object-hone-03\project`；资料在 `$P\workspace\task`（只读，下称 `S`）；实现落 `$P` 根。
+> **只读红线**：`S/**` 原件一律不改；测试/演示引用仓库内**字节一致的副本**（§2.1），写操作只用 `tempfile`。
+
+## 0. 定稿摘要（四句必背，贯穿全部实现）
+1. **叶子值 = 完整原始列名**：`generate_full_structure` 返回的树，叶子存原始列名（`{"birth": {"day": "birth day"}}`），populate 靠它反查列索引；**不存在 None 叶子**。
+2. **逐层相对名上下文**：建树递归用「当前层相对名 + 原始列名」对 `(rel, orig)`，共享/冲突判定只看**本层 rel**，绝不用全局表头。
+3. **CSV 一次读取、缓存**：`CSVUtils._load()` 一次读完 `(column_names, data_rows)` 并缓存；`"-"` 只能被消费一次；`convert` 不得二次开文件。
+4. **样例副本入库**：`examples/example_a|b|c.csv` 与 `tests/fixtures/data_file/**` 为原件**逐字节副本**（附 sha256 清单），测试/演示只引用仓库内相对路径，`HONE_TASK_DIR` 可覆盖指向原件。
+
+---
+
+## 1. 目标与验收清单（G1–G13）
+
+| # | 目标 | 验证命令 / 断言 |
+|---|---|---|
+| G1 | 可导入包 | `python -c "import hone; print(hone.Hone, hone.__version__)"`；`from hone.hone import Hone`；`hone.utils` 可导入 |
+| G2 | 自动嵌套 | `Hone().convert('tests/fixtures/data_file/small_cats_dataset/dataset.csv')` 与同目录 `nested_dataset.json` 解析后对象相等 |
+| G3 | 引号/逗号极端表头 | `comma_test/dataset.csv`、`quotes_test/dataset.csv` 各自 convert == 各自 `nested_dataset.json` |
+| G4 | 前缀冲突特例 | `examples/example_a.csv`、`example_c.csv` 与 `examples/README.md` 展示结构语义一致（测试内联期望常量复现）；`example_b.csv` 同法内联，**第 2 行 `b.d.f == "12"`**（README 的 `"1"` 是上游笔误） |
+| G5 | schema 映射 | `convert('.../small_cats_dataset/dataset.csv', schema=parse_json_file('.../nested_schema.json'))` == `nested_dataset.json`；`get_schema(同一 CSV)` == `nested_schema.json` |
+| G6 | CLI 文件→文件 | `python -m hone tests/fixtures/data_file/small_cats_dataset/dataset.csv out.json` 退出码 0；`json.load(out)` == 期望；文本 `== json.dumps(obj, indent=2, sort_keys=True, ensure_ascii=False) + "\n"` |
+| G7 | CLI `-` 通道 | `python -m hone examples/example_c.csv -`；`cat examples/example_c.csv \| python -m hone - -`；`python -m hone - out.json < examples/example_c.csv`（三条均正确，退出码 0，stderr 空） |
+| G8 | 边界 | 空文件 / 仅表头 / 行短 / 行长 / 重复表头 / 空表头名 / 不存在路径，按 §2.4 断言 |
+| G9 | 自测全绿 | `python -m unittest discover -s tests -t . -v` 与根 `python -m unittest` 均通过；`python -m compileall -q hone` 无错 |
+| G10 | 打包 | `python -m pip wheel . -w dist` 成功；干净 venv `pip install dist/hone-1.0.0-*.whl` 后**仓库外** `import hone`、`hone --help`、`python -m hone` 正常；wheel 内**不含** `tests/`、`scripts/` |
+| G11 | demo | `cd $P && python examples/demo.py`、`bash examples/demo.sh` 退出码 0，stdout 合法 JSON |
+| G12 | README | 安装 / CLI 文件输出 / CLI 标准输出（`-`）/ Python 模块调用 4 段可复制示例 + 测试命令 + `-d` 引号警告 |
+| G13 | 依赖 | 核心仅 stdlib（`csv/json/argparse/contextlib/os/sys/copy`；CLI 解析 `-d` 额外 `ast`）；`pyproject` 无 `dependencies` |
+
+---
+
+## 2. 文件/模块布局与公共接口契约
+
+### 2.1 布局与唯一文件所有权（他人只能提 issue，不得直接改）
+```
+$P/
+├─ CONTRACT.md                   # 阶段0 A 落盘（= 本文件 §2/§3），冻结
+├─ pyproject.toml                # C
+├─ LICENSE                       # C（MIT）
+├─ README.md                     # D
+├─ RELEASE_NOTES.md              # D（发布时）
+├─ scripts/acceptance.py         # D：G1–G13 一键验收，打印 PASS/FAIL 表
+├─ hone/
+│  ├─ __init__.py                # A：from .hone import Hone; __all__=["Hone"]; __version__="1.0.0"
+│  ├─ hone.py                    # A：Hone 全部方法
+│  ├─ __main__.py                # C：main(argv=None)->int；if __name__=="__main__": sys.exit(main())
+│  └─ utils/
+│     ├─ __init__.py             # 阶段0 A 建空壳；此后 B 唯一 owner（导出 CSVUtils/parse_csv_file/output_json/parse_json_file）
+│     ├─ csv_utils.py            # B
+│     ├─ json_utils.py           # B
+│     └─ test_utils.py           # B
+├─ tests/
+│  ├─ __init__.py                # 阶段0 A 建（含 task_root()/fixture 解析 helper）；此后 D 唯一 owner
+│  ├─ fixtures/                  # 阶段0 A 建：只读副本 + MANIFEST.sha256；此后 D owner
+│  │  └─ data_file/{comma_test,quotes_test,small_cats_dataset}/**（dataset.csv、column_names.csv、data_rows.csv、nested_dataset.json、nested_schema.json）
+│  ├─ test_hone_core.py          # A
+│  ├─ test_utils_csvjson.py      # B
+│  ├─ test_cli_packaging.py      # C
+│  ├─ test_golden_samples.py     # D
+│  └─ test_boundaries.py         # D（§2.4 + 边界/编码/多字符分隔符）
+├─ examples/                     # C 维护 demo.py/demo.sh；example_a|b|c.csv 为阶段0 A 的只读副本（字节一致）
+└─ .worktrees/{a,b,c,d}/         # 4 人各自 worktree（.gitignore）
+```
+> 架构文档中的 `hone/test/` 由根 `tests/` **取代**（不建双份）。`tests/fixtures/**` 与 `examples/*.csv` 副本均**只读**：任何测试不得改写。
+
+### 2.2 `hone.hone.Hone` 契约（签名逐字固定；模块首行 `from __future__ import annotations`）
+```python
+class Hone:
+    DEFAULT_DELIMITERS = [',', '_', ' ']      # 类属性；实例 self.delimiters 为其副本
+
+    def __init__(self, delimiters=None):
+        # None → list(DEFAULT_DELIMITERS)；否则必须是非空 list[str]，否则 ValueError
+        # 初始化 self.delimiters, self.csv_filepath=None, self.csv=None, self.column_names=[]
+
+    def set_csv_filepath(self, csv_filepath) -> None    # 存路径（"-" 合法）；self.csv=CSVUtils(p)；self.column_names=self.csv.get_column_names()
+    def convert(self, csv_filepath, schema=None) -> list[dict]     # csv_filepath 必填（不得为 None，None→ValueError）
+    def get_schema(self, csv_filepath) -> dict          # csv_filepath 必填
+    def generate_full_structure(self, column_names) -> dict
+    def get_nested_structure(self, parent_structure) -> dict
+    def populate_structure_with_data(self, structure, column_names, data_rows) -> list[dict]
+    def get_leaves(self, structure, path=(), result=None) -> dict[tuple[str, ...], str]
+    def get_valid_splits(self, column_name) -> list[list[str]]
+    def get_split_suffix(self, split, column_name) -> str
+    def clean_split(self, split) -> list[str]
+    def is_valid_prefix(self, prefix, base) -> bool
+    def escape_quotes(self, string) -> str
+```
+语义（逐条实现，docstring 同步抄写）：
+- **convert**：`set_csv_filepath(csv_filepath)`；`cols=self.column_names`，`rows=self.csv.get_data_rows()`（**共享同一缓存，禁止再开文件**）；`schema is None` → `structure=self.generate_full_structure(cols)`；`schema` 为 str 先 `json.loads`；否则 `structure=schema`；`return self.populate_structure_with_data(structure, cols, rows)`。**返回 list（每数据行一个 dict，行序=CSV 行序），叶子值一律 str（不做类型推断）**。
+- **get_schema(csv_filepath)**：`set_csv_filepath` → `return copy.deepcopy(self.generate_full_structure(self.column_names))`。**叶子值 = 完整原始列名**，与 `{"birth":{"year":"birth year",...}}` 形状一致。
+- **generate_full_structure(column_names)**：按 §3 建树，返回**单条记录**的嵌套 dict，**叶子值 = 该叶子的完整原始列名**（无 None 叶子）。
+- **get_nested_structure(parent_structure)**：`copy.deepcopy` 并归一化为纯嵌套 dict，**保留字符串叶子**（不擦成 None、不改键名、不改叶子值）；不修改入参。
+- **populate_structure_with_data(structure, column_names, data_rows)**：`idx={c:i for i,c in enumerate(column_names)}`（重复表头后者覆盖）；每行 `copy.deepcopy(structure)` 后递归填充：dict→递归；str 叶子→`i=idx.get(leaf)`：`i is not None 且 i < len(row)` → `row[i]`；**`i` 不存在（schema 引用缺失列）或 `i >= len(row)`（行短）→ 该键从该行 dict 中省略**；多余单元格丢弃。
+- **get_leaves(structure, path=(), result=None)**：返回 **dict** `{(路径元组): 叶子字符串}`，路径含叶子键本身，如 `{(("birth","day"),): ...}` 写作 `{("birth","day"): "birth day", ("name",): "name"}`；`result` 默认 `None`（内部新建 `{}`），不修改入参。
+- **get_valid_splits(column_name)**：**纯语法候选**（不依赖表头）：对每个 `d in self.delimiters`（按顺序）、`column_name` 中 `d` 的每个出现位置 `i`，`p=column_name[:i]`，`rem=column_name[i+len(d):]`，`p.strip()` 与 `rem.strip()` 均非空 → 候选 `[p, rem]`；按「分隔符顺序 → 位置从左到右」返回 `list[list[str]]`；无候选 → `[]`。**语义过滤（共享前缀/完整列名冲突）不在本方法内，交由 §3.2 `choose` 完成**（避免依赖表头上下文、可独立单测）。
+- **get_split_suffix(split, column_name)**：`split` 为 `get_valid_splits` 的返回项；直接 `return split[1]`（`len(split) != 2` → `ValueError`）；不再对 `column_name` 做可拼回校验（保留参数以符合任务签名）。
+- **clean_split(split)**：输入 list[str]（一次切分结果）：每段 `strip()`、丢弃空段，返回 list[str]；输入 str 时先按任一 `self.delimiters` 切成段。全空 → `[]`。
+- **is_valid_prefix(prefix, base)**：**纯字符串谓词**：`base == prefix` 或存在 `d in self.delimiters` 使 `base.startswith(prefix + d)` → True；否则 False。（`("a","a_b")→True`；"前缀是本层完整列名则禁止切分"的语义在 `choose` 内，见 §3.2-b。）
+- **escape_quotes(string)**：`str` → `string.replace('"', '""')`（CSV 双引号转义）；非 str 原样返回。
+
+### 2.3 `hone.utils` 契约
+```python
+class CSVUtils:
+    def __init__(self, csv_filepath)      # 存 self.filepath；self._column_names=None；self._data_rows=None
+    def _load(self)                       # 一次读完整个文件：rows=list(csv.reader(f))；_column_names=rows[0] if rows else []
+                                          # _data_rows=[r for r in rows[1:] if r != []]；_loaded=True。'utf-8-sig'
+    @contextlib.contextmanager
+    def open_csv(self, mode="r", newline="")   # encoding="utf-8-sig"；"-"→yield sys.stdin（不关闭）；否则 open(filepath, mode, newline=newline, encoding=...)
+    def get_column_names(self) -> list[str]    # 首次调用触发 _load()；返回 list(self._column_names) 副本
+    def get_data_rows(self) -> list[list[str]] # 同上；返回逐行 copy（list(r)）后的列表副本
+
+def parse_csv_file(csv_filepath) -> tuple[list[str], list[list[str]]]   # 内部用 CSVUtils（一次读取）
+def output_json(json_struct, json_filepath) -> None
+    # "-"→sys.stdout.write；否则 open(..., "w", encoding="utf-8", newline="\n")
+    # 固定 json.dump(obj, f, indent=2, sort_keys=True, ensure_ascii=False)（或 dumps 后 write），末尾写一个 "\n"
+def parse_json_file(json_filepath) -> object   # "-"→json.load(sys.stdin)；否则 utf-8 json.load
+```
+`hone/utils/test_utils.py`：`parse_json_file`（转导出）、`parse_csv_file`、`assert_json_equal(tc, actual, expected)`、`normalize(obj)`。**不放 unittest 用例。**
+**硬约束**：CSV 解析只用 `csv.reader`（`newline=""`、`utf-8-sig`），禁止 `split(',')`/手工去引号；`"-"` 只能被消费一次（`_load` 保证）；`sys.stdin/stdout` 永不 close。
+
+### 2.4 边界行为（`tests/test_boundaries.py` 逐条断言）
+1. **空文件（0 字节）**：`cols=[]`、`rows=[]`、`convert()==[]`；CLI 输出 `[]\n`。
+2. **仅表头无数据**：`convert()==[]`。
+3. **无表头**：首物理行恒为表头，不报错（空文件见 1）。
+4. **行短于表头**：缺失列对应键**在该行 dict 中省略**（不写 `null`、不写 `""`）。
+5. **行长于表头**：多余单元格丢弃。
+6. **重复表头**：后者覆盖前者（`idx` 字典语义），该键只出现一次。
+7. **空字符串表头名**：按原样作为键 `""`（可作为叶子）。
+8. **共享前缀**：`birth day/month/year` → 合并为嵌套对象。
+9. **前缀是本层完整列名**：`a` 与 `a_b`、`adopted` 与 `adopted_since`、`reference` 与 `reference name` → 较长列保持**整名叶子**。
+10. **schema 叶子映射的列在 CSV 不存在**：该键（在该行）**省略**，不抛异常、不写 null。
+11. **CSV 有列但 schema 未引用**：丢弃。
+12. **`"-"`**：`csv_filepath=="-"` 读 stdin，`json_filepath=="-"` 写 stdout；任意组合；同进程连续使用不坏。
+13. **路径不存在**：库层 `FileNotFoundError`；CLI 捕获 → stderr 单行 `hone: error: <msg>` + 退出码 **1**。
+14. **编码/换行**：CSV 读用 `utf-8-sig`（自动去 BOM，无 BOM 等价 utf-8）；输出 utf-8、`newline="\n"`、末尾一个 `\n`；CRLF 输入正常。
+15. **多字符分隔符**：切分索引用 `i + len(d)`（不得假设单字符）；`-d "['::']"` 对 `x::y,x::z` 生成 `{"x":{"y":...,"z":...}}`。
+16. **同层同前缀同余串冲突**（如 `a_b` 与 `a b` 归入同一 `p`）：后者覆盖前者（已知限制，不在样例中构造）。
+
+### 2.5 CLI 契约
+```
+usage: hone [-h] [-d [DELIMITERS]] [-s [SCHEMA]] csv_filepath json_filepath
+```
+- `main(argv=None) -> int`；`python -m hone` 与 `hone` console script 行为一致（`hone = "hone.__main__:main"`）。
+- `-d/--delimiters`：`nargs="?"`，`const=None`；`None` → `Hone.DEFAULT_DELIMITERS`；有值时**先 `ast.literal_eval`，失败再 `json.loads`**（不做"按逗号切"退化）；结果必须是**非空 list[str]**，否则 `parser.error(...)`（退出码 2）。
+- `-s/--schema`：`nargs="?"`，`const=None`；有值时**仅 `json.loads` 字符串**（PRD 即"JSON object encoded as a string"；**无文件路径回退**）；结果必须是 dict，否则 `parser.error`（退出码 2）。
+- 位置参数必填，`"-"` = stdin/stdout。退出码：**0** 成功 / **2** 参数错误 / **1** 运行期错误。
+- **README 必须写明**：`-d`、`-s` 的可选值若紧跟，会被当作其值吞掉；请写成完整引号形式 `-d "['_']"`、`-s '{...}'`，否则 `csv_filepath` 会被吞并使 argparse 退出 2；无值而只想用默认值时**不要写** `-d`/`-s`。
+- 调用顺序严格按 UML_sequence：`parse_args → Hone(delimiters) → convert(csv, schema) → output_json`。
+
+---
+
+## 3. 转换算法（A 照此实现；伪码可直接落地）
+
+**3.1 语法候选（`get_valid_splits`）**：对 `r`、`d in self.delimiters`（顺序优先）、`r` 中每次出现位置 `i`：`p = r[:i]`，`rem = r[i+len(d):]`；`p.strip()` 与 `rem.strip()` 均非空才保留。返回 `[[p, rem], ...]`（分隔符顺序 → 出现位置）。
+
+**3.2 本层选择（`choose(r, rel)`）**：
+```python
+def choose(self, r, rel):
+    for d in self.delimiters:                     # 分隔符优先级
+        start = 0
+        while True:
+            i = r.find(d, start)                  # 支持多字符分隔符
+            if i <= 0:                            # 不存在或为空前缀
+                if i < 0: break
+                start = i + len(d); continue
+            p, rem = r[:i], r[i+len(d):]
+            start = i + len(d)
+            if not p.strip() or not rem.strip(): continue
+            if p in rel: continue                 # (b) 前缀是本层完整列名 → 禁止切分（example_b 的 a_b）
+            if any(o != r and o.startswith(p + d) for o in rel):   # (a) 至少一个其它本层列名共享 "p+d"
+                return (p, rem, d)
+    return None
+```
+> 规则 (b) 是 `a_b`/`adopted_since`/`reference name` 保持叶子的原因；规则 (a) 使 `age (years)`、`weight (kg)`、`some 'quoted"' field"`（前缀唯一）保持整名列叶子，同时让 `birth day/month/year` 合并。**只切一刀**，`rem` 作为下一层相对名。
+
+**3.3 建树（逐层相对名上下文，禁止全局表头）**
+```python
+def build(self, entries):        # entries: [(rel, orig), ...]；首层 rel==orig==原始列名
+    rel = [r for r, _ in entries]; out = {}; groups = {}
+    for r, orig in entries:
+        sp = self.choose(r, rel)
+        if sp is None:
+            out[r] = orig                       # 叶子：键=本层相对名，值=完整原始列名
+        else:
+            groups.setdefault(sp[0], []).append((sp[1], orig))
+    for p, child in groups.items():
+        out[p] = self.build(child)
+    return out
+```
+**不变量（测试断言）**：① 每个原始列名在树中作为某个叶子的值恰好出现一次；② 非叶子节点下 ≥2 个键（单例分组必退化为叶子）；③ 叶子键 = 该叶子在本层的相对名，叶子值 = 完整原始列名。
+> 反例自检：`x_y` + `x_y_z` → 第 1 层 `rel={x_y,x_y_z}`：`x_y` 无分隔符→叶子；`x_y_z` 选 `p="x"` → 第 2 层 `rel={y, y_z}`：`y_z` 的 `p="y"` 因 `y in rel` 被 (b) 阻断 → 叶子。结果 `{"x": {"y": "x_y", "y_z": "x_y_z"}}`（正确，不会出现 leaf/dict 冲突）。
+
+**3.4 数据填充**：见 §2.2 `populate_structure_with_data`（`idx` 反查、行短省略、缺列省略、每行 deepcopy）。
+
+**3.5 schema 递归映射**：schema 为 dict → 逐键递归；为 str → 该键取该列名在本行的值（规则同 populate）。`nested_schema.json` 形如 `{"birth": {"year": "birth year", ...}, "name": "name"}` 直接生效，**不参与自动推断**。`get_schema` 即 `generate_full_structure`（叶子已存原始列名）。
+
+**3.6 默认与覆盖**：`DEFAULT_DELIMITERS=[',','_',' ']`；`__init__(delimiters=...)` **完全覆盖**默认（不并集），保序。
+
+**3.7 comma_test 反例审计（写入 docstring）**：`csv.reader` 解析出 2 列 `"test","ing"` 与 ` "beep"""`。前者内部逗号产生 `p='"test"'`，但同层无其它列以 `"test",` 开头 → 不共享 → 叶子；后者仅前导空格产生空前缀 → 丢弃 → 叶子。故输出 `[{" \"beep\"\"\"": "\"2", "\"test\",\"ing\"": "\"1"}]`，**无需为引号特判**。
+
+**3.8 期望结果自检**：quotes_test → `birth` 嵌套 3 子键，`age (years)`/`weight (kg)`/`adopted_since`/`some 'quoted"' field"`/`adopted`/`name` 叶子；example_b → `a`、`a_b` 叶子，`b.c.{d,e}`、`b.d.{e,f}`，第 2 行 `b.d.f=="12"`；example_c → `birth` 嵌套 + `reference`/`reference name` 顶层叶子。
+
+---
+
+## 4. 四个任务包（4 人平等、无 Leader、并行不冲突）
+
+### 阶段 0（A 先做，约 30–60 分钟；其他人等 base commit merged 再开工）
+1. 用组内 `git.workspace` 在 `$P` 建主仓（`main`，含既有资料，`.gitignore` 加 `.worktrees/`、`dist/`、`__pycache__/`、`.venv/`）；
+2. 提交 **base commit**：目录树 + `hone/__init__.py` + `hone/hone.py`（全签名+docstring+`NotImplementedError`）+ `hone/utils/__init__.py` 空壳 + `tests/__init__.py`（含 `task_root()` 解析 helper：`HONE_TASK_DIR` → `repo_root/workspace/task` → `repo_root/../../workspace/task` → `cwd/workspace/task`；**找不到就抛错，不得静默跳过**；另有 `fixtures_dir()`）+ `tests/fixtures/**` 副本 + `examples/example_a|b|c.csv` 副本 + `tests/fixtures/MANIFEST.sha256` + `CONTRACT.md`；
+3. 建 4 个 worktree：`$P/.worktrees/{a-core,b-utils,c-cli,d-tests}`，分支 `feat/a-core`…；推送并广播「base commit hash + 分支清单 + CONTRACT.md 路径」。
+
+| 包 | 只改这些文件 | 独立可测命令（在各自 worktree 执行） |
+|---|---|---|
+| **A 核心算法** | `hone/hone.py`、`hone/__init__.py`、`tests/test_hone_core.py` | `python -m unittest tests.test_hone_core -v`；`python -c "from hone.hone import Hone; h=Hone(); print(h.generate_full_structure(['name','birth day','birth month','birth year']))"` → `{"name":"name","birth":{"day":"birth day","month":"birth month","year":"birth year"}}`；`python -c "from hone.hone import Hone; h=Hone(); h.set_csv_filepath('examples/example_b.csv'); print(h.generate_full_structure(h.column_names))"` |
+| **B utils/IO** | `hone/utils/*.py`、`tests/test_utils_csvjson.py` | `python -m unittest tests.test_utils_csvjson -v`；`python -c "from hone.utils import CSVUtils; print(CSVUtils('tests/fixtures/data_file/quotes_test/column_names.csv').get_column_names())"` → 9 项；`python -c "from hone.utils import parse_csv_file,parse_json_file,output_json;print(parse_csv_file('tests/fixtures/data_file/small_cats_dataset/dataset.csv')[0])"` |
+| **C CLI/打包/demo** | `hone/__main__.py`、`pyproject.toml`、`LICENSE`、`examples/demo.py`、`examples/demo.sh`、`tests/test_cli_packaging.py` | `python -m unittest tests.test_cli_packaging -v`；`python -m hone -h`；`python -m hone tests/fixtures/data_file/small_cats_dataset/dataset.csv -`；`python -m pip wheel . -w dist`；`python examples/demo.py` |
+| **D 测试/回归/README/验收** | `tests/__init__.py`（base 后归 D）、`tests/test_golden_samples.py`、`tests/test_boundaries.py`、`tests/fixtures/**`（base 后归 D）、`README.md`、`scripts/acceptance.py`、`RELEASE_NOTES.md` | `python -m unittest discover -s tests -t . -v`；`python scripts/acceptance.py`；`HONE_TASK_DIR=<S 绝对路径> python -m unittest discover -s tests -t . -v` |
+
+**依赖与合并顺序（严格，A 为固定合并执行人，其他人不 push main）**：
+`main`(base) → **合 `feat/b-utils`** → **合 `feat/a-core`** → **合 `feat/c-cli`** → **合 `feat/d-tests`** → `git tag v1.0.0-rc1`。
+- **每包合并前门禁**：`python -m compileall -q hone` + 本包 `python -m unittest tests.<file> -v` 全绿。
+- **每次合并后由合并者执行**：全量 `python -m unittest discover -s tests -t . -v`（D 未合入时用已合分支的用例）+ 三条 CLI 冒烟（文件→文件 / 文件→`-` / `-`→文件）。
+- 冲突：跨所有权修改先广播 issue，由**文件所有者**在自己分支改；合并者**不代写实现**；rebase 冲突由 owner 解后重跑自测并回报。
+- D 的黄金测试可先于实现写好（按契约 import），A/B/C 合入后自然转绿。
+
+---
+
+## 5. 测试计划（D 主导；A/B/C 在各自 test 文件补单测）
+
+样例根：仓库内 `tests/fixtures/data_file/**` 与 `examples/**`（`HONE_TASK_DIR` 存在时优先用它指向的原件）。**期望值一律内联常量**（`examples/` 无 `example_*.json`；data_file 的 `nested_dataset.json`/`nested_schema.json` 用 `parse_json_file` 读取）。比较用解析后对象 `==`；仅 E17 比较文本。
+
+| ID | 用例 | 断言 |
+|---|---|---|
+| E1 | `comma_test/dataset.csv` | `convert(...) == parse_json_file(fixtures/.../comma_test/nested_dataset.json)`，即 `[{" \"beep\"\"\"": "\"2", "\"test\",\"ing\"": "\"1"}]` |
+| E2 | `quotes_test/dataset.csv` | `== quotes_test/nested_dataset.json`（4 行；`birth` 3 子键；`age (years)`/`weight (kg)`/`adopted_since`/`some 'quoted"' field"` 整名叶子） |
+| E3 | `small_cats_dataset/dataset.csv` | ①无 schema `== nested_dataset.json`；②`schema=parse_json_file(nested_schema.json)` 同结果；③`get_schema(...) == nested_schema.json` |
+| E4 | `examples/example_a.csv` | `==` 内联期望（4 行；与 small_cats 输出同构，逐行 Tommy/Clara/Catnip/Ciel） |
+| E5 | `examples/example_b.csv` | `==` 内联期望：第 1 行 `a="1"`、`a_b="2"`、`b.c.d="3"`、`b.c.e="4"`、`b.d.e="5"`、`b.d.f="6"`；第 2 行 `a="7"`、`a_b="8"`、`b.c.d="9"`、`b.c.e="10"`、`b.d.e="11"`、**`b.d.f="12"`**（注释标注 README 的 `"1"` 为上游笔误，不改样例） |
+| E6 | `examples/example_c.csv` | `==` 内联期望；`reference`、`reference name` 均为顶层叶子，`birth` 嵌套 |
+| E7 | CLI 文件→文件（small_cats，tmpdir） | 退出码 0；`json.load(out) == 期望` |
+| E8 | CLI `csv→-`（example_c） | 退出码 0；`json.loads(stdout)` == 期望；stderr 空 |
+| E9 | CLI `-→file`、`-→-`（example_b，`input=` 灌 CSV 文本 / 管道） | 退出码 0；结果 == E5 期望（≥2 数据行，确保不是只读首行） |
+| E10 | CLI `-s`（small_cats，schema 字符串）与 `-d "[' ', '_', ',']"`（example_c） | 与默认结果一致；`-d "['_']"` 自造 `x-y,x-z` → 结果随分隔符改变，默认下不嵌套 |
+| E11 | 参数错误：`-s "{bad"`、`-d "notalist["`、缺位置参数、csv 不存在 | 退出码 2/2/2/1；stderr 含 `error` |
+| E12 | 边界（tempfile）：空文件、仅表头、行短、行长、重复表头、空表头名、CRLF | 按 §2.4 的 1–6、14 断言（`[]` / 键省略 / 丢弃 / 后者覆盖 / 键 `""` / 正常解析） |
+| E13 | helper 单测 | `escape_quotes('a"b')=='a""b'`；`clean_split(['birth','','day'])==['birth','day']`；`is_valid_prefix('birth','birth day') is True`、`('birth','birthday') is False`、`('a','a_b') is True`；`get_valid_splits('birth day')` 含 `['birth','day']`（语法候选，无需表头）、`get_valid_splits('age (years)')` 含 `['age','(years)']` 但整列转换后仍是叶子（语义在 §3.2）；`get_split_suffix(['birth','day'],'birth day')=='day'`；`get_leaves` 返回 `{('birth','day'):'birth day', ...}` |
+| E14 | utils 单测 | 三组 dataset 列数 2/9/8、行数 1/4/4；comma 表头两值 `'"test","ing"'`、`' "beep"""'`；`output_json`→`parse_json_file` 往返相等；`output_json(obj,"-")` 写 stdout；`get_column_names` 两次调用返回**不相交的 list 对象**（`is not`）且值相等 |
+| E15 | 状态隔离 | 同一 Hone 依次 `convert(a)`、`convert(b)` 结果互不污染；两次返回的行 dict 与嵌套对象互不共享（`is not`）；`get_schema` 后再 `convert` 正常 |
+| E16 | 路径无关 + 原件只读 | 把仓库复制到 tempdir 后全量测试仍通过（不依赖 `$P/workspace`）；`tests/fixtures/**` 与 `examples/*.csv` 副本 sha256 == `MANIFEST.sha256`；`HONE_TASK_DIR` 指向 `S` 时原件 sha256 与副本一致 |
+| E17 | 精确 stdout | ASCII 用例（example_a）stdout 严格 `== json.dumps(expected, indent=2, sort_keys=True, ensure_ascii=False) + "\n"`；空输入严格 `"[]\n"`；stderr 空 |
+| E18 | stdin 单次消费 | `python -m hone - -` 管道；`python -m hone - out.json < file`；两者 stdout/文件正确（与 E9 不重复，改为 >2 数据行的 quotes_test） |
+| E19 | 多字符分隔符 | temp CSV `x::y,x::z` + `-d "['::']"` → `[{"x":{"y":"1","z":"2"}}]`；`get_valid_splits('x::y')` 候选正确（覆盖 `i+len(d)`） |
+| E20 | 编码/换行 | UTF-8 非 ASCII 值往返正确；CRLF 输入不产生空行/多余键；带 BOM 输入正确解析（`utf-8-sig`） |
+| E21 | schema 混合 | dict 内嵌 str 叶子；缺列 → 该键省略；未引用列丢弃；库层 `schema` 传 JSON 字符串亦可 |
+| E22 | 打包/安装（跨平台写法） | `python -m pip wheel . -w dist`；新建 venv（`python -m venv`）+ 激活后 `python -m pip install dist/*.whl`，**仓库外** `hone --help`、`python -m hone`、`import hone` 成功；wheel 内容不含 `tests/`、`scripts/` |
+| E23 | demo | 仓库根 `python examples/demo.py`、`bash examples/demo.sh` 均退出 0 且 stdout 可 `json.loads` |
+| E24 | 纯函数不变性 | `get_nested_structure` 返回深拷贝且不改入参；`get_leaves` 不改入参；`generate_full_structure` 两次调用结果相等且不共享对象 |
+
+---
+
+## 6. 发布清单
+
+```toml
+# pyproject.toml（C 拥有）
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hone"
+version = "1.0.0"
+description = "Convert CSV to automatically nested JSON."
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }        # 若构建器支持 SPDX，可改 license = "MIT"；二者择一，构建成功即可
+authors = [{ name = "hone contributors" }]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+# 无 dependencies
+
+[project.scripts]
+hone = "hone.__main__:main"
+
+[tool.setuptools]
+packages = ["hone", "hone.utils"]
+```
+- `hone/__init__.py.__version__ == "1.0.0"`，由 D 的测试断言与 pyproject 一致；所有 `hone/**` 模块首行加 `from __future__ import annotations`（兼容 3.8 的 `list[str]` 注解）。
+- **构建与自测**（在仓库根；跨平台，不写死 `.venv/Scripts`）：
+  ```
+  python -m compileall -q hone
+  python -m unittest discover -s tests -t . -v
+  python scripts/acceptance.py
+  python -m pip wheel . -w dist
+  python -m venv .venv && (激活 .venv 后) python -m pip install dist/hone-1.0.0-*.whl
+  hone --help && python -m hone tests/fixtures/data_file/small_cats_dataset/dataset.csv -
+  python examples/demo.py
+  ```
+- **候选整合**：§4 顺序合并 → `v1.0.0-rc1`。
+- **全员（4/4）交叉验收**（每人跑不同侧重点并以命令输出为证据，全部在 `RELEASE_NOTES.md` 签名）：
+  - A：CLI `-` 三条通道（E8/E9/E18）+ 三条冒烟；
+  - B：schema/utils（E3/E14/E21）+ E1/E2；
+  - C：干净 venv、**仓库外** `import hone`/`hone --help`/文件→文件转换（E22）+ E23；
+  - D：全量 unittest + `scripts/acceptance.py` + E16/E17 + 样例 diff 报告。
+  - 规则：**4/4 通过**才合 `main` 并打 `v1.0.0`；任一否决/不通过 → 按 §7 退回 owner 修复、重打 `rc`，**不采用多数通过**。
+- 产物：包源码 + CLI + `tests/`（含 fixtures）+ `README.md` + `CONTRACT.md` + `pyproject.toml` + `dist/*.whl`（可选，不入库）+ `RELEASE_NOTES.md`（含已知限制、example_b typo 说明）。
+
+---
+
+## 7. 风险与修复策略
+
+| 风险 | 表现 | 对策 |
+|---|---|---|
+| **切分语义分歧（最高）** | `age (years)` 被嵌套；`a_b` 被拆；递归用全局表头导致 leaf/dict 冲突 | §3.2/§3.3 为唯一标准（逐层 rel 上下文）；E1–E6 + 不变量（E25 归入 E15/E24）为判据；改规则须先改 `CONTRACT.md` 并广播 |
+| 手写 split 取代 csv 模块 | comma/quotes 复现失败 | 只用 `csv.reader`；E1/E2 门禁；禁止 strip 引号 |
+| **stdin 二次读取** | `-` 场景第二次为空 | §2.3 `_load()` 一次读+缓存；E9/E18 |
+| 路径依赖（worktree/clone/纯仓库） | 找不到 `workspace/task`，demo 跑不起来 | 副本入库 + §4 阶段0；`HONE_TASK_DIR` 覆盖；E16/E23；找不到**报错不跳过** |
+| `example_b` README typo | 误得 `"1"` 仍判通过 | E5 强制 `"12"`；样例只读 |
+| 叶子语义实现错（None 叶子/丢原始列名） | populate 取不到值 | §0-1/§2.2 写死；E3/E13/E24 |
+| 行共享同一骨架对象 | 所有行相同 | 每行 `deepcopy`；E5/E15 |
+| `-` 流被关闭 / 重复使用 | 连续调用损坏 | `contextmanager` 不 close 标准流；E9/E18 |
+| argparse `nargs="?"` 吞位置参数 | `-d in.csv` 退出 2 | README 警告 + E11；用完整引号值 |
+| 编码/换行（Windows/BOM/CRLF） | 空行、乱码 | 读 `utf-8-sig`；输出 `newline="\n"` + 末尾 `\n`；E12/E20 |
+| 打包漏子包/误打 tests | 安装后缺命令或臃肿 | `packages` 显式 + `[project.scripts]`；E22 检查 wheel 内容 |
+| 并行冲突 | 多人改同文件 | §2.1 所有权 + §4 固定合并人/顺序 + issue 机制 |
+| 时间不足 | 卡在 A | B/D 并行先行；优先保 G1–G9；wheel/demo 可降级为可选 |
+| 测试污染原件 | 样例被改、验收失败 | 只写 tempfile；提交前 `git status` 检查 `S/**` 与副本 |
+
+**升级机制**：包内自测 → 全量 unittest → 4/4 交叉验收 → 发布。任一阻塞超 1 次迭代：在 `CONTRACT.md` 末尾追加「裁定记录（日期/议题/结论/影响文件）」并广播，与本计划同等效力。
+
+---
+
+## 附录 A：R2 意见裁定记录（定稿即按此执行）
+
+| # | 争议点 | 定稿 | 依据/理由 |
+|---|---|---|---|
+| 1 | `generate_full_structure` 叶子 | **叶子值 = 完整原始列名**（无 None 叶子）；`get_schema` = deepcopy 它 | Leader 必改1 + 成员1 P0-1 一致 |
+| 2 | `get_nested_structure` | 深拷贝归一化、保留字符串叶子 | Leader 必改1 |
+| 3 | `get_leaves` 返回 | **dict** `{路径元组: 叶子字符串}` | 采纳 Leader 必改1（成员1 的 list 意见未采纳；二选一已固定） |
+| 4 | `get_valid_splits` | **纯语法候选**（不依赖表头），语义过滤在 `choose` | 采纳成员1 P0-2（Leader 的"依赖自选表头上下文"版本不可在无状态下单测；且避免两处语义重复） |
+| 5 | 递归上下文 | **逐层相对名 `(rel, orig)`**，禁止全局表头 | 采纳成员1 P0-3（`x_y`/`x_y_z` 反例成立） |
+| 6 | 多字符分隔符 | `i + len(d)`，`find` 循环 | 采纳成员1 P0-3；新增 E19 |
+| 7 | stdin 二次读取 | `CSVUtils._load()` 一次读+缓存；`convert` 不重开文件 | Leader 必改3 + 成员1 P0-4 |
+| 8 | 样例路径 | 副本入库（`tests/fixtures/**`、`examples/*.csv`，字节一致 + sha256）+ `HONE_TASK_DIR` 覆盖；找不到**报错不跳过** | 采纳成员1 P0-5；采纳 Leader 必改4 的 helper 与"禁止静默跳过"，但把"SkipTest"改为 fail（副本已入库，无需跳过） |
+| 9 | `examples/*.json` 不存在 | 期望内联常量；E4 用内联（结构与 small_cats 相同），不引用不存在的 `example_*.json` | Leader 必改2 |
+| 10 | demo 交付 | C 维护 `examples/demo.py`（定位仓库根 + 候选路径 + `HONE_TASK_DIR`）与 `demo.sh`；`examples/*.csv` 副本使其自包含 | Leader 必改5 + 成员1 P0-5 |
+| 11 | `__init__`/`convert` 签名 | `__init__(delimiters=None)`；`convert(csv_filepath, schema=None)` 且 csv_filepath 必填不得 None | Leader 必改6（不采纳成员1 的 `csv_filepath=None` 扩展） |
+| 12 | 行短 / schema 缺列 | **统一省略该键**（不写 `null`、不写 `""`） | Leader 必改6 + 成员1 R2 一致（覆盖 R1 草案的 `""` 与中间的 `None`） |
+| 13 | `escape_quotes` | `"` → `""`（CSV 双写），非 str 原样返回 | Leader 必改6 + 成员1 R2 一致（覆盖我 R1 的反斜杠方案） |
+| 14 | CLI `-d` | `nargs="?"`、`const=None`；`ast.literal_eval` → `json.loads`；无非空 list[str] 则退出 2；**无逗号退化** | Leader 必改6 + 成员1 P1 一致 |
+| 15 | CLI `-s` | 仅 JSON 字符串（无文件路径回退），非 dict 退出 2 | 成员1 P1（覆盖我 R1 的路径回退） |
+| 16 | py3.8 注解 | `requires-python>=3.8` + 各模块 `from __future__ import annotations` | 成员1 P1 |
+| 17 | `get_split_suffix` | 直接返回 `split[1]`，`len!=2` → ValueError，不做可拼回校验 | 成员1 P1 |
+| 18 | 发布验收 | **4/4 全员签名**，任一否决回退重打 rc（不采用"3 人通过"） | 成员1 P1 + 任务"全员验收" |
+| 19 | 合并门禁/合并人 | 每包合并前 `compileall` + 本包自测；合并后全量 discover + 三冒烟；固定 A 执行合并 | Leader 必改7 + 两轮一致 |
+| 20 | 测试目录 | 根 `tests/`（不建 `hone/test/`）；base commit 由 A 建 `tests/__init__.py` 与 fixtures，此后 D 唯一 owner | 两轮一致 + 成员1 P1 |
+| 21 | 版本 | `1.0.0`；`__version__` 与 pyproject 一致 | Leader；成员1 的 0.1.0 未采纳 |
+| 22 | 合并顺序 | base → b-utils → a-core → c-cli → d-tests | 两轮一致（B 是 A 运行期依赖） |
+| 23 | 额外测试 | 采纳 E15–E24（状态隔离、路径无关、精确 stdout、stdin 单次、多字符分隔符、编码、schema 混合、打包、demo、纯函数不变性） | 成员1 第4节 |
+| 24 | G7 命令笔误 | 改为 `csv→"-"`、`cat ... \| python -m hone - -`、`python -m hone - out.json < file` | 成员1 P1 |

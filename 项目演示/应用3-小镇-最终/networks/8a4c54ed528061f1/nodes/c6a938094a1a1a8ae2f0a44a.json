@@ -1,0 +1,136 @@
+{
+  "type": "node",
+  "node_id": "民政局",
+  "name": "民政局",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "居民楼A",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "医院",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "agreements.pair": {
+      "access": {
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ],
+        "strength": 3
+      },
+      "config": {
+        "address": "民政局",
+        "rules": [
+          {
+            "cost": 1,
+            "forbid_existing_pair": true,
+            "id": "marriage",
+            "pair_field": "spouse",
+            "require_values": {
+              "adult": true
+            },
+            "set_values": {
+              "married": true
+            },
+            "title": "婚姻登记"
+          }
+        ]
+      },
+      "state": {}
+    },
+    "movement.here": {
+      "access": {
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "before_hooks": [
+          {
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            },
+            "module": "records.store",
+            "operation": "apply",
+            "target": "requester"
+          }
+        ],
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "timeout_seconds": 60
+      },
+      "state": {}
+    },
+    "place.info": {
+      "access": {
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0
+      },
+      "config": {
+        "description": "民政局，婚姻登记需要双方本人到场并分别同意。",
+        "visitors": [],
+        "visitors_from_edges": false
+      },
+      "state": {
+        "visitors": []
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "context_cursor": null,
+  "inputs": null
+}

@@ -1,0 +1,97 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "runtime.periodic_checkpoint",
+  "name": "周期存档触发器",
+  "description": "按收到信号的次数计数，每 N 次请求系统存档；与信号强度和日历无关。",
+  "version": "1.0.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "every": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 5
+      },
+      "signal_channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": [
+          "tick"
+        ],
+        "uniqueItems": true,
+        "title": "接收频道"
+      },
+      "channel_modes": {
+        "type": "object",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "count": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "seen": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "pending": {
+        "type": "boolean"
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "read",
+      "channels": [
+        "runtime.checkpoint"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "flush",
+      "channels": [
+        "runtime.checkpoint"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": {
+    "config": "signal_channels"
+  },
+  "agent_tools": []
+}

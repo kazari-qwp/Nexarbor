@@ -19,7 +19,8 @@ async function init(p){
  const persistence=native('dsh-session-persistence-jsonl');await host.plugin(persistence.default??persistence,{root:options.native_logs??path.join(p.directory,'native-logs')});
  await host.plugin((await loader.load(p.root+'/adapters/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
  modelAdapters=await require('./model-adapters.cjs')({host,native,root:p.root,credentials:p.credentials,defaults:options.model??{}});
- config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:16000,contextWindow:500000,...options.model};config.maxRequests=options.max_requests??240;config.maxSeconds=options.max_seconds??1200;
+ const limits=require('../../framework/agent-defaults.cjs')(p.root);
+ config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:limits.max_tokens,contextWindow:limits.context_window,...options.model};config.maxRequests=options.max_requests??240;config.maxSeconds=options.max_seconds??1200;
  const original=globalThis.fetch;globalThis.fetch=async(url,args)=>{if(++requestCount>config.maxRequests||Date.now()-started>config.maxSeconds*1000)throw Error('Native execution request budget reached');return original(url,args);};
  createUserMessage=native('dsh-llm').createUserMessage;
  const instructions=await loader.load(p.root+'/adapters/harness/framework/instructions.js'),tools=await loader.load(p.root+'/adapters/harness/framework/tool-permissions.js');history=new instructions.InstructionHistory(createUserMessage);permissions=new tools.ToolPermissions(createUserMessage);

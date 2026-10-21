@@ -1,0 +1,199 @@
+{
+  "type": "node",
+  "node_id": "商店",
+  "name": "商店",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "居民楼A",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "居民楼B",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "酒馆",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "铁匠铺",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "place.info": {
+      "config": {
+        "visitors_from_edges": false,
+        "description": "杂货商店，货架上摆着锯和斧，柜台收矿石、木材和黄金。",
+        "visitors": []
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "movement.here": {
+      "config": {
+        "timeout_seconds": 60,
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "before_hooks": [
+          {
+            "target": "requester",
+            "module": "records.store",
+            "operation": "apply",
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ]
+      }
+    },
+    "records.store": {
+      "config": {
+        "initial": {
+          "saw": 5,
+          "axe": 5,
+          "ore": 0,
+          "wood": 0,
+          "gold": 0,
+          "coins": 50
+        },
+        "references": [],
+        "minimum": {}
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "shop.market": {
+      "config": {
+        "products": [
+          {
+            "item": "saw",
+            "name": "锯",
+            "sale_price": 5,
+            "buyback_price": null
+          },
+          {
+            "item": "axe",
+            "name": "斧",
+            "sale_price": 5,
+            "buyback_price": null
+          },
+          {
+            "item": "ore",
+            "name": "矿石",
+            "sale_price": null,
+            "buyback_price": 3
+          },
+          {
+            "item": "wood",
+            "name": "木材",
+            "sale_price": null,
+            "buyback_price": 2
+          },
+          {
+            "item": "gold",
+            "name": "黄金",
+            "sale_price": null,
+            "buyback_price": 10
+          }
+        ],
+        "cost": 1,
+        "currency": "coins"
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "service",
+          "road",
+          "records",
+          "movement",
+          "location"
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

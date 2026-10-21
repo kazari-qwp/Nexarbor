@@ -1,0 +1,161 @@
+{
+  "type": "node",
+  "node_id": "铁匠铺",
+  "name": "铁匠铺",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "商店",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "矿坑",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "place.info": {
+      "config": {
+        "visitors_from_edges": false,
+        "description": "炉火通明的铁匠铺，能修好坏掉的镐子。",
+        "visitors": []
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "movement.here": {
+      "config": {
+        "timeout_seconds": 60,
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "before_hooks": [
+          {
+            "target": "requester",
+            "module": "records.store",
+            "operation": "apply",
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ]
+      }
+    },
+    "records.store": {
+      "config": {
+        "initial": {
+          "ore": 0,
+          "coins": 0,
+          "repairs": 0
+        },
+        "references": [],
+        "minimum": {}
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "service.actions": {
+      "config": {
+        "address": "铁匠铺",
+        "actions": [
+          {
+            "id": "repair",
+            "title": "修坏镐",
+            "description": "用两金币和一矿石把坏镐修成可用的镐。",
+            "cost": 1,
+            "require_items": {
+              "broken_pickaxe": 1,
+              "ore": 1
+            },
+            "actor_deltas": {
+              "coins": -2,
+              "ore": -1,
+              "broken_pickaxe": -1,
+              "pickaxe": 1
+            },
+            "actor_set": {
+              "pickaxe_state": "良好"
+            },
+            "local_deltas": {
+              "coins": 2,
+              "ore": 1,
+              "repairs": 1
+            }
+          }
+        ],
+        "events": []
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

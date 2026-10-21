@@ -1,0 +1,175 @@
+{
+  "type": "agent",
+  "node_id": "root",
+  "name": "根 Agent · 用户入口",
+  "description": "委托管理员组网，再编排讨论组与执行组完成用户任务。",
+  "management_parent_id": null,
+  "divergence": 0,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": "agent",
+  "parameters": {
+    "file_path": "data/root.md",
+    "creation_options": {}
+  },
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "administrator",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "admin"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "admin-c484d6bedace40e6a8585c3c9869efde",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "discussion"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "admin-c2b1f1c01ad743aa8d4ed1fb5531f746",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "collaboration",
+            "collaboration.review"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "context.network": {
+      "access": {
+        "channels": [
+          "context.assembler"
+        ],
+        "strength": 6
+      },
+      "config": {
+        "sources": [
+          {
+            "id": "root-guide",
+            "kind": "system_prompt",
+            "text": "你是根 Agent，负责委托管理员放置讨论小组和执行小组预设，再调用小组入口完成任务。根只连接管理员和两个组入口，不连接成员。讨论使用 datanet_discuss，协作使用 datanet_cooperate；启动协作后用 wait_group 等待结果，避免轮询。讨论成果作为协作任务的一部分。组内成员自行认领、实现、发布、验收。",
+            "type": "text"
+          }
+        ]
+      },
+      "state": {}
+    },
+    "groups.control": {
+      "access": {
+        "channels": [
+          "discussion",
+          "collaboration"
+        ],
+        "strength": 6
+      },
+      "config": {},
+      "state": {}
+    }
+  },
+  "offered_tools": [
+    {
+      "channels": [
+        "workspace"
+      ],
+      "ref": "harness:pwsh"
+    },
+    {
+      "channels": [
+        "workspace"
+      ],
+      "ref": "harness:read"
+    },
+    {
+      "channels": [
+        "workspace"
+      ],
+      "ref": "harness:write"
+    },
+    {
+      "channels": [
+        "workspace"
+      ],
+      "ref": "harness:edit"
+    },
+    {
+      "channels": [
+        "workspace"
+      ],
+      "ref": "harness:glob"
+    },
+    {
+      "channels": [
+        "workspace"
+      ],
+      "ref": "harness:grep"
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": {
+    "channels": [
+      "self",
+      "admin",
+      "workspace",
+      "discussion",
+      "collaboration",
+      "context.assembler"
+    ],
+    "executor": "harness",
+    "max_steps": 100000,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.network",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 16,
+    "timeout_seconds": 86400,
+    "tool_sources": [
+      "root",
+      "administrator"
+    ]
+  },
+  "context_cursor": {
+    "adapter": "deepseek-harness",
+    "version": 1,
+    "session_id": "nexarbor-7e74d1add52a28dbc992aff7",
+    "header_hash": "ee50578e121dd072a9216b295889ce7d831adc2f3a022557bcedd2bd84ede780",
+    "event_count": 314,
+    "prefix_hash": "98943f50d8e5c3884cc23a2c8abdfc812386250cbfe756d2668c8f9252268336",
+    "inherited_event_count": 0,
+    "log": {
+      "kind": "jsonl",
+      "path": "session.v4.jsonl.zstd"
+    }
+  },
+  "inputs": {
+    "prepare:root:context.network:assemble": {
+      "system_prompt": "你是根 Agent，负责委托管理员放置讨论小组和执行小组预设，再调用小组入口完成任务。根只连接管理员和两个组入口，不连接成员。讨论使用 datanet_discuss，协作使用 datanet_cooperate；启动协作后用 wait_group 等待结果，避免轮询。讨论成果作为协作任务的一部分。组内成员自行认领、实现、发布、验收。",
+      "context": [],
+      "inputs": [],
+      "tail": []
+    }
+  }
+}

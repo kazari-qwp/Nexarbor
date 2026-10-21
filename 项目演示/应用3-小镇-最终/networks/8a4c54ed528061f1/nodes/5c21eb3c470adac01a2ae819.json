@@ -1,0 +1,790 @@
+{
+  "type": "node",
+  "node_id": "酒馆",
+  "name": "酒馆",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "居民楼A",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "居民楼B",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "商店",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "林",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "location",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      },
+      {
+        "target_node_id": "悦",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "location",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "movement.here": {
+      "access": {
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "before_hooks": [
+          {
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            },
+            "module": "records.store",
+            "operation": "apply",
+            "target": "requester"
+          }
+        ],
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "timeout_seconds": 60
+      },
+      "state": {}
+    },
+    "place.info": {
+      "access": {
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0
+      },
+      "config": {
+        "description": "镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。",
+        "visitors": [],
+        "visitors_from_edges": false
+      },
+      "state": {
+        "visitors": [
+          "悦",
+          "林"
+        ]
+      }
+    },
+    "records.store": {
+      "access": {
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1
+      },
+      "config": {
+        "initial": {
+          "coins": 0,
+          "drinks": 20
+        },
+        "minimum": {},
+        "references": []
+      },
+      "state": {
+        "receipts": [
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"d1-evening-drink-1\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 1,
+              "drinks": 19
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"悦\",\"day2-morning-drink-1\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 2,
+              "drinks": 18
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"悦\",\"day2-evening-drink-1\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 3,
+              "drinks": 17
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"悦\",\"day3-noon-drink-1\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 4,
+              "drinks": 16
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"林\",\"lin-drink-d3\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 5,
+              "drinks": 15
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"悦\",\"day3-evening-drink-lin\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 6,
+              "drinks": 14
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"d3-evening-drink-1\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 7,
+              "drinks": 13
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"d4-noon-drink-1\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 8,
+              "drinks": 12
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"林\",\"lin-drink-d4\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 9,
+              "drinks": 11
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"d4-afternoon-drink-1\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 10,
+              "drinks": 10
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"悦\",\"day4-evening-drink-lin\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 11,
+              "drinks": 9
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"d5-evening-drink-1\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 12,
+              "drinks": 8
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"林\",\"lin-drink-d5\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 13,
+              "drinks": 7
+            }
+          },
+          {
+            "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"酒馆\",\"悦\",\"day5-evening-drink-lin\",\"local\"]",
+            "references": [],
+            "values": {
+              "coins": 14,
+              "drinks": 6
+            }
+          }
+        ],
+        "references": [],
+        "values": {
+          "coins": 14,
+          "drinks": 6
+        }
+      }
+    },
+    "service.actions": {
+      "access": {
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "actions": [
+          {
+            "actor_deltas": {
+              "ap": 2,
+              "coins": -1
+            },
+            "actor_maximums": {
+              "ap": 10
+            },
+            "cost": 0,
+            "description": "花一金币喝一杯麦酒，恢复两点行动值。",
+            "id": "drink",
+            "local_deltas": {
+              "coins": 1,
+              "drinks": -1
+            },
+            "title": "喝一杯"
+          }
+        ],
+        "address": "酒馆",
+        "events": []
+      },
+      "state": {
+        "event_counts": {},
+        "receipts": [
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+            "key": "d1-evening-drink-1",
+            "result": {
+              "action": "drink",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 29,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 0,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"悦\",\"quantity\":1}",
+            "key": "day2-morning-drink-1",
+            "result": {
+              "action": "drink",
+              "actor": "悦",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 9,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 15,
+                "context_node": "悦",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "悦",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 0
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"悦\",\"quantity\":1}",
+            "key": "day2-evening-drink-1",
+            "result": {
+              "action": "drink",
+              "actor": "悦",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 6,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 14,
+                "context_node": "悦",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "悦",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"悦\",\"quantity\":1}",
+            "key": "day3-noon-drink-1",
+            "result": {
+              "action": "drink",
+              "actor": "悦",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 3,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 13,
+                "context_node": "悦",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "悦",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 6
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"林\",\"quantity\":1}",
+            "key": "lin-drink-d3",
+            "result": {
+              "action": "drink",
+              "actor": "林",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 9,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 21,
+                "context_node": "林",
+                "gender": "male",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "林",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"悦\",\"quantity\":1}",
+            "key": "day3-evening-drink-lin",
+            "result": {
+              "action": "drink",
+              "actor": "悦",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 9,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 12,
+                "context_node": "悦",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "悦",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 6
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+            "key": "d3-evening-drink-1",
+            "result": {
+              "action": "drink",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 47,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 14,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+            "key": "d4-noon-drink-1",
+            "result": {
+              "action": "drink",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 46,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 19,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"林\",\"quantity\":1}",
+            "key": "lin-drink-d4",
+            "result": {
+              "action": "drink",
+              "actor": "林",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 9,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 22,
+                "context_node": "林",
+                "gender": "male",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "林",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 2
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+            "key": "d4-afternoon-drink-1",
+            "result": {
+              "action": "drink",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 45,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 19,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"悦\",\"quantity\":1}",
+            "key": "day4-evening-drink-lin",
+            "result": {
+              "action": "drink",
+              "actor": "悦",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 9,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 11,
+                "context_node": "悦",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "悦",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 6
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+            "key": "d5-evening-drink-1",
+            "result": {
+              "action": "drink",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 59,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 19,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"林\",\"quantity\":1}",
+            "key": "lin-drink-d5",
+            "result": {
+              "action": "drink",
+              "actor": "林",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 3,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 11,
+                "context_node": "林",
+                "gender": "male",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "林",
+                "ore": 1,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 2
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"drink\",\"actor\":\"悦\",\"quantity\":1}",
+            "key": "day5-evening-drink-lin",
+            "result": {
+              "action": "drink",
+              "actor": "悦",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“喝一杯”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 6,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 10,
+                "context_node": "悦",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "悦",
+                "ore": 2,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 7
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "context_cursor": null,
+  "inputs": null
+}

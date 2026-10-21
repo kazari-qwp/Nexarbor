@@ -1,0 +1,119 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "groups.control",
+  "version": "2.0.0",
+  "name": "groups.control",
+  "description": "按历史固定小组协议迁移；对象访问与局部模块执行。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": true
+  },
+  "operations": [
+    {
+      "name": "datanet_discuss",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string",
+            "description": "完成后填写即开始新任务；省略时续跑未完成任务或读取已有成果。"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "datanet_cooperate",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "start",
+              "status",
+              "stop"
+            ]
+          },
+          "task": {
+            "type": "string",
+            "minLength": 1
+          },
+          "budget_minutes": {
+            "type": "number",
+            "minimum": 0.1,
+            "maximum": 1440
+          }
+        },
+        "required": [
+          "action"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "wait_group",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "group_id": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {}
+    }
+  ],
+  "agent_tools": [
+    {
+      "id": "datanet_discuss",
+      "name": "datanet_discuss",
+      "description": "运行固定轮次的并行讨论并等待 Recorder 定稿。",
+      "operation": "datanet_discuss"
+    },
+    {
+      "id": "datanet_cooperate",
+      "name": "datanet_cooperate",
+      "description": "启动、查看或停止平等 Git 协作组。",
+      "operation": "datanet_cooperate"
+    },
+    {
+      "id": "wait_group",
+      "name": "wait_group",
+      "description": "等待协作组结束，返回最终候选、工作区与状态。",
+      "operation": "wait_group"
+    }
+  ],
+  "signals": []
+}

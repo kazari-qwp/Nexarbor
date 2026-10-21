@@ -1,0 +1,79 @@
+{
+  "type": "node",
+  "node_id": "administrator",
+  "name": "局部网络管理员",
+  "description": "在既有授权内放置项目预设并连接组入口。",
+  "management_parent_id": null,
+  "divergence": 0,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "root",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "admin"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "network.administrator": {
+      "access": {
+        "channels": [
+          "admin",
+          "app",
+          "discussion",
+          "discussion.round",
+          "discussion.decision",
+          "discussion.record",
+          "collaboration",
+          "collaboration.work",
+          "collaboration.review",
+          "notes",
+          "records",
+          "chat",
+          "workspace",
+          "runtime.agent",
+          "self",
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail",
+          "tick",
+          "activity"
+        ],
+        "extension": {
+          "operations": [
+            "manage"
+          ],
+          "targets": [
+            "$self"
+          ]
+        },
+        "strength": 16
+      },
+      "config": {
+        "allow_component_creation": false,
+        "max_nodes": 100,
+        "timeout_seconds": 86400
+      },
+      "state": {}
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "context_cursor": null,
+  "inputs": null
+}

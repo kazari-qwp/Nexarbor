@@ -11,10 +11,11 @@ module.exports=async function({host,native,root,credentials,defaults={}}){
   listRecords(){return Promise.resolve([]);}
  }
  await host.plugin(Credentials);
+ const limits=require('../../framework/agent-defaults.cjs')(root);
  const profiles=new Map(),secrets=new Set();let apiFiber,apiProfiles={},registration=Promise.resolve();
  const redact=value=>{let text=String(value?.stack??value);for(const key of secrets)if(key)text=text.split(key).join('[已隐藏密钥]');return text;};
  async function resolve(profile){
-  profile??={kind:'harness-account',credentials,signature:'legacy-default',model:{provider:'deepseek-account',model:'deepseek-flash',maxTokens:16000,contextWindow:500000,reasoningEffort:'low',...defaults}};
+  profile??={kind:'harness-account',credentials,signature:'legacy-default',model:{provider:'deepseek-account',model:'deepseek-flash',maxTokens:limits.max_tokens,contextWindow:limits.context_window,reasoningEffort:'low',...defaults}};
   if(profiles.has(profile.signature))return profiles.get(profile.signature);
   const pending=(async()=>{
    let supportsImages=true;
@@ -23,7 +24,7 @@ module.exports=async function({host,native,root,credentials,defaults={}}){
     if(!profile.credentials)throw Error('请配置 Harness 账户授权或选择一个 API key 连接');
     const grant=require(path.join(path.dirname(process.execPath),'resources/app.asar/dsh/node_modules/yaml')).parse(await fs.readFile(profile.credentials,'utf8')).records?.['deepseek-account-platform/default'];
     if(grant?.kind!=='grant'||new URL(grant.payload.issuer).origin!=='https://platform.deepseek.com')throw Error('未找到受支持的 Harness DeepSeek 账户授权');
-    secrets.add(grant.payload.token);const deepseek=native('dsh-llm-deepseek'),models=JSON.parse(await fs.readFile(path.join(root,'adapters/harness/runtime/models.json'),'utf8'));
+    secrets.add(grant.payload.token);const deepseek=native('dsh-llm-deepseek'),models=JSON.parse(await fs.readFile(path.join(root,'adapters/harness/runtime/models.json'),'utf8')).map(item=>item.id===model.model?{...item,contextWindow:model.contextWindow,maxTokens:model.maxTokens}:item);
     supportsImages=models.find(m=>m.id===model.model)?.inputModalities?.includes('image')===true;
     const connection=deepseek.resolveAdapterOptions({models,maxTokens:model.maxTokens,retryPolicy:{mode:'normal',maxRetries:0},streamIdleTimeoutMs:60000});
     host.llm.registerAdapter([provider],new deepseek.DeepSeekAdapter({options:()=>connection,resolveAttachments:()=>host.get('attachments'),resolveAuth:async c=>{if(new URL(c.baseURL).origin!=='https://api.deepseek.com')throw Error('账户授权只能用于官方 DeepSeek API');return {headers:{'x-dsh-auth-token':grant.payload.token}};},resolveUserId:()=> 'nexarbor',prepareExtensions:async()=>({fields:{},accept:async()=>{}})}));

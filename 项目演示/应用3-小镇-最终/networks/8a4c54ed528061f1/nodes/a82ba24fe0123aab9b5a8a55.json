@@ -1,0 +1,295 @@
+{
+  "type": "node",
+  "node_id": "居民楼B",
+  "name": "居民楼B",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "酒馆",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "医院",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "商店",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "世界时间",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "time"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "怀孕须知",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "family.pregnancy"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "agreements.pair": {
+      "access": {
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ],
+        "strength": 3
+      },
+      "config": {
+        "address": null,
+        "rules": [
+          {
+            "cost": 1,
+            "equal_fields": [
+              "home"
+            ],
+            "id": "family_plan",
+            "require_values": {
+              "adult": true
+            },
+            "set_values": {
+              "planning": true
+            },
+            "title": "共同家庭计划"
+          }
+        ]
+      },
+      "state": {}
+    },
+    "family.household": {
+      "access": {
+        "channels": [
+          "road",
+          "agreements",
+          "time",
+          "family.pregnancy",
+          "context.assembler.context",
+          "location",
+          "records"
+        ],
+        "strength": 12
+      },
+      "config": {
+        "pregnancy_channels": [
+          "family.pregnancy"
+        ],
+        "time_channels": [
+          "time"
+        ]
+      },
+      "state": {}
+    },
+    "movement.here": {
+      "access": {
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "before_hooks": [
+          {
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            },
+            "module": "records.store",
+            "operation": "apply",
+            "target": "requester"
+          }
+        ],
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "timeout_seconds": 60
+      },
+      "state": {}
+    },
+    "place.info": {
+      "access": {
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0
+      },
+      "config": {
+        "description": "石墙小楼，住着小路、阿森、阿石和老铁；院里堆着木柴和矿车零件。",
+        "visitors": [
+          "小路",
+          "阿森",
+          "阿石",
+          "老铁"
+        ],
+        "visitors_from_edges": false
+      },
+      "state": {
+        "visitors": []
+      }
+    },
+    "records.store": {
+      "access": {
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1
+      },
+      "config": {
+        "initial": {},
+        "minimum": {},
+        "references": []
+      },
+      "state": {
+        "receipts": [
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"ash-stone-rest-tick9\",\"local\"]",
+            "references": [],
+            "values": {}
+          }
+        ],
+        "references": [],
+        "values": {}
+      }
+    },
+    "service.actions": {
+      "access": {
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "actions": [
+          {
+            "actor_deltas": {
+              "ap": 3
+            },
+            "actor_maximums": {
+              "ap": 10
+            },
+            "cost": 0,
+            "description": "在自己的居民楼休息，恢复一些行动点。",
+            "id": "rest",
+            "required_home": "居民楼B",
+            "title": "休息"
+          }
+        ],
+        "address": "居民楼B",
+        "events": []
+      },
+      "state": {
+        "event_counts": {},
+        "receipts": [
+          {
+            "fingerprint": "{\"action\":\"rest\",\"actor\":\"阿石\",\"quantity\":1}",
+            "key": "ash-stone-rest-tick9",
+            "result": {
+              "action": "rest",
+              "actor": "阿石",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“休息”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 7,
+                "broken_pickaxe": 1,
+                "can_gestate": false,
+                "coins": 7,
+                "context_node": "阿石",
+                "gender": "male",
+                "home": "居民楼B",
+                "iron": 0,
+                "is_parent": false,
+                "name": "阿石",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "context_cursor": null,
+  "inputs": null
+}

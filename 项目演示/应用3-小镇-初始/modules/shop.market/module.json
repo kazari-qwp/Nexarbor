@@ -1,0 +1,197 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "shop.market",
+  "name": "商品商店",
+  "description": "由商品表定义售价和回收价，统一执行库存、金币和物品交换。",
+  "version": "1.0.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [
+    "records.store",
+    "place.info"
+  ],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "products": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "item": {
+              "type": "string",
+              "minLength": 1,
+              "not": {
+                "enum": [
+                  "coins",
+                  "ap"
+                ]
+              }
+            },
+            "name": {
+              "type": "string"
+            },
+            "sale_price": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "buyback_price": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "item"
+          ]
+        },
+        "default": []
+      },
+      "cost": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 1
+      },
+      "currency": {
+        "type": "string",
+        "default": "coins",
+        "not": {
+          "const": "ap"
+        }
+      },
+      "require_values": {
+        "type": "object",
+        "additionalProperties": true,
+        "default": {},
+        "title": "交易资格"
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "receipts": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "inspect",
+      "channels": [
+        "service",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "buy",
+      "channels": [
+        "service",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 1
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "item",
+          "key"
+        ]
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "sell",
+      "channels": [
+        "service",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "item": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "default": 1
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "item",
+          "key"
+        ]
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "inspect",
+      "name": "查看价目表",
+      "description": "查看商品售价、回收价和当前库存。",
+      "operation": "inspect"
+    },
+    {
+      "id": "buy",
+      "name": "购买商品",
+      "description": "按售价购买指定商品和数量，须本人在商店。",
+      "operation": "buy"
+    },
+    {
+      "id": "sell",
+      "name": "出售商品",
+      "description": "按回收价出售指定商品和数量，须本人在商店。",
+      "operation": "sell"
+    }
+  ]
+}

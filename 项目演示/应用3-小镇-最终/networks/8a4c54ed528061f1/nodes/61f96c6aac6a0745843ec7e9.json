@@ -1,0 +1,382 @@
+{
+  "type": "node",
+  "node_id": "商店",
+  "name": "商店",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "居民楼A",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "居民楼B",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "酒馆",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "铁匠铺",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "movement.here": {
+      "access": {
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "before_hooks": [
+          {
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            },
+            "module": "records.store",
+            "operation": "apply",
+            "target": "requester"
+          }
+        ],
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "timeout_seconds": 60
+      },
+      "state": {}
+    },
+    "place.info": {
+      "access": {
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0
+      },
+      "config": {
+        "description": "杂货商店，货架上摆着锯和斧，柜台收矿石、木材和黄金。",
+        "visitors": [],
+        "visitors_from_edges": false
+      },
+      "state": {
+        "visitors": []
+      }
+    },
+    "records.store": {
+      "access": {
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1
+      },
+      "config": {
+        "initial": {
+          "axe": 5,
+          "coins": 50,
+          "gold": 0,
+          "ore": 0,
+          "saw": 5,
+          "wood": 0
+        },
+        "minimum": {},
+        "references": []
+      },
+      "state": {
+        "receipts": [],
+        "references": [],
+        "values": {
+          "axe": 1,
+          "coins": 0,
+          "gold": 0,
+          "ore": 10,
+          "saw": 5,
+          "wood": 20
+        }
+      }
+    },
+    "shop.market": {
+      "access": {
+        "channels": [
+          "service",
+          "road",
+          "records",
+          "movement",
+          "location"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "cost": 1,
+        "currency": "coins",
+        "products": [
+          {
+            "buyback_price": null,
+            "item": "saw",
+            "name": "锯",
+            "sale_price": 5
+          },
+          {
+            "buyback_price": null,
+            "item": "axe",
+            "name": "斧",
+            "sale_price": 5
+          },
+          {
+            "buyback_price": 3,
+            "item": "ore",
+            "name": "矿石",
+            "sale_price": null
+          },
+          {
+            "buyback_price": 2,
+            "item": "wood",
+            "name": "木材",
+            "sale_price": null
+          },
+          {
+            "buyback_price": 10,
+            "item": "gold",
+            "name": "黄金",
+            "sale_price": null
+          }
+        ]
+      },
+      "state": {
+        "receipts": [
+          {
+            "key": "悦\u001fbuy-axe-day1",
+            "result": {
+              "duplicate": false,
+              "item": "axe",
+              "operation": "buy",
+              "quantity": 1,
+              "total": 5
+            },
+            "signature": "[\"buy\", \"axe\", 1]"
+          },
+          {
+            "key": "林\u001flin-buy-axe-d1",
+            "result": {
+              "duplicate": false,
+              "item": "axe",
+              "operation": "buy",
+              "quantity": 1,
+              "total": 5
+            },
+            "signature": "[\"buy\", \"axe\", 1]"
+          },
+          {
+            "key": "阿森\u001fday1-afternoon-sell-wood-3",
+            "result": {
+              "duplicate": false,
+              "item": "wood",
+              "operation": "sell",
+              "quantity": 3,
+              "total": 6
+            },
+            "signature": "[\"sell\", \"wood\", 3]"
+          },
+          {
+            "key": "小砾\u001fd1-afternoon-sell-5-ore",
+            "result": {
+              "duplicate": false,
+              "item": "ore",
+              "operation": "sell",
+              "quantity": 5,
+              "total": 15
+            },
+            "signature": "[\"sell\", \"ore\", 5]"
+          },
+          {
+            "key": "悦\u001fday1-evening-sell-wood",
+            "result": {
+              "duplicate": false,
+              "item": "wood",
+              "operation": "sell",
+              "quantity": 3,
+              "total": 6
+            },
+            "signature": "[\"sell\", \"wood\", 3]"
+          },
+          {
+            "key": "林\u001flin-sell-wood-d1",
+            "result": {
+              "duplicate": false,
+              "item": "wood",
+              "operation": "sell",
+              "quantity": 6,
+              "total": 12
+            },
+            "signature": "[\"sell\", \"wood\", 6]"
+          },
+          {
+            "key": "阿森\u001fday2-morning-sell-wood-3",
+            "result": {
+              "duplicate": false,
+              "item": "wood",
+              "operation": "sell",
+              "quantity": 3,
+              "total": 6
+            },
+            "signature": "[\"sell\", \"wood\", 3]"
+          },
+          {
+            "key": "小砾\u001fd2-morning-sell-5-ore",
+            "result": {
+              "duplicate": false,
+              "item": "ore",
+              "operation": "sell",
+              "quantity": 5,
+              "total": 15
+            },
+            "signature": "[\"sell\", \"ore\", 5]"
+          },
+          {
+            "key": "小路\u001fbuy-axe-d3e",
+            "result": {
+              "duplicate": false,
+              "item": "axe",
+              "operation": "buy",
+              "quantity": 1,
+              "total": 5
+            },
+            "signature": "[\"buy\", \"axe\", 1]"
+          },
+          {
+            "key": "林\u001flin-d3eve-sell-1",
+            "result": {
+              "duplicate": false,
+              "item": "wood",
+              "operation": "sell",
+              "quantity": 1,
+              "total": 2
+            },
+            "signature": "[\"sell\", \"wood\", 1]"
+          },
+          {
+            "key": "阿森\u001fday3-night-sell-wood-1",
+            "result": {
+              "duplicate": false,
+              "item": "wood",
+              "operation": "sell",
+              "quantity": 1,
+              "total": 2
+            },
+            "signature": "[\"sell\", \"wood\", 1]"
+          },
+          {
+            "key": "阿石\u001fash-stone-buy-axe-for-liquidity",
+            "result": {
+              "duplicate": false,
+              "item": "axe",
+              "operation": "buy",
+              "quantity": 1,
+              "total": 5
+            },
+            "signature": "[\"buy\", \"axe\", 1]"
+          },
+          {
+            "key": "阿森\u001fday5-morning-sell-wood-1",
+            "result": {
+              "duplicate": false,
+              "item": "wood",
+              "operation": "sell",
+              "quantity": 1,
+              "total": 2
+            },
+            "signature": "[\"sell\", \"wood\", 1]"
+          },
+          {
+            "key": "阿森\u001fday5-morning-sell-wood-1b",
+            "result": {
+              "duplicate": false,
+              "item": "wood",
+              "operation": "sell",
+              "quantity": 1,
+              "total": 2
+            },
+            "signature": "[\"sell\", \"wood\", 1]"
+          },
+          {
+            "key": "阿森\u001fday5-morning-sell-wood-1c",
+            "result": {
+              "duplicate": false,
+              "item": "wood",
+              "operation": "sell",
+              "quantity": 1,
+              "total": 2
+            },
+            "signature": "[\"sell\", \"wood\", 1]"
+          }
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "context_cursor": null,
+  "inputs": null
+}

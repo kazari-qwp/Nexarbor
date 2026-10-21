@@ -1,0 +1,813 @@
+{
+  "type": "node",
+  "node_id": "树林",
+  "name": "树林",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "矿坑",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "医院",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "阿森",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "location",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      },
+      {
+        "target_node_id": "小路",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "location",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "movement.here": {
+      "access": {
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "before_hooks": [
+          {
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            },
+            "module": "records.store",
+            "operation": "apply",
+            "target": "requester"
+          }
+        ],
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "timeout_seconds": 60
+      },
+      "state": {}
+    },
+    "place.info": {
+      "access": {
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0
+      },
+      "config": {
+        "description": "镇北的树林，用斧头能砍下木材。",
+        "visitors": [],
+        "visitors_from_edges": false
+      },
+      "state": {
+        "visitors": [
+          "小路",
+          "阿森"
+        ]
+      }
+    },
+    "records.store": {
+      "access": {
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1
+      },
+      "config": {
+        "initial": {},
+        "minimum": {},
+        "references": []
+      },
+      "state": {
+        "receipts": [
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"阿森\",\"day1-noon-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"悦\",\"day1-afternoon-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"林\",\"lin-chop-d1pm-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"林\",\"lin-chop-d1eve-2\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"阿森\",\"day1-midnight-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"悦\",\"day2-noon-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"林\",\"lin-d2-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"阿森\",\"day2-afternoon-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"悦\",\"day3-morning-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"阿森\",\"day3-morning-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"阿森\",\"day3-evening-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"阿森\",\"day4-noon-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"小路\",\"chop-d4a\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"阿森\",\"day4-midnight-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"小路\",\"chop-d5a\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"树林\",\"阿森\",\"day5-afternoon-chop-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          }
+        ],
+        "references": [],
+        "values": {}
+      }
+    },
+    "service.actions": {
+      "access": {
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "actions": [
+          {
+            "actor_deltas": {
+              "wood": 3
+            },
+            "cost": 6,
+            "description": "用斧头砍三根木材，消耗六点行动值。",
+            "id": "chop",
+            "require_items": {
+              "axe": 1
+            },
+            "title": "砍柴"
+          }
+        ],
+        "address": "树林",
+        "events": []
+      },
+      "state": {
+        "event_counts": {},
+        "receipts": [
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+            "key": "day1-noon-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "阿森",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 8,
+                "context_node": "阿森",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "阿森",
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"悦\",\"quantity\":1}",
+            "key": "day1-afternoon-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "悦",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 10,
+                "context_node": "悦",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "悦",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"林\",\"quantity\":1}",
+            "key": "lin-chop-d1pm-1",
+            "result": {
+              "action": "chop",
+              "actor": "林",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 10,
+                "context_node": "林",
+                "gender": "male",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "林",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"林\",\"quantity\":1}",
+            "key": "lin-chop-d1eve-2",
+            "result": {
+              "action": "chop",
+              "actor": "林",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 10,
+                "context_node": "林",
+                "gender": "male",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "林",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 6
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+            "key": "day1-midnight-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "阿森",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 14,
+                "context_node": "阿森",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "阿森",
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"悦\",\"quantity\":1}",
+            "key": "day2-noon-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "悦",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 15,
+                "context_node": "悦",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "悦",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"林\",\"quantity\":1}",
+            "key": "lin-d2-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "林",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 22,
+                "context_node": "林",
+                "gender": "male",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "林",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+            "key": "day2-afternoon-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "阿森",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 20,
+                "context_node": "阿森",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "阿森",
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"悦\",\"quantity\":1}",
+            "key": "day3-morning-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "悦",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 14,
+                "context_node": "悦",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "悦",
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "wood": 6
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+            "key": "day3-morning-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "阿森",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 1,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 20,
+                "context_node": "阿森",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "阿森",
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 6
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+            "key": "day3-evening-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "阿森",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 20,
+                "context_node": "阿森",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "阿森",
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 9
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+            "key": "day4-noon-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "阿森",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 1,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 22,
+                "context_node": "阿森",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "阿森",
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 11
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"小路\",\"quantity\":1}",
+            "key": "chop-d4a",
+            "result": {
+              "action": "chop",
+              "actor": "小路",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 1,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 0,
+                "context_node": "小路",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "小路",
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+            "key": "day4-midnight-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "阿森",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 22,
+                "context_node": "阿森",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "阿森",
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 14
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"小路\",\"quantity\":1}",
+            "key": "chop-d5a",
+            "result": {
+              "action": "chop",
+              "actor": "小路",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 1,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 4,
+                "context_node": "小路",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "小路",
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer",
+                "wood": 3
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+            "key": "day5-afternoon-chop-1",
+            "result": {
+              "action": "chop",
+              "actor": "阿森",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“砍柴”×1",
+                "消耗行动点6"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 28,
+                "context_node": "阿森",
+                "gender": "male",
+                "home": "居民楼B",
+                "is_parent": false,
+                "name": "阿森",
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 14
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "context_cursor": null,
+  "inputs": null
+}

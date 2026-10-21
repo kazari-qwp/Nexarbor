@@ -1,0 +1,145 @@
+{
+  "type": "node",
+  "node_id": "矿坑",
+  "name": "矿坑",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "铁匠铺",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "树林",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "place.info": {
+      "config": {
+        "visitors_from_edges": false,
+        "description": "镇外的矿坑，岩壁里有矿石，也能碰运气挖到黄金。",
+        "visitors": []
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "movement.here": {
+      "config": {
+        "timeout_seconds": 60,
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "before_hooks": [
+          {
+            "target": "requester",
+            "module": "records.store",
+            "operation": "apply",
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ]
+      }
+    },
+    "records.store": {
+      "config": {
+        "initial": {},
+        "references": [],
+        "minimum": {}
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "service.actions": {
+      "config": {
+        "address": "矿坑",
+        "actions": [
+          {
+            "id": "mine",
+            "title": "采矿",
+            "description": "带着镐子下矿，采一块矿石，消耗两点行动值。",
+            "cost": 2,
+            "require_items": {
+              "pickaxe": 1
+            },
+            "actor_deltas": {
+              "ore": 1
+            }
+          }
+        ],
+        "events": []
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

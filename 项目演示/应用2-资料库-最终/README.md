@@ -1,0 +1,7 @@
+# 应用2-资料库-最终
+
+双击 `打开项目.cmd`，或在 Nexarbor 中打开本文件夹。项目位于运行包的 `项目演示/` 内时，启动脚本会自动找到客户端；源码运行可设置 `NEXARBOR_DESKTOP_EXE`。模型授权和 Harness 路径在本机选择，不随项目携带。
+
+这是实际运行后的网络、业务数据与可恢复会话。临时运行缓存会在打开时重新建立。 默认窗口和输出上限继承运行包的 `configs/agent-defaults.json`。
+
+资料库的模型权重不打包；默认关键词检索，语义检索需要自行配置 `knowledge.catalog` 的 `embedding.model_path` 并安装可选依赖。

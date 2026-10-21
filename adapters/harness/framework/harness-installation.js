@@ -1,10 +1,25 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import {randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 
-// 项目本地记录不随包发布；环境变量始终优先。
+export function harnessSettingsFile(){return process.env.NEXARBOR_HARNESS_CONFIG??path.join(process.env.LOCALAPPDATA??process.env.USERPROFILE,'Nexarbor','harness.json');}
+export async function harnessSettings(){try{return JSON.parse(await fs.readFile(harnessSettingsFile(),'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;return {};}}
+export async function saveHarnessExecutable(executable){
+ if(typeof executable!=='string')throw Error('请选择 DeepSeek Harness 的 .exe 文件');
+ executable=executable.trim();
+ if(executable&&(!path.isAbsolute(executable)||!executable.toLowerCase().endsWith('.exe')))throw Error('Harness 路径须为完整的 .exe 路径');
+ if(executable){const stat=await fs.stat(executable);if(!stat.isFile())throw Error('Harness 路径不是文件');}
+ const file=harnessSettingsFile(),value=await harnessSettings(),temporary=file+'.'+randomUUID()+'.tmp';
+ if(executable)value.executable=executable;else delete value.executable;
+ await fs.mkdir(path.dirname(file),{recursive:true});await fs.writeFile(temporary,JSON.stringify(value,null,2)+'\n');await fs.rename(temporary,file);
+ return {executable:await harnessExecutable(),saved:executable,source:process.env.DATANET_HARNESS_EXE?'environment':executable?'settings':'automatic'};
+}
+
+// 机器配置不进入项目与发布包；环境变量仍可临时覆盖。
 export async function harnessExecutable(){
   if(process.env.DATANET_HARNESS_EXE)return process.env.DATANET_HARNESS_EXE;
+  const saved=await harnessSettings();if(saved.executable)return saved.executable;
   const root=fileURLToPath(new URL('../../../',import.meta.url));
   try{
     const local=JSON.parse(await fs.readFile(path.join(root,'build/harness-installation.json'),'utf8'));

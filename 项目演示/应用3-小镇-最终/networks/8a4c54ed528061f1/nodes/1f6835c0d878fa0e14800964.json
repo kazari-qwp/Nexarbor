@@ -1,0 +1,197 @@
+{
+  "type": "node",
+  "node_id": "医院",
+  "name": "医院",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "居民楼B",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "树林",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "民政局",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "世界时间",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "time"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "育儿须知",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "family.parent"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "怀孕须知",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "family.pregnancy"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "family.birth": {
+      "access": {
+        "channels": [
+          "road",
+          "service",
+          "time",
+          "family.pregnancy",
+          "family.parent",
+          "context.assembler.context",
+          "runtime.template",
+          "records",
+          "location"
+        ],
+        "strength": 12
+      },
+      "config": {
+        "cost": 1,
+        "duration": 10,
+        "parent_channels": [
+          "family.parent"
+        ],
+        "pregnancy_channels": [
+          "family.pregnancy"
+        ],
+        "templates": [
+          {
+            "home": "居民楼A",
+            "template": "newborn-a"
+          },
+          {
+            "home": "居民楼B",
+            "template": "newborn-b"
+          }
+        ],
+        "time_channels": [
+          "time"
+        ]
+      },
+      "state": {}
+    },
+    "movement.here": {
+      "access": {
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "before_hooks": [
+          {
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            },
+            "module": "records.store",
+            "operation": "apply",
+            "target": "requester"
+          }
+        ],
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "timeout_seconds": 60
+      },
+      "state": {}
+    },
+    "place.info": {
+      "access": {
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0
+      },
+      "config": {
+        "description": "安静的医院，待产者在这里办理生产。",
+        "visitors": [],
+        "visitors_from_edges": false
+      },
+      "state": {
+        "visitors": []
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "channels": [
+        "runtime.template"
+      ],
+      "ref": "templates:instantiate"
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "context_cursor": null,
+  "inputs": null
+}

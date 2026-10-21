@@ -1,0 +1,225 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "agents.activity",
+  "version": "0.3.0",
+  "entry": "module.py:execute",
+  "name": "信号驱动的角色活动",
+  "description": "信号驱动角色活动与行动预算；上下文由执行器的显式准备接口负责。",
+  "node_types": [
+    "agent"
+  ],
+  "requires": [
+    "records.store"
+  ],
+  "agent_tools": [],
+  "config_schema": {
+    "type": "object",
+    "title": "角色活动配置",
+    "additionalProperties": false,
+    "properties": {
+      "signal_channels": {
+        "type": "array",
+        "title": "触发活动的频道",
+        "description": "收到这些频道上的信号时尝试开始一次角色活动。",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true,
+        "default": [
+          "tick"
+        ]
+      },
+      "budget_field": {
+        "type": "string",
+        "title": "行动预算字段",
+        "description": "角色记录仓中表示本时刻行动预算的数字字段名。",
+        "minLength": 1,
+        "default": "ap"
+      },
+      "budget": {
+        "type": "integer",
+        "title": "每轮行动预算",
+        "description": "每次开始新活动时把预算字段重置为该非负整数。",
+        "minimum": 0,
+        "default": 10
+      },
+      "prompt": {
+        "type": "string",
+        "title": "时刻输入",
+        "description": "开始活动时作为用户消息投递给官方 Agent 端口的文本。",
+        "default": ""
+      },
+      "enabled": {
+        "type": "boolean",
+        "title": "启用角色活动",
+        "description": "默认关闭：信号与公开激活都会被跳过，不扣预算也不调用模型。确认节点已提供 runtime:agent_run 后，应用配置再显式设为 true。",
+        "default": false
+      },
+      "max_reactions": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 32,
+        "default": 8,
+        "title": "每时刻最多额外回应次数"
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "title": "角色活动状态",
+    "additionalProperties": false,
+    "properties": {
+      "activities": {
+        "type": "array",
+        "title": "最近活动",
+        "description": "按时间保留最近 200 个活动键及其运行状态和该键完成次数。",
+        "maxItems": 200,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "key": {
+              "type": "string",
+              "minLength": 1,
+              "title": "活动键"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "running",
+                "completed",
+                "failed"
+              ],
+              "title": "状态"
+            },
+            "completed_count": {
+              "type": "integer",
+              "minimum": 0,
+              "title": "该键完成次数"
+            },
+            "error": {
+              "type": "string",
+              "title": "失败原因"
+            },
+            "runs": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "pending": {
+              "type": "boolean",
+              "title": "运行期间收到后续通知"
+            }
+          },
+          "required": [
+            "key",
+            "status",
+            "completed_count"
+          ]
+        }
+      },
+      "completed_total": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "title": "完成总数"
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "activate",
+      "channels": [
+        "tick"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "激活参数",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "活动键",
+            "description": "本次活动的唯一键；相同已完成键不会重复运行模型。",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "key"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "title": "激活结果",
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "completed",
+              "skipped"
+            ]
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "budget_field": {
+            "type": "string"
+          },
+          "budget": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completed_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "completed_total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "status",
+          "duplicate",
+          "budget_field",
+          "budget",
+          "completed_count",
+          "completed_total"
+        ]
+      }
+    },
+    {
+      "name": "notify",
+      "channels": [
+        "activity"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": {
+    "config": "signal_channels"
+  }
+}

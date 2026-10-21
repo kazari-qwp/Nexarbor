@@ -1,0 +1,167 @@
+{
+  "type": "node",
+  "node_id": "酒馆",
+  "name": "酒馆",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "居民楼A",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "居民楼B",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "商店",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "place.info": {
+      "config": {
+        "visitors_from_edges": false,
+        "description": "镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。",
+        "visitors": []
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "movement.here": {
+      "config": {
+        "timeout_seconds": 60,
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "before_hooks": [
+          {
+            "target": "requester",
+            "module": "records.store",
+            "operation": "apply",
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ]
+      }
+    },
+    "records.store": {
+      "config": {
+        "initial": {
+          "drinks": 20,
+          "coins": 0
+        },
+        "references": [],
+        "minimum": {}
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "service.actions": {
+      "config": {
+        "address": "酒馆",
+        "actions": [
+          {
+            "id": "drink",
+            "title": "喝一杯",
+            "description": "花一金币喝一杯麦酒，恢复两点行动值。",
+            "cost": 0,
+            "actor_deltas": {
+              "coins": -1,
+              "ap": 2
+            },
+            "actor_maximums": {
+              "ap": 10
+            },
+            "local_deltas": {
+              "drinks": -1,
+              "coins": 1
+            }
+          }
+        ],
+        "events": []
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

@@ -83,12 +83,13 @@ def main():
         if not (desktop/'Nexarbor.exe').is_file():raise SystemExit('Missing desktop build. Run without --skip-build.')
         shutil.copytree(desktop,TARGET,ignore=shutil.ignore_patterns('test','tests','user-data','*.log'))
         names=subprocess.check_output(['git','ls-files','--cached','--others','--exclude-standard','-z'],cwd=ROOT).decode('utf-8').split('\0')
-        folders={'adapters','communication','shared','python','extensions','configs','docs','scripts','resources','projects'}
+        folders={'adapters','communication','shared','python','extensions','configs','docs','scripts','resources','projects','项目演示'}
         for name in names:
             if not name:continue
             relative=Path(name);source=ROOT/relative
             if not source.is_file() or (relative.parts[0] not in folders and name not in ('README.md','README_EN.md','package.json','requirements-runtime.txt')):continue
-            if any(part in ('test','tests','__pycache__','node_modules') for part in relative.parts):continue
+            if any(part in ('__pycache__','node_modules') for part in relative.parts):continue
+            if relative.parts[0]!='项目演示' and any(part in ('test','tests') for part in relative.parts):continue
             if name.startswith('adapters/harness/runtime/backend/'):continue
             copy(source,TARGET/relative)
         example=Path('resources/examples/npc-town')

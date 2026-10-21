@@ -132,6 +132,27 @@ async function startOpen(file){
  try{workspaceHome??=path.dirname(path.resolve(file));desktopSession??=new WorkspaceSession(workspaceHome);const url=readConnection(file);if(!await activeConnection(file))throw Error('工作台连接已经失效');await activate(url,null);fs.writeFileSync(path.join(app.getPath('userData'),'last-connection.json'),JSON.stringify({file:path.resolve(file)}));}
  catch(error){await projectFailed(error);}
 }
+let harnessWindow;
+async function openHarnessSettings(){
+ if(harnessWindow&&!harnessWindow.isDestroyed()){harnessWindow.show();harnessWindow.focus();return;}
+ harnessWindow=new BrowserWindow({parent:window,width:760,height:510,resizable:true,title:'DeepSeek Harness 路径',backgroundColor:'#101720',webPreferences:{preload:path.join(__dirname,'project-preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});
+ harnessWindow.setMenu(null);harnessWindow.on('closed',()=>{harnessWindow=undefined;});
+ await harnessWindow.loadFile(path.join(__dirname,'harness-settings.html'));
+}
+ipcMain.handle('nexarbor-harness',async(event,action,executable)=>{
+ const sender=event.senderFrame?.url??'',page=pathToFileURL(path.join(__dirname,'harness-settings.html')).href;
+ if(action==='open'){
+  if(event.sender!==window?.webContents||!(localNavigation(sender)||sender.split('#')[0]===pathToFileURL(path.join(__dirname,'projects.html')).href))throw Error('Harness 设置入口不可用');
+  await openHarnessSettings();return {opened:true};
+ }
+ if(event.sender!==harnessWindow?.webContents||sender!==page)throw Error('Harness 设置窗口不可用');
+ const root=projectRoot(),settings=await import(pathToFileURL(path.join(root,'adapters/harness/framework/harness-installation.js')).href);
+ if(action==='get'){const saved=await settings.harnessSettings();return {saved:saved.executable??'',executable:await settings.harnessExecutable(),environment:!!process.env.DATANET_HARNESS_EXE};}
+ if(action==='save')return settings.saveHarnessExecutable(executable);
+ if(action==='browse'){const selected=await dialog.showOpenDialog(harnessWindow,{title:'选择 DeepSeek Harness.exe',properties:['openFile'],filters:[{name:'可执行文件',extensions:['exe']}]});return selected.canceled?{canceled:true}:{executable:selected.filePaths[0]};}
+ throw Error('未知 Harness 设置操作');
+});
+
 ipcMain.handle('nexarbor-project',async(event,action)=>{
  const sender=new URL(event.senderFrame?.url??'about:blank');sender.hash='';sender.search='';
  if(event.sender!==window?.webContents||sender.href!==pathToFileURL(path.join(__dirname,'projects.html')).href||!['open','new'].includes(action))throw Error('项目入口不可用');
@@ -147,7 +168,7 @@ if(primary)app.whenReady().then(async()=>{
  window.webContents.on('will-navigate',(event,url)=>{if(!localNavigation(url))event.preventDefault();});
  window.webContents.setWindowOpenHandler(({url})=>{try{const target=new URL(url);if(['https:','http:'].includes(target.protocol)&&!localNavigation(url))shell.openExternal(url);}catch{}return {action:'deny'};});
  window.webContents.session.setPermissionRequestHandler((_contents,_permission,callback)=>callback(false));
- Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'工作台',submenu:[{label:'打开项目文件夹…',click:()=>projectAction('open')},{label:'新建项目文件夹…',click:()=>projectAction('new')},{label:'打开应用配置…',click:chooseProfile},{label:'打开工作台连接…',click:choose},{label:'刷新',role:'reload'},{type:'separator'},{role:'quit',label:'退出'}]},{label:'编辑',submenu:[{role:'undo',label:'撤销'},{role:'redo',label:'重做'},{type:'separator'},{role:'cut',label:'剪切'},{role:'copy',label:'复制'},{role:'paste',label:'粘贴'},{role:'selectAll',label:'全选'}]},{label:'视图',submenu:[{role:'togglefullscreen',label:'全屏'},{role:'toggleDevTools',label:'开发者工具'}]},{label:'设置',submenu:[{label:'模型与 API',click:()=>dispatch('nexarbor-open-models')},{label:'外部文本编辑器与快捷键',click:()=>dispatch('nexarbor-open-shortcuts')},{label:'资源归档',click:()=>dispatch('nexarbor-open-archive')}]} ]));
+ Menu.setApplicationMenu(Menu.buildFromTemplate([{label:'工作台',submenu:[{label:'打开项目文件夹…',click:()=>projectAction('open')},{label:'新建项目文件夹…',click:()=>projectAction('new')},{label:'打开应用配置…',click:chooseProfile},{label:'打开工作台连接…',click:choose},{label:'刷新',role:'reload'},{type:'separator'},{role:'quit',label:'退出'}]},{label:'编辑',submenu:[{role:'undo',label:'撤销'},{role:'redo',label:'重做'},{type:'separator'},{role:'cut',label:'剪切'},{role:'copy',label:'复制'},{role:'paste',label:'粘贴'},{role:'selectAll',label:'全选'}]},{label:'视图',submenu:[{role:'togglefullscreen',label:'全屏'},{role:'toggleDevTools',label:'开发者工具'}]},{label:'设置',submenu:[{label:'DeepSeek Harness 路径…',click:openHarnessSettings},{label:'模型与 API',click:()=>dispatch('nexarbor-open-models')},{label:'外部文本编辑器与快捷键',click:()=>dispatch('nexarbor-open-shortcuts')},{label:'资源归档',click:()=>dispatch('nexarbor-open-archive')}]} ]));
  let file=flag('--connection');
  if(file)await open(file);else if(flag('--project')||folderProject||flag('--workspace')||flag('--profile')||flag('--network'))await development(flag('--profile'),{useWorkspace:true});else await window.loadFile(path.join(__dirname,'projects.html'));
  if(!window.isDestroyed()&&!window.isVisible())window.show();

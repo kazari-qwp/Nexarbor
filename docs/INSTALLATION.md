@@ -1,16 +1,18 @@
 # 安装、运行与组件装配
 
-Nexarbor 0.8 是独立的桌面工作台，使用 **DeepSeek Harness 原生运行时**执行 Agent。它以 Windows x64 压缩包分发；请直接运行工作台。
+Nexarbor 0.9 是独立的桌面工作台，使用 **DeepSeek Harness 原生运行时**执行 Agent。它以 Windows x64 压缩包分发；请直接运行工作台。
 
 ## 安装要求
 
 1. Windows x64，以及已加入 PATH 的 [Git for Windows](https://git-scm.com/downloads/win)。项目的 Commit、修改分支和恢复使用真实 Git。
 2. 安装 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，可在 Harness 内完成 DeepSeek 账户授权，也可在工作台配置自己的 API key。工作台使用本机安装的原生 SDK，当前已实测 Harness 0.2.1；0.2.0 缺少必要的原生服务。遇到缺少 SDK 服务的启动错误时请升级 Harness。
-3. 下载 Release 中的 `Nexarbor-0.8.0-win-x64.zip`，完整解压到可写目录，然后双击 `Nexarbor.exe`。压缩包包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
+3. 下载 Release 中的 `Nexarbor-0.9.0-win-x64.zip`，完整解压到可写目录，然后双击 `Nexarbor.exe`。压缩包包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
 
 首次启动提供“打开项目文件夹”和“新建项目文件夹”。新建或首次打开会准备 Git 仓库、资源目录和 `打开项目.cmd`。以后可直接双击项目中的脚本。
 
 ## 连接本机 Harness
+
+在项目首页点击“选择 DeepSeek Harness 路径…”，或在菜单“设置 → DeepSeek Harness 路径…”中浏览并选择 `DeepSeek Harness.exe`，保存后重新打开项目。路径保存到 `%LOCALAPPDATA%\Nexarbor\harness.json`，所有项目共用，不随项目或 Release 分发。留空保存可恢复自动查找。
 
 默认查找 `%LOCALAPPDATA%\Programs\DeepSeek Harness\DeepSeek Harness.exe`。安装在其他位置时，设置 `DATANET_HARNESS_EXE` 为可执行文件的完整路径。
 
@@ -32,6 +34,23 @@ start "" "%~dp0Nexarbor.exe"
 **同一服务商的不同 key 要建立不同连接。** 每个节点分别保存连接引用；组件／模块制作 Agent 和网络预设制作 Agent 也各有“模型”页。顶部“设置 → 模型与 API”控制当前项目默认值。制作 Agent 的设置点击“保存模型选择”；节点的设置点击“校验并更新网络”生效。修改一条已有连接的 key 会影响使用该连接的所有 Agent；需要独立使用时请新建连接。
 
 API key 使用当前 Windows 账户的 DPAPI 加密，存于 `%LOCALAPPDATA%\Nexarbor\models\`，不放进项目、Commit、网络导出、书签或模型提示词。更换电脑后需重新配置本机连接。切换模型或 key 后，后续运行从当前上下文建立新分支，保留旧历史。无论选择哪种连接，Agent 都由已安装的 Harness 原生 SDK 执行。
+
+## Agent 默认上下文与输出
+
+运行包的 `configs/agent-defaults.json` 是普通 UTF-8 配置文件：
+
+```json
+{
+  "context_window": 600000,
+  "max_tokens": 50000
+}
+```
+
+普通 Agent、网络制作 Agent、组件制作 Agent 都读取此配置。修改文件后重新打开项目；项目、制作职责或节点单独配置的参数优先。也可以在“模型 → 生成参数”中为某个 Agent 单独调整。实际模型必须支持所配置的容量。
+
+## 六个项目演示
+
+`项目演示/` 包含讨论协作、资料库、小镇各自的初始／最终状态六个文件夹，可直接打开或双击文件夹中的 `打开项目.cmd`。最终状态包含业务数据与可恢复的会话分块，不依赖开发机器的运行缓存。讨论协作最终版通过项目内的 `准备项目.py` 恢复 Git bundle 和成员 worktree，首次通过其启动脚本打开即可。演示不携带 API key 或本地嵌入模型；资料库语义检索需要另行配置模型，普通检索仍可使用。
 
 ## 外部编辑文本
 

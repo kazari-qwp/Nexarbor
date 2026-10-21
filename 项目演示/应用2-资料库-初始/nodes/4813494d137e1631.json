@@ -1,0 +1,159 @@
+{
+  "type": "agent",
+  "node_id": "root",
+  "name": "资料管理员",
+  "description": "可手动对话的资料管理员，负责归档、检索、更新与版本恢复。",
+  "management_parent_id": null,
+  "divergence": 0,
+  "aggregation": "sum",
+  "module_strength": 6,
+  "data_kind": "agent",
+  "parameters": {
+    "file_path": "data/root.md",
+    "creation_options": {}
+  },
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "knowledge",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "knowledge"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "task/input",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "documents"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "task/output",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "documents"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "knowledge.tools": {
+      "config": {},
+      "state": {},
+      "access": {
+        "strength": 6,
+        "channels": [
+          "knowledge",
+          "self"
+        ]
+      }
+    },
+    "documents.tasks": {
+      "config": {
+        "input": "task/input",
+        "output": "task/output"
+      },
+      "state": {},
+      "access": {
+        "strength": 6,
+        "channels": [
+          "self",
+          "documents",
+          "knowledge"
+        ]
+      }
+    },
+    "context.network": {
+      "config": {
+        "sources": [
+          {
+            "id": "knowledge-entry",
+            "kind": "system_prompt",
+            "type": "text",
+            "text": "你是知识库主 Agent，负责理解任务、检索资料、选择存储方式和维护知识。简单任务直接完成，完成后检查真实交付与引用。\n\n先保存原始任务；使用原文与读取引用，不反复转述资料。自己完成的任务也写入交付文档，附来源记录 ID、版本和位置；归档附实际存储回执。结论交给用户，详细依据保留在文档中。\n\n# 使用知识库\n\n收到任务后，用 kb_task 保存原始需求：mode=agent 自行判断，read 仅检索，write 归档。保存资料也可直接用 kb_ingest，支持内容或工作区内的 CSV、JSON、TXT、Markdown 文件；file_path 的相对路径以应用工作区为起点。已知集合时指定 collection，已有路由会直接复用；否则返回 intake_id，由你选择集合并提交。\n\n简单查询使用 kb_catalog、kb_search、kb_query、kb_fetch。导出记录使用 kb_export；Wiki 集合可选 format=wiki 生成可浏览的站点。\n\n原始任务和交付使用 task_document_read / task_document_write。sources 沿用 kb_fetch 的 evidence；receipts 只填写当前任务实际写入的回执。集合 ID 和记录 ID 是数据键，node_id 是该集合真实的数据节点；每个集合的节点独立连接到资料管理员。\n"
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 6,
+        "channels": [
+          "context.assembler"
+        ]
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "ref": "harness:read",
+      "channels": [
+        "workspace"
+      ]
+    },
+    {
+      "ref": "harness:glob",
+      "channels": [
+        "workspace"
+      ]
+    },
+    {
+      "ref": "harness:grep",
+      "channels": [
+        "workspace"
+      ]
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": {
+    "executor": "harness",
+    "strength": 6,
+    "channels": [
+      "self",
+      "knowledge",
+      "documents",
+      "workspace",
+      "context.assembler"
+    ],
+    "tool_sources": [
+      "root"
+    ],
+    "prepare": [
+      {
+        "module": "context.network",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      },
+      {
+        "module": "knowledge.tools",
+        "operation": "prepare",
+        "arguments": {},
+        "channels": [
+          "self"
+        ]
+      }
+    ],
+    "max_steps": 100000,
+    "timeout_seconds": 86400
+  },
+  "context_cursor": null,
+  "inputs": null,
+  "skills": []
+}

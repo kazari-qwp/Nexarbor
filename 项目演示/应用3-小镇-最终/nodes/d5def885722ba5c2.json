@@ -1,0 +1,145 @@
+{
+  "type": "node",
+  "node_id": "树林",
+  "name": "树林",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "矿坑",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "医院",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "place.info": {
+      "config": {
+        "visitors_from_edges": false,
+        "description": "镇北的树林，用斧头能砍下木材。",
+        "visitors": []
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "movement.here": {
+      "config": {
+        "timeout_seconds": 60,
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "before_hooks": [
+          {
+            "target": "requester",
+            "module": "records.store",
+            "operation": "apply",
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ]
+      }
+    },
+    "records.store": {
+      "config": {
+        "initial": {},
+        "references": [],
+        "minimum": {}
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "service.actions": {
+      "config": {
+        "address": "树林",
+        "actions": [
+          {
+            "id": "chop",
+            "title": "砍柴",
+            "description": "用斧头砍三根木材，消耗六点行动值。",
+            "cost": 6,
+            "require_items": {
+              "axe": 1
+            },
+            "actor_deltas": {
+              "wood": 3
+            }
+          }
+        ],
+        "events": []
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

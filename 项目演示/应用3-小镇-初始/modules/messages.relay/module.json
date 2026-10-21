@@ -1,0 +1,113 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "messages.relay",
+  "name": "私信便笺中继",
+  "version": "0.1.0",
+  "description": "把一条便笺沿 chat 频道转交给另一位可达真实 Agent 的 messages.box，由收件箱完成存储与幂等；中继自身不保存消息，也不提供读取。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "agent"
+  ],
+  "requires": [
+    "messages.box"
+  ],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "operations": [
+    {
+      "name": "send_to",
+      "channels": [
+        "chat",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recipient",
+          "text"
+        ],
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "format": "node-id",
+            "minLength": 1,
+            "title": "收件人",
+            "description": "另一位当前可达的真实 Agent 节点 ID，不能是自己。"
+          },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "title": "便笺正文",
+            "description": "要发送的非空便笺正文，最长 4000 个字符。"
+          },
+          "topic": {
+            "type": "string",
+            "default": "",
+            "title": "话题",
+            "description": "可选的话题或栏目，省略时为空字符串。"
+          },
+          "key": {
+            "type": "string",
+            "title": "去重键",
+            "description": "可选的发送方请求键，沿用 messages.box 的幂等语义：相同发送者、相同键与相同内容只投递一次。"
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "required": [
+          "id",
+          "from",
+          "to",
+          "duplicate"
+        ],
+        "additionalProperties": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "消息 ID"
+          },
+          "from": {
+            "type": "string",
+            "title": "原始发送者"
+          },
+          "to": {
+            "type": "string",
+            "title": "收件人"
+          },
+          "text": {
+            "type": "string",
+            "title": "便笺正文"
+          },
+          "topic": {
+            "type": "string",
+            "title": "话题"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "是否幂等重试"
+          }
+        }
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "send_to",
+      "name": "发送私信",
+      "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
+      "operation": "send_to"
+    }
+  ]
+}

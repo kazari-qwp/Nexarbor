@@ -1,0 +1,320 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "messages.box",
+  "name": "消息与讨论箱",
+  "version": "0.4.0",
+  "description": "保存有限的消息与讨论记录，支持 Agent 私信、讨论小组公告和协作组任务通信；发送费用、读取范围和是否要求 Agent 身份均可配置。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "read_policy": {
+        "type": "string",
+        "title": "读取范围",
+        "description": "self 表示只有箱所在节点自己可以读取；reachable 表示本操作合法可达的节点都可以读取。",
+        "enum": [
+          "self",
+          "reachable"
+        ],
+        "default": "self"
+      },
+      "send_cost": {
+        "type": "integer",
+        "title": "发送费用",
+        "description": "每发送一条新消息从发送者记录仓的 ap 字段扣除的行动点，0 表示免费。",
+        "minimum": 0,
+        "default": 0
+      },
+      "max_messages": {
+        "type": "integer",
+        "title": "最多保留消息数",
+        "description": "本地消息列表保留的最近消息条数，超出后自动删除最旧的消息。",
+        "minimum": 1,
+        "default": 200
+      },
+      "require_agent": {
+        "type": "boolean",
+        "title": "仅限 Agent 发送",
+        "description": "开启时发送者必须是核心类型为 agent 的真实节点；普通 node 不能发送。",
+        "default": true
+      },
+      "notify_activity": {
+        "type": "boolean",
+        "title": "收信后在当前时刻继续活动",
+        "default": false
+      },
+      "record_channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "location",
+          "records",
+          "road"
+        ],
+        "title": "发送者记录访问频道"
+      },
+      "channel_modes": {
+        "type": "object",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "messages": {
+        "type": "array",
+        "title": "消息记录",
+        "maxItems": 1000000,
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "from": {
+              "type": "string"
+            },
+            "to": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "topic": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "from",
+            "to",
+            "text",
+            "topic"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "seen": {
+        "type": "array",
+        "title": "发送幂等回执",
+        "maxItems": 1000000,
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string"
+            },
+            "fingerprint": {
+              "type": "string"
+            },
+            "id": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "key",
+            "fingerprint",
+            "id"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "send",
+      "channels": [
+        "chat",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "消息正文",
+            "description": "要发送的非空消息正文，最长 4000 个字符。",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "topic": {
+            "type": "string",
+            "title": "话题",
+            "description": "可选的话题或公告栏目，省略时为空字符串。",
+            "default": ""
+          },
+          "key": {
+            "type": "string",
+            "title": "去重键",
+            "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          },
+          "topic": {
+            "type": "string"
+          },
+          "duplicate": {
+            "type": "boolean"
+          },
+          "ap": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "notification": {
+            "type": "object",
+            "title": "同层回应的排队结果"
+          }
+        },
+        "required": [
+          "id",
+          "from",
+          "to",
+          "text",
+          "topic",
+          "duplicate",
+          "ap"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read",
+      "channels": [
+        "chat",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "title": "读取条数",
+            "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 20
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "topic": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "from",
+                "to",
+                "text",
+                "topic"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "messages"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "clear",
+      "channels": [
+        "chat",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "cleared": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cleared"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "send",
+      "name": "发送消息",
+      "description": "向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+      "operation": "send"
+    },
+    {
+      "id": "read",
+      "name": "读取消息",
+      "description": "读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+      "operation": "read"
+    }
+  ]
+}

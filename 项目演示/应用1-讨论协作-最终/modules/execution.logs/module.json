@@ -1,0 +1,47 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "execution.logs",
+  "version": "2.0.0",
+  "name": "命令执行记录",
+  "description": "记录原始终端命令与工具返回，支持分页读取及验收快照引用。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": true
+  },
+  "operations": [
+    {
+      "name": "query",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "collect",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    }
+  ],
+  "agent_tools": [],
+  "signals": []
+}

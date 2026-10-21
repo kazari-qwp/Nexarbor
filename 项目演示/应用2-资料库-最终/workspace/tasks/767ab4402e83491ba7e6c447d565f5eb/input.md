@@ -1,0 +1,1 @@
+增量写入阶段：处理 imports/updates/ 下三份新材料——earthquakes-additional.csv（后续观测，追加到 earthquake-observations，保留 event_id/精度/UTC）、project-change-v2.md（同一 QuakeDesk 项目需求变更 v2，更新现行要求并保留原要求与历史来源）、duplicate-document.md（补发技术资料，先核对是否已存在，避免重复累计）。要求：实际保存并检索核查；维护依赖需求的知识页（区分「待评估提议」与「已验证技术结论」）；导入完成后重复导入同一份 earthquakes-additional.csv，核查观测数量没有增加；交付中给出实际回执与引用。

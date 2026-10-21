@@ -1,0 +1,446 @@
+{
+  "type": "node",
+  "node_id": "居民楼A",
+  "name": "居民楼A",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "酒馆",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "商店",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "民政局",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "世界时间",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "time"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "怀孕须知",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "family.pregnancy"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "agreements.pair": {
+      "access": {
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ],
+        "strength": 3
+      },
+      "config": {
+        "address": null,
+        "rules": [
+          {
+            "cost": 1,
+            "equal_fields": [
+              "home"
+            ],
+            "id": "family_plan",
+            "require_values": {
+              "adult": true
+            },
+            "set_values": {
+              "planning": true
+            },
+            "title": "共同家庭计划"
+          }
+        ]
+      },
+      "state": {}
+    },
+    "family.household": {
+      "access": {
+        "channels": [
+          "road",
+          "agreements",
+          "time",
+          "family.pregnancy",
+          "context.assembler.context",
+          "location",
+          "records"
+        ],
+        "strength": 12
+      },
+      "config": {
+        "pregnancy_channels": [
+          "family.pregnancy"
+        ],
+        "time_channels": [
+          "time"
+        ]
+      },
+      "state": {}
+    },
+    "movement.here": {
+      "access": {
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "before_hooks": [
+          {
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            },
+            "module": "records.store",
+            "operation": "apply",
+            "target": "requester"
+          }
+        ],
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "timeout_seconds": 60
+      },
+      "state": {}
+    },
+    "place.info": {
+      "access": {
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0
+      },
+      "config": {
+        "description": "两层木屋，住着小砾、林和悦；门廊挂着住户名牌。",
+        "visitors": [
+          "小砾",
+          "林",
+          "悦"
+        ],
+        "visitors_from_edges": false
+      },
+      "state": {
+        "visitors": []
+      }
+    },
+    "records.store": {
+      "access": {
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1
+      },
+      "config": {
+        "initial": {},
+        "minimum": {},
+        "references": []
+      },
+      "state": {
+        "receipts": [
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"d4-noon-rest-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"d4-noon-rest-2\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"d4-noon-rest-3\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"d4-afternoon-rest-1\",\"local\"]",
+            "references": [],
+            "values": {}
+          },
+          {
+            "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+            "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"d5-evening-rest-2\",\"local\"]",
+            "references": [],
+            "values": {}
+          }
+        ],
+        "references": [],
+        "values": {}
+      }
+    },
+    "service.actions": {
+      "access": {
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "strength": 2
+      },
+      "config": {
+        "actions": [
+          {
+            "actor_deltas": {
+              "ap": 3
+            },
+            "actor_maximums": {
+              "ap": 10
+            },
+            "cost": 0,
+            "description": "在自己的居民楼休息，恢复一些行动点。",
+            "id": "rest",
+            "required_home": "居民楼A",
+            "title": "休息"
+          }
+        ],
+        "address": "居民楼A",
+        "events": []
+      },
+      "state": {
+        "event_counts": {},
+        "receipts": [
+          {
+            "fingerprint": "{\"action\":\"rest\",\"actor\":\"小砾\",\"quantity\":1}",
+            "key": "d4-noon-rest-1",
+            "result": {
+              "action": "rest",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“休息”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 3,
+                "can_gestate": true,
+                "coins": 46,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 19,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"rest\",\"actor\":\"小砾\",\"quantity\":1}",
+            "key": "d4-noon-rest-2",
+            "result": {
+              "action": "rest",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“休息”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": true,
+                "coins": 46,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 19,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"rest\",\"actor\":\"小砾\",\"quantity\":1}",
+            "key": "d4-noon-rest-3",
+            "result": {
+              "action": "rest",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“休息”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 46,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 19,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"rest\",\"actor\":\"小砾\",\"quantity\":2}",
+            "key": "d4-afternoon-rest-1",
+            "result": {
+              "action": "rest",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“休息”×2"
+              ],
+              "quantity": 2,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": true,
+                "coins": 46,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 19,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          },
+          {
+            "fingerprint": "{\"action\":\"rest\",\"actor\":\"小砾\",\"quantity\":1}",
+            "key": "d5-evening-rest-2",
+            "result": {
+              "action": "rest",
+              "actor": "小砾",
+              "after_results": [],
+              "duplicate": false,
+              "observation": [
+                "完成“休息”×1"
+              ],
+              "quantity": 1,
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 59,
+                "context_node": "小砾",
+                "gender": "female",
+                "home": "居民楼A",
+                "is_parent": false,
+                "name": "小砾",
+                "ore": 19,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "context_cursor": null,
+  "inputs": null
+}

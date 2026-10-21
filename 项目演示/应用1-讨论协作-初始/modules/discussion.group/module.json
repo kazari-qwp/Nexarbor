@@ -1,0 +1,154 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "discussion.group",
+  "version": "2.0.0",
+  "name": "discussion.group",
+  "description": "按历史固定小组协议迁移；对象访问与局部模块执行。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "rounds": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 2
+      },
+      "notebook": {
+        "type": "string",
+        "format": "node-id"
+      },
+      "output": {
+        "type": "string",
+        "format": "node-id"
+      },
+      "board": {
+        "type": "string",
+        "format": "node-id"
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": true
+  },
+  "operations": [
+    {
+      "name": "discuss",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "status",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "context",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "read_round",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "submit_round",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "skip_round",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "read_output",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "write_notebook",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "write_output",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "member_exit",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    }
+  ],
+  "agent_tools": [],
+  "signals": []
+}

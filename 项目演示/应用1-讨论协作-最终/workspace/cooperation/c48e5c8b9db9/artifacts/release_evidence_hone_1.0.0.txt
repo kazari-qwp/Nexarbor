@@ -1,0 +1,36 @@
+hone 1.0.0 final release evidence (collected by A / admin-76b526)
+Repository (integrated main worktree):
+E:\DataNet-模块化成品\build\agent-learning-20261020\node-object-hone-03\project\workspace\cooperation\c48e5c8b9db9\main
+
+Git:
+  29a98e1 (HEAD, tag: v1.0.0, tag: v1.0.0-rc1) Merge commit '9b3c4b0'
+  9b3c4b0 docs(d-tests): record 4/4 cross-acceptance evidence and bash note for v1.0.0
+  04ed23a Merge commit 'fd1294d' (B stdout UTF-8/LF fix)
+  5b0c208 Merge commit 'a144cf9' (D golden/boundary/README/acceptance)
+  1e0ac4c Merge commit 'c750227' (C CLI/packaging/demo)
+  7fff098 Merge commit '4d47886' (A core)
+  75a8daf Merge commit 'ed3250e' (B utils)
+  1afc7ea base: repository skeleton, Hone stubs, fixtures/examples byte copies, CONTRACT.md
+
+Verification on main (29a98e1):
+  python -m compileall -q hone                       -> exit 0
+  python -m unittest discover -s tests -t . -v       -> Ran 100 tests, OK (skipped=1)
+  python scripts/acceptance.py                       -> PASS G1..G13, RESULT: 13/13 passed
+  three CLI smokes (file->file, csv->"-", stdin->file) -> all exit 0, b.d.f == "12"
+  E17 exact stdout (example_a): raw == json.dumps(obj, indent=2, sort_keys=True,
+      ensure_ascii=False) + "\n"; single trailing LF; stderr empty
+  E8/E9/E18 "-" channels -> exit 0, stderr empty, rows 3/2/2/4 correct
+  tests/fixtures/MANIFEST.sha256 -> 16/16 match, task originals unchanged
+
+Wheel:
+  dist/hone-1.0.0-py3-none-any.whl
+  sha256 c652b73ca37432dc3c5def2733f50f3a51d1e905aef437815950a3e88b98b595
+  clean venv install + out-of-repo import/console-script/file conversion -> exit 0
+  wheel contains no tests/ and no scripts/
+
+Cross-acceptance: A PASS (E8/E9/E17/E18 + smokes), B PASS (E1/E2/E3/E14/E21),
+C PASS (clean venv/out-of-repo E22 + E23), D PASS (full unittest + acceptance + E16/E17 +
+sample diff). 4/4 signatures recorded in ACCEPTANCE.md.
+
+Known limitation: examples/README.md shows b.d.f == "1" for example_b row 2;
+the true CSV value is "12" (upstream typo; sample kept byte-identical).

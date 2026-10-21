@@ -1,0 +1,58 @@
+{
+  "type": "node",
+  "node_id": "存档点",
+  "name": "存档点",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "每刻",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "tick"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "runtime.periodic_checkpoint": {
+      "config": {
+        "every": 5,
+        "signal_channels": [
+          "tick"
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "tick",
+          "runtime.checkpoint"
+        ]
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "ref": "runtime:checkpoint",
+      "channels": [
+        "runtime.checkpoint"
+      ]
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null,
+  "aggregation": "max"
+}

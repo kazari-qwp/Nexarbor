@@ -8,11 +8,11 @@ Nexarbor is a visual platform for building general-purpose Agent applications. D
 
 The same framework supports discussion groups, decentralized collaboration, knowledge archives and an NPC town. Reusable modules, local subnodes, explicit access boundaries and configurable frontends keep application structure understandable as it grows. The core, communication layer and frontend have separate responsibilities; Agents run through DeepSeek Harness.
 
-## Install 0.8
+## Install 0.9
 
 - Windows x64 and Git for Windows on PATH.
 - Install [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) and authorize your DeepSeek account there. The native adapter is verified with Harness 0.2.1; 0.2.0 lacks required SDK services. Upgrade Harness if startup reports a missing native service.
-- Download `Nexarbor-0.8.0-win-x64.zip` from [Releases](https://github.com/kazari-qwp/Nexarbor/releases/tag/v0.8.0), extract the entire archive, then run `Nexarbor.exe`.
+- Download `Nexarbor-0.9.0-win-x64.zip` from [Releases](https://github.com/kazari-qwp/Nexarbor/releases/tag/v0.9.0), extract the entire archive, then run `Nexarbor.exe`.
 
 The archive includes Electron, Python and base dependencies. Local vector retrieval dependencies and model weights are installed on demand. See [installation and assembly](docs/INSTALLATION.md) for Harness paths, credentials and source builds.
 
@@ -26,7 +26,7 @@ Module code receives BFS-ordered reachable node objects from `ctx.network.nodes(
 
 The independent Python Agent executor and earlier plugin distribution have been retired. The desktop workbench requires DeepSeek Harness.
 
-[中文完整说明](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Module API](docs/LOCAL_MODULES.md) · [Release notes](docs/RELEASE_NOTES_v0.8.0.md)
+[中文完整说明](README.md) · [Architecture](docs/ARCHITECTURE.md) · [Module API](docs/LOCAL_MODULES.md) · [Release notes](docs/RELEASE_NOTES_v0.9.0.md)
 
 ## Included projects
 
@@ -46,3 +46,9 @@ Copy a project folder to your workspace and open it in Nexarbor. Opening initial
 - The town completed 25 ticks over five days plus restart recovery, without repeating opening inputs.
 
 These results cover the tested workflows and recovery, rather than guaranteeing one-shot success for arbitrary tasks. Test reports, timelines, logs and temporary artifacts remain local. This update also fixes the node-chat blank screen, repeated UUID-based tool deactivation notices, and stale edge routes after switching channel filters.
+
+## 0.9 configuration and demos
+
+Select the installed Harness executable from the project home or Settings menu; the path is stored locally. Agent defaults are editable in [`configs/agent-defaults.json`](configs/agent-defaults.json): a 600,000-token context window and 50,000-token output limit, with explicit project/node settings taking precedence.
+
+[`项目演示/`](项目演示/) ships six independent initial/final project folders for discussion/collaboration, knowledge archives and the NPC town. Final projects retain business data and portable conversation chunks. Credentials, local model weights and developer runtime caches are excluded. See the [demo guide](项目演示/README.md).
