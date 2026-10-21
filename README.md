@@ -138,8 +138,14 @@
 ├─ network_presets/
 │  ├─ fragments/              零件网络预设
 │  └─ networks/               已存储的完整网络
-├─ networks/                  Commit 保存的网络、节点与数据
-└─ .nexarbor/                 上下文记录、运行数据与缓存
+├─ networks/                  网络清单及按版本保存的节点、数据快照
+├─ nodes/                     初始节点定义（也可由 networks/ 内快照携带）
+├─ network-resources/         网络携带的文本等资源
+├─ data/                      项目的初始数据，按需创建
+├─ workspace/                 应用自己的资料、知识库与产物，按需创建
+└─ .nexarbor/
+   ├─ contexts/               可携带、可纳入 Git 的 Agent 会话分块
+   └─ runs/                   本机运行状态与缓存，由客户端自动维护
 ```
 
 运行时从项目文件夹读取资源。资源库中的模块或工具需要下载到项目后使用，因此项目可以保留自己的实现版本。
@@ -162,7 +168,42 @@
 
 详细要求、Harness 授权位置、资源装配和源码构建见 [安装与装配指南](docs/INSTALLATION.md)。
 
-## 代码结构
+## 项目结构
+
+仓库目录按运行机制、界面、组件和应用分开：
+
+```text
+Nexarbor/
+├─ frontends/
+│  ├─ desktop/               Electron 桌面入口、项目选择、Harness 路径设置
+│  └─ network-editor/        网络画布、资源栏、对话和制作界面
+├─ python/datanet/
+│  ├─ core/                  图、频道访问、信号、模块调用、事务与持久化
+│  ├─ communication/         Python 侧请求协议与通信处理
+│  └─ components/            组件装配的 Python 支持
+├─ communication/            浏览器请求、HTTP 服务与模块前端桥
+├─ adapters/harness/
+│  ├─ framework/             宿主装配、工具与上下文适配、Harness 配置
+│  ├─ runtime/               Harness 侧 Agent 循环及运行资源
+│  └─ studio/                工作台后端、项目管理与两个制作 Agent
+├─ extensions/               通用模块、工具、Skill 与组件前端
+├─ shared/graph/             网络格式、预设展开与资源装配的公共逻辑
+├─ configs/
+│  └─ agent-defaults.json    Agent 默认上下文 600k、最大输出 50k
+├─ projects/                 可继续制作的应用项目与网络预设
+├─ resources/examples/
+│  └─ npc-town/              随包内置、供 Agent 按需学习的小镇初始样板
+├─ 项目演示/                 三个应用各自的初始／最终状态，共六个项目
+├─ docs/                     安装、架构、模块协议与使用说明
+├─ scripts/                  组件维护、样板校验和运行包构建脚本
+├─ package.json              源码启动、构建与打包入口
+├─ README.md                 中文说明
+└─ README_EN.md              英文说明
+```
+
+`extensions/` 提供通用零件，应用业务实现在各项目的 `modules/` 中。`projects/` 用于继续搭建和开发；`项目演示/` 用于从固定初始状态体验流程，或查看完成后的结果；`resources/examples/npc-town/` 是两个制作 Agent 按需研究的内置教材。
+
+发布压缩包在上述运行资源之外，还包含 `Nexarbor.exe`、Electron 资源、`runtime/python/` 和构建后的界面。源码开发与打包步骤见 [安装指南](docs/INSTALLATION.md)，运行包内的 `项目演示/` 和 `configs/agent-defaults.json` 可直接找到。
 
 当前开发源码采用 **v8 网络格式**与 **v3 模块协议**。Python 命名空间与 Harness 适配器的内部标识沿用 `datanet` / `datanet-harness`；安装和运行入口是 Nexarbor 桌面工作台。
 
@@ -180,7 +221,7 @@
 
 ## 验证与进一步阅读
 
-验证覆盖核心权限、信号并行、节点事务、模块依赖、独立存储、上下文装配、Git 项目与客户端交互。本轮还修复了节点会话发送后黑屏、工具停用通知反复列出 UUID，以及整理后切换频道未重新规划连线的问题。测试源码、实测日志和阶段报告保留在本地开发目录，通过 `.gitignore` 排除；发布包只包含运行资源与必要使用文档。
+验证覆盖核心权限、信号并行、节点事务、模块依赖、独立存储、上下文装配、Git 项目与客户端交互。本轮还修复了节点会话发送后黑屏、工具停用通知反复列出 UUID，以及整理后切换频道未重新规划连线的问题。框架测试源码、开发实测日志和阶段报告保留在本地开发目录，通过 `.gitignore` 排除；演示应用自身产出的代码、业务数据与会话作为项目结果保留。发布包包含运行资源、六个演示项目与必要使用文档。
 
 | 想了解的内容 | 文档 |
 | --- | --- |

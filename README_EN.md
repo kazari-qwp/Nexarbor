@@ -52,3 +52,35 @@ These results cover the tested workflows and recovery, rather than guaranteeing 
 Select the installed Harness executable from the project home or Settings menu; the path is stored locally. Agent defaults are editable in [`configs/agent-defaults.json`](configs/agent-defaults.json): a 600,000-token context window and 50,000-token output limit, with explicit project/node settings taking precedence.
 
 [`项目演示/`](项目演示/) ships six independent initial/final project folders for discussion/collaboration, knowledge archives and the NPC town. Final projects retain business data and portable conversation chunks. Credentials, local model weights and developer runtime caches are excluded. See the [demo guide](项目演示/README.md).
+
+## Repository structure
+
+```text
+Nexarbor/
+├─ frontends/
+│  ├─ desktop/               Electron entry point and local Harness settings
+│  └─ network-editor/        Graph canvas, resources, chat and maker UI
+├─ python/datanet/
+│  ├─ core/                  Graph, channels, signals, modules and persistence
+│  ├─ communication/         Python protocol handlers
+│  └─ components/            Component assembly support
+├─ communication/            Browser client, HTTP and component frontend bridge
+├─ adapters/harness/
+│  ├─ framework/             Host integration, tools and context adaptation
+│  ├─ runtime/               Harness Agent loop and runtime resources
+│  └─ studio/                Workbench backend, projects and maker Agents
+├─ extensions/               Generic modules, tools, Skills and component UI
+├─ shared/graph/             Shared graph formats and assembly logic
+├─ configs/
+│  └─ agent-defaults.json    Editable 600k context / 50k output defaults
+├─ projects/                 Application projects and reusable presets
+├─ resources/examples/
+│  └─ npc-town/              Bundled teaching project for maker Agents
+├─ 项目演示/                 Six independent initial/final demo projects
+├─ docs/                     Installation, architecture and protocol guides
+└─ scripts/                  Component maintenance and release packaging
+```
+
+Generic components belong in `extensions/`; application behavior belongs in each project's `modules/`. Projects own their `nexarbor.json`, network definitions, texts and application data. Portable Agent history is saved in `.nexarbor/contexts/`; local runtime state and caches live under `.nexarbor/runs/`.
+
+The portable release also supplies `Nexarbor.exe`, Electron resources, `runtime/python/` and compiled frontend assets. See [installation and source builds](docs/INSTALLATION.md).
