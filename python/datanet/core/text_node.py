@@ -9,8 +9,8 @@ from datanet.core.write_support import validate_write
 class TextFileNode(Node):
     signal_type = 'text_file'
 
-    def __init__(self, node_id, name, data_kind, file_path, *, description='', max_chars=None, tool_channels=None):
-        super().__init__(node_id, name, data_kind, description=description)
+    def __init__(self, node_id, name, data_kind, file_path, *, description='', max_chars=None, tool_channels=None, aggregation='sum'):
+        super().__init__(node_id, name, data_kind, description=description, aggregation=aggregation)
         if max_chars is not None and (type(max_chars) is not int or max_chars < 1):
             raise ValueError('max_chars 必须为正整数')
         from .json_values import names

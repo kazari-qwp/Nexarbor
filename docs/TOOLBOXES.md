@@ -1,9 +1,11 @@
-# 工具箱清单
+# 工具声明与装配
 
-每个工具箱位于 `components/toolboxes/<ID>/`。`component.json` 声明启用状态、依赖、实现入口及工具选项；具有 `box` 字段的清单指向自己的 `box.json`。组合工具箱通过 `includes` 引用其他工具箱，Agent 预设声明默认工具箱。
+当前项目工具由模块的 `agent_tools` 或宿主端口提供。模块工具声明公开名称、description 与所调用的 operation；参数和结果契约来自模块操作。项目 `tools/` 保存引用，实际实现与递归依赖保存在 `modules/`。
 
-网络业务工具按组件归属登记。官方工具和 Skill 在每个 Agent 的独立作用域装配，宿主授予的能力限制仍适用。停用工具保留 Harness 定义，通过执行权限拒绝调用；重新开放不会重复注册定义。
+拖动工具到节点会补齐实现模块及依赖，不重复装配已有实例。主节点与亚节点分别维护工具和模块表；归属不会把所有工具自动混到父节点。
 
-Python 节点工具箱通过 `python.toolbox_installers` 提供 `register_toolbox` 入口，例如 `toolboxes/local_data`。停用后节点数据与工具定义保留，工具调用返回 forbidden。
+`tools.collector` 按配置频道收集当前可达工具，也可串联其他收集器。每次调用再次验证真实路径和工具声明；移动后旧地点的工具会消失。收集时一次按频道遍历节点对象，直接读 node.tools 和 node.modules；串联先调用节点上的其他收集器，再收集本节点工具，不做逐节点可达性复查。
 
-使用 `python scripts/components.py list` 查看实际 ID，`disable <ID>` 或 `enable <ID>` 修改 profile，重启 Harness 生效。原子工具箱、组合工具箱与带实现的工具箱使用同一个组件目录结构。
+Harness 工具使用 `harness:` 引用，核心宿主端口使用 `runtime:` 引用，模块工具使用 `module:<模块>/<工具>`。offers 的频道是授权的一部分，名字不决定权限；不能仅靠在提示词或工具列表中写入名称就获得外部能力。
+
+Skill 的 requires 可声明工具、模块及其他 Skill。安装时递归装配依赖，模型加载 Skill 后才按需展开教程和对应工具，避免一次性注入所有接口。历史、书签和归档保留资源引用，停用工具不删除会话记录。

@@ -1,0 +1,574 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "git.integrator.rev_2863bbe53e.rev_c376775a7e",
+  "name": "Git 成果整合与全员验收",
+  "version": "1.0.4",
+  "description": "校验多位平等成员在独立 worktree／分支上产生的提交，按成员 ID 串行合并为确定的候选提交，并组织全员验收；只有仍在参与的成员全部认可同一候选，才把整合分支推进到该候选。成员集合沿 member_channel 动态发现真实 Agent 节点，分支由前缀加安全化节点 ID 生成，config.members 只作显式分支覆盖。冲突、否决、退出、重复请求、失败与重开都有显式状态，仓库和宿主终端频道可配置。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "repository": {
+        "type": "string",
+        "title": "仓库路径",
+        "description": "Git 仓库的工作目录；建议填写绝对路径。模块通过宿主终端在该目录执行只读校验和候选引用更新。",
+        "minLength": 1
+      },
+      "base_branch": {
+        "type": "string",
+        "title": "基线分支",
+        "description": "尚未有整合分支时，候选从这里起步。",
+        "default": "main",
+        "minLength": 1
+      },
+      "integration_branch": {
+        "type": "string",
+        "title": "整合分支",
+        "description": "候选通过全员验收后才推进到的分支；验收前只写 refs/nexarbor/candidates/ 下的候选引用。",
+        "default": "nexarbor/integration",
+        "minLength": 1
+      },
+      "candidate_ref_prefix": {
+        "type": "string",
+        "title": "候选引用前缀",
+        "description": "候选提交的引用前缀，必须以 refs/ 开头、以 / 结尾。",
+        "default": "refs/nexarbor/candidates/",
+        "pattern": "^refs/[A-Za-z0-9._/-]+/$"
+      },
+      "members": {
+        "type": "array",
+        "title": "成员分支覆盖（可选）",
+        "description": "可选的分支覆盖／旧装配兼容；不再决定成员集合。成员集合由 member_channel 动态发现，未被发现的成员不参与。仅当 id 与发现的节点 ID 相同时，branch 才覆盖自动生成的分支。",
+        "default": [],
+        "items": {
+          "type": "object",
+          "title": "成员",
+          "properties": {
+            "id": {
+              "type": "string",
+              "title": "成员 ID",
+              "minLength": 1,
+              "description": "成员 Agent 的节点 ID；用于在动态发现集合中查找，放置预设或复制节点时会随节点身份重映射。仅当 id 与发现的节点一致时，对应 branch 才覆盖自动生成的分支；未出现在发现集合中的 id 不参与。",
+              "format": "node-id"
+            },
+            "branch": {
+              "type": "string",
+              "title": "成员分支",
+              "minLength": 1,
+              "description": "可选分支覆盖；省略时由 member_branch_prefix 加安全化后的节点 ID 生成。提交参数仍可覆盖。"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "terminal_ref": {
+        "type": "string",
+        "title": "宿主终端端口",
+        "description": "执行 Git 命令的公开宿主端口；装配节点须在 offered_tools 中提供同一 ref，并授权 terminal_channels。",
+        "default": "harness:pwsh"
+      },
+      "terminal_channels": {
+        "type": "array",
+        "title": "终端调用频道",
+        "description": "调用宿主终端时使用的频道；节点 access 和 offered_tools 必须同时允许这些频道。",
+        "default": [
+          "workspace"
+        ],
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1
+      },
+      "command_timeout_ms": {
+        "type": "integer",
+        "title": "单条命令超时（毫秒）",
+        "description": "传给宿主终端的超时；超时视为失败，不会继续推进整合分支。",
+        "default": 60000,
+        "minimum": 1000,
+        "maximum": 600000
+      },
+      "busy_lease_seconds": {
+        "type": "integer",
+        "title": "外部操作占用租期（秒）",
+        "description": "防止并发请求同时写候选；进程异常退出后超过租期可再次操作。",
+        "default": 900,
+        "minimum": 30,
+        "maximum": 3600
+      },
+      "member_channel": {
+        "type": "array",
+        "title": "成员发现频道",
+        "description": "沿这些频道用 ctx.network.nodes 发现真实 Agent 节点，以 node_id 作为成员 ID；只接受 metadata.node_type 为 agent 的节点。节点 access 须授权这些频道。",
+        "default": [
+          "collaboration"
+        ],
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true
+      },
+      "member_branch_prefix": {
+        "type": "string",
+        "title": "成员分支前缀",
+        "description": "成员分支 = 此前缀 + 安全化后的节点 ID；节点 ID 中的 Git 引用非法字符（如 ~、空格、^、:、?、*、[、\\）会替换为 -。",
+        "default": "member/",
+        "minLength": 1,
+        "pattern": "^(?!-)(?!.*\\.\\.)(?!.*//)(?!.*@\\{)[A-Za-z0-9][A-Za-z0-9._/-]*$"
+      }
+    },
+    "required": [
+      "repository"
+    ],
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "members": {
+        "type": "object",
+        "title": "成员运行状态",
+        "additionalProperties": true
+      },
+      "submissions": {
+        "type": "object",
+        "title": "成员最近提交",
+        "additionalProperties": true
+      },
+      "candidate": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "title": "当前候选"
+      },
+      "history": {
+        "type": "array",
+        "title": "候选历史",
+        "items": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "last_failure": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "title": "最近失败"
+      },
+      "busy": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "title": "外部操作占用"
+      },
+      "sequence": {
+        "type": "integer",
+        "title": "提交序号"
+      },
+      "accepted_head": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "title": "最近通过并推进的提交"
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "submit",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "member": {
+            "type": "string",
+            "title": "成员 ID",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "title": "提交哈希",
+            "description": "成员在独立 worktree／分支上完成的提交，可用缩写；必须可达该成员分支。",
+            "minLength": 7,
+            "maxLength": 64
+          },
+          "branch": {
+            "type": "string",
+            "title": "成员分支",
+            "description": "可覆盖配置中的成员分支，用于临时 worktree 分支名不同的情况。"
+          }
+        },
+        "required": [
+          "member",
+          "commit"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "member": {
+            "type": "string"
+          },
+          "commit": {
+            "type": "string"
+          },
+          "branch": {
+            "type": "string"
+          },
+          "candidate_status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "duplicate",
+          "member",
+          "commit",
+          "branch"
+        ],
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "integrate",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "candidate": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "duplicate",
+          "candidate"
+        ],
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "approve",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "member": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^cand-[0-9a-f]{16}$"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "member"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "candidate": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "duplicate",
+          "candidate"
+        ],
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "veto",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "member": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^cand-[0-9a-f]{16}$"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "member"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "candidate": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "duplicate",
+          "candidate"
+        ],
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "leave",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "member": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "member"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "member": {
+            "type": "string"
+          },
+          "candidate": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "duplicate",
+          "member",
+          "candidate"
+        ],
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "reopen",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^cand-[0-9a-f]{16}$"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "candidate": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "duplicate",
+          "candidate"
+        ],
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "promote",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "pattern": "^cand-[0-9a-f]{16}$"
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "candidate": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "duplicate",
+          "candidate"
+        ],
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "read",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "include_history": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "submissions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "candidate": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "last_failure": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "history": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          },
+          "busy": {
+            "type": "boolean"
+          },
+          "workspace": {
+            "type": "object",
+            "description": "实际配置的工作仓库与基线/整合分支。",
+            "properties": {
+              "repository": {
+                "type": "string"
+              },
+              "base_branch": {
+                "type": "string"
+              },
+              "integration_branch": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "repository",
+              "base_branch",
+              "integration_branch"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "members",
+          "submissions",
+          "candidate",
+          "last_failure",
+          "history",
+          "busy"
+        ],
+        "additionalProperties": true
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": []
+}

@@ -1,67 +1,34 @@
-# 核心信号、频道响应器与脉冲节点
+# 核心信号与闭环脉冲
 
-当前核心网络格式为 **v7**，连接统一保存为 `connections.interfaces`。旧格式网络和检查点直接拒绝；读写、公私分类已从核心移除。旧组件和三个应用暂未迁移，下述扩展机制的实现记录对应此前版本；本轮验证只覆盖新核心与画布。访问授权见[频道与工具访问](CHANNEL_ACCESS.md)。
+当前网络格式为 v8，连接保存为 `connections.interfaces`。核心负责通用传播，业务响应由节点所装模块声明。访问频道规则见 [频道与工具访问](CHANNEL_ACCESS.md)。
 
-## 核心只负责传播
+## 传播与汇总
 
-`Signal` 是不可变JSON值，携带来源、频道集合、内容、强度、编号、父编号、序号、闭环标记、失败策略及执行预算。已删除 `NodeFilter`、`PermissionRequirement` 和 `activation`。
+信号携带来源、频道、强度、内容和稳定编号。频道决定哪些边可以通过，接口阈值检查当前强度；通过后乘边的 multiplier，同层到达目标的输入按该节点 aggregation 汇总，再加节点 divergence。结果为负不继续传播。
+
+节点可选 sum、max、min、mean，默认 sum。汇总只针对当前广度层同时抵达的输入；同一信号对每个节点处理一次，不等待未来层回流。求和适合累加，最大值适合与参与人数无关的触发；改变人数时应一起检查闭环剩余强度。
+
+广度逐层调度，同层异步并行，整层完成后再扩展下一层。只固定当前派发批次，下一层使用当前网络拓扑，因此模块移动或增删连接可影响后续传播。已经派发的处理仍按本次批次完成，不追溯撤销。
+
+无处理器的节点中继。模块只响应其清单声明的信号频道，程序调用则显式选择模块和操作。接收者使用自己的授权，不能借发信者扩大访问范围。
+
+## 发出与观察
 
 ```python
-signal = Signal('source', ['world.tick', 'notice'], 3,
-                content={'task': '按当前目标活动'},
+signal = Signal('source', ['tick'], 12, content={'task': '更新'},
                 close_loop=True, failure_policy='continue')
+receipt = runtime.emit(signal)
+report = await runtime.wait(receipt['signal_id'])
 ```
 
-接口使用统一元数据：
+emit 将传播任务与调用者的等待和取消范围分离。信号不会像函数调用那样把业务结果返回发起模块；wait 是宿主观察传播记录的接口。普通调用通过 `ctx.network.call` 返回 ComponentResult。
 
-```python
-Interface('target', metadata={
-    'threshold': 1, 'multiplier': 1,
-    'channels': ['world.tick'], 'attributes': {'purpose': 'time'}
-})
-```
+报告记录每层、各节点强度、来源路径和 processed/relay/failed 等状态。failure_policy=stop 时失败停止后续层，continue 时成功分支继续；部分失败不能当作全部成功。传播保留显式执行预算、超时和主动取消。
 
-信号沿频道有交集且满足门槛的接口传播，频道集合全程保持原样；强度按倍率及目标散度计算，不能低于0。没有公私接口特殊判断。工具访问另按工具声明及开放清单校验，不能借信号扩大权限。`wait_for_completion`及后台通知API已移除。
+## PulseNode 与恢复
 
-同一层的节点并行处理，每个节点等待自己的处理完成；整层完成后才能进入下一层。同一节点在一份信号中只处理一次，汇聚取最大强度而不相加。没有绑定处理器的节点直接中继，包括Agent节点；是否执行Agent由响应器决定。
+PulseNode 是有限闭环信号源，不认识时间或 NPC。只有显式连线回到源头、当前轮的工作完成并满足成功条件后，才开始下一轮；回源只登记 returned，不重复执行源处理器。闭环源与普通信号分开使用。
 
-`SignalRuntime.bind(node_id, async_handler, access_strength=...)` 是底层宿主接入接口，不负责业务匹配。接收者使用自己的宿主授权执行，不能借发信者权限。节点处理有互斥、期限和错误回执；`failure_policy='stop'` 停止后续层，`continue` 只让成功/中继分支继续。失败不能当作成功就绪。
+同一 signal_id、同一内容不会重放；复用编号但改内容会拒绝。中断记录恢复为 interrupted，宿主需确认外部副作用后再处理，不能无条件重放或承诺外部系统 exactly-once。
 
-## 事件触发器与模块执行图
-
-旧 signal_response 已由可选 event_trigger/module_execution/langgraph_backend 组件替代。信号包装为 signal/received 事件，节点按事件类型、频道和内容选择结构化图。顺序、条件分支、并行和汇合交给官方 LangGraph；整张图完成才向核心传播返回。
-
-操作由宿主按节点授予，信号不能选择任意函数或扩大权限。同步操作超时后，未退出的全部线程会阻止节点重入。配置随核心提交保存，恢复时重绑可执行操作，不自动重放中断步骤。参数、节点装配和完整示例见 [事件执行图接口](EVENT_EXECUTION.md)。
-
-## 独立上下文装配器
-
-`capabilities/context_assembly`已替代旧匹配器。Agent节点核心提供system_prompt/context/inputs/tail四类输入，可直接接收文档引用；装配器是可选来源组织模块。专用普通装配节点读取明确清单中的文档、组件资源或直接连接的节点，按Agent统一元数据匹配，不扫描业务网络。四类分别走原生系统提示、历史文档、消息队列和请求尾部。无信号或元数据扩展器依赖；系统提示变化检测交给Harness，文档仍按原生标记补载。详见四类输入与装配（本地开发资料：`CONTEXT_ASSEMBLY.md`）。
-
-## 节点元数据扩展器
-
-`capabilities/node_metadata` 对普通、文本及Agent节点都适用。扩展字段按节点ID/命名空间保存在扩展检查点；不增加核心Node/Agent字段。`core`命名空间保留，不能覆盖。宿主可注册计算提供器读取业务状态，避免复制两份易失配的状态；附加字段不能覆盖提供器字段。
-
-```python
-metadata = app.plugins['capabilities/node_metadata']
-metadata.set(node_id, 'custom', {'department': 'finance'})
-metadata.register('runtime', lambda node_id: {'online': True})
-network.get_metadata(node_id)  # 标准核心字段 + 可选extensions
-network.nodes[node_id].get_metadata()  # 同一个统一入口
-network.nodes[node_id].describe()  # 节点列表等现有操作也自动合并
-```
-
-核心MetadataRegistry负责统一读取：未装扩展器时只返回标准字段，装配后自动并入extensions。标准字段不能被扩展命名空间覆盖。Backend启动时注册扩展，无需先创建Application/Agent；恢复和拼图挂载继续使用同一读取入口。节点列表复用describe，因此不需要逐工具增加适配代码。
-
-扩展命名空间默认只供节点自身、根与宿主读取，可通过注册提供器的public参数声明公开，统一读取仍遵守此可见性，避免把私人身份状态随节点列表泄露给其他节点。
-
-NPC用`npc`命名空间提供性别、职业、孕期等字段。装配器不导入元数据扩展器，只读统一核心接口。共享响应器、装配器和元数据组件均可单独装配，没有NPC依赖。
-
-## PulseNode与持久化
-
-核心PulseNode是有限闭环信号源，不认识时间、NPC或工具。`await pulse.run(runtime, cycles=2, timeout_seconds=180, cycle_complete=settle)`在本轮回源且整层结束后执行结算，再发下一份新信号。默认1轮；序号递增，parent_id关联上一份。回源仅记录returned，不再次执行源处理器或沿旧信号循环。
-
-失败、未回源、超时、预算耗尽停止续发；只有显式allow_partial才接受部分完成。完整网络和信号记录可保存恢复；Backend自动接入检查点。相同signal_id相同内容不重放，不同内容拒绝。旧详情可压缩，去重身份保留。处理中恢复标为interrupted，需要宿主核实副作用再reconcile，不能保证跨外部系统exactly-once。
-
-## 最小验证
-
-当前 v7 的频道、信号、四类输入与持久化测试见本轮验证（本地开发资料：`ROUTING_CHANNELS_V7_TEST_20261017.md`），未运行旧应用或付费模型。此前共享响应器、装配器及NPC最小回环的记录见NPC验证（本地开发资料：`applications/npc_world/VALIDATION.md`），不代表旧应用已兼容 v7。
+小镇的时间更新和每隔若干 tick 存档是项目模块，不属于信号核心。完整例子在 [内置小镇](../resources/examples/npc-town/)，可通过查看网络 Skill 沿 tick 频道研究。

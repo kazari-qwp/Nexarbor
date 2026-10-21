@@ -22,8 +22,8 @@ class PulseNode(Node):
     async def _update(self,runtime,**values):
         async with self._access(runtime):self.state.update(values)
 
-    def __init__(self,node_id,name,data_kind=None,*,channels=('pulse',),strength=3,content=None,signal_options=None,state=None,description=''):
-        super().__init__(node_id,name,'pulse',description=description)
+    def __init__(self,node_id,name,data_kind=None,*,channels=('pulse',),strength=3,content=None,signal_options=None,state=None,description='',aggregation='sum'):
+        super().__init__(node_id,name,'pulse',description=description,aggregation=aggregation)
         self.channels=names(channels,'channels',allow_empty=False)
         self.strength=validate_strength(strength);self.content=freeze(content)
         self.signal_options=freeze(signal_options or {})
@@ -52,7 +52,7 @@ class PulseNode(Node):
     async def run(self,runtime,*,cycles=1,timeout_seconds=180,cycle_complete=None,allow_partial=False):
         if type(cycles) is not int or cycles<1:raise ValueError('A positive finite cycle count is required')
         validate_strength(timeout_seconds)
-        if not 0<timeout_seconds<=3600:raise ValueError('Invalid pulse runtime deadline')
+        if not 0<timeout_seconds<=86400:raise ValueError('Invalid pulse runtime deadline')
         if type(allow_partial) is not bool:raise ValueError('allow_partial must be boolean')
         if runtime.network.nodes.get(self.node_id) is not self:raise ValueError('Pulse must belong to the runtime network')
         if cycle_complete is not None and not callable(cycle_complete):raise TypeError('Invalid cycle completion handler')

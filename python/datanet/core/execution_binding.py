@@ -20,9 +20,9 @@ def validate_execution_binding(node,network,definitions,*,allow_missing=False):
     channels=binding.get('channels',[])
     mode(binding.get('channel_mode',binding.get('channel_modes',{}).get('channels','allow')))
     if not isinstance(channels,list) or any(not isinstance(c,str) or not c for c in channels) or len(set(channels))!=len(channels):raise ValueError('执行器channels须为唯一非空字符串列表')
-    if type(binding.get('max_steps',12)) is not int or not 1<=binding.get('max_steps',12)<=100:raise ValueError('执行器max_steps须为1至100')
+    if type(binding.get('max_steps',12)) is not int or not 1<=binding.get('max_steps',12)<=100000:raise ValueError('执行器max_steps须为1至100000')
     timeout=binding.get('timeout_seconds',90)
-    if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('执行器timeout_seconds须为1至600')
+    if type(timeout) not in (int,float) or not 1<=timeout<=86400:raise ValueError('执行器timeout_seconds须为1至86400')
     from .json_values import names
     names(binding.get('tool_sources',[]),'execution.tool_sources')
     prepare=binding.get('prepare',[])

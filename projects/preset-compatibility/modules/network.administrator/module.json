@@ -1,0 +1,207 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "network.administrator",
+  "name": "局部网络管理员",
+  "description": "在自身强度和频道可达的节点范围内组装网络；可选择是否委托制作组件。制作期间不锁网络，提交时重新验证权限和版本。",
+  "version": "0.1.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "allow_component_creation": {
+        "type": "boolean",
+        "default": false,
+        "title": "允许委托制作模块／工具"
+      },
+      "max_nodes": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 200,
+        "default": 40,
+        "title": "单次局部网络节点上限"
+      },
+      "timeout_seconds": {
+        "type": "integer",
+        "minimum": 10,
+        "maximum": 86400,
+        "default": 600,
+        "title": "制作时限（秒）"
+      }
+    },
+    "required": [],
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {},
+    "required": [],
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "inspect",
+      "channels": [
+        "admin"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "build",
+      "channels": [
+        "admin"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "requirement": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 16000
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "requirement",
+          "key"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "status",
+      "channels": [
+        "admin"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string"
+          },
+          "wait_seconds": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 30,
+            "default": 15,
+            "description": "运行中最多等待这些秒再返回，默认15秒；不要连续空轮询。"
+          },
+          "include_log": {
+            "type": "boolean",
+            "default": false,
+            "description": "需要失败诊断时才展开日志，按行或字符分页。"
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "line_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "start_char": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20000
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "apply",
+      "channels": [
+        "admin"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "cancel",
+      "channels": [
+        "admin"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "inspect",
+      "name": "查看管理员可达网络",
+      "description": "查看管理员当前实际可达的网络副本；不遍历全网。",
+      "operation": "inspect"
+    },
+    {
+      "id": "build",
+      "name": "委托制作局部网络",
+      "description": "描述希望当前局部网络实现的功能；返回任务号，完成后使用提交工具。key用于防止重复启动。",
+      "operation": "build"
+    },
+    {
+      "id": "status",
+      "name": "查看局部网络制作进度",
+      "description": "等待并查看本管理员任务的简短进度，默认最多等15秒；完成后再提交。仅需诊断时 include_log=true 分页读取，不连续空轮询。",
+      "operation": "status"
+    },
+    {
+      "id": "apply",
+      "name": "提交局部网络变更",
+      "description": "重新验证实际可达性与版本后，将已验证草稿增量提交到原位置。",
+      "operation": "apply"
+    },
+    {
+      "id": "cancel",
+      "name": "取消局部网络制作",
+      "description": "取消属于这个管理员的制作任务。",
+      "operation": "cancel"
+    }
+  ]
+}

@@ -5,10 +5,10 @@ Nexarbor 0.8 是独立的桌面工作台，使用 **DeepSeek Harness 原生运�
 ## 安装要求
 
 1. Windows x64，以及已加入 PATH 的 [Git for Windows](https://git-scm.com/downloads/win)。项目的 Commit、修改分支和恢复使用真实 Git。
-2. 安装 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，可在 Harness 内完成 DeepSeek 账户授权，也可在工作台配置自己的 API key。当前适配以 `0.2.0-rc.2` 系列原生 SDK 为基线。
+2. 安装 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，可在 Harness 内完成 DeepSeek 账户授权，也可在工作台配置自己的 API key。工作台使用本机安装的原生 SDK，当前已实测 Harness 0.2.1；0.2.0 缺少必要的原生服务。遇到缺少 SDK 服务的启动错误时请升级 Harness。
 3. 下载 Release 中的 `Nexarbor-0.8.0-win-x64.zip`，完整解压到可写目录，然后双击 `Nexarbor.exe`。压缩包包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
 
-首次启动提供“打开项目文件夹”和“新建项目文件夹”。新建会准备 Git 仓库、资源目录和 `打开项目.cmd`。以后可直接双击项目中的脚本。
+首次启动提供“打开项目文件夹”和“新建项目文件夹”。新建或首次打开会准备 Git 仓库、资源目录和 `打开项目.cmd`。以后可直接双击项目中的脚本。
 
 ## 连接本机 Harness
 
@@ -49,7 +49,9 @@ API key 使用当前 Windows 账户的 DPAPI 加密，存于 `%LOCALAPPDATA%\Nex
 - 节点、模块和网络都能保存成书签。网络预设以真实网络文件保存；可重复单元数量由预设声明，在右侧填写后拖入即可展开。
 - 完整网络保存在 `network_presets/networks/`，零件预设保存在 `network_presets/fragments/`。项目自己的资源与版本随项目文件夹管理。
 
-三个示例的初始网络在 `configs/` 中。使用“工作台 → 打开应用配置”选择对应的 `profile.json`，可以在独立示例工作区体验；正式项目请将使用的资源下载到项目目录后 Commit。
+完整小镇学习项目随安装包放在 `resources/examples/npc-town/`，包含网络、文本、模板、模块源码及工具声明。两个制作 Agent 可加载 inspect-network，用 project 指向该文件夹随时按需研究，也能查看任意其他 Nexarbor 项目。若要运行或修改样板，先复制整个目录到自己的项目位置再打开。
+
+示例项目在 `projects/` 中，各自带完整业务模块、工具与数据；请先复制到工作位置再打开。`configs/` 的 `profile.json` 只负责指向普通项目，不再从宿主执行应用专属迁移。框架资源库保留通用能力，商店、移动、家庭、讨论与协作等业务实现在各项目的 `modules/` 内。
 
 ## 按需安装向量检索能力
 
@@ -61,7 +63,7 @@ API key 使用当前 Windows 账户的 DPAPI 加密，存于 `%LOCALAPPDATA%\Nex
 .\runtime\python\python.exe -m pip install -r .\extensions\storage\capabilities\llamaindex\requirements.txt
 ```
 
-该步骤会安装相应的嵌入依赖并可能下载模型；建议把模型缓存放到空间充足的磁盘。节点缺少可选依赖时会在客户端显示错误，项目网络仍可打开。
+该步骤安装嵌入运行依赖，模型权重仍需另外准备，并在节点配置中填写本地模型路径；建议把模型放到空间充足的磁盘。节点缺少可选依赖或模型时会显示错误，项目网络仍可打开。
 
 ## 从源码装配
 

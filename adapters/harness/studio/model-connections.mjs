@@ -28,7 +28,7 @@ export async function protectSecret(value,decrypt=false){
  });
 }
 export class ModelConnections{
- constructor({project,directory,configDirectory,protect=protectSecret}={}){this.project=project;this.directory=directory;this.root=configDirectory??process.env.NEXARBOR_MODEL_DIRECTORY??path.join(process.env.LOCALAPPDATA??os.homedir(),'Nexarbor','models');this.protect=protect;this.queue=Promise.resolve();}
+ constructor({project,directory,configDirectory,protect=protectSecret,modelPolicy,onModelSelection}={}){this.project=project;this.directory=directory;this.root=configDirectory??process.env.NEXARBOR_MODEL_DIRECTORY??path.join(process.env.LOCALAPPDATA??os.homedir(),'Nexarbor','models');this.protect=protect;this.queue=Promise.resolve();this.modelPolicy=modelPolicy;this.onModelSelection=onModelSelection;}
  file(id){if(!/^[a-f0-9-]{36}$/.test(id))throw Error('模型连接编号无效');return path.join(this.root,id+'.json');}
  async read(id){try{return JSON.parse(await fs.readFile(this.file(id),'utf8'));}catch(error){if(error.code==='ENOENT')throw Error('模型连接不存在，请重新选择连接');throw error;}}
  public(value){const {secret,...safe}=value;return {...safe,hasKey:!!secret};}
@@ -49,6 +49,8 @@ export class ModelConnections{
  async choose(scope,value){if(!['project','component','network'].includes(scope))throw Error('模型配置范围无效');const next=selection(value);return this.project.serial(async()=>{const project=await this.project.read();project.model_settings={...project.model_settings,[scope]:next};await this.project.write('nexarbor.json',JSON.stringify(project,null,2)+'\n');return {selection:next};});}
  async runtime(value,scope='project'){
   const settings=await this.settings(),chosen=selection(value??settings[scope]??settings.project)??{connection:'harness-default',model:'deepseek-flash'};
+  if(this.modelPolicy&&(chosen.model!==this.modelPolicy.model||chosen.connection!==this.modelPolicy.connection))throw Error('测试模型策略拒绝此选择；仅允许 '+this.modelPolicy.connection+' / '+this.modelPolicy.model);
+  await this.onModelSelection?.({scope,connection:chosen.connection,model:chosen.model,stage:'selection'});
   const model={provider:'deepseek-account',model:chosen.model,maxTokens:chosen.max_tokens??(scope==='project'?16000:24000),contextWindow:chosen.context_window??128000,...(chosen.reasoning_effort?{reasoningEffort:chosen.reasoning_effort}:{})};
   if(chosen.connection==='harness-default'){
    const credentials=await harnessCredentials({directory:this.directory}),stat=await fs.stat(credentials),signature=createHash('sha256').update(JSON.stringify({chosen,credentials,modified:stat.mtimeMs})).digest('hex');

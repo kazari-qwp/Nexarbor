@@ -7,7 +7,7 @@ self.onmessage=async({data})=>{
   while(latest){
     const request=latest;latest=null;
     const active=request.picture?pictureRouter:router;
-    try{ready??=init(wasmUrl);await ready;const routes=await active.route(request.graph);self.postMessage({key:request.key,routes:[...routes]});}
+    try{ready??=init(wasmUrl);await ready;const routes=await active.route(request.graph,{reset:request.reset});self.postMessage({key:request.key,routes:[...routes]});}
     catch(error){active.destroy();self.postMessage({key:request.key,error:String(error.message??error)});}
   }
   running=false;

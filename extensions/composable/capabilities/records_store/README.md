@@ -3,9 +3,9 @@
 一个通用的本地 JSON 记录组件。可挂在 NPC（`agent`）、容器、任务板、地点或任意 `node` 上，用同一份模块保存财产、行动点、身份、库存数量、任务状态等，不需要为每个对象单独写组件。清单的 `node_types` 同时声明 `node` 与 `agent`，两种真实节点都能装配和运行本模块。
 
 - 不依赖其他模块，不导出 Agent 工具。
-- 所有操作使用访问频道 `records`。
+- read/apply 接受 `records`、`road`、`location`；实际请求仍受本实例授权与图关系限制。
 - 配置决定初始普通值、初始显式引用和数字最低值；运行结果分别保存在本实例的 `state.values` 和 `state.references`。
-- 首次 `read` 或 `apply` 时才把 `config.initial` 与 `config.references` 深拷贝到状态，之后配置变化不覆盖已有运行状态。
+- `read` 是纯读取：没有运行值时返回 config.initial 与 config.references 的副本，不初始化或写状态。首次成功 `apply` 才提交完整运行值；之后配置变化不覆盖已有运行状态。
 - 每次成功 `apply` 最多保留最近 200 条带去重键的请求回执；回执同样把普通值与显式引用分开保存。
 
 ## 装配与配置
@@ -28,15 +28,14 @@
   ],
   "minimum": {
     "金币": 0,
-    "行动点": 0,
-    "库存.面包": 0
+    "行动点": 0
   }
 }
 ```
 
-`initial` 是任意 JSON 对象，值可以是数字、字符串、布尔、对象、数组或 `null`，但不要在里面放住所、配偶、父母等节点关系字符串。`references` 是可配置多条键名的显式引用数组，每项为 `{ "key": "非空字段名", "node_id": "节点 ID 或 null" }`；`node_id` 在 Schema 中标记了 `format: "node-id"`，普通字符串不会被猜成节点 ID。`minimum` 是“字段名 → 数字”的字典；每次 `apply` 提交前检查已配置下限的普通数字字段，低于下限则整次请求失败且不修改任何字段。`minimum` 默认 `{}`。
+`initial` 是任意 JSON 对象，值可以是数字、字符串、布尔、对象、数组或 `null`，但不要在里面放住所、配偶、父母等节点关系字符串。`references` 是可配置多条键名的显式引用数组，每项为 `{ "key": "非空字段名", "node_id": "节点 ID 或 null" }`；`node_id` 在 Schema 中标记了 `format: "node-id"`，普通字符串不会被猜成节点 ID。`minimum` 是“字段名 → 数字”的字典；每次 `apply` 提交前检查已配置下限的普通数字字段，低于下限则整次请求失败且不修改任何字段。`minimum` 默认 `{}`，按顶层字段名匹配，不把点号解释为嵌套路径。
 
-只有首次初始化时才把 `config.references` 深拷贝到 `state.references`。重复引用键、引用项类型非法、以及引用键与 `initial` 中普通字段同名都会拒绝；已有 `values` 始终只保存普通 JSON 记录，不做旧字符串迁移。
+首次成功 apply 时提交配置引用；只读不会建立 `state.references`。重复引用键、引用项类型非法、以及引用键与 `initial` 中普通字段同名都会拒绝；已有 `values` 始终只保存普通 JSON 记录，不做旧字符串迁移。
 
 仓库自带页面 `ui.html`，可编辑任意类型的初始字段、显式引用数组和数字形式的最低值；保存后写入网络草稿，需在客户端点击“应用网络”才影响运行实例。
 
@@ -69,6 +68,8 @@
 }
 ```
 
+`unset` 可填待删除的字段名数组，删除普通值或显式引用；同一字段不能同时删除和写入。先检查 expected，再删除，随后应用 references、set 与 deltas。
+
 `set`、`deltas`、`expected`、`references` 都可省略，`references` 默认 `[]`。执行顺序：
 
 1. 若提供去重键，先查最近回执：键和完整参数都相同则直接返回上次快照的合并视图，`duplicate: true`，不重复扣钱；同一个键配不同参数会报错。
@@ -76,7 +77,7 @@
 3. 处理 `references`：按 key 新增或更新显式引用；同一请求内键重复、引用键与普通 `values` 字段同名都会拒绝。
 4. 写入 `set`：已声明的引用字段更新 `state.references`，值必须是节点 ID 字符串或 `null`；其他字段写入普通 `state.values`。
 5. 对 `deltas` 每个普通数字字段做加减；字段不存在按 `0` 处理，已有非数字（包括布尔值）会拒绝，引用字段不能做数值增减。同一普通字段同时出现在 `set` 和 `deltas` 时，先写入 `set` 值再叠加增减，例如 `set: {gold: 5}`、`deltas: {gold: 2}` 得到 `7`。
-6. 校验所有配置了 `minimum` 的普通数字字段。
+6. 对本次发生设置或增减且声明了 `minimum` 的普通数字字段核验下限。
 7. 全部通过才一次性提交，并返回 `{"values": 合并业务视图, "duplicate": false}`。
 
 任何错误都不会留下半修改；业务错误以 `status: "error"` 和中文 `error` 返回。参数类型和频道权限由框架预检，非法类型或错误频道会直接拒绝。
@@ -104,15 +105,15 @@ async def transfer(ctx, activation):
     try:
         async with ctx.network.lock_nodes([ctx.node_id, target_node], timeout=20):
             # 锁后重查，不要使用锁前的余额。
-            source = await ctx.network.call(ctx.node_id, "records.store", "read", {})
+            nodes = await ctx.nodes
+            source = await nodes[ctx.node_id].call("records.store", "read", {})
             if source["status"] != "ok":
                 raise RuntimeError(source["error"])
             balance = source["data"]["values"].get("金币", 0)
             if not isinstance(balance, int) or isinstance(balance, bool) or balance < 5:
                 raise RuntimeError("金币不足")
 
-            first = await ctx.network.call(
-                ctx.node_id,
+            first = await nodes[ctx.node_id].call(
                 "records.store",
                 "apply",
                 {
@@ -124,8 +125,7 @@ async def transfer(ctx, activation):
             if first["status"] != "ok":
                 raise RuntimeError(first["error"])
 
-            second = await ctx.network.call(
-                target_node,
+            second = await nodes[target_node].call(
                 "records.store",
                 "apply",
                 {

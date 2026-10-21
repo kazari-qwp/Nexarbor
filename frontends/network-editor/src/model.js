@@ -1,3 +1,4 @@
+import {nodeDimensions} from './graph-appearance.js';
 export const clone=value=>structuredClone(value);
 export function edgesOf(document){
   return document.network.nodes.flatMap(node=>[...node.connections.interfaces.map((link,index)=>({id:`${node.node_id}|${index}`,source:node.node_id,target:link.target_node_id,index,metadata:link.metadata})),...(node.type==='subnode'&&node.parameters.parent_id?[{id:'ownership:'+node.node_id,source:node.parameters.parent_id,target:node.node_id,ownership:true,metadata:{channels:[],attributes:{}}}]:[])]);
@@ -14,7 +15,7 @@ export function nodeKind(node){
   if(Object.keys(node.modules).some(x=>x.startsWith('world.')))return '业务';
   return '节点';
 }
-export const colors={'居民':'#78d8bc','Agent':'#78d8bc','场所':'#8fb7f5','文本':'#d8c080','脉冲':'#c5a7f0','数据':'#d8c080','上下文':'#d8c080','业务':'#a4afc0','节点':'#a4afc0','亚节点':'#bc9cdf'};
+export const colors={'居民':'#3ce79e','Agent':'#3ce79e','场所':'#7bafff','文本':'#ffcf59','脉冲':'#ba8cff','数据':'#ffcf59','上下文':'#ffcf59','业务':'#b6d8f0','节点':'#b6d8f0','亚节点':'#d08fff'};
 export function layoutNodes(document,saved={}){
   const counters={},positions={};
   for(const node of document.network.nodes){
@@ -31,7 +32,7 @@ export function layoutNodes(document,saved={}){
   return document.network.nodes.map(node=>{
     const kind=nodeKind(node);
     if(kind==='文本'){positions[node.node_id]={x:(documentIndex%5)*270,y:(documentRow+Math.floor(documentIndex/5))*115};documentIndex++;}
-    return {id:node.node_id,type:'network',width:node.type==='subnode'?106:92,height:node.type==='subnode'?38:92,measured:{width:node.type==='subnode'?106:92,height:node.type==='subnode'?38:92},position:position(node),data:{node,kind}};
+    return {id:node.node_id,type:'network',...nodeDimensions(node.type),measured:nodeDimensions(node.type),position:position(node),data:{node,kind}};
   });
 }
 export function removeNode(document,id){

@@ -1,7 +1,11 @@
 // 通用工具图片输出：先纳入原生附件库，再用 ContentBlock 呈现，避免把 base64 当文字发给模型。
 const fs=require('node:fs/promises');
 const FORMAT='nexarbor-tool-content/v1';
-exports.prepare=async(runtime,value)=>{
+exports.prepare=async(runtime,value,execution)=>{
+ if(value?.format==='nexarbor-tool-control/v1'){
+  if(value.conclude)execution.concludeTurn();
+  value=value.data;
+ }
  if(value?.format!==FORMAT)return value;
  if(!Array.isArray(value.content)||value.content.length>16)throw Error('工具内容块无效');
  const images=[];let size=0;
@@ -14,7 +18,13 @@ exports.prepare=async(runtime,value)=>{
  const refs=images.length?await runtime.native('dsh-attachment').admitEncodedImages(runtime.host.get('attachments'),images):[];
  let index=0;return {format:FORMAT,content:value.content.map(block=>block.type==='image'?{type:'image',attachment:refs[index++]}:{type:'text',text:block.text})};
 };
-exports.render=(_args,value)=>value?.format===FORMAT?value.content:[{type:'text',text:JSON.stringify(value)}];
+exports.render=(_args,value)=>{
+ if(value?.format===FORMAT)return value.content;
+ // Harness already rendered these results. Keep structured value/meta for
+ // programmatic consumers; never serialize their duplicate payload to the model.
+ if(typeof value?.isError==='boolean'&&Array.isArray(value.content)&&Object.hasOwn(value,'value')&&Object.hasOwn(value,'meta'))return value.content;
+ return [{type:'text',text:JSON.stringify(value)}];
+};
 exports.previews=async(runtime,messages)=>{
  const result={},refs=new Map();for(const message of messages)for(const block of message.content??[])if(block.type==='image'&&block.attachment?.attachmentId)refs.set(block.attachment.attachmentId,block.attachment);
  for(const [id,ref]of [...refs].slice(-24)){try{const data=await fs.readFile(runtime.host.get('attachments').imageHostPath(ref));if(data.length<=8*1024*1024)result[id]='data:'+ref.mediaType+';base64,'+data.toString('base64');}catch(error){if(error.code!=='ENOENT')throw error;}}

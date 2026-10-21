@@ -1,0 +1,446 @@
+{
+  "type": "agent",
+  "node_id": "阿石",
+  "name": "阿石",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {
+    "file_path": "data/阿石.md"
+  },
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "居民楼B",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "location",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      },
+      {
+        "target_node_id": "存档点",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "tick"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "小砾",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "chat"
+          ],
+          "attributes": {
+            "relation": "social"
+          }
+        }
+      },
+      {
+        "target_node_id": "林",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "chat"
+          ],
+          "attributes": {
+            "relation": "social"
+          }
+        }
+      },
+      {
+        "target_node_id": "小路",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "chat"
+          ],
+          "attributes": {
+            "relation": "social"
+          }
+        }
+      },
+      {
+        "target_node_id": "阿森",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "chat"
+          ],
+          "attributes": {
+            "relation": "social"
+          }
+        }
+      },
+      {
+        "target_node_id": "老铁",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "chat"
+          ],
+          "attributes": {
+            "relation": "social"
+          }
+        }
+      },
+      {
+        "target_node_id": "悦",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "chat"
+          ],
+          "attributes": {
+            "relation": "social"
+          }
+        }
+      },
+      {
+        "target_node_id": "奈镇世界规则",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "context.assembler.system_prompt"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "阿石人格",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "context.assembler.system_prompt"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "阿石开场白",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "context.assembler.inputs"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "世界时间",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "context.assembler.tail"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "成年常识",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "context.assembler.context"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "矿工常识",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "context.assembler.context"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "records.store": {
+      "config": {
+        "initial": {
+          "gender": "male",
+          "profession": "矿工",
+          "role": "miner",
+          "age": 26,
+          "age_group": "adult",
+          "adult": true,
+          "can_gestate": false,
+          "pregnant": false,
+          "is_parent": false,
+          "coins": 12,
+          "ap": 10,
+          "broken_pickaxe": 1
+        },
+        "references": [
+          {
+            "key": "home",
+            "node_id": "居民楼B"
+          },
+          {
+            "key": "context_node",
+            "node_id": "阿石"
+          },
+          {
+            "key": "name",
+            "node_id": "阿石"
+          }
+        ],
+        "minimum": {
+          "ap": 0
+        }
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "place.info": {
+      "config": {
+        "visitors_from_edges": false,
+        "description": "矿工阿石",
+        "location": "居民楼B"
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "agents.activity": {
+      "config": {
+        "signal_channels": [
+          "tick"
+        ],
+        "budget_field": "ap",
+        "budget": 10,
+        "prompt": "现在开始你这一时刻的行动。先查看处境，再决定去哪里、做什么；行动值有限，别浪费。\n本时刻完成行动，或需要等待答复、到货、下一个时段时，直接结束回复，下一 tick 再继续；不要轮询消息或处境。",
+        "enabled": true,
+        "max_reactions": 8
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "tick",
+          "records",
+          "self",
+          "runtime.agent"
+        ]
+      }
+    },
+    "messages.box": {
+      "config": {
+        "read_policy": "self",
+        "send_cost": 0,
+        "max_messages": 200,
+        "require_agent": true
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "chat",
+          "records"
+        ]
+      }
+    },
+    "messages.relay": {
+      "config": {},
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "chat",
+          "records",
+          "self"
+        ]
+      }
+    },
+    "context.assembler": {
+      "config": {
+        "channels": [
+          "context.assembler"
+        ],
+        "system_prompt_channels": [
+          "context.assembler.system_prompt"
+        ],
+        "context_channels": [
+          "context.assembler.context"
+        ],
+        "inputs_channels": [
+          "context.assembler.inputs"
+        ],
+        "tail_channels": [
+          "context.assembler.tail"
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 4,
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "extension": {
+          "operations": [
+            "read_text"
+          ],
+          "targets": []
+        }
+      }
+    },
+    "agents.memory": {
+      "config": {
+        "max_memories": 100
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "self"
+        ]
+      }
+    },
+    "places.query": {
+      "config": {
+        "public_fields": [
+          "name",
+          "gender",
+          "profession",
+          "age_group"
+        ],
+        "map_title": "奈镇地图",
+        "road_channels": [
+          "location",
+          "road"
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 12,
+        "channels": [
+          "self",
+          "records",
+          "movement",
+          "info",
+          "location",
+          "road"
+        ]
+      }
+    },
+    "records.transfer": {
+      "config": {
+        "cost": 1,
+        "same_location": true
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "self",
+          "chat",
+          "location"
+        ]
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "ref": "runtime:agent_run",
+      "channels": [
+        "runtime.agent"
+      ]
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": {
+    "executor": "harness",
+    "strength": 2,
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "prepare": [
+      {
+        "node": "阿石",
+        "module": "places.query",
+        "operation": "publish",
+        "arguments": {},
+        "channels": [
+          "self"
+        ]
+      },
+      {
+        "node": "阿石",
+        "module": "context.assembler",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      }
+    ],
+    "tool_sources": [
+      "阿石工具"
+    ],
+    "max_steps": 16,
+    "timeout_seconds": 180
+  },
+  "inputs": null,
+  "context_cursor": null
+}

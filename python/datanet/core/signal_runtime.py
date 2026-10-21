@@ -45,10 +45,6 @@ class SignalRuntime:
             if not set(signal.channels)<=set(frame['channels']):raise PermissionError('Nested signal exceeds current channel grant')
         elif acting and (acting[1]!=signal.origin or signal.strength>acting[0].max_signal_strength):raise PermissionError('Signal exceeds sender identity or strength')
 
-    def _snapshot(self,signal):
-        # Snapshot nodes and interfaces before any handler runs. New topology applies next signal.
-        return self.network.routing_snapshot()
-
     async def _process(self,node,delivery,signal,record):
         lock=self._node_locks.setdefault(node.node_id,asyncio.Lock())
         async with lock:
@@ -135,7 +131,7 @@ class SignalRuntime:
         return await self.wait(signal.signal_id)
 
     async def _propagate(self,signal):
-        nodes,links,divergences=self._snapshot(signal)
+        from .aggregation import aggregate
         record=dict(signal=signal.to_dict(),status='running',returned=False,deliveries=[],layers=[],started_at=time.time())
         self.network.signal_runs[signal.signal_id]=record
         self._active[signal.signal_id]=asyncio.current_task()
@@ -145,19 +141,23 @@ class SignalRuntime:
         try:
             await self._save()
             while frontier:
+                # Each completed layer releases its transactions before the next
+                # expansion. Freeze only this dispatch batch, not the whole wave.
+                nodes,links,divergences,modes=self.network.routing_snapshot(include_aggregation=True)
                 pending={}
                 for source in frontier:
-                    for edge in links[source.node_id]:
+                    # A node deleted after receiving no longer relays the wave.
+                    for edge in links.get(source.node_id,()):
                         target=edge.target_node_id
                         is_return=target==signal.origin and signal.close_loop and not returned
                         if target in visited and not is_return:continue
                         if not edge.carries(signal.channels,strength=source.strength):continue
                         if target not in nodes:raise ValueError('Signal interface target does not exist: '+target)
                         incoming=source.strength*edge.metadata.multiplier;validate_strength(incoming)
-                        if target not in pending:pending[target]=[incoming,source.path+(target,),[source.node_id]]
+                        if target not in pending:pending[target]=[[incoming],source.path+(target,),[source.node_id]]
                         else:
                             item=pending[target]
-                            if incoming>item[0]:item[0],item[1]=incoming,source.path+(target,)
+                            item[0].append(incoming)
                             if source.node_id not in item[2]:item[2].append(source.node_id)
                 if not pending:break
                 if depth>=signal.max_hops or count+len(pending)>signal.max_deliveries:
@@ -167,7 +167,7 @@ class SignalRuntime:
                 depth+=1;count+=len(pending);layer=[];required=[];jobs=[]
                 work=LayerWork(signal,deadline,record);work_token=current_work.set(work)
                 for target,(incoming,path,parents) in pending.items():
-                    remaining=incoming+divergences[target];validate_signal(remaining)
+                    remaining=aggregate(incoming,modes[target])+divergences[target];validate_signal(remaining)
                     if remaining<0:continue
                     delivery=SignalDelivery(target,depth,remaining,path,tuple(parents))
                     visited.add(target)

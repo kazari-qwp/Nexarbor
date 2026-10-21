@@ -18,4 +18,4 @@ Agent 在 `execution.prepare` 显式引用装有上下文组装器的亚节点�
 
 频道过滤使用条目列表和加号，支持白名单与黑名单：空白名单不匹配，空黑名单不限制。信号发出的频道是标签而非过滤条件。旧节点和旧连线缺省沿用白名单，不改变原有行为。
 
-实现入口：core/subnode.py、network.py、local_modules.py。验证：tests/test_subnodes.py、tests/test_context_assembler_v3.py、frontends/network-editor/test/subnodes.test.js。
+实现入口：[亚节点容器](../python/datanet/core/subnode.py)、[网络](../python/datanet/core/network.py)、[本地模块调用](../python/datanet/core/local_modules.py)。本地回归覆盖嵌套归属、独立出边、上下文装配与复制；维护测试文件不随安装包发布。

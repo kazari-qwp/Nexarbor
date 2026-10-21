@@ -11,11 +11,14 @@
 | 当前任务 | 按需读取 |
 |---|---|
 | 固定入口、ctx、本地数据和状态 | nexarbor-basics: references/lessons/01-local.md |
-| 跨节点访问、信号与改边 | nexarbor-basics: references/lessons/02-network.md |
+| BFS节点对象表、跨节点访问、信号与改边 | nexarbor-basics: references/lessons/02-network.md |
 | 多节点锁、并发与失败恢复 | nexarbor-basics: references/lessons/03-locks.md |
+| 大文件输入、批量传递与精简回执 | references/lessons/04-tools-ui.md |
 | Agent 工具、依赖与配置前端 | references/lessons/04-tools-ui.md |
+| 节点引用、复制后的身份和配置 | references/lessons/04-tools-ui.md |
 | 使用真实运行时验证组件 | references/lessons/05-tests.md |
 | 从用户效果需求设计，在当前网络副本内试装 | inspect-network: references/测试环境.md |
 | 人格、资料、事件、尾部快照与文件来源 | nexarbor-basics: references/lessons/09-context.md |
+| 可发现的宿主能力及只读文件端口 | catalog_ports；nexarbor-basics: references/lessons/14-host-ports.md |
 
 模块作者先读基础概念中的01。详细参数以依赖的 module.json 为准，别凭模块名称猜接口。

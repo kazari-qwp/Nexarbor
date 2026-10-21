@@ -1,0 +1,179 @@
+{
+  "type": "node",
+  "node_id": "discussion",
+  "name": "讨论组",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "leader",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "discussion",
+            "discussion.round",
+            "discussion.decision"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "recorder",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "discussion",
+            "discussion.round",
+            "discussion.record"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "member-1",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "discussion",
+            "discussion.round"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "member-1~unit-2",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "discussion",
+            "discussion.round"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "member-1~unit-3",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "discussion",
+            "discussion.round"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "notes",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "context.assembler.context",
+            "context.assembler.tail"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "materials",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "context.assembler.context"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "messages.box": {
+      "config": {
+        "read_policy": "reachable",
+        "send_cost": 0,
+        "max_messages": 200,
+        "require_agent": true,
+        "notify_activity": false
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "chat",
+          "records",
+          "discussion"
+        ]
+      }
+    },
+    "context.assembler": {
+      "config": {
+        "channels": [
+          "context.assembler"
+        ],
+        "system_prompt_channels": [
+          "context.assembler.system_prompt"
+        ],
+        "context_channels": [
+          "context.assembler.context"
+        ],
+        "inputs_channels": [
+          "context.assembler.inputs"
+        ],
+        "tail_channels": [
+          "context.assembler.tail"
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 4,
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ]
+      }
+    },
+    "discussion.session.rev_697d80a33d": {
+      "config": {
+        "rounds": 2,
+        "max_speech_chars": 4000,
+        "max_speeches": 500,
+        "max_runs": 20,
+        "member_channel": [
+          "discussion"
+        ],
+        "channel_modes": {},
+        "activity_timeout_seconds": 86400
+      },
+      "state": {},
+      "access": {
+        "strength": 3,
+        "channels": [
+          "discussion",
+          "discussion.round",
+          "discussion.decision",
+          "discussion.record"
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

@@ -32,7 +32,7 @@ extensions/ 中的模块、数据节点与应用预设通过清单登记，Agent
 
 这些回归文件保留在本地开发目录，由 Git 忽略，不随发布包分发。
 
-tests/test_layer_boundaries.py 检查反向导入；tests/test_jsonrpc_transport.py 离线验证双向回调、关闭、超时与错误；前端 communication.test.js 用注入处理器直接验证传输。模块、信号、事务、上下文和真实客户端测试继续覆盖拆分后的行为。桌面 ZIP 装配包含 communication 和 shared，确保运行包中也有这些入口。
+本地回归检查反向导入、双向通信回调、关闭、超时和错误，并以注入处理器验证前端传输；模块、信号、事务、上下文和客户端检查覆盖分层后的行为。维护测试与运行记录不随源码发行内容和安装包发布。桌面 ZIP 包含 communication 和 shared，确保运行包中也有这些入口。
 
 ## 核心 Agent 节点
 
@@ -40,56 +40,22 @@ tests/test_layer_boundaries.py 检查反向导入；tests/test_jsonrpc_transport
 
 Agent 节点不内置协调者、讨论成员或执行组角色。这些角色由扩展节点配置及提示词装配。纯数据网络可以只创建普通节点和文本节点。
 
-## 扩展包的四类组件
+## 框架组件与应用项目
 
-- `nodes/`：节点配置、Agent 角色配置、提示词与资源。
-- `capabilities/`：工具、内部能力和事件服务的实现。业务 Python/JavaScript 只放这里；可声明模型可调用工具，也可只订阅事件。
-- `toolboxes/`：工具 ID 列表及简短元数据。没有代码、嵌套工具箱或调度逻辑。
-- `network_presets/`：网络拓扑、人数参数、资源引用与使用指南。
+`extensions/development/extension.json` 选择框架通用组件，来源包括 foundation、composable、storage 和 knowledge_base。`component.json` 声明依赖、实现入口和资源；依赖按拓扑顺序加载。可用 `python scripts/components.py list` 检查选择，默认组件根是 `extensions/development`。
 
-`component.json` 声明组件 ID、依赖、启停、资源和入口。能力可通过 `resources` 引用同扩展包里的节点、工具箱或网络预设资源。各工具箱的 `bindings.json` 定义工具 ID 对应的原生工具或扩展工具及授权配置，工具箱仅引用这些 ID。Skill 是能力提供的渐进式指南与授权入口，Agent 预设是节点配置。
+应用网络、业务模块、工具声明、数据及网络预设保存在 `projects/<项目>/`，内置标准教材在 `resources/examples/npc-town/`。宿主通过普通项目加载接口读取它们，不按应用名称注入规则或修补网络。`configs/` 的入口只存项目路径。项目装配使用 v3 模块与 v8 网络；模块经统一 `ctx` 访问数据、局部依赖和按频道可达的对象。
 
-未设置 `DATANET_COMPONENT_ROOT` 时，不加载协作包。启用方式：
+## 执行与上下文
 
-```powershell
-$env:PYTHONPATH = "$PWD/python"
-$env:DATANET_COMPONENT_ROOT = "$PWD/extensions/multi_agent"
-python scripts/components.py list
-```
+核心定义执行协议及 Agent 绑定，Harness 适配器负责真实会话、模型连接、工具注册、取消和事件记录。API key 留在本机加密连接库，节点只保存连接引用；不随网络或 Git 版本发布。框架不包含独立模型执行循环。
 
-`extension.json` 选择组件及来源，依赖按拓扑顺序加载。`profile.json` 保存组件开关，`DATANET_COMPONENT_PROFILE` 可覆盖；明确停用依赖会阻止使用者运行，缺失、循环和版本冲突明确报错。停用能力会撤销其工具执行权限及上下文片段，持久数据保留。
+上下文组装器按四类通道供给系统提示、普通上下文、一次性输入和每次更新的尾部块。文本沿配置频道收集，顺序服从广度遍历；准备操作显式登记在 Agent 执行绑定内。原生会话和核心检查点分别保存，恢复时不自动重复具有副作用的操作或一次性输入。
 
-## 执行器接口
+## 信号与调用
 
-核心 `ExecutionRequest` / `ExecutionResult` 与 `Executor` 协议定义 `run`、`cancel`、`status`、`send`。`ExecutorRegistry` 将 Agent 节点、会话和允许工具显式绑定，拒绝跨节点共享同一执行器会话及未登记工具。绑定可保存后恢复；恢复前应注册执行器并重新装配相应工具实现。
+调用和信号都按频道、边乘数、节点偏置与接口阈值沿网络传播。调用由程序显式发起并把结果返回调用者；信号脱离发起者继续传播，不返回源头。信号广度逐层调度，同层异步并行；下一层依据当前拓扑继续传播。节点汇总模式为求和、最大值、最小值或平均值。锁只保护需要原子性的局部修改，不包住整个 Agent 活动。
 
-可选的 `MinimalExecutor` 接收外部模型客户端；`HTTPModelClient` 接受 OpenAI 风格的 chat-completions 端点，`MockExecutor` 用于离线测试。通过 `DATANET_EXECUTORS=["minimal"]` 挂载其命名空间。它是轻量参考循环，没有 Harness 的压缩、原生沙箱和完整会话管理。取消在模型返回及工具边界检查，无法强制打断任意阻塞的 Python 工具；宿主工具应自带超时或进程终止能力。
+## 预设与共享格式
 
-Harness 路径使用其原生循环。适配器的原生 Agent 句柄通过端口提供 create/run/inspect/steer/cancel 等操作；`adapters/harness/executor.py` 提供同一执行协议的外观，工具应先由原生注册表装配。
-
-## 事件与宿主边界
-
-| Harness 原生事件 | 通用事件或操作 |
-|---|---|
-| `agent/created` | 建立宿主连接，发出 `session/root`；扩展决定根网络和角色装配 |
-| `agent/prepare-context` | `context/prepare` |
-| `agent/request-tail` | `context/admitted` 与 `context/tail` |
-| `agent/pre-step`、`agent/request` | 同名事件转发 |
-| `tools/pre-execute`、`tools/result` | 执行许可检查、`tool/native-before` 与 `tool/result` |
-| `agent/status`、`agent/error`、`agent/turn-stopping` | 同名事件转发 |
-| `agent/inbox/discarded` | `message/discarded` |
-| `agent/request-error` | 由可选 `response_recovery` 能力通过原生扩展入口订阅 |
-
-适配器不选择协调策略或排障策略。`component-extension` 是通用原生扩展装配端口；纠错重试次数、终端执行上限、结束后清理等策略由能力拥有。扩展目录由 `extensionRoot` 显式传入；顶层协作插件入口选择 multi-agent 包，通用适配器默认不加载业务包。
-
-## 上下文与持久化
-
-固定职责进入原生系统提示；通道指南按需进入普通历史，压缩后按需再加载。工具采用 Harness 动态注册与 addition-only 定义，停用时拒绝执行。公共笔记及短状态仅进入请求尾部；查询文本按需读取。这些策略的业务触发条件由相应能力订阅事件实现。
-
-图结构、节点资源与扩展状态由 Python 检查点保存；Harness 保存原生会话事件。可选执行器把自身历史保存到执行器目录。进程内运行不能任意时刻完整快照：恢复后如何处理未完成委托由队列能力决定，框架不会无条件重放具有副作用的操作。
-
-历史组件机制保留；新项目使用 v3 模块和 v8 网络格式，应用迁移由宿主显式执行并先备份。
-
-## 核心信号
-
-接口统一为目标和元数据，信号携带不可变频道、内容与节点处理条件，按广度分层并行执行。核心PulseNode利用显式闭环和完成屏障产生有限轮次，不包含应用调度知识。当前网络序列化版本为 v8。API、通知语义、恢复和验证见[核心信号说明](CORE_SIGNALS.md)。
+预设的重复单元展开在核心完成；实例化的数据路径、prepare、工具来源及 Schema 中显式节点引用由 `shared/graph/subnets.js` 映射。客户端拖入和制作 Agent 的 `instantiate_preset` 使用同一实现。公共纯函数不依赖 DOM、文件系统或宿主运行时。

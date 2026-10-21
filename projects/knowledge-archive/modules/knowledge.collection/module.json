@@ -1,0 +1,162 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "knowledge.collection",
+  "name": "独立知识集合",
+  "version": "3.0.0",
+  "entry": "module.py:execute",
+  "description": "一个集合一个节点，保持其CSV、SQLite、RAG或Wiki类型、来源引用及读取入口。",
+  "node_types": [
+    "node"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "collection": {
+        "type": "string"
+      },
+      "storage": {
+        "enum": [
+          "csv",
+          "sqlite",
+          "rag",
+          "wiki"
+        ]
+      }
+    },
+    "required": [
+      "collection",
+      "storage"
+    ],
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "collection",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "store",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "fetch",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "search",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "update",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "delete",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "export",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "commit_intake",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "index",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "query",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    },
+    {
+      "name": "wiki",
+      "channels": [
+        "knowledge"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": true
+      },
+      "result": {}
+    }
+  ],
+  "agent_tools": [],
+  "signals": []
+}

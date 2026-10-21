@@ -187,6 +187,7 @@ class Studio:
             from datanet.core.network import Network
             graph=Network()
             write_json(folder/'network.json',dict(network=network_document(graph,folder),files={}))
+            write_json(folder/'runtime.json',dict(templates=[]))
             (folder/'README.md').write_text('# 网络预设\n\n说明网络用途、配置和使用步骤。\n',encoding='utf-8')
         elif kind=='tool':
             spec=read_json(folder/'module.json',{});spec['agent_tools']=[dict(id='increment',name='计数',description='增加计数并返回结果。',operation='increment')]
@@ -224,7 +225,8 @@ class Studio:
                 if f.is_file() and f.suffix in TEXT:
                     if not f.resolve().is_relative_to(folder.resolve()) or f.stat().st_size>1024*1024:raise ValueError('参考资料越界或超过1MiB')
                     references[f.relative_to(folder).as_posix()]=f.read_text(encoding='utf-8')
-        return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files),**{k:read_json(folder/'workspace.json',{}).get(k,default) for k,default in [('display_folder',None),('kind','module'),('origin',None)]})
+        metadata=read_json(folder/'workspace.json',{})
+        return dict(id=p['id'],directory=str(folder),files=owned,original=split_files(original)[0],references=references,digest=digest(files),identity=dict(module_id=metadata['branch_module'],immutable=True) if metadata.get('immutable_revision') and metadata.get('branch_module') else None,**{k:metadata.get(k,default) for k,default in [('display_folder',None),('kind','module'),('origin',None)]})
     def dependencies(self,p):
         folder=self.folder(p['id']);catalog=read_json(folder/'dependencies/catalog.json',[])
         known={item['id']:item for item in catalog}
@@ -241,13 +243,14 @@ class Studio:
         """制作模型的文件能力只指向当前副本，不提供终端或任意路径。"""
         folder=self.folder(p['id']);name=p['tool'];args=p.get('arguments',{})
         if name=='list_files':
-            data=self.read(p);return dict(files=list(data['files']),references=list(data['references']))
+            from .discovery import list_files
+            return list_files(self.read(p),args)
         if name=='read_file':
             path=self.path(p['id'],args['path'])
             if path.name=='workspace.json':raise PermissionError('宿主制作资料不作为组件文件')
             if path.stat().st_size>1024*1024:raise ValueError('文件超过 1 MiB')
-            text=path.read_text(encoding='utf-8');lines=text.splitlines();start=max(0,args.get('start_line',1)-1);count=min(400,max(1,args.get('line_count',200)))
-            return dict(path=args['path'],total_lines=len(lines),text='\n'.join(lines[start:start+count]))
+            from .text_pages import text_page
+            return dict(path=args['path'],**text_page(path.read_text(encoding='utf-8'),args))
         if name in ('write_file','edit_file'):
             path=self.path(p['id'],args['path']);old=path.read_text(encoding='utf-8') if path.exists() else ''
             content=args['content'] if name=='write_file' else old.replace(args['old'],args['new'],1)
@@ -255,13 +258,26 @@ class Studio:
             value=self.save(dict(id=p['id'],file=args['path'],content=content,expected=sha256(old.encode()).hexdigest()))
             return dict(saved=args['path'],digest=value['digest'])
         if name=='catalog_modules':
-            query=args.get('query','').lower();hidden=set(p.get('hidden',[]));result=[]
-            for id,release in self.catalog()['library'].items():
-                spec=release['manifest']
-                if id in hidden or query and query not in json.dumps(spec,ensure_ascii=False).lower():continue
-                details=dict(config_schema=spec['config_schema'],state_schema=spec['state_schema']) if args.get('details') or query==id.lower() else {}
-                result.append(dict(id=id,name=release['name'],description=spec.get('description',''),node_types=spec['node_types'],requires=spec['requires'],operations=spec['operations'],agent_tools=spec.get('agent_tools',[]),defaults=release.get('mount_defaults',{}),frontend=bool(spec.get('frontend')),**details))
-            return dict(modules=result[:30],total=len(result))
+            from .discovery import catalog_modules
+            return catalog_modules(self.catalog()['library'],args,p.get('hidden',[]))
+        if name=='catalog_ports':
+            query=args.get('query','').lower();rows=[]
+            scoped=getattr(self.backend,'network_administrator',None)
+            visible=scoped.source(p['id'])['network']['nodes'] if scoped and scoped.has(p['id']) else None
+            for port in self.backend.external_tools.catalog():
+                if query and query not in (port['ref']+' '+port['description']).lower():continue
+                offers=([dict(node=n['node_id'],channels=o['channels']) for n in visible for o in n['offered_tools'] if o['ref']==port['ref']]
+                        if visible is not None else [dict(node=n.node_id,channels=o['channels']) for n in self.backend.network.nodes.values() for o in n.offered_tools if o['ref']==port['ref']])
+                row={key:port[key] for key in ('ref','description')}
+                row.update(offered_count=len(offers),offers=offers[:12])
+                if args.get('details') or query==port['ref'].lower():
+                    row['parameters']=port['parameters']
+                    contract=getattr(self.backend,'port_contracts',{}).get(port['ref'])
+                    if contract:row['result_contract']=contract
+                rows.append(row)
+            from .discovery import page
+            offset,limit=page(args,30)
+            return dict(ports=rows[offset:offset+limit],total=len(rows),next_offset=offset+limit if offset+limit<len(rows) else None,hint='节点用 offered_tools 提供 ref/channels；模块通过 ctx.network.invoke 调用。没有端口时不能以直接访问宿主替代。')
         if name=='network_patch':
             if read_json(folder/'workspace.json',{}).get('kind')!='network':raise ValueError('只有网络制作副本可分批合并网络')
             file=folder/'network.json';old=file.read_text(encoding='utf-8');document=json.loads(old)
@@ -312,7 +328,12 @@ class Studio:
         validate_network(document,self.backend,self.library)
         old=(folder/'network.json').read_text(encoding='utf-8')
         self.save(dict(id=p['id'],file='network.json',content=json.dumps(document,ensure_ascii=False,indent=2),expected=sha256(old.encode()).hexdigest()))
-        return dict(copied=True,file='network.json',nodes=len(document['network']['nodes']))
+        templates=self.backend.template_definitions() if hasattr(self.backend,'template_definitions') and not (scoped and scoped.has(p['id'])) else []
+        file=folder/'runtime.json';old=file.read_text(encoding='utf-8') if file.exists() else ''
+        self.save(dict(id=p['id'],file='runtime.json',content=json.dumps(dict(templates=templates),ensure_ascii=False,indent=2),expected=sha256(old.encode()).hexdigest()))
+        return dict(copied=True,file='network.json',nodes=len(document['network']['nodes']),runtime_file='runtime.json',templates=len(templates))
+    def runtime_settings(self,p):
+        return dict(templates=self.backend.template_definitions() if hasattr(self.backend,'template_definitions') else [])
     def project_modules(self,p):
         from .project_sources import load
         return load(self)
@@ -335,6 +356,9 @@ class Studio:
         if p.get('expected')!=sha256(current.encode()).hexdigest():raise ValueError('File changed outside the editor; reload before saving')
         content=p['content']
         if not isinstance(content,str) or len(content.encode())>1024*1024:raise ValueError('Source exceeds 1 MiB')
+        metadata=read_json(self.folder(p['id'])/'workspace.json',{})
+        if relative=='module.json' and metadata.get('immutable_revision') and json.loads(content).get('id')!=metadata['branch_module']:
+            raise ValueError('宿主已固定修订模块 ID 为 '+metadata['branch_module']+'，请保留此 ID')
         path.parent.mkdir(parents=True,exist_ok=True);temporary=path.with_suffix(path.suffix+'.tmp');temporary.write_text(content,encoding='utf-8');temporary.replace(path)
         return self.read(p)
     def _idle_work(self,id):
@@ -364,6 +388,24 @@ class Studio:
         for name in GUIDES:(folder/name).write_text((SKILL_GUIDES/name).read_text(encoding='utf-8'),encoding='utf-8')
         for directory in SKILL_LESSONS:shutil.copytree(directory,folder/'lessons',dirs_exist_ok=True)
         shutil.copyfile(PROJECT/'adapters/harness/studio/skills/inspect-network/references/测试环境.md',folder/'lessons/07-environment.md')
+    def append_requirement(self,p):
+        """Trusted maker host appends requirements; authors retain read-only references."""
+        update=p.get('update',{})
+        text=update.get('text') if isinstance(update,dict) else None
+        if not isinstance(text,str) or not text.strip() or len(text)>16000:raise ValueError('追加要求为1至16000字符')
+        if update.get('id')!=sha256(text.encode()).hexdigest():raise ValueError('追加要求摘要不匹配')
+        if not isinstance(update.get('source'),str) or not re.fullmatch(r'[a-zA-Z0-9_-]{1,80}',update['source']):raise ValueError('追加要求来源无效')
+        path=self.path(p['id'],'reference/追加要求.json')
+        with self.lock:
+            document=read_json(path,dict(format='nexarbor-maker-requirements/v1',updates=[]))
+            if document.get('format')!='nexarbor-maker-requirements/v1' or not isinstance(document.get('updates'),list):raise ValueError('追加要求参考文件格式不符')
+            if any(row['id']==update['id'] for row in document['updates']):return dict(reference='reference/追加要求.json',duplicate=True)
+            if len(document['updates'])>=32:raise ValueError('每个工作副本最多保留32条追加要求')
+            document['updates'].append({key:update[key] for key in ['id','source','text','received']})
+            if len(json.dumps(document,ensure_ascii=False).encode())>512*1024:raise ValueError('追加要求总计超过512KiB')
+            write_json(path,document)
+        return dict(reference='reference/追加要求.json',count=len(document['updates']))
+
     def prepare_agent(self,p):
         """新任务使用当前规范；历史指纹由原生会话适配器核对。"""
         self._write_guides(self.folder(p['id']))
@@ -396,7 +438,7 @@ class Studio:
         for name,content in files.items():
             path=snapshot/name;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(content,encoding='utf-8')
         timeout=p.get('timeout',30)
-        if type(timeout) is not int or not 1<=timeout<=60:raise ValueError('Validation timeout must be 1–60 seconds')
+        if type(timeout) is not int or not 1<=timeout<=86400:raise ValueError('Validation timeout must be 1–86400 seconds')
         def run():
             env=dict(os.environ,PYTHONUNBUFFERED='1',PYTHONUTF8='1',PYTHONPATH=os.pathsep.join([str(PROJECT/'python'),str(Path(__file__).resolve().parents[2]),str(PROJECT/'extensions/foundation/capabilities/module_sdk/python')]),TEMP=str(self.root/'temp'),TMP=str(self.root/'temp'))
             Path(env['TEMP']).mkdir(exist_ok=True)
@@ -406,17 +448,27 @@ class Studio:
                     from .preset_work import check
                     result=check(snapshot,self.library)
                     job.update(status='passed',exit_code=0,log='PASS：复用已发布组件的配置方案、配置Schema；配置数量：'+str(len(result['presets']))+'。行为验证另看独立网络副本。');log_path.write_text(job['log'],encoding='utf-8');return
-                if read_json(folder/'workspace.json',{}).get('kind')=='network':
+                kind=read_json(folder/'workspace.json',{}).get('kind','module')
+                worker='datanet.studio.worker'
+                if kind=='network':
                     from .network_work import check_work
                     result=check_work(snapshot,self.backend,self.library,workspace=p['id'])
-                    job.update(status='passed',exit_code=0,log='PASS：当前成品格式、路径、节点、递归依赖、工具引用、配置与状态；节点数：'+str(result['nodes']))
-                    log_path.write_text(job['log'],encoding='utf-8');return
+                    job['warnings']=result.get('warnings',[])
+                    worker='datanet.studio.network_worker'
+                from .environment import prepare
+                fixture=prepare(self,dict(id=p['id'],source='candidate' if kind=='network' else 'current'),folder=snapshot,activate=False)
+                if kind=='network' and result.get('outputs'):
+                    views={item['file']:str(prepare(self,dict(id=p['id'],source='candidate',network_file=item['file']),folder=snapshot,activate=False)) for item in result['outputs']}
+                    setup=read_json(fixture/'setup.json',{});setup['views']=views;write_json(fixture/'setup.json',setup)
+                    job['outputs']=[dict(name=item['name'],file=item['file'],nodes=len(item['document']['network']['nodes'])) for item in result['outputs']]
+                env.update(DATANET_TEST_ENVIRONMENT=str(fixture),DATANET_PROJECT_RESOURCES_ONLY='0',DATANET_PROJECT_DIRECTORY=str(fixture/'runtime'))
                 with self.lock:
                     if job['status']!='running' or getattr(self,'closed',False):return
                     sample=read_json(self.root/'metadata'/f'{p["id"]}.json',{}).get('sample','blank')
-                    env['DATANET_TEST_MODULES']=json.dumps({name:str(self.root/release['folder']) for name,release in self.library.items()})
+                    test_library=read_json(fixture/'runtime/studio/library.json',{})
+                    env['DATANET_TEST_MODULES']=json.dumps({name:str(fixture/'runtime/studio'/release['folder']) for name,release in test_library.items()})
                     env['DATANET_MAKER_KIND']=read_json(folder/'workspace.json',{}).get('kind','module')
-                    proc=subprocess.Popen([sys.executable,'-m','datanet.studio.worker',str(snapshot),sample],cwd=PROJECT,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
+                    proc=subprocess.Popen([sys.executable,'-m',worker,str(snapshot),sample],cwd=PROJECT,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,
                         creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
                     self.processes[id]=proc
                 tail=bytearray()
@@ -435,7 +487,9 @@ class Studio:
                 job['log']=bytes(tail).decode('utf-8',errors='replace');log_path.write_text(job['log'],encoding='utf-8')
                 if job['status']=='running':job['status']='passed' if code==0 else 'failed'
                 job['exit_code']=code
-            except Exception as error:job.update(status='failed',log=str(error))
+            except Exception as error:
+                from .diagnostics import error_message
+                job.update(status='failed',log=error_message(error))
             finally:
                 self.processes.pop(id,None);job['finished']=time.time()
         self.pool.submit(run);return job.copy()
@@ -461,7 +515,8 @@ class Studio:
             return dict(kind='component-presets',workspace=p['id'],**check(folder,self.library))
         if metadata.get('kind')=='network':
             from .network_work import check_work
-            return dict(kind='network',id=p['id'],document=check_work(folder,self.backend,self.library)['document'],name=p.get('name') or metadata['label'],display_folder=metadata.get('display_folder'),digest=fingerprint)
+            result=check_work(folder,self.backend,self.library)
+            return dict(kind='network',id=p['id'],document=result['document'],runtime=result['runtime'],outputs=result['outputs'],name=p.get('name') or metadata['label'],display_folder=metadata.get('display_folder'),digest=fingerprint)
         spec=json.loads(files['module.json']);name=spec['id']
         if metadata.get('immutable_revision'):
             if metadata.get('branch_module')!=name:raise ValueError('修改分支的模块ID不可更换，请保留宿主分配的修订ID')
@@ -663,5 +718,6 @@ def register(services):
         b.studio._load_releases()
         b.studio.persist_library()
     services.restorers.append(restore)
-    methods={'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'observe':False,'copy_current':False,'release_read':False,'fork':False,'revision':False,'project_modules':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'frontend_preview':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods={'append_requirement':False,'catalog':False,'prepare_agent':False,'create':False,'read':False,'dependencies':False,'maker_tool':False,'maker_scope':False,'environment':False,'observe':False,'copy_current':False,'release_read':False,'fork':False,'revision':False,'project_modules':False,'save':False,'delete_file':False,'delete_workspace':False,'release_delete_info':False,'delete_release':True,'frontend':False,'frontend_preview':False,'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,'unmount':True,'town':True,'pulse':True,'reconcile':True,'state':False,'draft':False,'apply':True,'view':False,'graph_validate':False}
+    methods['runtime_settings']=False
     for name,mutation in methods.items():services.rpc('studio_'+name,lambda b,p,name=name:getattr(b.studio,name)(p),mutation=mutation)

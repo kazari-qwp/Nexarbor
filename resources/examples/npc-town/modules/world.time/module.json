@@ -1,0 +1,111 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "world.time",
+  "name": "小镇时间更新器",
+  "description": "接收 tick 更新本节点文本，公开原始总 tick、天数和时段。",
+  "version": "1.0.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "text_file"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "initial_tick": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0
+      },
+      "labels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": [
+          "早上",
+          "中午",
+          "下午",
+          "傍晚",
+          "午夜"
+        ],
+        "minItems": 1
+      },
+      "text_template": {
+        "type": "string",
+        "default": "当前时间：第{day}天 {slot}（总 tick：{tick}）"
+      },
+      "signal_channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": [
+          "tick"
+        ],
+        "uniqueItems": true,
+        "title": "接收频道"
+      },
+      "channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": [
+          "time"
+        ],
+        "uniqueItems": true,
+        "title": "时间查询频道"
+      },
+      "channel_modes": {
+        "type": "object",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "tick": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "seen": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "read",
+      "channels": {
+        "config": "channels"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": {
+    "config": "signal_channels"
+  },
+  "agent_tools": []
+}

@@ -3,13 +3,24 @@ from .access_request import AccessRequest
 from .json_values import thaw
 from .module_values import json_copy
 
-QUERY_OPERATIONS=frozenset(('nodes','module_endpoints','metadata','edges','tools','visit','tool_sources'))
+QUERY_OPERATIONS=frozenset(('nodes','module_endpoints','metadata','edges','tools','visit','tool_sources','node_read'))
 
 def query_request(runtime,key,operation,p):
     network=runtime.backend.network
     frame=runtime._scope(key)
+    if operation == 'nodes' and p.get('reuse') and frame.get('nodes_request') is not None:
+        return frame['nodes_request']
     p = dict(p); p['strength'],p['channels'] = runtime._budget(key,p)
     async def query():
+        if operation == 'nodes':
+            from .module_nodes import ReachedNode, ReachedNodes
+            strength, channels = p['strength'], p['channels']
+            reached = list(network.walk_states(key[0], strength=strength, channels=channels))
+            by_node = {}
+            for (owner, name), instance in runtime.instances.items():
+                by_node.setdefault(owner, []).append((name, instance))
+            return ReachedNodes(ReachedNode(runtime, key, node, path, left, channels, by_node.get(node.node_id, ()))
+                                for node, path, left in reached)
         while True:
             strength, channels = runtime._budget(key,p)
             reached = list(network.walk_states(key[0],strength=strength,channels=channels))
@@ -33,11 +44,8 @@ def query_request(runtime,key,operation,p):
                                     except PermissionError:continue
                                 if available:result.append(dict(node_id=owner,module=name,operations=available))
                         return result
-                    if operation == 'nodes':
-                        current = list(network.walk_states(key[0],strength=strength,channels=channels))
-                        if {n.node_id for n,_,_ in current} != set(targets): continue
-                        return [dict(metadata=json_copy(n.get_metadata()),path=path,strength=left) for n,path,left in current]
                     target,path,left = runtime._route(key,p['target'],strength,channels)
+                    if operation == 'node_read': return json_copy(target.read(json_copy(p['request'])))
                     if operation == 'metadata': return json_copy(target.get_metadata())
                     if operation == 'edges': return [json_copy(edge) for edge in network.routing_snapshot()[1][p['target']]]
                     if operation == 'tool_sources': return runtime._tool_sources(key[0],p['target'],strength=strength,channels=channels)
@@ -47,6 +55,7 @@ def query_request(runtime,key,operation,p):
                             tools=offers.visit(key[0],target.node_id,strength=strength,channels=channels) if offers else [])
                     return query_tools(runtime,key,p['target'],strength,channels)
     request = AccessRequest(query());frame['children'].append(request)
+    if operation == 'nodes' and p.get('reuse'): frame['nodes_request'] = request
     return request
 def query_tools(runtime,key,target_id,strength,channels):
     target, _, _ = runtime._route(key, target_id, strength, channels)

@@ -27,6 +27,14 @@ export class NativePositions{
     await onDiverged?.();const id=await this.fork(cursor);
     return {cursor:await this.captureStored(id),reused:false};
   }
+  async rollback(cursor,current){
+    // Business transactions never run the model or replace a session. A model
+    // already in flight may append events while its node data is locked. Keep
+    // that independent progress rather than cancelling it to rewind the log.
+    await this.read(cursor);
+    if(current&&current.id!==cursor.session_id)throw Error('Agent session changed during transaction rollback');
+    return {cursor:current?await this.capture(current,{allowPending:true}):await this.captureStored(cursor.session_id),reused:true};
+  }
   async capture(session,{allowPending=false}={}){
     const persistence=this.ctx.get('sessionPersistence');
     if(!persistence)throw new Error('Native session persistence is not mounted');

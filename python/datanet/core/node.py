@@ -15,7 +15,7 @@ class NodeResult:
 class Node:
     signal_type = 'node'
 
-    def __init__(self, node_id: str, name: str, data_kind: str | None, *, description: str='', divergence: int=-1):
+    def __init__(self, node_id: str, name: str, data_kind: str | None, *, description: str='', divergence: int=-1, aggregation: str='sum'):
         if not isinstance(description, str):
             raise TypeError('description 必须是字符串')
         self.node_id = node_id
@@ -23,6 +23,7 @@ class Node:
         self.data_kind = data_kind
         self.description = description
         self.divergence = divergence
+        self.aggregation = aggregation
         self.module_strength = 0
         self.agent: Any = None
         self.agent_config: dict | None = None
@@ -92,6 +93,14 @@ class Node:
         self._module_strength=validate_strength(value)
 
     @property
+    def aggregation(self): return self._aggregation
+
+    @aggregation.setter
+    def aggregation(self, value):
+        from .aggregation import validate_aggregation
+        self._aggregation = validate_aggregation(value)
+
+    @property
     def divergence(self):
         return self._divergence
 
@@ -106,7 +115,7 @@ class Node:
         return self.get_schema()
 
     def standard_metadata(self) -> dict:
-        return {'node_id': self.node_id, 'management_parent_id': self.management_parent_id, 'name': self.name, 'node_type': self.signal_type, 'data_kind': self.data_kind, 'description': self.description, 'divergence': self.divergence, 'has_agent': self.agent is not None}
+        return {'node_id': self.node_id, 'management_parent_id': self.management_parent_id, 'name': self.name, 'node_type': self.signal_type, 'data_kind': self.data_kind, 'description': self.description, 'divergence': self.divergence, 'aggregation': self.aggregation, 'has_agent': self.agent is not None}
 
     def get_metadata(self) -> dict:
         registry = getattr(self, '_metadata_registry', None)

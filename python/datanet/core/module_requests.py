@@ -15,10 +15,10 @@ def dispatch_request(runtime,key,operation,p):
     if operation=='call_path':return json_copy(frame['call_path'])
     if operation=='resolve_channels':
         from .channel_filters import resolve
-        return [c for c in resolve(p['values'],p['mode'],network.channel_names()) if c in frame['channels']]
+        return [c for c in resolve(p['values'],p['mode'],network.channel_names() if p['mode']=='deny' else ()) if c in frame['channels']]
     if operation=='filter_channels':
         from .channel_filters import resolve
-        field=p['field'];selected=resolve(instance.config.get(field,p['default']),instance.config.get('channel_modes',{}).get(field,'allow'),network.channel_names())
+        field=p['field'];mode=instance.config.get('channel_modes',{}).get(field,'allow');selected=resolve(instance.config.get(field,p['default']),mode,network.channel_names() if mode=='deny' else ())
         return [c for c in selected if c in frame['channels']]
     if operation=='local_call':
         local=p.get('target')
@@ -30,7 +30,7 @@ def dispatch_request(runtime,key,operation,p):
         if not network.same_family(key[0],local):raise PermissionError('本地调用只能访问同一归属树')
         target_key=(local,p['module']);callee=runtime._check(target_key)
         if p['operation'] not in callee.operations:raise PermissionError('本地模块未声明该操作')
-        if frame['trace']['calls']>=1000 or time.monotonic()>=frame['trace']['deadline']:raise RuntimeError('Access request resource budget exhausted')
+        if frame['trace']['calls']>=frame['trace'].get('max_calls',1000) or time.monotonic()>=frame['trace']['deadline']:raise RuntimeError('Access request resource budget exhausted')
         frame['trace']['calls']+=1
         request=AccessRequest(runtime._run(target_key,callee.operations[p['operation']][0],**json_copy(p['arguments'])))
         frame['children'].append(request);return request
@@ -192,7 +192,7 @@ def dispatch_request(runtime,key,operation,p):
                 runtime._scope(key)
                 return json_copy(result)
         trace = frame['trace']
-        if trace['calls'] >= 1000 or time.monotonic() >= trace['deadline']:
+        if trace['calls'] >= trace.get('max_calls',1000) or time.monotonic() >= trace['deadline']:
             raise RuntimeError('Access request resource budget exhausted')
         trace['calls'] += 1
         task = AccessRequest(invoke())

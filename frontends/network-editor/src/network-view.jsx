@@ -1,12 +1,14 @@
 import React,{useEffect,useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import ELK from 'elkjs/lib/elk.bundled.js';
+import {edgeColors,sourceColor} from './graph-appearance.js';
 import {placeNetwork} from './network-view-layout.js';
 import {NetworkNode} from './network-node.jsx';
 import {nodeKind} from './model.js';
 import {roundedRoute,circularEndpoint} from './routing.js';
 import {planRegions,visibleRefs,completeRefs,regionAnchors} from './network-view-regions.js';
 import './style.css';
+import './compact-nodes.css';
 import './network-view.css';
 const elk=new ELK();
 let routeWorker,routeSerial=0;
@@ -33,8 +35,8 @@ function edgeLabel(edge,scene){
  const text=[id,channels].filter(Boolean).join(' · ');return text.length>66?text.slice(0,65)+'…':text;
 }
 const labelWidth=text=>[...text].reduce((sum,c)=>sum+(c.charCodeAt(0)>255?12:7),12);
-const edgeColors=['#36cfff','#ffb72e','#ba8cff','#3ce79e','#ff6eae','#daef48','#ff795b','#7bafff'];
-function edgeColor(edge){return edge.ownership?'#d08fff':edgeColors[(Number(edge.source.slice(1))||0)%edgeColors.length];}
+
+function edgeColor(edge){return edge.ownership?'#d08fff':sourceColor(edge.source);}
 async function layoutScene(scene){
  const nodes=await placeNetwork(scene,elk),byId=new Map(nodes.map(n=>[n.ref,n]));
  const links=[...scene.edges.map(e=>({...e,label:edgeLabel(e,scene)})),...scene.ownership.map(e=>({...e,ownership:true,label:''}))];

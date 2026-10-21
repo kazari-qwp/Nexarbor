@@ -1,27 +1,19 @@
 # 上下文组装器
 
-通用普通模块，可装在节点或亚节点上。推荐给角色挂一个亚节点，装 context.assembler，保留独立的出边。角色不用再向每份文本拉线，也不用添加到组装器的业务边。
+`context.assembler` 是普通模块，可装在节点或亚节点上。需要独立资料出边时放在亚节点；没有独立出边需求时直接装在本节点。角色通过 execution.prepare 显式调用 assemble，由执行适配器更新四路输入。
 
-角色执行设置示例：
-```json
-{"executor":"harness","strength":2,"channels":[],"prepare":[{"node":"角色的上下文亚节点","module":"context.assembler","operation":"assemble","arguments":{}}]}
-```
+四类频道默认是 context.assembler.system_prompt、.context、.inputs、.tail。每种独立遍历，可配置频道列表及黑白名单。沿对应频道可达的普通文本节点无条件纳入，不要求 context.text，不再支持 when、bindings 或 order 过滤排序。动态状态由业务模块增删资料连接表达。
 
-同一归属树的 prepare 走核心本地调用，不消耗寻路强度或要求频道。普通外部节点仍按可达性访问。组装器自己的读取范围由它的模块强度和授权决定。返回 nexarbor-context/v1 包，由执行适配器更新四路输入，不直接写其他角色的数据。
+## 来源与顺序
 
-## 来源与频道
+1. sources 中的直接文本（type:text）或文件（type:file）按配置列表顺序纳入。
+2. 各类频道各遍历一次，直接通过返回的节点对象读取正文，保留去重广度顺序；用连接层次控制先后，不逐节点重新寻路。
+3. 沿 channels（默认 context.assembler）找到的下游组装器按广度顺序逐个合并自己的来源。调用 collect，不递归提前插入深层来源；来源按类型与稳定 ID 去重，各实例使用自己的装配授权。
 
-- 文本节点装 context.text，按 `context.assembler.system_prompt`、`.context`、`.inputs`、`.tail` 四类频道分别接线。每类独立遍历，不能借业务频道混合扩散。每个字段可改为频道列表，界面使用加号和条目，并能切换黑白名单。
-- 直接文本在 sources 填稳定 id、kind、type:text、text。
-- 文件在 sources 填 type:file、path；相对当前项目目录，每次读取 UTF-8。默认不能越出项目，document_roots 可显式授予额外目录。越界、缺失、非 UTF-8 或超过 1 MiB 均报告来源错误。需要示例配置的 read_text 扩展授权，仅原样官方组件提供这个端口。
-- `channels` 默认 `["context.assembler"]`，沿此频道找到其他组装器并合并结果。调用链停止环路，来源按稳定 ID 去重；递归调用转交剩余强度，不重置预算。
+文件路径相对当前项目，每次读 UTF-8；document_roots 可显式允许额外目录。需要官方 read_text 扩展；越界、缺失、编码或大小错误列入来源错误。来源必须有稳定 id 和 kind，具体 Schema 见 module.json。
 
-## 条件与输入语义
+system_prompt 是系统快照，context 是正文变化时更新的资料，tail 每次重读。inputs 是一次性事件：普通文本默认按来源投递一次，直接来源可指定 event_id 和 followup/steer。相同事件身份不重放；新的事件使用新的身份。
 
-when 是等值条件，支持 JSON Pointer。默认事实为本容器元数据；bindings 可显式调用模块只读操作，把结果对象合入事实。`node:"$parent"` 能读取当前父对象，如 records.store.read 的 /values，不硬编码人物编号。本地调用免连线，外部事实来源必须可达且有授权。
+prepare 可以引用本节点或同一归属树内的组装器，不要求普通业务边；外部节点仍须可达。组装器自身读取沿自己的强度和频道授权。预览与 assemble 同源，只读展示四路结果、来源及错误，不消费事件。
 
-system_prompt 是当前系统快照，context 是正文变化才更新的资料，tail 每次请求读取当前文本。inputs 是一次性事件，必须有稳定 event_id；相同事件不重放，同 ID 改正文拒绝。来源按 order、id、kind 排序。输入 ID 包含来源，避免不同组装器的同名事件相互覆盖。
-
-工作台“装配预览”使用草稿配置与当前已校验的连线，展示四路成品、来源、路径、匹配结果和错误。预览只读，不投递事件。移除 prepare 后撤下旧快照，保留历史对话与事件交付回执。
-
-组装器不包含 NPC、时间、地图或私人记忆逻辑。时钟输出是 clock.counter 可配置的普通文本，按 tail 频道接入；记忆、场景查询各用独立模块。教材：docs/CONTEXT_ASSEMBLER_CASE_STUDY.md；核心归属机制：docs/SUBNODES.md。
+组装器不管理记忆、地图、活动或时间。小镇的 world.time 只更新本节点时间正文，组装器沿 tail 读取它；怀孕和育儿文本由业务模块调整连接。完整样板：<安装目录>/resources/examples/npc-town/。

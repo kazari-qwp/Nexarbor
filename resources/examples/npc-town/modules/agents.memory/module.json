@@ -1,0 +1,164 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "agents.memory",
+  "version": "1.0.0",
+  "name": "私人记忆",
+  "description": "仅按明确请求写入与检索本角色的私人记忆，不装配提示词或场景。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "max_memories": {
+        "type": "integer",
+        "title": "最多保留记忆条数",
+        "minimum": 1,
+        "default": 100
+      }
+    },
+    "required": []
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "memories": {
+        "type": "array",
+        "maxItems": 10000,
+        "title": "私人记忆",
+        "description": "仅属于本角色的有限记忆列表。",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "text": {
+              "type": "string",
+              "maxLength": 4000,
+              "title": "记忆内容"
+            },
+            "key": {
+              "type": "string",
+              "title": "记忆键"
+            }
+          },
+          "required": [
+            "text"
+          ]
+        }
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "remember",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000,
+            "title": "记忆内容",
+            "description": "要记住的内容，不能为空，最多 4000 个字符。"
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "title": "记忆键",
+            "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。"
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "memories": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "duplicate",
+          "memories",
+          "count"
+        ]
+      }
+    },
+    {
+      "name": "recall",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string",
+            "default": "",
+            "title": "查询词",
+            "description": "按子串匹配自己的记忆，留空返回全部记忆。"
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "memories": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "count": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query",
+          "memories",
+          "count"
+        ]
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "remember",
+      "name": "记住",
+      "description": "把一段个人经历或知识写入自己的私人记忆。",
+      "operation": "remember"
+    },
+    {
+      "id": "recall",
+      "name": "回忆",
+      "description": "按关键词子串检索自己的私人记忆。",
+      "operation": "recall"
+    }
+  ]
+}

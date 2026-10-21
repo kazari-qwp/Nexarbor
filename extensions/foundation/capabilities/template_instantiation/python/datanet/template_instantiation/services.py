@@ -13,26 +13,39 @@ def remap(value,schema,ids):
     if isinstance(value,dict):return {k:remap(v,schema.get('properties',{}).get(k,schema.get('additionalProperties',{}) if isinstance(schema.get('additionalProperties'),dict) else {}),ids) for k,v in value.items()}
     return value
 
+def checked_templates(items,node_ids):
+    """Validate the declaration without mutating a live template registry."""
+    if not isinstance(items,list):raise ValueError('templates 必须为列表')
+    pending={}
+    for item in items:
+        if not isinstance(item,dict) or set(item)!={'id','callers','document','arguments_schema','bindings','attachments'}:raise ValueError('模板字段不完整')
+        if not re.fullmatch('[a-zA-Z0-9_.-]{1,80}',item['id']) or item['id'] in pending:raise ValueError('模板编号无效或重复')
+        if not isinstance(item['callers'],list) or not item['callers'] or any(not isinstance(c,str) or c not in node_ids for c in item['callers']):raise ValueError('模板调用节点必须为已存在节点的非空列表')
+        if not isinstance(item['document'],dict) or set(item['document'])!={'network','files'}:raise ValueError('模板 document 必须为 {network,files}')
+        if not isinstance(item['document']['network'].get('nodes'),list):raise ValueError('模板 nodes 必须为列表')
+        if not 1<=len(item['document']['network']['nodes'])<=16:raise ValueError('模板节点数为1–16')
+        if item['document']['network']['signals'] or item['document']['network']['delegations']:raise ValueError('模板不能包含运行中的信号或委托许可')
+        Draft202012Validator.check_schema(item['arguments_schema'])
+        if item['arguments_schema'].get('type')!='object':raise ValueError('模板参数 Schema 必须为 object')
+        if not isinstance(item['bindings'],list) or not isinstance(item['attachments'],list):raise ValueError('bindings 和 attachments 必须为列表')
+        for binding in item['bindings']:
+            if set(binding)!={'path','input'} or not re.fullmatch(r'/network/nodes/\d+/(name|description|modules/[^/]+/config(?:/[^/]+)*)',binding['path']):raise ValueError('模板替换只允许名称、说明和组件配置')
+            if binding['input'].strip('/').split('/')[0] not in item['arguments_schema'].get('properties',{}):raise ValueError('替换引用未声明输入')
+        internal={n['node_id'] for n in item['document']['network']['nodes']}
+        for attachment in item['attachments']:
+            if set(attachment)!={'source','target','metadata'} or attachment['source'] not in node_ids:raise ValueError('模板连接起点必须是预登记的现有节点')
+            if attachment['target'] not in internal:raise ValueError('模板连接终点必须为模板内部节点')
+        pending[item['id']]=deepcopy(item)
+    return pending
+
 def register(services):
     def install(backend):
         templates={}
         def configure(p):
-            pending={}
-            for item in p['templates']:
-                if set(item)!={'id','callers','document','arguments_schema','bindings','attachments'}:raise ValueError('模板字段不完整')
-                if not re.fullmatch('[a-zA-Z0-9_.-]{1,80}',item['id']) or item['id'] in pending:raise ValueError('模板编号无效或重复')
-                if not item['callers'] or any(c not in backend.network.nodes for c in item['callers']):raise ValueError('模板调用节点必须预先存在')
-                if not 1<=len(item['document']['network']['nodes'])<=16:raise ValueError('模板节点数为1–16')
-                if item['document']['network']['signals'] or item['document']['network']['delegations']:raise ValueError('模板不能包含运行中的信号或委托许可')
-                Draft202012Validator.check_schema(item['arguments_schema'])
-                for binding in item['bindings']:
-                    if set(binding)!={'path','input'} or not re.fullmatch(r'/network/nodes/\d+/(name|description|modules/[^/]+/config(?:/[^/]+)*)',binding['path']):raise ValueError('模板替换只允许名称、说明和组件配置')
-                    if binding['input'].strip('/').split('/')[0] not in item['arguments_schema'].get('properties',{}):raise ValueError('替换引用未声明输入')
-                for attachment in item['attachments']:
-                    if set(attachment)!={'source','target','metadata'} or attachment['source'] not in backend.network.nodes:raise ValueError('模板连接起点必须是预登记的现有节点')
-                pending[item['id']]=deepcopy(item)
+            pending=checked_templates(p['templates'],set(backend.network.nodes))
             templates.clear();templates.update(pending);return dict(templates=list(templates))
         backend.configure_templates=configure
+        backend.template_definitions=lambda:deepcopy(list(templates.values()))
         async def execute(actor,name,args):
             if backend.node_locks.current:raise RuntimeError('请在业务事务提交后实例化模板，并用同key重试恢复')
             item=templates.get(args['template'])

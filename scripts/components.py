@@ -6,7 +6,7 @@ sys.path.insert(0,str(ROOT/'python'))
 parser=argparse.ArgumentParser()
 parser.add_argument('action',choices=['list','select','enable','disable'])
 parser.add_argument('ids',nargs='*')
-parser.add_argument('--root',type=Path,default=ROOT/'extensions/multi_agent')
+parser.add_argument('--root',type=Path,default=ROOT/'extensions/development')
 args=parser.parse_args()
 os.environ['DATANET_COMPONENT_ROOT']=str(args.root.resolve())
 from datanet.component_catalog import resolve,discover,read_json,dependency

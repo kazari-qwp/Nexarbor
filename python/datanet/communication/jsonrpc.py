@@ -22,6 +22,10 @@ class JsonRpcTransport:
     def close(self):
         """Host lifecycle hook, called after admitted requests have drained."""
 
+    def error_message(self,error):
+        """Application hook; transport does not interpret domain exceptions."""
+        return str(error) or type(error).__name__
+
     def write(self, value):
         def encode(item):
             if is_dataclass(item):
@@ -55,7 +59,7 @@ class JsonRpcTransport:
         try:
             self.write(dict(id=request['id'], result=self.dispatch(request['method'], request.get('params', {}))))
         except Exception as error:
-            self.write(dict(id=request.get('id'), error=str(error) or type(error).__name__))
+            self.write(dict(id=request.get('id'), error=self.error_message(error)))
 
     def run(self, stream):
         try:

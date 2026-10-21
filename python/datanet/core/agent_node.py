@@ -8,8 +8,8 @@ from datanet.core.node import Node
 
 class AgentNode(Node):
     signal_type = 'agent'
-    def __init__(self, node_id, name, data_kind=None, file_path=None, *, description='', creation_options=None):
-        super().__init__(node_id, name, 'agent', description=description)
+    def __init__(self, node_id, name, data_kind=None, file_path=None, *, description='', creation_options=None, aggregation='sum'):
+        super().__init__(node_id, name, 'agent', description=description, aggregation=aggregation)
         self.file_path = Path(file_path).resolve()
         self._memory_lock = RLock()
         from datanet.core.agent_inputs import AgentInputs

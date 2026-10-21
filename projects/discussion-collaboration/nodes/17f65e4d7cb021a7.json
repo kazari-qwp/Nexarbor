@@ -1,0 +1,171 @@
+{
+  "type": "agent",
+  "node_id": "member-1~unit-2",
+  "name": "讨论成员甲",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": 0,
+  "data_kind": null,
+  "parameters": {
+    "file_path": "repetitions/unit-2/data/member-1.md"
+  },
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "discussion",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "discussion",
+            "context.assembler"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "notes",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "notes"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "agents.activity": {
+      "config": {
+        "signal_channels": [
+          "discussion.round"
+        ],
+        "budget_field": "ap",
+        "budget": 10,
+        "prompt": "讨论信号已到达。请先用工具读取本轮发言与公共笔记，然后调用 speak 提交你这一轮的完整发言；不重复已有共识，提出新证据或明确分歧。 任务中的文件路径可通过本节点的只读文件工具按需查看；先读入口说明，再查相关需求与接口，不一次性重复注入全部资料。",
+        "enabled": true
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "tick",
+          "activity",
+          "records",
+          "self",
+          "runtime.agent",
+          "discussion.round"
+        ]
+      }
+    },
+    "records.store": {
+      "config": {
+        "initial": {
+          "ap": 10
+        },
+        "references": [],
+        "minimum": {
+          "ap": 0
+        }
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "records"
+        ]
+      }
+    },
+    "tools.collector": {
+      "config": {
+        "channels": [
+          "discussion",
+          "notes",
+          "workspace"
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "discussion",
+          "notes",
+          "records",
+          "workspace"
+        ]
+      }
+    },
+    "discussion.seat": {
+      "config": {
+        "role": "member",
+        "name": "成员甲"
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "discussion"
+        ]
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "ref": "runtime:agent_run",
+      "channels": [
+        "runtime.agent"
+      ]
+    },
+    {
+      "ref": "harness:read",
+      "channels": [
+        "workspace"
+      ]
+    },
+    {
+      "ref": "harness:glob",
+      "channels": [
+        "workspace"
+      ]
+    },
+    {
+      "ref": "harness:grep",
+      "channels": [
+        "workspace"
+      ]
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": {
+    "executor": "harness",
+    "strength": 2,
+    "channels": [
+      "self",
+      "records",
+      "discussion",
+      "notes",
+      "context.assembler",
+      "runtime.agent",
+      "workspace"
+    ],
+    "prepare": [
+      {
+        "node": "discussion",
+        "module": "context.assembler",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      }
+    ],
+    "max_steps": 100000,
+    "timeout_seconds": 86400
+  },
+  "inputs": null,
+  "context_cursor": null
+}

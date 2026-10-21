@@ -1,0 +1,320 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "places.query",
+  "version": "1.1.0",
+  "name": "地点与处境查询",
+  "description": "按需查看处境、公开地点与道路图片；不装配系统提示词，不管理私人记忆。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "agent"
+  ],
+  "requires": [
+    "records.store",
+    "place.info"
+  ],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "public_fields": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "name",
+          "gender",
+          "profession",
+          "age_group"
+        ],
+        "title": "公开资料字段",
+        "description": "只把这些自己记录中的字段发布到本模块命名空间供同地其他角色查看；默认公开姓名、性别、职业和年龄段。"
+      },
+      "map_title": {
+        "type": "string",
+        "default": "地点道路图",
+        "maxLength": 80,
+        "title": "地图标题"
+      },
+      "map_layout": {
+        "type": "array",
+        "default": [],
+        "title": "地图布局",
+        "description": "可选的稳定示意坐标，0到1；未设置时自动布局。地点编号随网络拷贝重映射。",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "node": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "node-id"
+            },
+            "x": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "y": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "node",
+            "x",
+            "y"
+          ]
+        }
+      },
+      "road_channels": {
+        "type": "array",
+        "title": "道路频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "location",
+          "road"
+        ]
+      },
+      "channel_modes": {
+        "type": "object",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      }
+    },
+    "required": []
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "operations": [
+    {
+      "name": "look",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "location": {
+            "anyOf": [
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "records": {
+            "type": "object"
+          },
+          "people": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "profile": {
+                  "type": "object"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "profile"
+              ]
+            }
+          },
+          "exits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          }
+        },
+        "required": [
+          "location",
+          "records",
+          "people",
+          "exits"
+        ]
+      }
+    },
+    {
+      "name": "place",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "place": {
+            "type": "string",
+            "description": "地点名称或编号；省略时查询当前位置。"
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "exits": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name"
+              ]
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "exits"
+        ]
+      }
+    },
+    {
+      "name": "map",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "format": {
+            "const": "nexarbor-tool-content/v1"
+          },
+          "content": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "format",
+          "content"
+        ]
+      }
+    },
+    {
+      "name": "publish",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "look",
+      "name": "查看处境",
+      "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
+      "operation": "look"
+    },
+    {
+      "id": "place",
+      "name": "查询地点",
+      "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
+      "operation": "place"
+    },
+    {
+      "id": "map",
+      "name": "查询地图",
+      "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
+      "operation": "map"
+    }
+  ]
+}

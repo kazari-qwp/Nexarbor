@@ -39,11 +39,15 @@ class ModuleNetwork:
 
     def __init__(self, request): self._request = request
     def nodes(self, *, channels=None, strength=None):
+        """Return reached node objects in BFS order; their tables/data read directly."""
         return self._request('nodes', channels=channels, strength=strength)
     def modules(self, module=None, *, channels=None, strength=None):
         return self._request('module_endpoints',module=module,channels=channels,strength=strength)
     def metadata(self, target, *, channels=None, strength=None):
         return self._request('metadata', target=target, channels=channels, strength=strength)
+    def read(self, target, request, *, channels=None, strength=None):
+        """Read a reachable node's data through the current channel/strength budget."""
+        return self._request('node_read', target=target, request=request, channels=channels, strength=strength)
     def edges(self, target, *, channels=None, strength=None):
         return self._request('edges', target=target, channels=channels, strength=strength)
     def patch_edges(self, changes, *, channels=None, strength=None):
@@ -96,6 +100,7 @@ class ModuleContext:
         require_transaction_node(self._node_id)
         return self._state
     network = property(lambda self: self._network)
+    nodes = property(lambda self: self._request('nodes', channels=None, strength=None, reuse=True))
     local = property(lambda self: ModuleLocal(self._request))
     call_path = property(lambda self: self._request('call_path'))
     def resolve_channels(self,values,mode='allow'):return self._request('resolve_channels',values=list(values),mode=mode)

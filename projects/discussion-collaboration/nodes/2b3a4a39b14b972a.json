@@ -1,0 +1,162 @@
+{
+  "type": "node",
+  "node_id": "collab",
+  "name": "执行协作组",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "executor-1",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "collaboration",
+            "collaboration.work",
+            "collaboration.review"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "executor-2",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "collaboration",
+            "collaboration.work",
+            "collaboration.review"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "executor-3",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "collaboration",
+            "collaboration.work",
+            "collaboration.review"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "executor-4",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "collaboration",
+            "collaboration.work",
+            "collaboration.review"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "messages.box": {
+      "config": {
+        "read_policy": "reachable",
+        "send_cost": 0,
+        "max_messages": 300,
+        "require_agent": true,
+        "notify_activity": false
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "chat",
+          "records",
+          "collaboration"
+        ]
+      }
+    },
+    "git.integrator.rev_2863bbe53e.rev_c376775a7e": {
+      "config": {
+        "repository": "workspace/repository",
+        "base_branch": "main",
+        "integration_branch": "nexarbor/integration",
+        "candidate_ref_prefix": "refs/nexarbor/candidates/",
+        "members": [],
+        "terminal_ref": "harness:pwsh",
+        "terminal_channels": [
+          "workspace"
+        ],
+        "command_timeout_ms": 60000,
+        "busy_lease_seconds": 900,
+        "member_channel": [
+          "collaboration"
+        ],
+        "member_branch_prefix": "member/"
+      },
+      "state": {},
+      "access": {
+        "strength": 3,
+        "channels": [
+          "collaboration",
+          "workspace"
+        ]
+      }
+    },
+    "collab.board.rev_9191e2380f.rev_96569f0263": {
+      "config": {
+        "member_channel": [
+          "collaboration"
+        ],
+        "max_tasks": 100,
+        "max_shared": 500,
+        "channel_modes": {},
+        "integrator_module": "git.integrator.rev_2863bbe53e.rev_c376775a7e",
+        "integrator_channel": [
+          "collaboration"
+        ],
+        "activity_timeout_seconds": 86400
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "collaboration",
+          "collaboration.work"
+        ]
+      }
+    },
+    "collab.participant": {
+      "config": {
+        "integrator_module": "git.integrator.rev_2863bbe53e.rev_c376775a7e"
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "collaboration"
+        ]
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "ref": "harness:pwsh",
+      "channels": [
+        "workspace"
+      ]
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

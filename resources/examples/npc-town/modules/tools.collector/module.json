@@ -1,0 +1,182 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "tools.collector",
+  "version": "0.4.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent",
+    "text_file",
+    "pulse"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "title": "工具收集配置",
+    "properties": {
+      "channels": {
+        "type": "array",
+        "title": "收集与串联频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "tools"
+        ]
+      },
+      "channel_modes": {
+        "type": "object",
+        "title": "频道匹配模式",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "title": "模块状态",
+    "x-tool-discovery": "network",
+    "properties": {
+      "routes": {
+        "type": "object",
+        "title": "已收集工具的调用索引",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "origin",
+            "via"
+          ],
+          "properties": {
+            "origin": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node_id",
+                "tool"
+              ],
+              "properties": {
+                "node_id": {
+                  "type": "string"
+                },
+                "tool": {
+                  "type": "string"
+                }
+              }
+            },
+            "via": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "signals": [],
+  "tool_provider": {
+    "list": "collect",
+    "invoke": "invoke"
+  },
+  "operations": [
+    {
+      "name": "collect",
+      "channels": {
+        "config": "channels"
+      },
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "description",
+            "parameters",
+            "origin",
+            "via"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "title": "工具编号"
+            },
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "object"
+            },
+            "origin": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node_id",
+                "tool"
+              ],
+              "properties": {
+                "node_id": {
+                  "type": "string"
+                },
+                "tool": {
+                  "type": "string"
+                }
+              }
+            },
+            "via": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invoke",
+      "channels": {
+        "config": "channels"
+      },
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tool_id",
+          "arguments"
+        ],
+        "properties": {
+          "tool_id": {
+            "type": "string",
+            "title": "工具编号"
+          },
+          "arguments": {
+            "type": "object",
+            "title": "参数"
+          }
+        }
+      },
+      "result": {}
+    }
+  ],
+  "name": "工具收集器",
+  "description": "按可达范围收集工具，支持串联与来源去重。"
+}

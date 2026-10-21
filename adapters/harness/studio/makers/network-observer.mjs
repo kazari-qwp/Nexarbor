@@ -30,7 +30,7 @@ export class NetworkObserver{
  node(ref){const found=this.byRef.get(ref)??this.byId.get(ref);if(!found)throw Error('找不到节点 '+ref+'；编号仅用于当前咨询的快照。');return found;}
  ref(id){return this.index.nodes[id]??id;}
  refs(list,max=12){if(!Array.isArray(list)||!list.length||list.length>max)throw Error('请提供 1–'+max+' 个节点编号或真实 ID');return [...new Set(list.map(r=>this.node(r)))];}
- base(){return {snapshot:this.id,...(this.snapshot.source?{source:this.snapshot.source}:{})};}
+ base(){return {snapshot:this.id,...(this.snapshot.source?{source:this.snapshot.source}:{}),...(this.snapshot.project?{project:this.snapshot.project}:{}),...(this.snapshot.missing_modules?.length?{missing_modules:this.snapshot.missing_modules}:{})};}
  localTools(n){return [...new Set([...(n.offered_tools??[]).map(t=>t.ref),...names(n.modules).flatMap(id=>(this.snapshot.resources?.[id]?.release?.manifest?.agent_tools??[]).map(t=>'module:'+id+'/'+t.id))])];}
  passiveText(n){return n.type==='text_file'&&!n.execution&&!(n.offered_tools?.length)&&names(n.modules).every(id=>{const m=this.snapshot.resources?.[id]?.release?.manifest;return !!m&&!Object.keys(m.signals??{}).length&&!m.agent_tools?.length;});}
  summary(n){return {ref:this.ref(n.node_id),name:n.name,type:n.type,...(n.type==='subnode'?{parent:this.ref(n.parameters?.parent_id)}:{}),modules:names(n.modules).length,tools:this.localTools(n).length,...(this.children.has(n.node_id)?{subnodes:this.children.get(n.node_id).length}:{})};}
@@ -141,7 +141,7 @@ export class NetworkObserver{
 }
 function paginate(items,args,size,max=size){const page=args.page??1,limit=args.page_size??size;if(!Number.isInteger(page)||page<1||!Number.isInteger(limit)||limit<1||limit>max)throw Error('分页参数无效，每页最多 '+max+' 项');const pages=Math.max(1,Math.ceil(items.length/limit));if(page>pages)throw Error('页码超出范围，共 '+pages+' 页');return {items:items.slice((page-1)*limit,page*limit),page,total:items.length,pages};}
 
-const str={type:'string'},list=(max=12,description)=>({type:'array',items:str,maxItems:max,...(description?{description}:{})}),integer=(max)=>({type:'integer',minimum:1,maximum:max}),tool=(name,description,properties,required=[])=>({name,description,parameters:{type:'object',properties:{snapshot:{...str,description:'可选；防止混用不同快照。'},...properties},required,additionalProperties:false}});
+const str={type:'string'},list=(max=12,description)=>({type:'array',items:str,maxItems:max,...(description?{description}:{})}),integer=(max)=>({type:'integer',minimum:1,maximum:max}),tool=(name,description,properties,required=[])=>({name,description,parameters:{type:'object',properties:{snapshot:{...str,description:'可选；防止混用不同快照。'},project:{...str,description:'任意 Nexarbor 项目文件夹的绝对路径。只读；同一轮后续查看沿用该项目，切换回工作流使用 source。与 source 二选一。'},refresh:{type:'boolean',description:'重新读取并固定观察快照；外部编辑项目后使用。'},...properties},required,additionalProperties:false}});
 export const observerTools=[
  tool('view_network','以图片和简短索引返回网络概览，可进一步筛选显示内容或查看局部详情。',{
   view:{...str,description:'基于上次返回的视图继续调整；省略则从默认视图开始。'},region:{...str,description:'如 R2：裁切原图区域，沿用原筛选与布局。'},reset:list(24,'清除指定筛选项，如 channels、nodes；数组筛选也可用 [] 清除。'),
@@ -156,11 +156,17 @@ export const observerTools=[
 ];
 
 export const observerResourceTool=tool('read_resource','按需读取模块的文档或源码；省略 file 列文件。',{module:str,file:str,start_line:integer(1000000),line_count:integer(300)},['module']);
-export const observerTextTool=tool('read_network_text','列出快照内的文本路径，或按行读取指定文本。',{file:str,query:{...str,description:'列文件时按路径子串过滤。'},start_line:integer(1000000),line_count:integer(300),page:integer(10000)});
+export const observerTextTool=tool('read_network_text','按节点编号直接批量读文本，或列出文本路径、按行读取文件。',{nodes:list(6,'N编号或真实 ID，最多6个；不用按节点ID猜文件路径。'),file:str,query:{...str,description:'列文件时按路径子串过滤。'},start_line:integer(1000000),line_count:integer(300),page:integer(10000)});
 export function readObservedText(snapshot,snapshotId,args){
  const files=snapshot.document.files??{};
+ if(args.nodes){
+  if(args.file!==undefined)throw Error('nodes 与 file 选择一种');
+  const observer=new NetworkObserver(snapshot,snapshotId),nodes=observer.refs(args.nodes,6),count=args.line_count??Math.min(100,Math.floor(300/nodes.length));
+  if(count*nodes.length>300)throw Error('批量文本每次总计最多300行，请缩小 line_count 或节点数');
+  return {snapshot:snapshotId,nodes:nodes.map(n=>{const identity={ref:observer.ref(n.node_id),id:n.node_id};try{if(!n.parameters?.file_path)throw Error('该节点没有绑定文本文件');return {...identity,...readObservedText(snapshot,snapshotId,{file:n.parameters.file_path,start_line:args.start_line,line_count:count})};}catch(error){return {...identity,error:error.message};}})};
+ }
  if(args.file===undefined){const result=paginate(Object.keys(files).filter(f=>!args.query||f.includes(args.query)),args,40);return {snapshot:snapshotId,...result};}
- if(!Object.hasOwn(files,args.file))throw Error('文件不在当前授权快照内');
+ if(!Object.hasOwn(files,args.file))throw Error('文件不在当前授权快照内；可用 nodes=[节点编号] 直接读取，或省略 file 列出真实路径，不按节点ID拼路径。');
  const value=files[args.file];if(typeof value!=='string')return {snapshot:snapshotId,file:args.file,binary:true};
  const lines=value.split('\n'),start=args.start_line??1,count=args.line_count??100;if(!Number.isInteger(start)||start<1||!Number.isInteger(count)||count<1||count>300)throw Error('行号必须大于0，每次最多300行');
  return {snapshot:snapshotId,file:args.file,total_lines:lines.length,start_line:start,text:lines.slice(start-1,start-1+count).join('\n')};

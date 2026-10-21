@@ -89,7 +89,7 @@ class NodeModules:
         from .channel_filters import resolve
         instance=self._check(key);spec=instance.definition.operations[operation]['channels']
         if isinstance(spec,dict):
-            field=spec['config'];default=instance.definition.config_schema.get('properties',{}).get(field,{}).get('default',[]);return resolve(instance.config.get(field,default),instance.config.get('channel_modes',{}).get(field,'allow'),self.backend.network.channel_names())
+            field=spec['config'];default=instance.definition.config_schema.get('properties',{}).get(field,{}).get('default',[]);return resolve(instance.config.get(field,default),instance.config.get('channel_modes',{}).get(field,'allow'),self.backend.network.channel_names() if instance.config.get('channel_modes',{}).get(field,'allow')=='deny' else ())
         return tuple(spec)
 
     def _check(self, key, generation=None):
@@ -119,13 +119,19 @@ class NodeModules:
         from .channel_filters import resolve
         strength=self._strength(key)
         if _forward_strength.get() is not None:strength=min(strength,_forward_strength.get())
-        channels=resolve(grant['channels'],grant.get('channel_mode','allow'),self.backend.network.channel_names())
+        channels=resolve(grant['channels'],grant.get('channel_mode','allow'),self.backend.network.channel_names() if grant.get('channel_mode','allow')=='deny' else ())
         # A callee enters with its own grant, after the caller's path was checked.
         incoming_token = current_access.set(None)
         identity = active_agent.get()
         parent = _executing.get()
         caller = parent['key'][0] if parent and parent['lease']['active'] else identity[1] if identity else key[0]
-        trace = parent['trace'] if parent and parent['lease']['active'] else dict(calls=0, deadline=time.monotonic()+180)
+        if parent and parent['lease']['active']:
+            trace=parent['trace']
+        else:
+            # Respect an Agent's explicit finite execution allowance throughout
+            # its module callback, including time spent in the native model.
+            binding=getattr(self.backend.network.nodes[key[0]],'execution_binding',None) or {}
+            trace=dict(calls=0,deadline=time.monotonic()+max(180,binding.get('timeout_seconds',180)),max_calls=max(1000,binding.get('max_steps',1000)))
         lease = {'active': True}
         token = _executing.set(dict(key=key, generation=generation, lease=lease, strength=strength, channels=channels,
                                    caller=caller, requester=parent['requester'] if parent and parent['lease']['active'] else caller, children=[], trace=trace, scopes=[]))

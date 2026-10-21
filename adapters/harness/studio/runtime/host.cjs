@@ -42,14 +42,14 @@ async function refresh(entry){
  for(const definition of view.retained_tools??[]){
   if(entry.definitions.has(definition.name))continue;
   entry.definitions.set(definition.name,JSON.stringify(definition));
-  const dispose=permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:toolContent.render},execute:async args=>toolContent.prepare({host,native},await agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args}))});
-  if(desired.has(definition.name))entry.tools.set(definition.name,dispose);else dispose();
+  const dispose=permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:toolContent.render},execute:async(args,execution)=>toolContent.prepare({host,native},await agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args}),execution)},{enabled:desired.has(definition.name)});
+  if(desired.has(definition.name))entry.tools.set(definition.name,dispose);
  }
  for(const [name,dispose] of entry.tools)if(!desired.has(name)){dispose();entry.tools.delete(name);}
  for(const definition of view.tools){
   const signature=JSON.stringify(definition);if(entry.definitions.get(definition.name)===signature&&entry.tools.has(definition.name))continue;
   entry.tools.get(definition.name)?.();entry.definitions.set(definition.name,signature);
-  entry.tools.set(definition.name,permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:toolContent.render},execute:async args=>toolContent.prepare({host,native},await agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args}))}));
+  entry.tools.set(definition.name,permissions.register(entry.agent.ctx,{...definition,output:{schema:{},render:toolContent.render},execute:async(args,execution)=>toolContent.prepare({host,native},await agentRpc(entry,'executor_invoke',{actor:entry.actor,name:definition.name,arguments:args}),execution)}));
  }
  for(const doc of view.context)history.load(entry.agent.ctx,doc.id,doc.text);
  const retained=new Set([...entry.agent.session.deriveMessages(),...entry.agent.inbox.nextStep,...entry.agent.inbox.nextTurn].map(m=>m.id));
@@ -92,7 +92,7 @@ async function agentFor(p){
  agent.ctx.on('session/event',(session,event)=>{if(session===agent.session){if(event.type==='compaction/end'&&!event.data?.error)entry.compacted=true;checkpoints.schedule();}});
  agent.ctx.systemPrompt.section({name:'nexarbor:assembled',order:90,interpolate:false,text:()=>[entry.view.system_prompt??'',...(entry.view.skill_errors??[]).map(s=>'Skill '+s.id+' 暂不可用：'+s.error)].join('\n')});
  agent.ctx.on('agent/prepare-context',()=>refresh(entry));
- agent.ctx.on('agent/request-tail',async(_p,next)=>[...await next(),...(entry.view.tail??[]).map(text=>({role:'user',content:[{type:'text',text}]}))]);
+ agent.ctx.on('agent/request-tail',async(_p,next)=>[...await next(),...(entry.view.tail??[]).map(text=>({role:'user',content:[{type:'text',text:text.replaceAll('{{request.count}}',String(entry.steps)).replaceAll('{{request.limit}}',String(entry.maxSteps))}]}))]);
  agent.ctx.on('agent/request',async(_p,next)=>{if(++entry.steps>entry.maxSteps)throw Error('Agent step budget reached');return next();});
  await agentRpc(entry,'executor_bind',{actor:p.actor,session_id:agent.id,model_signature:selected.signature,...(cursor?{context_cursor:cursor}:{})});checkpoints.schedule();
  return entry;
@@ -103,12 +103,13 @@ async function run(p){
  try{
   await refresh(entry);entry.agent.followup(user(p.message||'请处理当前请求。'));await entry.agent.whenIdle();
   const ending=entry.agent.session.snapshotEvents(before).findLast(e=>e.type==='turn/end');
-  const status=!expired&&ending?.data.reason.kind==='completed'?'completed':expired?'timeout':'failed';
+   const reason=ending?.data?.reason;
+   const status=!expired&&reason?.kind==='completed'?'completed':expired?'timeout':'failed';
   await host.sessions.flush(entry.agent.session);
   await checkpoints.checkpoint();
   const messages=entry.agent.session.deriveMessages();
   await fs.writeFile(path.join(config.directory,'native-sessions.json'),JSON.stringify([...agents.values()].map(e=>({actor:e.actor,session_id:e.agent.id,title:host.sessionTitle.get(e.agent.session).title,events:e.agent.session.seq})),null,2));
-  return {status,session_id:entry.agent.id,steps:entry.steps,output:messages.filter(m=>m.role==='assistant').at(-1)?.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')??'',error:status==='completed'?null:JSON.stringify(ending?.data.reason),requests:requestCount};
+   return {status,session_id:entry.agent.id,steps:entry.steps,output:messages.filter(m=>m.role==='assistant').at(-1)?.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')??'',error:status==='completed'?null:JSON.stringify(reason??{kind:'interrupted'}),requests:requestCount};
  }finally{clearTimeout(timer);entry.running=false;entry.ticket=null;await host.sessions.flush(entry.agent.session);}
 }
 async function close(){if(closed)return;closed=true;for(const e of agents.values())e.agent.cancel('user');try{await checkpoints?.checkpoint();}catch{}await checkpoints?.stop();await host?.fiber.dispose();clearInterval(keepAlive);}
@@ -126,7 +127,7 @@ async function restoreContexts(p){
  const contexts={};
  for(const [actor,cursor] of Object.entries(p.contexts)){
   const entry=agents.get(actor);
-  const restored=await checkpoints.positions.restore(cursor,entry?.agent.session,{onDiverged:()=>{if(entry)void retire(entry);}});contexts[actor]=restored.cursor;
+  const restored=p.transactional?await checkpoints.positions.rollback(cursor,entry?.agent.session):await checkpoints.positions.restore(cursor,entry?.agent.session,{onDiverged:()=>{if(entry)void retire(entry);}});contexts[actor]=restored.cursor;
  }
  return {contexts};
 }

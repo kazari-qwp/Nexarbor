@@ -1,0 +1,193 @@
+{
+  "type": "node",
+  "node_id": "医院",
+  "name": "医院",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "居民楼B",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "树林",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "民政局",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "世界时间",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "time"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "育儿须知",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "family.parent"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "怀孕须知",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "family.pregnancy"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "place.info": {
+      "config": {
+        "visitors_from_edges": false,
+        "description": "安静的医院，待产者在这里办理生产。",
+        "visitors": []
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "movement.here": {
+      "config": {
+        "timeout_seconds": 60,
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "before_hooks": [
+          {
+            "target": "requester",
+            "module": "records.store",
+            "operation": "apply",
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ]
+      }
+    },
+    "family.birth": {
+      "config": {
+        "duration": 10,
+        "cost": 1,
+        "time_channels": [
+          "time"
+        ],
+        "pregnancy_channels": [
+          "family.pregnancy"
+        ],
+        "parent_channels": [
+          "family.parent"
+        ],
+        "templates": [
+          {
+            "home": "居民楼A",
+            "template": "newborn-a"
+          },
+          {
+            "home": "居民楼B",
+            "template": "newborn-b"
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 12,
+        "channels": [
+          "road",
+          "service",
+          "time",
+          "family.pregnancy",
+          "family.parent",
+          "context.assembler.context",
+          "runtime.template",
+          "records",
+          "location"
+        ]
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "ref": "templates:instantiate",
+      "channels": [
+        "runtime.template"
+      ]
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

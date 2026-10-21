@@ -1,0 +1,292 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "notes.text",
+  "name": "文本便笺",
+  "version": "1.0.0",
+  "description": "在文本节点正文上维护一份公共笔记：按配置追加、整体覆盖、读取和清空；可选幂等键避免重复追加，超限拒绝且不改动旧正文。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "text_file"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "title": "文本便笺配置",
+    "properties": {
+      "title": {
+        "type": "string",
+        "title": "标题",
+        "description": "读取便笺时返回的标题，用于区分公共笔记、讨论草稿或成果摘要。",
+        "default": "便笺"
+      },
+      "max_chars": {
+        "type": "integer",
+        "title": "正文上限",
+        "description": "正文允许的最大字符数；追加或覆盖后超出上限时拒绝本次写入，旧正文保持不变。",
+        "minimum": 1000,
+        "maximum": 200000,
+        "default": 20000
+      },
+      "separator": {
+        "type": "string",
+        "title": "追加分隔",
+        "description": "追加时插在旧正文与新内容之间的分隔符；正文为空时不加分隔。可以为空字符串表示直接相连。",
+        "default": "\n\n"
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "title": "文本便笺状态",
+    "properties": {
+      "version": {
+        "type": "integer",
+        "title": "正文版本",
+        "description": "每次实际追加、覆盖或清空后加一；重复请求不改变版本。",
+        "minimum": 0,
+        "default": 0
+      },
+      "updated_at": {
+        "type": "string",
+        "title": "最后更新时间",
+        "description": "最近一次实际写入的 UTC ISO 时间；从未写入时为空字符串。",
+        "default": ""
+      },
+      "seen": {
+        "type": "array",
+        "title": "幂等回执",
+        "description": "最近 200 条带 key 的写入回执，用于识别同键同内容的重复请求。",
+        "maxItems": 200,
+        "items": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "title": "幂等键"
+            },
+            "fingerprint": {
+              "type": "string",
+              "title": "请求指纹"
+            }
+          },
+          "required": [
+            "key",
+            "fingerprint"
+          ],
+          "additionalProperties": false
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "append",
+      "channels": [
+        "notes"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "追加笔记",
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "追加内容",
+            "description": "要追加到便笺末尾的内容，1 到 8000 个字符。",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "key": {
+            "type": "string",
+            "title": "幂等键",
+            "description": "可选。同一便笺上相同键与相同内容只追加一次；相同键配不同内容会被拒绝。",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "title": "追加结果",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "写入后的正文版本",
+            "minimum": 0
+          },
+          "length": {
+            "type": "integer",
+            "title": "写入后的正文字符数",
+            "minimum": 0
+          },
+          "appended": {
+            "type": "integer",
+            "title": "本次实际追加的字符数",
+            "description": "包含分隔符；重复请求为 0。",
+            "minimum": 0
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "是否为重复请求"
+          }
+        },
+        "required": [
+          "version",
+          "length",
+          "appended",
+          "duplicate"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "replace",
+      "channels": [
+        "notes"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "覆盖笔记",
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "新正文",
+            "description": "整体替换后的正文；可以为空字符串，但不能超过配置的正文上限。",
+            "minLength": 0,
+            "maxLength": 200000
+          },
+          "key": {
+            "type": "string",
+            "title": "幂等键",
+            "description": "可选。同一便笺上相同键与相同内容只覆盖一次；相同键配不同内容会被拒绝。",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "title": "覆盖结果",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "写入后的正文版本",
+            "minimum": 0
+          },
+          "length": {
+            "type": "integer",
+            "title": "写入后的正文字符数",
+            "minimum": 0
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "是否为重复请求"
+          }
+        },
+        "required": [
+          "version",
+          "length",
+          "duplicate"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read",
+      "channels": [
+        "notes"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "读取笔记",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "title": "便笺内容",
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "标题"
+          },
+          "content": {
+            "type": "string",
+            "title": "正文"
+          },
+          "version": {
+            "type": "integer",
+            "title": "正文版本",
+            "minimum": 0
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "最后更新时间"
+          }
+        },
+        "required": [
+          "title",
+          "content",
+          "version",
+          "updated_at"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "clear",
+      "channels": [
+        "notes"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "清空笔记",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "title": "清空结果",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "清空后的正文版本",
+            "minimum": 0
+          },
+          "cleared": {
+            "type": "integer",
+            "title": "本次清掉的字符数",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "version",
+          "cleared"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "append",
+      "name": "追加笔记",
+      "description": "把一段文字按配置的分隔符追加到便笺末尾；可带幂等键避免重试时重复追加，超出正文上限时不写入。",
+      "operation": "append"
+    },
+    {
+      "id": "read",
+      "name": "读取笔记",
+      "description": "读取便笺的标题、正文、版本和最后更新时间。",
+      "operation": "read"
+    }
+  ]
+}

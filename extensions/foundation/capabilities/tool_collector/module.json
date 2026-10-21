@@ -1,7 +1,7 @@
 {
   "format": "nexarbor-module/v3",
   "id": "tools.collector",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "entry": "module.py:execute",
   "node_types": [
     "node",
@@ -42,7 +42,46 @@
   "state_schema": {
     "type": "object",
     "additionalProperties": false,
-    "title": "模块状态"
+    "title": "模块状态",
+    "x-tool-discovery": "network",
+    "properties": {
+      "routes": {
+        "type": "object",
+        "title": "已收集工具的调用索引",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "origin",
+            "via"
+          ],
+          "properties": {
+            "origin": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "node_id",
+                "tool"
+              ],
+              "properties": {
+                "node_id": {
+                  "type": "string"
+                },
+                "tool": {
+                  "type": "string"
+                }
+              }
+            },
+            "via": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
   },
   "signals": [],
   "tool_provider": {

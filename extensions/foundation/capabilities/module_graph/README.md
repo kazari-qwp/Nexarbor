@@ -67,4 +67,4 @@ operations 是可执行操作的配置表，不接受函数或 Python 表达式�
 
 后端依据：[LangGraph Graph API](https://docs.langchain.com/oss/python/langgraph/graph-api)。
 
-验收记录（2026-10-18）：89 项相关核心测试、11 项前端测试通过；真实桌面验证覆盖调用/信号入口、脉冲闭环、官方 read、可视化图编辑器及工作副本验证。结果：build/module-graph-1792299902557/verification.json。付费模型/API 调用为 0。
+维护者的历史实测记录保存在本地，不随运行包提供。制作或修改流程时，在自己的工作副本验证实际调用、信号与输入输出；不要把历史测试数量当作当前候选已通过的证据。

@@ -1,0 +1,657 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "knowledge.tools",
+  "version": "3.2.0",
+  "name": "knowledge.tools",
+  "description": "按历史知识库的持久化、入库、版本与来源规则迁移。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": true
+  },
+  "operations": [
+    {
+      "name": "kb_catalog",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_create_node",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "storage": {
+            "type": "string",
+            "enum": [
+              "csv",
+              "sqlite",
+              "rag",
+              "wiki"
+            ]
+          },
+          "description": {
+            "type": "string"
+          },
+          "schema": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string",
+              "enum": [
+                "string",
+                "integer",
+                "number",
+                "boolean",
+                "object",
+                "array"
+              ]
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "storage"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_store",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string"
+          },
+          "content": {},
+          "key": {
+            "type": "string"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "intake_id": {
+            "type": "string"
+          },
+          "indices": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_fetch",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "view": {
+            "enum": [
+              "full",
+              "outline",
+              "section",
+              "window",
+              "links"
+            ]
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "end_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "max_chars": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32000
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_search",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "collection": {
+            "type": "string"
+          },
+          "filters": {
+            "type": "object"
+          },
+          "semantic": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_update",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "content": {},
+          "expected_version": {
+            "type": "integer"
+          },
+          "metadata": {
+            "type": "object"
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "content",
+          "expected_version"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_delete",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "expected_version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "expected_version"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_export",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string"
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "csv",
+              "wiki"
+            ]
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_intake",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10000
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "read",
+              "associate",
+              "dismiss"
+            ],
+            "description": "默认read；已保存的同一原件可associate关联record_id，非资料的任务指令可dismiss并填写reason。"
+          },
+          "record_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_index",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string"
+          },
+          "rebuild": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_query",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "filters": {
+            "type": "object"
+          },
+          "group_by": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "aggregate": {
+            "type": "object",
+            "properties": {
+              "function": {
+                "type": "string",
+                "enum": [
+                  "count",
+                  "sum",
+                  "avg",
+                  "min",
+                  "max"
+                ]
+              },
+              "field": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "function"
+            ],
+            "additionalProperties": false
+          },
+          "order_by": {
+            "type": "string"
+          },
+          "descending": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer"
+          },
+          "offset": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "collection"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_wiki",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "guide",
+              "search",
+              "lint"
+            ],
+            "default": "guide"
+          },
+          "workflow": {
+            "type": "string",
+            "enum": [
+              "ingest",
+              "query",
+              "lint"
+            ]
+          },
+          "collection": {
+            "type": "string"
+          },
+          "query": {
+            "type": "string"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_ingest",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "content": {},
+          "file_path": {
+            "type": "string"
+          },
+          "purpose": {
+            "type": "string"
+          },
+          "collection": {
+            "type": "string"
+          },
+          "intake_id": {
+            "type": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "kb_task",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "content": {},
+          "mode": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "read",
+              "write"
+            ],
+            "default": "agent"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "result": {}
+    },
+    {
+      "name": "prepare",
+      "channels": [
+        "knowledge",
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "result": {}
+    }
+  ],
+  "agent_tools": [
+    {
+      "id": "kb_catalog",
+      "name": "kb_catalog",
+      "description": "查找知识集合及其用途、字段和存储类型。",
+      "operation": "kb_catalog"
+    },
+    {
+      "id": "kb_create_node",
+      "name": "kb_create_node",
+      "description": "创建知识数据集合，自动配置存储和连接。",
+      "operation": "kb_create_node"
+    },
+    {
+      "id": "kb_store",
+      "name": "kb_store",
+      "description": "向指定集合保存资料，或提交已读取的待归档资料。",
+      "operation": "kb_store"
+    },
+    {
+      "id": "kb_fetch",
+      "name": "kb_fetch",
+      "description": "读取知识页或原文，按需展开章节与关联链接。",
+      "operation": "kb_fetch"
+    },
+    {
+      "id": "kb_search",
+      "name": "kb_search",
+      "description": "检索知识入口，返回片段、来源和按需展开的读取参数。",
+      "operation": "kb_search"
+    },
+    {
+      "id": "kb_update",
+      "name": "kb_update",
+      "description": "更新一条知识记录，保留历史版本。",
+      "operation": "kb_update"
+    },
+    {
+      "id": "kb_delete",
+      "name": "kb_delete",
+      "description": "删除当前知识记录，保留历史以便追溯。",
+      "operation": "kb_delete"
+    },
+    {
+      "id": "kb_export",
+      "name": "kb_export",
+      "description": "导出集合记录，或生成可浏览的Wiki站点。",
+      "operation": "kb_export"
+    },
+    {
+      "id": "kb_intake",
+      "name": "kb_intake",
+      "description": "查看入库资料；省略id列出待办。已存原件可associate关联记录；非资料可dismiss说明原因。",
+      "operation": "kb_intake"
+    },
+    {
+      "id": "kb_index",
+      "name": "kb_index",
+      "description": "更新 Wiki 或文档集合的语义索引。",
+      "operation": "kb_index"
+    },
+    {
+      "id": "kb_query",
+      "name": "kb_query",
+      "description": "查询数据库集合，支持筛选、排序和分组统计。",
+      "operation": "kb_query"
+    },
+    {
+      "id": "kb_wiki",
+      "name": "kb_wiki",
+      "description": "维护 Wiki 时读取操作指南、检索页面或检查链接与过期来源。",
+      "operation": "kb_wiki"
+    },
+    {
+      "id": "kb_ingest",
+      "name": "kb_ingest",
+      "description": "接收资料或文件，优先复用已有归档位置。",
+      "operation": "kb_ingest"
+    },
+    {
+      "id": "kb_task",
+      "name": "kb_task",
+      "description": "建立知识库任务；可选择自动、只读或归档模式。",
+      "operation": "kb_task"
+    }
+  ],
+  "signals": []
+}

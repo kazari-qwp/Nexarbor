@@ -9,7 +9,7 @@ function touches(route,box){
  return points.some((b,i)=>{if(!i)return false;const a=points[i-1];return Math.max(a.x,b.x)>=box.x-24&&Math.min(a.x,b.x)<=box.x+NODE_SIZE+24&&Math.max(a.y,b.y)>=box.y-24&&Math.min(a.y,b.y)<=box.y+NODE_SIZE+24;});
 }
 export function RoutedScene({nodes,edges,optimize,dragging:dragActive=false,children}){
- const live=useNodes(),worker=useRef(),cacheRef=useRef(new Map()),positions=useRef(new Map()),pending=useRef(),latest=useRef(),serial=useRef(0);
+ const live=useNodes(),worker=useRef(),cacheRef=useRef(new Map()),positions=useRef(new Map()),pending=useRef(),latest=useRef(),serial=useRef(0),routedTopology=useRef(),lastOptimize=useRef();
  const [cache,setCache]=useState(new Map()),[failed,setFailed]=useState(false);
  const scene=useMemo(()=>{const byId=new Map(live.map(n=>[n.id,n]));return nodes.map(n=>{const current=byId.get(n.id);return {...n,position:current?.position??n.position,dragging:current?.dragging??false,measured:current?.measured??{width:NODE_SIZE,height:NODE_SIZE}};});},[nodes,live]);
  const byId=new Map(scene.map(n=>[n.id,n]));
@@ -18,7 +18,9 @@ export function RoutedScene({nodes,edges,optimize,dragging:dragActive=false,chil
   const delta=Object.fromEntries(['source','target'].map(end=>[end,{x:byId.get(edge[end]).position.x-entry.positions[end].x,y:byId.get(edge[end]).position.y-entry.positions[end].y}]));
   routes.set(edge.id,{...entry.route,preview:entry.stamp===stamp(edge,byId)?undefined:delta});
  }}
- const geometryKey=JSON.stringify([routingGraph(scene,edges),optimize,dragging]);latest.current=geometryKey;
+ const graph=routingGraph(scene,edges);
+ const topology=JSON.stringify([graph.children.map(({x,y,...node})=>node),graph.edges]);
+ const geometryKey=JSON.stringify([graph,edges,optimize,dragging]);latest.current=geometryKey;
  useEffect(()=>{
   const instance=new Worker(new URL('./router.worker.js',import.meta.url),{type:'module'});worker.current=instance;
   instance.onmessage=({data})=>{
@@ -30,26 +32,27 @@ export function RoutedScene({nodes,edges,optimize,dragging:dragActive=false,chil
    if(request.edges.some(edge=>!answer.has(edge.id))){pending.current=null;setFailed(true);return;}
    const next=new Map(cacheRef.current);
    for(const edge of request.edges)next.set(edge.id,{route:answer.get(edge.id),identity:JSON.stringify(edge),positions:request.positions.get(edge.id),stamp:request.stamps.get(edge.id)});
-   pending.current=null;cacheRef.current=next;setCache(next);setFailed(false);
+   pending.current=null;cacheRef.current=next;positions.current=request.nodePositions;routedTopology.current=request.topology;lastOptimize.current=request.optimize;setCache(next);setFailed(false);
   };
   instance.onerror=()=>setFailed(true);
   return()=>{instance.terminate();worker.current=null;};
  },[]);
- const lastOptimize=useRef();
  useEffect(()=>{
   // A render that changed geometry invalidates older worker replies immediately.
   pending.current=null;
   if(dragging)return;
   const moved=scene.filter(n=>positions.current.has(n.id)&&JSON.stringify(positions.current.get(n.id))!==JSON.stringify(n.position));
-  const previous=new Map(positions.current);for(const n of scene)positions.current.set(n.id,{...n.position});
-  const requested=optimize&&lastOptimize.current!==optimize.serial?new Set(optimize.nodes):new Set();lastOptimize.current=optimize?.serial;
+  // Compare against the last accepted routing, not a canceled worker request.
+  const previous=positions.current,nodePositions=new Map(scene.map(n=>[n.id,{...n.position}]));
+  const topologyChanged=topology!==routedTopology.current;
+  const requested=optimize&&lastOptimize.current!==optimize.serial?new Set(optimize.nodes):new Set();
   const needed=edges.filter(e=>{const entry=cacheRef.current.get(e.id);
-   return !entry||entry.stamp!==stamp(e,byId)||requested.has(e.source)||requested.has(e.target)||moved.some(n=>n.id!==e.source&&n.id!==e.target&&(touches(entry.route,n.position)||touches(entry.route,previous.get(n.id))));
+   return topologyChanged||!entry||entry.stamp!==stamp(e,byId)||requested.has(e.source)||requested.has(e.target)||moved.some(n=>n.id!==e.source&&n.id!==e.target&&(touches(entry.route,n.position)||touches(entry.route,previous.get(n.id))));
   });
-  if(!needed.length)return;
+  if(!needed.length){positions.current=nodePositions;routedTopology.current=topology;lastOptimize.current=optimize?.serial;return;}
   const key=++serial.current;
-  pending.current={key,geometry:geometryKey,edges:needed,stamps:new Map(needed.map(e=>[e.id,stamp(e,byId)])),positions:new Map(needed.map(e=>[e.id,{source:{...byId.get(e.source).position},target:{...byId.get(e.target).position}}]))};
-  worker.current?.postMessage({key,graph:routingGraph(scene,needed)});
+  pending.current={key,geometry:geometryKey,topology,optimize:optimize?.serial,nodePositions,edges:needed,stamps:new Map(needed.map(e=>[e.id,stamp(e,byId)])),positions:new Map(needed.map(e=>[e.id,{source:{...byId.get(e.source).position},target:{...byId.get(e.target).position}}]))};
+  worker.current?.postMessage({key,graph:routingGraph(scene,needed),reset:topologyChanged||requested.size>0});
  },[geometryKey]);
  return <RouteContext.Provider value={{routes,byId}}>{children}{failed&&<div className="routing-notice" role="status">自动绕线暂不可用，正在显示基础连线</div>}</RouteContext.Provider>;
 }

@@ -39,12 +39,12 @@ async def _sender_metadata(ctx,sender):
     if ctx.config.get('require_agent',True) and metadata.get('node_type')!='agent':raise ValueError('只有真实 Agent 节点可以发送消息')
 
 async def _charge(ctx,sender,message,key,cost):
-    account=await ctx.network.call(sender,'records.store','read',{},channels=['records'])
+    account=await ctx.network.call(sender,'records.store','read',{},channels=ctx.filter_channels('record_channels',['location','records','road']))
     if account['status']!='ok':raise RuntimeError(account.get('error') or '读取行动点失败')
     ap=account['data']['values'].get('ap')
     if type(ap) not in (int,float) or ap<cost:raise ValueError('行动点不足，无法发送消息')
     receipt=json.dumps([ctx.module_id,ctx.node_id,sender,'send',key if key is not None else message['id']],ensure_ascii=False,separators=(',',':'))
-    charged=await ctx.network.call(sender,'records.store','apply',{'deltas':{'ap':-cost},'key':receipt},channels=['records'])
+    charged=await ctx.network.call(sender,'records.store','apply',{'deltas':{'ap':-cost},'key':receipt},channels=ctx.filter_channels('record_channels',['location','records','road']))
     if charged['status']!='ok':raise RuntimeError(charged.get('error') or '扣除行动点失败')
     return charged['data']['values']['ap']
 

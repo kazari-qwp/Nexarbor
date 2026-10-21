@@ -1,0 +1,122 @@
+{
+  "type": "agent",
+  "node_id": "root",
+  "name": "根 Agent · 用户入口",
+  "description": "委托管理员组网，再编排讨论组与执行组完成用户任务。",
+  "management_parent_id": null,
+  "divergence": 0,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {
+    "file_path": "data/root.md"
+  },
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "administrator",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "admin"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "context.network": {
+      "config": {
+        "sources": [
+          {
+            "id": "root-role",
+            "kind": "system_prompt",
+            "type": "text",
+            "text": "你是项目根 Agent。用户要求固定架构时，先委托可达的局部网络管理员使用项目里的两个网络预设组网，保留根节点与管理员。等待并查看真实进度，制作完成后提交变更。随后通过组入口编排讨论与执行，不能代替组员编码。讨论成果、Git 提交、候选和全员验收均以工具返回的真实状态为准。 组网时请管理员把项目已有的 app.coordinator.entry 运行编排器装在用户根节点，并根据模块接口设置新放置的两个组入口编号；两个组分别经 discussion 会话节点和 collab 协作节点公开职责。管理员锚点在局部副本中也叫 root，应按节点名称和类型识别用户根 Agent。"
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 4,
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ]
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "ref": "harness:pwsh",
+      "channels": [
+        "workspace"
+      ]
+    },
+    {
+      "ref": "harness:read",
+      "channels": [
+        "workspace"
+      ]
+    },
+    {
+      "ref": "harness:write",
+      "channels": [
+        "workspace"
+      ]
+    },
+    {
+      "ref": "harness:edit",
+      "channels": [
+        "workspace"
+      ]
+    },
+    {
+      "ref": "harness:glob",
+      "channels": [
+        "workspace"
+      ]
+    },
+    {
+      "ref": "harness:grep",
+      "channels": [
+        "workspace"
+      ]
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": {
+    "executor": "harness",
+    "strength": 16,
+    "channels": [
+      "admin",
+      "app",
+      "workspace",
+      "context.assembler"
+    ],
+    "tool_sources": [
+      "administrator"
+    ],
+    "prepare": [
+      {
+        "module": "context.network",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      }
+    ],
+    "max_steps": 100000,
+    "timeout_seconds": 86400
+  },
+  "context_cursor": null,
+  "inputs": null
+}

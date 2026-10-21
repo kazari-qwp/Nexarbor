@@ -1,0 +1,134 @@
+{
+  "type": "agent",
+  "node_id": "root",
+  "name": "根 Agent · 项目入口",
+  "description": "用户目标入口：讨论 → 执行 → Git 整合与验收。",
+  "management_parent_id": null,
+  "divergence": 0,
+  "aggregation": "sum",
+  "module_strength": 0,
+  "data_kind": null,
+  "parameters": {
+    "file_path": "data/root.md"
+  },
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "discussion",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "discussion"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "collab",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "collaboration",
+            "collaboration.review"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "app.coordinator.entry": {
+      "config": {
+        "discussion_node": "discussion",
+        "board_node": "collab",
+        "integrator_node": "collab",
+        "review_channel": [
+          "collaboration.review"
+        ],
+        "accept_channel": [
+          "collaboration"
+        ],
+        "board_module": "collab.board.rev_9191e2380f.rev_96569f0263",
+        "discussion_module": "discussion.session.rev_697d80a33d",
+        "integrator_module": "git.integrator.rev_2863bbe53e.rev_c376775a7e",
+        "activity_timeout_seconds": 86400
+      },
+      "state": {},
+      "access": {
+        "strength": 3,
+        "channels": [
+          "app",
+          "discussion",
+          "collaboration",
+          "collaboration.review"
+        ]
+      }
+    },
+    "context.assembler": {
+      "config": {
+        "channels": [
+          "context.assembler"
+        ],
+        "system_prompt_channels": [
+          "context.assembler.system_prompt"
+        ],
+        "context_channels": [
+          "context.assembler.context"
+        ],
+        "inputs_channels": [
+          "context.assembler.inputs"
+        ],
+        "tail_channels": [
+          "context.assembler.tail"
+        ],
+        "sources": [
+          {
+            "id": "entry-role",
+            "kind": "system_prompt",
+            "type": "text",
+            "text": "你是项目根入口，负责将用户目标交给讨论组，再交给执行组，以真实状态跟进整合与验收。通过编排工具调用两个小组，不直接连接或指挥组内成员。"
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 4,
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": {
+    "executor": "harness",
+    "strength": 2,
+    "channels": [
+      "app",
+      "context.assembler"
+    ],
+    "prepare": [
+      {
+        "module": "context.assembler",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      }
+    ],
+    "max_steps": 100000,
+    "timeout_seconds": 86400
+  },
+  "context_cursor": null,
+  "inputs": null
+}

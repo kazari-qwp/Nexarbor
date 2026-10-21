@@ -1,6 +1,7 @@
 // Git operations stay within this project's current Agent work branch.
 export async function makerGit(manager,job,args={}){
  const project=manager.project;if(!project)throw Error('当前连接没有 Git 项目');
+ await project.initialize();
  const work=await manager.rpc('studio_read',{id:job.workspace});
  const save=async()=>{const git=await project.branch(work,{message:args.message});job.git=git;return git;};
  const remote=async()=>{const names=(await project.command(['remote'])).trim().split('\n').filter(Boolean),name=args.remote??'origin';if(!names.includes(name))throw Error('项目没有远程仓库 '+name+'；先用 remote 操作配置用户提供的仓库地址');return name;};
@@ -25,7 +26,7 @@ export async function makerGit(manager,job,args={}){
   if(args.action==='restore'){
    if(!/^[0-9a-f]{40}$/.test(args.commit??''))throw Error('请先用 log 取得要恢复的完整提交编号');
    const module=work.kind==='network'?null:JSON.parse(work.files['module.json']).id,files=await project.workFiles({id:work.id,kind:work.kind,module,aliases:work.origin?.git_lineage??[],git:{commit:args.commit}}),manifest=module?JSON.parse(files['module.json']):null;
-   const restored=await manager.rpc('studio_revision',{kind:work.kind,preserve_identity:true,source:manifest?{files,release:{id:manifest.id,manifest,version:manifest.version}}:undefined,document:manifest?undefined:JSON.parse(files['network.json']),origin:{git_restore:{commit:args.commit,previous:git},git_lineage:[work.id,...(work.origin?.git_lineage??[])],source:work.origin?.source},reference:'从 Git 提交 '+args.commit+' 恢复；原进度保留于 '+git.commit});
+   const restored=await manager.rpc('studio_revision',{kind:work.kind,preserve_identity:true,source:manifest?{files,release:{id:manifest.id,manifest,version:manifest.version}}:undefined,document:manifest?undefined:JSON.parse(files['network.json']),runtime:!manifest&&files['runtime.json']?JSON.parse(files['runtime.json']):undefined,origin:{git_restore:{commit:args.commit,previous:git},git_lineage:[work.id,...(work.origin?.git_lineage??[])],source:work.origin?.source},reference:'从 Git 提交 '+args.commit+' 恢复；原进度保留于 '+git.commit});
    const next=await project.branch(restored);job.workspace=restored.id;job.git=next;const session=manager.sessions.get(job.session_id);if(session)session.workspace=restored.id;return {restored:true,workspace:restored.id,previous:git,source_commit:args.commit,...next};
   }
   throw Error('未知 Git 操作');

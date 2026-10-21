@@ -5,7 +5,7 @@ LlamaIndex 负责文件读取、SentenceSplitter 分块、嵌入调度、VectorS
 默认文档/向量存储的持久化和检索；本类只适配 DataNet 接口。
 节点只返回原文片段、相关性和来源；答案由外部 Agent 生成，节点不配置生成模型。
 
-安装依赖：`python -m pip install -r datanet/extensions/multi_agent/nodes/llamaindex_node/requirements.txt`。
+安装依赖：`python -m pip install -r extensions/storage/capabilities/llamaindex/requirements.txt`。
 
 `read({"method":"semantic","query":"...","top_k":3})` 返回 NodeResult；
 `ingest(input_files)` 全量建立新索引，`load()` 加载已有索引。

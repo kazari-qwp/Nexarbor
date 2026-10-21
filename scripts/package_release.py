@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse, hashlib, importlib.metadata as metadata, json, os, shutil, subprocess, sys, zipfile
 from pathlib import Path
 from packaging.requirements import Requirement
+from bundle_town_example import bundle as check_town_example
 
 ROOT=Path(__file__).resolve().parents[1]
 VERSION=json.loads((ROOT/'package.json').read_text(encoding='utf-8'))['version']
@@ -60,6 +61,7 @@ def build_python():
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--skip-build',action='store_true');parser.add_argument('--zip-only',action='store_true');args=parser.parse_args()
     if os.name!='nt':raise SystemExit('Windows x64 release must be assembled on Windows.')
+    check_town_example(check=True)
     BASE.mkdir(parents=True,exist_ok=True)
     if not args.zip_only:
         if TARGET.exists():raise SystemExit('Release staging already exists. Move it aside before rebuilding: '+str(TARGET))
@@ -72,7 +74,7 @@ def main():
         if not (desktop/'Nexarbor.exe').is_file():raise SystemExit('Missing desktop build. Run without --skip-build.')
         shutil.copytree(desktop,TARGET,ignore=shutil.ignore_patterns('test','tests','user-data','*.log'))
         names=subprocess.check_output(['git','ls-files','--cached','--others','--exclude-standard','-z'],cwd=ROOT).decode('utf-8').split('\0')
-        folders={'adapters','communication','shared','python','extensions','configs','docs','scripts'}
+        folders={'adapters','communication','shared','python','extensions','configs','docs','scripts','resources','projects'}
         for name in names:
             if not name:continue
             relative=Path(name);source=ROOT/relative
@@ -80,6 +82,8 @@ def main():
             if any(part in ('test','tests','__pycache__','node_modules') for part in relative.parts):continue
             if name.startswith('adapters/harness/runtime/backend/'):continue
             copy(source,TARGET/relative)
+        example=Path('resources/examples/npc-town')
+        check_town_example(TARGET/example,check=False)
         web=Path('extensions/editor/capabilities/network_editor/web')
         shutil.copytree(ROOT/web,TARGET/web,dirs_exist_ok=True)
         if (ROOT/'node_modules/zod').exists():
@@ -88,6 +92,7 @@ def main():
         commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
         (TARGET/'release.json').write_text(json.dumps({'version':VERSION,'source_commit':commit,'platform':'win32-x64','agent_runtime':'DeepSeek Harness','python':sys.version.split()[0],'python_packages':packages},ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
         (TARGET/'安装说明.txt').write_text('Nexarbor '+VERSION+'\n\n先安装 Git for Windows 和 DeepSeek Harness，并在 Harness 完成账户授权。\n完整解压后双击 Nexarbor.exe，新建或打开项目文件夹。\n安装与组件装配：docs/INSTALLATION.md\n可选向量检索依赖与模型按需安装，详见同一说明。\n',encoding='utf-8')
+    check_town_example(TARGET/'resources/examples/npc-town',check=True)
     archive=BASE/(TARGET.name+'.zip')
     count=0
     with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as output:

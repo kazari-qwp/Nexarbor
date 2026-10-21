@@ -335,6 +335,12 @@ class NodeLocks:
             self._check()
             if validate: validate()
             reached = {n.node_id for n, _, _ in self.backend.network.walk_states(actor, strength=strength, channels=channels)}
+            # Transactions must admit the same local containers as module calls:
+            # one's own family, and subnodes of a reached parent. Reaching an
+            # isolated subnode does not grant its parent's connections.
+            network=self.backend.network
+            roots={network.family_root(actor)} | {n for n in reached if network.family_root(n)==n}
+            reached.update(n for n in network.nodes if network.family_root(n) in roots)
             if not set(nodes) <= reached: raise PermissionError('Lock target is outside the current graph view')
         return NodeLockScope(self, nodes, authorized, timeout, finish)
 
@@ -346,7 +352,7 @@ class NodeLocks:
         for node_id in group.nodes:
             node = backend.network.nodes[node_id]
             image = dict(attrs={name: deepcopy(getattr(node, name)) for name in (
-                'name', 'description', 'data_kind', 'divergence', 'module_strength', 'management_parent_id',
+                'name', 'description', 'data_kind', 'divergence', 'aggregation', 'module_strength', 'management_parent_id',
                 'interfaces', 'modules', 'offered_tools', 'skills', 'toolboxes', 'expose', 'agent_config', 'execution_binding','context_cursor')},
                 tools=dict(node.tools), definitions=deepcopy(node.tool_definitions),
                 agent_definitions=deepcopy(node.agent_tool_definitions), refusals=dict(node.tool_refusals),
@@ -482,6 +488,13 @@ class NodeLocks:
                 return tuple(attrs['interfaces']), attrs['divergence']
             node = self.backend.network.nodes[node_id]
             return tuple(node.interfaces), node.divergence
+
+    def aggregation(self, node_id):
+        with self.condition:
+            group = self.exclusive.get(node_id)
+            if group and group is not self.current and node_id in group.images:
+                return group.images[node_id]['attrs']['aggregation']
+            return self.backend.network.nodes[node_id].aggregation
 
     def ownership(self,node_id):
         with self.condition:

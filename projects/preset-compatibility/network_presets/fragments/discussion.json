@@ -1,0 +1,755 @@
+{
+  "network": {
+    "version": 8,
+    "nodes": [
+      {
+        "type": "node",
+        "node_id": "discussion",
+        "name": "讨论组",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {},
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "leader",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "discussion",
+                  "discussion.round",
+                  "discussion.decision"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "recorder",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "discussion",
+                  "discussion.round",
+                  "discussion.record"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "member-1",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "discussion",
+                  "discussion.round"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "notes",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "context.assembler.context",
+                  "context.assembler.tail"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "materials",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "context.assembler.context"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "messages.box": {
+            "config": {
+              "read_policy": "reachable",
+              "send_cost": 0,
+              "max_messages": 200,
+              "require_agent": true,
+              "notify_activity": false
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "chat",
+                "records",
+                "discussion"
+              ]
+            }
+          },
+          "discussion.session.rev_697d80a33d": {
+            "config": {
+              "rounds": 2,
+              "max_speech_chars": 4000,
+              "max_speeches": 500,
+              "max_runs": 20,
+              "member_channel": [
+                "discussion"
+              ],
+              "channel_modes": {},
+              "activity_timeout_seconds": 86400
+            },
+            "state": {},
+            "access": {
+              "strength": 3,
+              "channels": [
+                "discussion",
+                "discussion.round",
+                "discussion.decision",
+                "discussion.record"
+              ]
+            }
+          },
+          "context.network": {
+            "config": {
+              "channels": [
+                "context.assembler"
+              ],
+              "system_prompt_channels": [
+                "context.assembler.system_prompt"
+              ],
+              "context_channels": [
+                "context.assembler.context"
+              ],
+              "inputs_channels": [
+                "context.assembler.inputs"
+              ],
+              "tail_channels": [
+                "context.assembler.tail"
+              ]
+            },
+            "state": {},
+            "access": {
+              "strength": 4,
+              "channels": [
+                "context.assembler",
+                "context.assembler.system_prompt",
+                "context.assembler.context",
+                "context.assembler.inputs",
+                "context.assembler.tail"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "text_file",
+        "node_id": "notes",
+        "name": "公共笔记",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "data/notes.md"
+        },
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {
+          "notes.text": {
+            "config": {
+              "title": "公共笔记",
+              "max_chars": 20000,
+              "separator": "\n\n"
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "notes"
+              ]
+            }
+          }
+        },
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "text_file",
+        "node_id": "materials",
+        "name": "需求资料",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": -1,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "data/materials.md"
+        },
+        "connections": {
+          "interfaces": []
+        },
+        "agent": null,
+        "modules": {},
+        "offered_tools": [],
+        "toolboxes": [],
+        "expose": [],
+        "execution": null,
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "agent",
+        "node_id": "leader",
+        "name": "讨论主持人",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": 0,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "data/leader.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "discussion",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "discussion",
+                  "context.assembler"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "notes",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "notes"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "agents.activity": {
+            "config": {
+              "signal_channels": [
+                "discussion.round",
+                "discussion.decision"
+              ],
+              "budget_field": "ap",
+              "budget": 10,
+              "prompt": "讨论信号已到达。请用工具读取本轮发言与公共笔记：普通轮次调用 speak 提交你的完整观点；决断轮次综合意见，调用 decide 给出决策与任务清单。 任务中的文件路径可通过本节点的只读文件工具按需查看；先读入口说明，再查相关需求与接口，不一次性重复注入全部资料。",
+              "enabled": true
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "tick",
+                "activity",
+                "records",
+                "self",
+                "runtime.agent",
+                "discussion.round",
+                "discussion.decision"
+              ]
+            }
+          },
+          "records.store": {
+            "config": {
+              "initial": {
+                "ap": 10
+              },
+              "references": [],
+              "minimum": {
+                "ap": 0
+              }
+            },
+            "state": {},
+            "access": {
+              "strength": 1,
+              "channels": [
+                "records"
+              ]
+            }
+          },
+          "tools.collector": {
+            "config": {
+              "channels": [
+                "discussion",
+                "notes",
+                "workspace"
+              ]
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "discussion",
+                "notes",
+                "records",
+                "workspace"
+              ]
+            }
+          },
+          "discussion.seat": {
+            "config": {
+              "role": "leader",
+              "name": "主持人"
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "discussion"
+              ]
+            }
+          }
+        },
+        "offered_tools": [
+          {
+            "ref": "runtime:agent_run",
+            "channels": [
+              "runtime.agent"
+            ]
+          },
+          {
+            "ref": "harness:read",
+            "channels": [
+              "workspace"
+            ]
+          },
+          {
+            "ref": "harness:glob",
+            "channels": [
+              "workspace"
+            ]
+          },
+          {
+            "ref": "harness:grep",
+            "channels": [
+              "workspace"
+            ]
+          }
+        ],
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "channels": [
+            "self",
+            "records",
+            "discussion",
+            "notes",
+            "context.assembler",
+            "runtime.agent",
+            "workspace"
+          ],
+          "prepare": [
+            {
+              "node": "discussion",
+              "module": "context.network",
+              "operation": "assemble",
+              "arguments": {},
+              "channels": [
+                "context.assembler"
+              ]
+            }
+          ],
+          "max_steps": 100000,
+          "timeout_seconds": 86400
+        },
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "agent",
+        "node_id": "recorder",
+        "name": "记录员",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": 0,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "data/recorder.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "discussion",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "discussion",
+                  "context.assembler"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "notes",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "notes"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "agents.activity": {
+            "config": {
+              "signal_channels": [
+                "discussion.round",
+                "discussion.record"
+              ],
+              "budget_field": "ap",
+              "budget": 10,
+              "prompt": "讨论信号已到达。请用工具读取发言与公共笔记：普通轮次调用 speak 发表观点；收到起草信号后调用 draft 写章节，完成后调用 finish 形成最终成果。 任务中的文件路径可通过本节点的只读文件工具按需查看；先读入口说明，再查相关需求与接口，不一次性重复注入全部资料。",
+              "enabled": true
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "tick",
+                "activity",
+                "records",
+                "self",
+                "runtime.agent",
+                "discussion.round",
+                "discussion",
+                "discussion.record"
+              ]
+            }
+          },
+          "records.store": {
+            "config": {
+              "initial": {
+                "ap": 10
+              },
+              "references": [],
+              "minimum": {
+                "ap": 0
+              }
+            },
+            "state": {},
+            "access": {
+              "strength": 1,
+              "channels": [
+                "records"
+              ]
+            }
+          },
+          "tools.collector": {
+            "config": {
+              "channels": [
+                "discussion",
+                "notes",
+                "workspace"
+              ]
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "discussion",
+                "notes",
+                "records",
+                "workspace"
+              ]
+            }
+          },
+          "discussion.seat": {
+            "config": {
+              "role": "recorder",
+              "name": "记录员"
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "discussion"
+              ]
+            }
+          }
+        },
+        "offered_tools": [
+          {
+            "ref": "runtime:agent_run",
+            "channels": [
+              "runtime.agent"
+            ]
+          },
+          {
+            "ref": "harness:read",
+            "channels": [
+              "workspace"
+            ]
+          },
+          {
+            "ref": "harness:glob",
+            "channels": [
+              "workspace"
+            ]
+          },
+          {
+            "ref": "harness:grep",
+            "channels": [
+              "workspace"
+            ]
+          }
+        ],
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "channels": [
+            "self",
+            "records",
+            "discussion",
+            "notes",
+            "context.assembler",
+            "runtime.agent",
+            "discussion.record",
+            "workspace"
+          ],
+          "prepare": [
+            {
+              "node": "discussion",
+              "module": "context.network",
+              "operation": "assemble",
+              "arguments": {},
+              "channels": [
+                "context.assembler"
+              ]
+            }
+          ],
+          "max_steps": 100000,
+          "timeout_seconds": 86400
+        },
+        "inputs": null,
+        "context_cursor": null
+      },
+      {
+        "type": "agent",
+        "node_id": "member-1",
+        "name": "讨论成员甲",
+        "description": "",
+        "management_parent_id": null,
+        "divergence": 0,
+        "data_kind": null,
+        "parameters": {
+          "file_path": "data/member-1.md"
+        },
+        "connections": {
+          "interfaces": [
+            {
+              "target_node_id": "discussion",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "discussion",
+                  "context.assembler"
+                ],
+                "attributes": {}
+              }
+            },
+            {
+              "target_node_id": "notes",
+              "metadata": {
+                "threshold": 1,
+                "multiplier": 1,
+                "channels": [
+                  "notes"
+                ],
+                "attributes": {}
+              }
+            }
+          ]
+        },
+        "agent": null,
+        "modules": {
+          "agents.activity": {
+            "config": {
+              "signal_channels": [
+                "discussion.round"
+              ],
+              "budget_field": "ap",
+              "budget": 10,
+              "prompt": "讨论信号已到达。请先用工具读取本轮发言与公共笔记，然后调用 speak 提交你这一轮的完整发言；不重复已有共识，提出新证据或明确分歧。 任务中的文件路径可通过本节点的只读文件工具按需查看；先读入口说明，再查相关需求与接口，不一次性重复注入全部资料。",
+              "enabled": true
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "tick",
+                "activity",
+                "records",
+                "self",
+                "runtime.agent",
+                "discussion.round"
+              ]
+            }
+          },
+          "records.store": {
+            "config": {
+              "initial": {
+                "ap": 10
+              },
+              "references": [],
+              "minimum": {
+                "ap": 0
+              }
+            },
+            "state": {},
+            "access": {
+              "strength": 1,
+              "channels": [
+                "records"
+              ]
+            }
+          },
+          "tools.collector": {
+            "config": {
+              "channels": [
+                "discussion",
+                "notes",
+                "workspace"
+              ]
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "discussion",
+                "notes",
+                "records",
+                "workspace"
+              ]
+            }
+          },
+          "discussion.seat": {
+            "config": {
+              "role": "member",
+              "name": "成员甲"
+            },
+            "state": {},
+            "access": {
+              "strength": 2,
+              "channels": [
+                "discussion"
+              ]
+            }
+          }
+        },
+        "offered_tools": [
+          {
+            "ref": "runtime:agent_run",
+            "channels": [
+              "runtime.agent"
+            ]
+          },
+          {
+            "ref": "harness:read",
+            "channels": [
+              "workspace"
+            ]
+          },
+          {
+            "ref": "harness:glob",
+            "channels": [
+              "workspace"
+            ]
+          },
+          {
+            "ref": "harness:grep",
+            "channels": [
+              "workspace"
+            ]
+          }
+        ],
+        "toolboxes": [],
+        "expose": [],
+        "execution": {
+          "executor": "harness",
+          "strength": 2,
+          "channels": [
+            "self",
+            "records",
+            "discussion",
+            "notes",
+            "context.assembler",
+            "runtime.agent",
+            "workspace"
+          ],
+          "prepare": [
+            {
+              "node": "discussion",
+              "module": "context.network",
+              "operation": "assemble",
+              "arguments": {},
+              "channels": [
+                "context.assembler"
+              ]
+            }
+          ],
+          "max_steps": 100000,
+          "timeout_seconds": 86400
+        },
+        "inputs": null,
+        "context_cursor": null
+      }
+    ],
+    "signals": {},
+    "delegations": [],
+    "repeat_unit_count": 3,
+    "repeat_unit": [
+      "member-1"
+    ]
+  },
+  "files": {
+    "data/materials.md": "# 讨论与平等 Git 协作：任务说明\r\n\r\n## 讨论\r\n固定 Leader 与 Recorder 各一名，普通 Member 可配置（基线 3 名）。各人独立会话、多轮发言，同一轮成员可并行；保留完整发言，Leader 决策，Recorder 维护草稿与最终成果。资料、公共笔记、个人记忆与历史持续可用，后续轮次不重复灌入全部资料。\r\n\r\n## 协作\r\n平等成员（基线 4 名）自主认领任务与路径；各成员独立 worktree、独立提交；共同成果串行整合。认领支持冲突拒绝、补充路径、完成与释放；共享发现、失败与修改摘要，可给其他成员发信。候选成果有确定提交标识，所有剩余成员验收同一候选后才完成；否决继续，退出释放未完成认领，停止、预算和重启保留进度。\r\n\r\n## 集成与验收\r\n根入口把讨论成果交给执行组，再回收实际成果，不代组员编码。先以简短小任务验证完整协议，最终另用真实公开项目输入验收。\r\n\r\n## 交付要求\r\n模块、装配网络和简短使用说明；配置中保留可调人数；自测覆盖真实接口、隔离图、上下文消费、重复／错误路径与恢复。\r\n",
+    "data/leader.md": "",
+    "data/recorder.md": "",
+    "data/member-1.md": "",
+    "data/notes.md": "# 公共笔记\r\n\r\n由记录员在讨论中追加要点、草稿与结论；所有成员可读取。\r\n"
+  }
+}

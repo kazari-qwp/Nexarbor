@@ -1,0 +1,215 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "agreements.pair",
+  "name": "双人在场协议",
+  "description": "双方实际在场时各自登记同意；同意不要求同 tick，任一方离场后旧同意失效。",
+  "version": "1.0.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "address": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "format": "node-id",
+        "default": null,
+        "title": "协议地点",
+        "description": "双方实际在场的协议地点；不填写时使用请求者当前地点。"
+      },
+      "rules": {
+        "type": "array",
+        "default": [],
+        "title": "协议规则",
+        "description": "双方满足条件并分别同意后，立即写入配置的关系和字段。",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "title"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "title": "规则标识",
+              "description": "稳定规则 ID，例如 marriage、family_plan。"
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "title": "规则名称",
+              "description": "展示给 Agent 的中文名称。"
+            },
+            "cost": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 1,
+              "title": "行动点成本",
+              "description": "每位参与者每次新同意从自己的 ap 字段扣除的行动点。"
+            },
+            "require_values": {
+              "type": "object",
+              "additionalProperties": true,
+              "default": {},
+              "title": "双方前提值",
+              "description": "普通字典。每个字段要求双方记录中的值都等于给定值，例如 age 为 18。"
+            },
+            "eligible_field": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null,
+              "title": "资格字段",
+              "description": "可选。填写后，双方记录中该字段至少有一位为 true 才允许同意；不按性别等固定字段判断。"
+            },
+            "equal_fields": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true,
+              "default": [],
+              "title": "双方同值字段",
+              "description": "这些字段在双方记录中必须相同且非空。"
+            },
+            "pair_field": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "default": null,
+              "title": "双方关系字段",
+              "description": "用于 require_pair 或 forbid_existing_pair 的记录字段，例如 spouse。"
+            },
+            "require_pair": {
+              "type": "boolean",
+              "default": false,
+              "title": "要求已有双方关系",
+              "description": "为真时，双方该关系字段必须各自等于对方节点 ID。"
+            },
+            "forbid_existing_pair": {
+              "type": "boolean",
+              "default": false,
+              "title": "禁止已有关系",
+              "description": "为真时双方该关系字段当前必须为空；协议完成后用显式引用写为对方。"
+            },
+            "set_values": {
+              "type": "object",
+              "additionalProperties": true,
+              "default": {},
+              "title": "完成时设置值",
+              "description": "协议兑现完成时分别写入双方记录仓的普通值。"
+            }
+          }
+        }
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "agreements": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      },
+      "agree_receipts": {
+        "type": "array",
+        "items": {
+          "type": "object"
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "inspect",
+      "channels": [
+        "agreements",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "agree",
+      "channels": [
+        "agreements",
+        "location"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "partner",
+          "rule",
+          "key"
+        ],
+        "properties": {
+          "partner": {
+            "type": "string",
+            "format": "node-id",
+            "minLength": 1,
+            "title": "协议对方",
+            "description": "另一位当前可达的真实 Agent 节点 ID；不能代替请求者身份。"
+          },
+          "rule": {
+            "type": "string",
+            "minLength": 1,
+            "title": "规则标识",
+            "description": "要同意的配置规则 id。"
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "title": "幂等键",
+            "description": "请求者在当前模块实例内使用的非空幂等键；相同键与相同对象重试不会重复扣费。"
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "inspect",
+      "name": "查看协议",
+      "description": "查看本地点的协议规则和自己参与的协议。",
+      "operation": "inspect"
+    },
+    {
+      "id": "agree",
+      "name": "同意协议",
+      "description": "双方在场时，以自己的身份登记同意。双方分别同意后立即完成；离场使未完成的旧同意失效。",
+      "operation": "agree"
+    }
+  ]
+}

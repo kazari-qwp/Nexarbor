@@ -1,0 +1,183 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "clock.counter",
+  "name": "时钟与计数触发器",
+  "version": "1.2.0",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "text_file",
+    "pulse"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "title": "时钟与计数配置",
+    "additionalProperties": false,
+    "properties": {
+      "signal_channels": {
+        "type": "array",
+        "title": "接收信号的频道",
+        "description": "收到这些频道上的信号时推进一次时钟；同一信号经多条路径到达只计一次。",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true,
+        "default": [
+          "tick"
+        ]
+      },
+      "labels": {
+        "type": "array",
+        "title": "轮次内时刻名称",
+        "description": "按顺序循环使用，例如小镇的清晨、上午、下午、傍晚、夜晚。",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "default": [
+          "清晨",
+          "上午",
+          "下午",
+          "傍晚",
+          "夜晚"
+        ]
+      },
+      "initial_tick": {
+        "type": "integer",
+        "title": "初始计数",
+        "description": "尚未收到信号时显示的计数，必须为非负整数。",
+        "minimum": 0,
+        "default": 0
+      },
+      "checkpoint_every": {
+        "type": "integer",
+        "title": "每多少次存档",
+        "description": "计数到达该正整数的倍数后，在释放节点锁后调用 runtime:checkpoint；0 表示禁用存档。",
+        "minimum": 0,
+        "default": 0
+      },
+      "write_text": {
+        "type": "boolean",
+        "title": "写入本地文本",
+        "description": "为真时把中文时间字符串写入本节点文本文件的主键 content。",
+        "default": false
+      },
+      "text_template": {
+        "type": "string",
+        "title": "输出文本模板",
+        "description": "可用占位符：{tick}、{day}、{slot}。文本写在本节点，可供上下文 tail 频道读取。",
+        "default": "第{day}天 {slot}"
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "title": "时钟与计数状态",
+    "additionalProperties": false,
+    "properties": {
+      "tick": {
+        "type": "integer",
+        "title": "当前计数",
+        "minimum": 0
+      },
+      "seen": {
+        "type": "array",
+        "title": "最近处理的信号",
+        "description": "最多保存 200 个信号 id，用于同信号多路汇合去重。",
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 200,
+        "uniqueItems": true
+      },
+      "pending_checkpoint": {
+        "type": "boolean",
+        "title": "待办存档",
+        "description": "定期存档调用失败后保留为真，补齐授权后可执行 flush 重试。",
+        "default": false
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "read",
+      "channels": [
+        "info",
+        "tick"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "读取参数",
+        "description": "read 操作不需要参数。",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "title": "当前时钟",
+        "additionalProperties": false,
+        "properties": {
+          "tick": {
+            "type": "integer",
+            "title": "当前计数",
+            "minimum": 0
+          },
+          "day": {
+            "type": "integer",
+            "title": "第几天",
+            "minimum": 1
+          },
+          "slot": {
+            "type": "string",
+            "title": "当前时刻"
+          }
+        },
+        "required": [
+          "tick",
+          "day",
+          "slot"
+        ]
+      }
+    },
+    {
+      "name": "flush",
+      "channels": [
+        "runtime.checkpoint"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "重试存档参数",
+        "description": "flush 操作不需要参数。",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "title": "存档重试结果",
+        "additionalProperties": false,
+        "properties": {
+          "checkpointed": {
+            "type": "boolean",
+            "title": "本次是否执行存档"
+          },
+          "tick": {
+            "type": "integer",
+            "title": "当前计数",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "checkpointed",
+          "tick"
+        ]
+      }
+    }
+  ],
+  "signals": {
+    "config": "signal_channels"
+  }
+}

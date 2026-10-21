@@ -75,7 +75,7 @@ def network_document(network: Network, base: str | Path, *, node_overrides=None)
             connections[label] = [asdict(interface) for interface in getattr(node, label)]
         agent_config = encode_execution(node, path.parent)
         _json_value(agent_config)
-        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'module_strength': node.module_strength, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'modules': node.modules, 'offered_tools': node.offered_tools, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding, 'context_cursor': node.context_cursor, 'inputs': node.inputs.snapshot() if hasattr(node,'inputs') else getattr(node,'_saved_inputs',None),**({'skills':node.skills} if node.skills else {})})
+        entries.append({'type': codec_for_node(node).type_id, 'node_id': node_id, 'name': node.name, 'description': node.description, 'management_parent_id': node.management_parent_id, 'divergence': node.divergence, 'aggregation': node.aggregation, 'module_strength': node.module_strength, 'data_kind': node.data_kind, 'parameters': parameters, 'connections': connections, 'agent': agent_config, 'modules': node.modules, 'offered_tools': node.offered_tools, 'toolboxes': node.toolboxes, 'expose': node.expose, 'execution': node.execution_binding, 'context_cursor': node.context_cursor, 'inputs': node.inputs.snapshot() if hasattr(node,'inputs') else getattr(node,'_saved_inputs',None),**({'skills':node.skills} if node.skills else {})})
     if getattr(network, 'archived_entries', None):
         entries.extend(network.archived_entries())
     document = {'version': 8, 'signals': network.signal_runs, 'nodes': entries, 'delegations': [{'source': source, 'target': target} for source, targets in network.delegation_permissions.items() for target in targets]}
@@ -114,7 +114,7 @@ def _build(document, base):
     network.repeat_unit_count=document.get('repeat_unit_count')
     network.repeat_unit=list(document.get('repeat_unit') or [])
     for entry in document['nodes']:
-        _fields({k: v for k, v in entry.items() if k not in ('modules', 'offered_tools', 'toolboxes', 'expose', 'management_parent_id', 'execution', 'inputs', 'context_cursor', 'module_strength','skills')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
+        _fields({k: v for k, v in entry.items() if k not in ('modules', 'offered_tools', 'toolboxes', 'expose', 'management_parent_id', 'execution', 'inputs', 'context_cursor', 'module_strength','skills','aggregation')}, ('type', 'node_id', 'name', 'data_kind', 'parameters', 'connections', 'description', 'divergence', 'agent'), '节点')
         node_id = _string(entry['node_id'], 'node_id')
         name = _string(entry['name'], 'name')
         kind = entry['data_kind']
@@ -171,6 +171,7 @@ def _build(document, base):
             raise ValueError('description 必须为字符串')
         node.description = description
         node.divergence = entry['divergence']
+        node.aggregation = entry.get('aggregation', 'sum')
         from .interface import validate_strength
         node.module_strength = validate_strength(entry.get('module_strength',0))
         network.add_node(node)

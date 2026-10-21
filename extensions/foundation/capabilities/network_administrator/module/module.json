@@ -28,7 +28,7 @@
       "timeout_seconds": {
         "type": "integer",
         "minimum": 10,
-        "maximum": 1200,
+        "maximum": 86400,
         "default": 600,
         "title": "制作时限（秒）"
       }
@@ -93,6 +93,36 @@
         "properties": {
           "task": {
             "type": "string"
+          },
+          "wait_seconds": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 30,
+            "default": 15,
+            "description": "运行中最多等待这些秒再返回，默认15秒；不要连续空轮询。"
+          },
+          "include_log": {
+            "type": "boolean",
+            "default": false,
+            "description": "需要失败诊断时才展开日志，按行或字符分页。"
+          },
+          "start_line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "line_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          },
+          "start_char": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "char_count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20000
           }
         },
         "required": [
@@ -158,7 +188,7 @@
     {
       "id": "status",
       "name": "查看局部网络制作进度",
-      "description": "查询属于这个管理员的制作任务。",
+      "description": "等待并查看本管理员任务的简短进度，默认最多等15秒；完成后再提交。仅需诊断时 include_log=true 分页读取，不连续空轮询。",
       "operation": "status"
     },
     {

@@ -1,6 +1,6 @@
 // Presentation geometry only. Network edges retain their original IDs/direction.
 // Shared-side port spacing follows Archify's deterministic endpoint-spread idea.
-export const NODE_SIZE=92;
+export const NODE_SIZE=84;
 export function nodeBox(node){
   const width=node.measured?.width??node.width??NODE_SIZE,height=node.measured?.height??node.height??NODE_SIZE;
   return {id:node.id,x:node.position.x,y:node.position.y,width,height,cx:node.position.x+width/2,cy:node.position.y+height/2};

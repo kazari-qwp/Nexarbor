@@ -1,5 +1,6 @@
 """Generic native Agent port. All application behavior comes from node modules/config."""
 import asyncio
+import json
 from dataclasses import asdict,is_dataclass
 from hashlib import sha256
 from datanet.core.agent_node import AgentNode
@@ -7,10 +8,50 @@ from datanet.core.access_budget import active_agent
 from datanet.core.tool_access import list_tools,invoke_tool,validate_arguments
 from types import SimpleNamespace
 
+def discovery_key(backend, actor, binding, sources):
+    """Cheap committed-structure key; never scan business histories for discovery.
+
+    Dynamic providers default to uncached. A provider may explicitly declare
+    state_schema.x-tool-discovery = network or state in its module manifest.
+    This is an adapter hint, not an authorization grant.
+    """
+    from datanet.core.json_values import thaw
+    with backend._transaction_lock:
+        network=backend.network
+        nodes,links,biases,modes=network.routing_snapshot(include_aggregation=True)
+        locks=backend.node_locks
+        _,images=locks.overrides()
+        rows=[];cacheable=True
+        for node_id,node in nodes.items():
+            image=images.get(node_id);attrs=image['attrs'] if image else vars(node)
+            modules=[]
+            for name,spec in attrs.get('modules',{}).items():
+                instance=backend.modules.instances.get((node_id,name))
+                if instance is None:continue
+                definition=instance.definition
+                policy=definition.state_schema.get('x-tool-discovery')
+                if definition.tool_provider and policy not in ('network','state'):cacheable=False
+                modules.append((name,id(instance),id(definition),instance.active,definition.operations,definition.agent_tools,spec['access'],spec['config'],
+                    spec['state'] if definition.tool_provider and policy=='state' else None))
+            tools=image['tools'] if image else node.tools
+            definitions=image['definitions'] if image else node.tool_definitions
+            private=image['agent_definitions'] if image else node.agent_tool_definitions
+            edges=[(e.target_node_id,e.metadata.threshold,e.metadata.multiplier,e.metadata.channels,e.metadata.attributes) for e in links[node_id]]
+            rows.append((node_id,id(node),attrs.get('name'),attrs.get('description'),biases[node_id],modes[node_id],
+                locks.ownership(node_id),(attrs.get('module_strength') if image else node.module_strength),edges,modules,definitions,private,
+                [(name,id(callback)) for name,callback in tools.items()],attrs.get('expose',[]),attrs.get('offered_tools',[])))
+        if not cacheable:return None
+        external=backend.external_tools
+        value=(binding,sorted(sources),rows,sorted(backend.components.enabled),external.catalog(),
+            backend.agents.get(actor,{}).get('external_tools',{}))
+        return sha256(json.dumps(thaw(value),ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+
+
 class NativeExecutor:
     def __init__(self,backend,transport):
         self.backend,self.transport=backend,transport
         self.seen={}
+        self.tool_views={}
         from datanet.core.module_tools import ModuleTools
         self.module_tools=ModuleTools(backend)
         if transport is not None:
@@ -18,7 +59,7 @@ class NativeExecutor:
                 async def capture(self,bindings):
                     return await asyncio.to_thread(transport.host,'agent-context-capture',dict(bindings=bindings))
                 async def restore(self,cursors):
-                    return await asyncio.to_thread(transport.host,'agent-context-restore',dict(contexts=cursors))
+                    return await asyncio.to_thread(transport.host,'agent-context-restore',dict(contexts=cursors,transactional=True))
             backend.context_port=ContextPort()
         backend.agent_executor=self.run
         for method,mutation in [('prepare',True),('invoke',True),('ack',True),('bind',True),('prune',True),('visit',True)]:
@@ -30,7 +71,8 @@ class NativeExecutor:
         if not isinstance(node,AgentNode):raise TypeError('Native execution requires an Agent node')
         binding=dict(node.execution_binding or {})
         from datanet.core.channel_filters import resolve
-        binding['channels']=list(resolve(binding.get('channels',[]),binding.get('channel_mode',binding.get('channel_modes',{}).get('channels','allow')),self.backend.network.channel_names()))
+        policy=binding.get('channel_mode',binding.get('channel_modes',{}).get('channels','allow'))
+        binding['channels']=list(resolve(binding.get('channels',[]),policy,self.backend.network.channel_names() if policy=='deny' else ()))
         if binding.get('executor')!='harness':raise ValueError('Configure this node with executor=harness')
         strength=binding.get('strength',0)
         if type(strength) not in (int,float) or not 0<=strength<=32:raise ValueError('Invalid executor strength')
@@ -47,11 +89,9 @@ class NativeExecutor:
 
     async def _run_owned(self,node_id,message='',**options):
         node,binding=self.binding(node_id)
-        # 首轮也装配本节点公开的工具来源；之后每次模型请求按当前网络刷新。
-        for target in [node_id,*binding.get('tool_sources',[])]:
-            await self.module_tools.visit(node_id,target,strength=binding.get('strength',0),channels=binding.get('channels',[]))
+        await self.refresh_tools(node_id,binding,include_self=True)
         timeout=options.get('timeout_seconds',binding.get('timeout_seconds',90))
-        if type(timeout) not in (int,float) or not 1<=timeout<=600:raise ValueError('Invalid executor timeout')
+        if type(timeout) not in (int,float) or not 1<=timeout<=86400:raise ValueError('Invalid executor timeout')
         request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=binding.get('max_steps',12),session_id=self.backend.agents.get(node_id,{}).get('session_id'),context_cursor=node.context_cursor,model=binding.get('model'),model_signature=self.backend.agents.get(node_id,{}).get('model_signature'))
         try:
             async with self.backend.node_locks.suspend_access():
@@ -79,6 +119,28 @@ class NativeExecutor:
         self.seen.setdefault(actor,{}).update(routes)
         for definition in definitions:history[definition['name']]=dict(definition=definition,route=routes[definition['name']])
         return definitions,routes
+    async def refresh_tools(self,actor,binding,*,include_self=False):
+        memory=self.backend.agents.get(actor,{})
+        sources=list(dict.fromkeys([*([actor] if include_self else []),*binding.get('tool_sources',[]),
+            *(source['node_id'] for source in memory.get('module_tool_sources',{}).values())]))
+        before=discovery_key(self.backend,actor,binding,sources)
+        cached=self.tool_views.get(actor)
+        if before is not None and cached and cached['key']==before:return cached['view']
+        # A deleted provider cannot leave a retained executable tool behind.
+        for source_id,source in list(memory.get('module_tool_sources',{}).items()):
+            if source['node_id'] not in self.backend.network.nodes:
+                memory['module_tool_sources'].pop(source_id)
+                memory['module_tools']={alias:item for alias,item in memory.get('module_tools',{}).items() if item['source_id']!=source_id}
+        await asyncio.gather(*(self.module_tools.visit(actor,target,
+            strength=binding.get('strength',0),channels=binding.get('channels',[]))
+            for target in sources if target in self.backend.network.nodes))
+        # Provider tables use synchronous admission; let them wait off the
+        # core event loop while a short peer transaction owns a provider.
+        view=await asyncio.to_thread(self.definitions,actor)
+        after=discovery_key(self.backend,actor,binding,sources)
+        self.tool_views[actor]=dict(key=after if before==after else None,view=view)
+        return view
+
     def refusal(self,actor,name):
         route=self.seen.get(actor,{}).get(name)
         reason='这个工具已离开你当前可达的范围，不能执行。'
@@ -94,10 +156,7 @@ class NativeExecutor:
     def _prepare_owned(self,p):
         self._check_session(p)
         actor=p['actor'];node,binding=self.binding(actor)
-        for source_node in binding.get('tool_sources',[]):
-            self.backend.runtime.run(self.module_tools.visit(actor,source_node,strength=binding.get('strength',0),channels=binding.get('channels',[])))
-        if self.backend.agents.get(actor,{}).get('module_tool_sources'):
-            self.backend.runtime.run(self.module_tools.refresh(actor,strength=binding.get('strength',0),channels=binding.get('channels',[])))
+        definitions,_=self.backend.runtime.run(self.refresh_tools(actor,binding))
         for reference in binding.get('prepare',[]):
             target=reference.get('node',actor)
             channels=reference.get('channels',binding.get('channels',[]))
@@ -106,13 +165,13 @@ class NativeExecutor:
             packet=value.get('data') or {}
             if isinstance(packet,dict) and packet.get('format')=='nexarbor-context/v1':
                 source='prepare:'+target+':'+reference['module']+':'+reference['operation']
-                node.inputs.update(source,packet['patch'])
-                self.backend.agents.setdefault(actor,{})['context_assembly_errors']=packet.get('errors',[])
+                from datanet.studio.context_packets import apply_context_packet
+                apply_context_packet(self.backend,actor,source,packet)
         # 接线撤销后移除快照，但保留已经投递/排队的事件历史。
         active={'prepare:'+r.get('node',actor)+':'+r['module']+':'+r['operation'] for r in binding.get('prepare',[])}
         for source in node.inputs.snapshot():
             if source.startswith('prepare:') and source not in active:node.inputs.update(source,dict(system_prompt='',context=[],tail=[]))
-        sources=node.inputs.snapshot();definitions,_=self.definitions(actor)
+        sources=node.inputs.snapshot()
         return dict(actor=actor,system_prompt='\n\n'.join(v['system_prompt'] for _,v in sorted(sources.items())),
             skills=node.skills,context=[dict(id=s+'/'+d['id'],text=d['text']) for s,v in sorted(sources.items()) for d in v['context']],
             inputs=[dict(source=s,**e) for s,e in node.inputs.pending()],tail=node.inputs.tail(),tools=definitions,retained_tools=[v['definition'] for v in self.backend.agents[actor]['tool_history'].values()],
@@ -123,7 +182,9 @@ class NativeExecutor:
 
     def _invoke_owned(self,p):
         self._check_session(p)
-        actor=p['actor'];node,binding=self.binding(actor);definitions,routes=self.definitions(actor)
+        actor=p['actor'];node,binding=self.binding(actor)
+        cached=self.tool_views.get(actor)
+        definitions,routes=cached['view'] if cached else self.definitions(actor)
         if p['name'] not in routes:return dict(status='forbidden',errors=[self.refusal(actor,p['name'])])
         route=routes[p['name']];arguments=p.get('arguments',{})
         validate_arguments(arguments,next(d['parameters'] for d in definitions if d['name']==p['name']))
@@ -149,6 +210,7 @@ class NativeExecutor:
 
     def _visit_owned(self,p):
         self._check_session(p)
+        self.tool_views.pop(p['actor'],None)
         actor=p['actor'];node,binding=self.binding(actor)
         strength=binding.get('strength',0);channels=binding.get('channels',[])
         target=p.get('target')
@@ -190,4 +252,5 @@ class NativeExecutor:
         history=self.backend.agents[actor]['tool_history']
         for name in list(history):
             if name not in retained:history.pop(name);self.seen.get(actor,{}).pop(name,None)
+        self.tool_views.pop(actor,None)
         return list(history)

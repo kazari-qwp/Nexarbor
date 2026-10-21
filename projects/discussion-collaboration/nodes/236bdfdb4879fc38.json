@@ -1,0 +1,127 @@
+{
+  "type": "agent",
+  "node_id": "executor-2",
+  "name": "执行成员乙",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": 0,
+  "data_kind": null,
+  "parameters": {
+    "file_path": "data/executor-2.md"
+  },
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "collab",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "collaboration"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "workspace",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "workspace"
+          ],
+          "attributes": {}
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "agents.activity": {
+      "config": {
+        "signal_channels": [
+          "collaboration.work",
+          "collaboration.review"
+        ],
+        "budget_field": "ap",
+        "budget": 20,
+        "prompt": "协作信号已到达。请读取协作板任务与候选状态：自主认领任务与路径，用独立 worktree 完成、测试并提交；收到验收信号后检查同一候选，调用 approve 或 veto。",
+        "enabled": true
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "tick",
+          "activity",
+          "records",
+          "self",
+          "runtime.agent",
+          "collaboration.work",
+          "collaboration.review"
+        ]
+      }
+    },
+    "records.store": {
+      "config": {
+        "initial": {
+          "ap": 20
+        },
+        "references": [],
+        "minimum": {
+          "ap": 0
+        }
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "records"
+        ]
+      }
+    },
+    "tools.collector": {
+      "config": {
+        "channels": [
+          "collaboration",
+          "workspace"
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "collaboration",
+          "workspace",
+          "records"
+        ]
+      }
+    }
+  },
+  "offered_tools": [
+    {
+      "ref": "runtime:agent_run",
+      "channels": [
+        "runtime.agent"
+      ]
+    }
+  ],
+  "toolboxes": [],
+  "expose": [],
+  "execution": {
+    "executor": "harness",
+    "strength": 2,
+    "channels": [
+      "self",
+      "records",
+      "collaboration",
+      "app",
+      "workspace",
+      "runtime.agent"
+    ],
+    "max_steps": 100000,
+    "timeout_seconds": 86400
+  },
+  "inputs": null,
+  "context_cursor": null
+}

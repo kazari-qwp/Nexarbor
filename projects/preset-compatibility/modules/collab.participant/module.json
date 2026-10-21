@@ -1,0 +1,162 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "collab.participant",
+  "name": "执行组成员入口",
+  "version": "1.0.0",
+  "description": "在执行组内绑定真实请求者，转交 Git 提交和候选验收；组员无需连接根节点。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [
+    "git.integrator.rev_2863bbe53e.rev_c376775a7e"
+  ],
+  "config_schema": {
+    "type": "object",
+    "properties": {
+      "integrator_module": {
+        "type": "string",
+        "default": "git.integrator.rev_2863bbe53e.rev_c376775a7e"
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "operations": [
+    {
+      "name": "submit",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "成员提交",
+        "properties": {
+          "commit": {
+            "type": "string",
+            "title": "提交哈希",
+            "pattern": "^[0-9a-fA-F]{7,64}$"
+          },
+          "branch": {
+            "type": "string",
+            "title": "成员分支",
+            "minLength": 1
+          },
+          "key": {
+            "type": "string",
+            "title": "请求键",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "commit"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "approve",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "认可候选",
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "title": "候选编号",
+            "pattern": "^cand-[0-9a-f]{16}$"
+          },
+          "reason": {
+            "type": "string",
+            "title": "认可说明",
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "veto",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "否决候选",
+        "properties": {
+          "candidate_id": {
+            "type": "string",
+            "title": "候选编号",
+            "pattern": "^cand-[0-9a-f]{16}$"
+          },
+          "reason": {
+            "type": "string",
+            "title": "否决理由",
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "read",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "submit",
+      "name": "提交成果",
+      "description": "以自己的身份把完成的分支提交交给整合器。",
+      "operation": "submit"
+    },
+    {
+      "id": "approve",
+      "name": "认可候选",
+      "description": "以自己的身份认可当前或指定候选；调用者身份由请求链决定。",
+      "operation": "approve"
+    },
+    {
+      "id": "veto",
+      "name": "否决候选",
+      "description": "以自己的身份否决当前或指定候选，并说明理由。",
+      "operation": "veto"
+    },
+    {
+      "id": "read",
+      "name": "查看整合状态",
+      "description": "查看实际工作仓库、本人分支、成员提交与当前候选；成员身份由真实调用者绑定。",
+      "operation": "read"
+    }
+  ]
+}

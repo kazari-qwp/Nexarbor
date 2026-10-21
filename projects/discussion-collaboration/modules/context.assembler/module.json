@@ -1,0 +1,388 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "context.assembler",
+  "version": "1.4.0",
+  "name": "上下文组装器",
+  "description": "沿四个独立频道直接读取可达文本，保留核心广度顺序并去重；串联组装器也按广度顺序逐个合并。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent",
+    "text_file",
+    "pulse"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "sources": {
+        "type": "array",
+        "title": "直接文本与文件来源",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string",
+              "title": "稳定来源编号",
+              "minLength": 1
+            },
+            "kind": {
+              "type": "string",
+              "title": "投放类型",
+              "enum": [
+                "system_prompt",
+                "context",
+                "inputs",
+                "tail"
+              ],
+              "default": "context"
+            },
+            "type": {
+              "type": "string",
+              "title": "来源方式",
+              "enum": [
+                "text",
+                "file"
+              ],
+              "default": "text"
+            },
+            "text": {
+              "type": "string",
+              "title": "直接文本",
+              "default": ""
+            },
+            "path": {
+              "type": "string",
+              "title": "文本路径（相对项目目录）",
+              "default": ""
+            },
+            "event_id": {
+              "type": "string",
+              "title": "一次性事件编号",
+              "default": ""
+            },
+            "delivery": {
+              "type": "string",
+              "title": "事件投递方式",
+              "enum": [
+                "followup",
+                "steer"
+              ],
+              "default": "followup"
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "type"
+          ],
+          "patternProperties": {
+            "^order$": {
+              "type": "number",
+              "description": "旧配置兼容字段，已忽略；顺序由网络层次控制。"
+            }
+          }
+        },
+        "default": []
+      },
+      "document_roots": {
+        "type": "array",
+        "title": "额外允许读取的文本目录",
+        "description": "默认只允许项目目录。额外目录属于明确的文件读取授权。",
+        "items": {
+          "type": "string"
+        },
+        "default": []
+      },
+      "channels": {
+        "type": "array",
+        "title": "组装器串联频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler"
+        ]
+      },
+      "system_prompt_channels": {
+        "type": "array",
+        "title": "系统指令频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler.system_prompt"
+        ]
+      },
+      "context_channels": {
+        "type": "array",
+        "title": "长效资料频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler.context"
+        ]
+      },
+      "inputs_channels": {
+        "type": "array",
+        "title": "一次性输入频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler.inputs"
+        ]
+      },
+      "tail_channels": {
+        "type": "array",
+        "title": "尾部快照频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "context.assembler.tail"
+        ]
+      },
+      "channel_modes": {
+        "type": "object",
+        "title": "频道匹配模式",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      }
+    },
+    "required": []
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  },
+  "operations": [
+    {
+      "name": "assemble",
+      "channels": {
+        "config": "channels"
+      },
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "preview",
+      "channels": {
+        "config": "channels"
+      },
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "sources": {
+                "type": "array",
+                "title": "直接文本与文件来源",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "title": "稳定来源编号",
+                      "minLength": 1
+                    },
+                    "kind": {
+                      "type": "string",
+                      "title": "投放类型",
+                      "enum": [
+                        "system_prompt",
+                        "context",
+                        "inputs",
+                        "tail"
+                      ],
+                      "default": "context"
+                    },
+                    "type": {
+                      "type": "string",
+                      "title": "来源方式",
+                      "enum": [
+                        "text",
+                        "file"
+                      ],
+                      "default": "text"
+                    },
+                    "text": {
+                      "type": "string",
+                      "title": "直接文本",
+                      "default": ""
+                    },
+                    "path": {
+                      "type": "string",
+                      "title": "文本路径（相对项目目录）",
+                      "default": ""
+                    },
+                    "event_id": {
+                      "type": "string",
+                      "title": "一次性事件编号",
+                      "default": ""
+                    },
+                    "delivery": {
+                      "type": "string",
+                      "title": "事件投递方式",
+                      "enum": [
+                        "followup",
+                        "steer"
+                      ],
+                      "default": "followup"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "kind",
+                    "type"
+                  ],
+                  "patternProperties": {
+                    "^order$": {
+                      "type": "number",
+                      "description": "旧配置兼容字段，已忽略；顺序由网络层次控制。"
+                    }
+                  }
+                },
+                "default": []
+              },
+              "document_roots": {
+                "type": "array",
+                "title": "额外允许读取的文本目录",
+                "description": "默认只允许项目目录。额外目录属于明确的文件读取授权。",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "channels": {
+                "type": "array",
+                "title": "组装器串联频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler"
+                ]
+              },
+              "system_prompt_channels": {
+                "type": "array",
+                "title": "系统指令频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler.system_prompt"
+                ]
+              },
+              "context_channels": {
+                "type": "array",
+                "title": "长效资料频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler.context"
+                ]
+              },
+              "inputs_channels": {
+                "type": "array",
+                "title": "一次性输入频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler.inputs"
+                ]
+              },
+              "tail_channels": {
+                "type": "array",
+                "title": "尾部快照频道",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "uniqueItems": true,
+                "default": [
+                  "context.assembler.tail"
+                ]
+              },
+              "channel_modes": {
+                "type": "object",
+                "title": "频道匹配模式",
+                "additionalProperties": {
+                  "enum": [
+                    "allow",
+                    "deny"
+                  ]
+                }
+              }
+            },
+            "required": []
+          }
+        },
+        "required": []
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "collect",
+      "channels": {
+        "config": "channels"
+      },
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "result": {
+        "type": "object"
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [],
+  "frontend": {
+    "entry": "ui.html",
+    "title": "上下文来源与装配预览",
+    "height": 700,
+    "preview_operation": "preview"
+  }
+}

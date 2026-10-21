@@ -1,0 +1,428 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "app.coordinator.entry",
+  "name": "运行编排器（修订三）",
+  "version": "0.1.5",
+  "description": "根入口编排器：启动讨论、交接执行、生成候选、推进验收与发布；成员提交与投票由执行组的 collab.participant 处理。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node",
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "title": "运行编排配置",
+    "properties": {
+      "discussion_node": {
+        "type": "string",
+        "format": "node-id",
+        "title": "讨论组节点",
+        "description": "装配讨论会话模块的节点，负责讨论会话的启动、状态与停止。",
+        "minLength": 1
+      },
+      "board_node": {
+        "type": "string",
+        "format": "node-id",
+        "title": "执行组节点",
+        "description": "装配协作板模块的节点，负责打开、查看与关闭任务板。",
+        "minLength": 1
+      },
+      "integrator_node": {
+        "type": "string",
+        "format": "node-id",
+        "title": "整合节点",
+        "description": "装配整合器模块的节点，负责成果整合、成员验收与发布。",
+        "minLength": 1
+      },
+      "review_channel": {
+        "type": "array",
+        "title": "验收信号频道",
+        "description": "候选生成后沿这些频道广播验收信号；只用于验收信号，不再作为整合器调用频道。",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true,
+        "default": [
+          "collaboration.review"
+        ]
+      },
+      "channel_modes": {
+        "type": "object",
+        "title": "频道匹配模式",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      },
+      "accept_channel": {
+        "type": "array",
+        "title": "成员验收频道",
+        "description": "调用整合器 approve、veto 或 reopen 时使用的频道。",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true,
+        "default": [
+          "collaboration"
+        ]
+      },
+      "discussion_module": {
+        "type": "string",
+        "title": "讨论会话模块",
+        "description": "对应组入口实际装配的模块 ID；缺省使用本项目随附版本，替换组组件时按实际模块 ID 修改。",
+        "minLength": 1,
+        "default": "discussion.session.rev_697d80a33d"
+      },
+      "board_module": {
+        "type": "string",
+        "title": "协作板模块",
+        "description": "对应组入口实际装配的模块 ID；缺省使用本项目随附版本，替换组组件时按实际模块 ID 修改。",
+        "minLength": 1,
+        "default": "collab.board.rev_9191e2380f.rev_96569f0263"
+      },
+      "integrator_module": {
+        "type": "string",
+        "title": "整合器模块",
+        "description": "对应组入口实际装配的模块 ID；缺省使用本项目随附版本，替换组组件时按实际模块 ID 修改。",
+        "minLength": 1,
+        "default": "git.integrator.rev_2863bbe53e.rev_c376775a7e"
+      },
+      "activity_timeout_seconds": {
+        "type": "integer",
+        "title": "信号处理时限（秒）",
+        "description": "该模块发出的每轮信号及单个目标的有限处理时限；应能容纳模型读取资料、执行与验证。",
+        "minimum": 1,
+        "maximum": 86400,
+        "default": 86400
+      }
+    },
+    "required": [
+      "discussion_node",
+      "board_node",
+      "integrator_node"
+    ],
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "title": "运行编排状态",
+    "properties": {
+      "run": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "title": "当前运行",
+        "description": "唯一进行中的编排运行；结束、停止或失败后仍保留为最近一次运行。",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "运行编号"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "idle",
+              "discussing",
+              "executing",
+              "reviewing",
+              "completed",
+              "stopped",
+              "failed"
+            ],
+            "title": "状态"
+          },
+          "task": {
+            "type": "string",
+            "title": "任务"
+          },
+          "discussion_run": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "title": "讨论会话编号"
+          },
+          "execution_run": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "title": "执行批次编号"
+          },
+          "candidate": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "title": "候选编号"
+          },
+          "artifact_title": {
+            "type": "string",
+            "title": "成果标题",
+            "description": "取讨论成果 artifact.title，缺失时回退本次运行的任务描述。"
+          },
+          "started_at": {
+            "type": "number",
+            "title": "开始时间"
+          },
+          "ended_at": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "title": "结束时间"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "title": "失败原因"
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "title": "启动幂等键"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "task",
+          "discussion_run",
+          "execution_run",
+          "candidate",
+          "artifact_title",
+          "started_at",
+          "ended_at",
+          "error",
+          "key"
+        ]
+      },
+      "runs": {
+        "type": "array",
+        "title": "运行历史",
+        "description": "最近 20 次运行的快照，按产生顺序保留。",
+        "maxItems": 20,
+        "items": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "errors": {
+        "type": "array",
+        "title": "最近错误",
+        "description": "最近 20 条编排或下游通信错误，供状态查询排查。",
+        "maxItems": 20,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "at": {
+              "type": "number",
+              "title": "时间"
+            },
+            "operation": {
+              "type": "string",
+              "title": "操作"
+            },
+            "message": {
+              "type": "string",
+              "title": "错误信息"
+            }
+          },
+          "required": [
+            "at",
+            "operation",
+            "message"
+          ]
+        }
+      }
+    },
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "start",
+      "channels": [
+        "app"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "启动参数",
+        "properties": {
+          "task": {
+            "type": "string",
+            "title": "任务",
+            "description": "本次要讨论和执行的完整任务描述。",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "rounds": {
+            "type": "integer",
+            "title": "讨论轮数",
+            "description": "可选；传给讨论会话的最大轮数。",
+            "minimum": 1,
+            "maximum": 50
+          },
+          "key": {
+            "type": "string",
+            "title": "启动键",
+            "description": "可选；运行进行中时用相同键重试会返回原运行而不是再启动一次。",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "handoff",
+      "channels": [
+        "app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "integrate",
+      "channels": [
+        "app"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "整合参数",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "重开理由",
+            "description": "可选；验收阶段发现候选被否决时，作为重开验收的理由传给整合器；缺省为“成员否决后重开验收”。",
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "promote",
+      "channels": [
+        "app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "status",
+      "channels": [
+        "app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "stop",
+      "channels": [
+        "app"
+      ],
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "停止原因",
+            "maxLength": 500
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  ],
+  "signals": [
+    "collaboration.review"
+  ],
+  "agent_tools": [
+    {
+      "id": "start",
+      "name": "启动任务",
+      "description": "启动一次编排任务：让讨论会话开始讨论，并记录为当前运行。",
+      "operation": "start"
+    },
+    {
+      "id": "handoff",
+      "name": "交接执行",
+      "description": "读取讨论成果并把任务交给协作板执行，运行进入执行阶段。",
+      "operation": "handoff"
+    },
+    {
+      "id": "integrate",
+      "name": "整合成果",
+      "description": "让整合器生成候选，并沿验收频道广播验收信号。",
+      "operation": "integrate"
+    },
+    {
+      "id": "promote",
+      "name": "发布成果",
+      "description": "全员认可后发布当前候选，运行标记为完成。",
+      "operation": "promote"
+    },
+    {
+      "id": "status",
+      "name": "查看状态",
+      "description": "查看讨论、协作板与整合器状态及最近错误，不读取历史运行。",
+      "operation": "status"
+    },
+    {
+      "id": "stop",
+      "name": "停止任务",
+      "description": "按当前阶段停止讨论会话或关闭协作板，运行保留为已停止。",
+      "operation": "stop"
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 {
   "format": "nexarbor-module/v3",
   "id": "context.assembler",
-  "version": "1.1.0",
+  "version": "1.4.0",
   "name": "上下文组装器",
-  "description": "沿四个独立频道读取文本，或使用直接文本与文本路径，生成可预览的四路上下文；不管理角色、地图或记忆。",
+  "description": "沿四个独立频道直接读取可达文本，保留核心广度顺序并去重；串联组装器也按广度顺序逐个合并。",
   "entry": "module.py:execute",
   "node_types": [
     "node",
@@ -58,15 +58,6 @@
               "title": "文本路径（相对项目目录）",
               "default": ""
             },
-            "order": {
-              "type": "number",
-              "title": "顺序",
-              "default": 0
-            },
-            "when": {
-              "type": "object",
-              "title": "匹配条件（事实字段等于指定值）"
-            },
             "event_id": {
               "type": "string",
               "title": "一次性事件编号",
@@ -80,67 +71,19 @@
                 "steer"
               ],
               "default": "followup"
-            },
-            "enabled": {
-              "type": "boolean",
-              "title": "启用",
-              "default": true
             }
           },
           "required": [
             "id",
             "kind",
             "type"
-          ]
-        },
-        "default": []
-      },
-      "bindings": {
-        "type": "array",
-        "title": "条件事实来源（显式只读调用）",
-        "description": "结果对象合并为条件字段；不配置时条件只使用本节点元数据。",
-        "items": {
-          "type": "object",
-          "additionalProperties": false,
-          "properties": {
-            "node": {
-              "type": "string",
-              "title": "事实节点",
-              "format": "node-reference"
-            },
-            "module": {
-              "type": "string",
-              "title": "模块编号"
-            },
-            "operation": {
-              "type": "string",
-              "title": "只读操作"
-            },
-            "arguments": {
-              "type": "object",
-              "title": "参数",
-              "default": {}
-            },
-            "channels": {
-              "type": "array",
-              "title": "访问频道",
-              "items": {
-                "type": "string"
-              },
-              "minItems": 1
-            },
-            "pointer": {
-              "type": "string",
-              "title": "结果 JSON Pointer",
-              "default": ""
+          ],
+          "patternProperties": {
+            "^order$": {
+              "type": "number",
+              "description": "旧配置兼容字段，已忽略；顺序由网络层次控制。"
             }
-          },
-          "required": [
-            "node",
-            "module",
-            "operation",
-            "channels"
-          ]
+          }
         },
         "default": []
       },
@@ -301,15 +244,6 @@
                       "title": "文本路径（相对项目目录）",
                       "default": ""
                     },
-                    "order": {
-                      "type": "number",
-                      "title": "顺序",
-                      "default": 0
-                    },
-                    "when": {
-                      "type": "object",
-                      "title": "匹配条件（事实字段等于指定值）"
-                    },
                     "event_id": {
                       "type": "string",
                       "title": "一次性事件编号",
@@ -323,67 +257,19 @@
                         "steer"
                       ],
                       "default": "followup"
-                    },
-                    "enabled": {
-                      "type": "boolean",
-                      "title": "启用",
-                      "default": true
                     }
                   },
                   "required": [
                     "id",
                     "kind",
                     "type"
-                  ]
-                },
-                "default": []
-              },
-              "bindings": {
-                "type": "array",
-                "title": "条件事实来源（显式只读调用）",
-                "description": "结果对象合并为条件字段；不配置时条件只使用本节点元数据。",
-                "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "properties": {
-                    "node": {
-                      "type": "string",
-                      "title": "事实节点",
-                      "format": "node-reference"
-                    },
-                    "module": {
-                      "type": "string",
-                      "title": "模块编号"
-                    },
-                    "operation": {
-                      "type": "string",
-                      "title": "只读操作"
-                    },
-                    "arguments": {
-                      "type": "object",
-                      "title": "参数",
-                      "default": {}
-                    },
-                    "channels": {
-                      "type": "array",
-                      "title": "访问频道",
-                      "items": {
-                        "type": "string"
-                      },
-                      "minItems": 1
-                    },
-                    "pointer": {
-                      "type": "string",
-                      "title": "结果 JSON Pointer",
-                      "default": ""
+                  ],
+                  "patternProperties": {
+                    "^order$": {
+                      "type": "number",
+                      "description": "旧配置兼容字段，已忽略；顺序由网络层次控制。"
                     }
-                  },
-                  "required": [
-                    "node",
-                    "module",
-                    "operation",
-                    "channels"
-                  ]
+                  }
                 },
                 "default": []
               },
@@ -471,6 +357,20 @@
           }
         },
         "required": []
+      },
+      "result": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "collect",
+      "channels": {
+        "config": "channels"
+      },
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
       },
       "result": {
         "type": "object"

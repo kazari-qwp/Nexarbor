@@ -2,7 +2,7 @@
   "format": "nexarbor-module/v3",
   "id": "messages.box",
   "name": "消息与讨论箱",
-  "version": "0.2.0",
+  "version": "0.4.0",
   "description": "保存有限的消息与讨论记录，支持 Agent 私信、讨论小组公告和协作组任务通信；发送费用、读取范围和是否要求 Agent 身份均可配置。",
   "entry": "module.py:execute",
   "node_types": [
@@ -47,6 +47,29 @@
         "type": "boolean",
         "title": "收信后在当前时刻继续活动",
         "default": false
+      },
+      "record_channels": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "location",
+          "records",
+          "road"
+        ],
+        "title": "发送者记录访问频道"
+      },
+      "channel_modes": {
+        "type": "object",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
       }
     },
     "additionalProperties": false
@@ -119,7 +142,8 @@
     {
       "name": "send",
       "channels": [
-        "chat"
+        "chat",
+        "location"
       ],
       "parameters": {
         "type": "object",
@@ -195,7 +219,8 @@
     {
       "name": "read",
       "channels": [
-        "chat"
+        "chat",
+        "location"
       ],
       "parameters": {
         "type": "object",
@@ -255,7 +280,8 @@
     {
       "name": "clear",
       "channels": [
-        "chat"
+        "chat",
+        "location"
       ],
       "parameters": {
         "type": "object",

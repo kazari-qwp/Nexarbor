@@ -1,0 +1,163 @@
+{
+  "format": "nexarbor-project-network/v1",
+  "network": {
+    "version": 8,
+    "signals": {},
+    "delegations": []
+  },
+  "nodes": [
+    {
+      "file": "nodes/4813494d137e1631.json"
+    },
+    {
+      "file": "nodes/e0f895872d65b252.json"
+    },
+    {
+      "file": "nodes/a13ddee6eaec85d3.json"
+    },
+    {
+      "file": "nodes/d4818945cf62b9de.json"
+    }
+  ],
+  "files": [
+    {
+      "name": "data/root.md",
+      "file": "network-resources/21ecb9cb9a769e73.txt",
+      "encoding": "utf8"
+    },
+    {
+      "name": "data/task/input.md",
+      "file": "network-resources/8a5a514b933b1d30.txt",
+      "encoding": "utf8"
+    },
+    {
+      "name": "data/task/output.md",
+      "file": "network-resources/6cd63a1efc4054d7.txt",
+      "encoding": "utf8"
+    }
+  ],
+  "runtime": {
+    "components": [
+      "capabilities/runtime_ports",
+      "capabilities/template_instantiation"
+    ],
+    "templates": [
+      {
+        "id": "knowledge-collection",
+        "callers": [
+          "knowledge"
+        ],
+        "arguments_schema": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string"
+            },
+            "collection": {
+              "type": "string"
+            },
+            "storage": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "label",
+            "collection",
+            "storage"
+          ],
+          "additionalProperties": false
+        },
+        "bindings": [
+          {
+            "path": "/network/nodes/0/name",
+            "input": "label"
+          },
+          {
+            "path": "/network/nodes/0/modules/knowledge.collection/config/collection",
+            "input": "collection"
+          },
+          {
+            "path": "/network/nodes/0/modules/knowledge.collection/config/storage",
+            "input": "storage"
+          }
+        ],
+        "attachments": [
+          {
+            "source": "root",
+            "target": "collection",
+            "metadata": {
+              "threshold": 1,
+              "multiplier": 1,
+              "channels": [
+                "knowledge"
+              ],
+              "attributes": {}
+            }
+          }
+        ],
+        "document": {
+          "network": {
+            "version": 8,
+            "nodes": [
+              {
+                "type": "node",
+                "node_id": "collection",
+                "name": "新资料集合",
+                "description": "独立资料集合",
+                "management_parent_id": null,
+                "divergence": 0,
+                "aggregation": "sum",
+                "module_strength": 6,
+                "data_kind": null,
+                "parameters": {},
+                "connections": {
+                  "interfaces": [
+                    {
+                      "target_node_id": "knowledge",
+                      "metadata": {
+                        "threshold": 1,
+                        "multiplier": 1,
+                        "channels": [
+                          "knowledge"
+                        ],
+                        "attributes": {}
+                      }
+                    }
+                  ]
+                },
+                "agent": null,
+                "modules": {
+                  "knowledge.collection": {
+                    "config": {
+                      "collection": "pending",
+                      "storage": "wiki"
+                    },
+                    "state": {},
+                    "access": {
+                      "strength": 6,
+                      "channels": [
+                        "knowledge"
+                      ]
+                    }
+                  }
+                },
+                "offered_tools": [],
+                "toolboxes": [],
+                "expose": [],
+                "execution": null,
+                "context_cursor": null,
+                "inputs": null,
+                "skills": []
+              }
+            ],
+            "signals": {},
+            "delegations": []
+          },
+          "files": {}
+        }
+      }
+    ]
+  },
+  "layout": {},
+  "view": {}
+}

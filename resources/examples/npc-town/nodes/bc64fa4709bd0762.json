@@ -1,0 +1,282 @@
+{
+  "type": "node",
+  "node_id": "居民楼A",
+  "name": "居民楼A",
+  "description": "",
+  "management_parent_id": null,
+  "divergence": -1,
+  "data_kind": null,
+  "parameters": {},
+  "connections": {
+    "interfaces": [
+      {
+        "target_node_id": "酒馆",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "商店",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "民政局",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "road",
+            "movement"
+          ],
+          "attributes": {
+            "relation": "road"
+          }
+        }
+      },
+      {
+        "target_node_id": "世界时间",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "time"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "怀孕须知",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "family.pregnancy"
+          ],
+          "attributes": {}
+        }
+      },
+      {
+        "target_node_id": "小砾",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "location"
+          ],
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      },
+      {
+        "target_node_id": "林",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "location"
+          ],
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      },
+      {
+        "target_node_id": "悦",
+        "metadata": {
+          "threshold": 1,
+          "multiplier": 1,
+          "channels": [
+            "location"
+          ],
+          "attributes": {
+            "relation": "location"
+          }
+        }
+      }
+    ]
+  },
+  "agent": null,
+  "modules": {
+    "place.info": {
+      "config": {
+        "visitors_from_edges": false,
+        "description": "两层木屋，住着小砾、林和悦；门廊挂着住户名牌。",
+        "visitors": [
+          "小砾",
+          "林",
+          "悦"
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 0,
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "movement.here": {
+      "config": {
+        "timeout_seconds": 60,
+        "location_channels": [
+          "location",
+          "movement"
+        ],
+        "before_hooks": [
+          {
+            "target": "requester",
+            "module": "records.store",
+            "operation": "apply",
+            "arguments": {
+              "deltas": {
+                "ap": -3
+              }
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ]
+      }
+    },
+    "records.store": {
+      "config": {
+        "initial": {},
+        "references": [],
+        "minimum": {}
+      },
+      "state": {},
+      "access": {
+        "strength": 1,
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ]
+      }
+    },
+    "agreements.pair": {
+      "config": {
+        "address": null,
+        "rules": [
+          {
+            "id": "family_plan",
+            "title": "共同家庭计划",
+            "cost": 1,
+            "require_values": {
+              "adult": true
+            },
+            "equal_fields": [
+              "home"
+            ],
+            "set_values": {
+              "planning": true
+            }
+          }
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 3,
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ]
+      }
+    },
+    "service.actions": {
+      "config": {
+        "address": "居民楼A",
+        "actions": [
+          {
+            "id": "rest",
+            "title": "休息",
+            "description": "在自己的居民楼休息，恢复一些行动点。",
+            "cost": 0,
+            "required_home": "居民楼A",
+            "actor_deltas": {
+              "ap": 3
+            },
+            "actor_maximums": {
+              "ap": 10
+            }
+          }
+        ],
+        "events": []
+      },
+      "state": {},
+      "access": {
+        "strength": 2,
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ]
+      }
+    },
+    "family.household": {
+      "config": {
+        "time_channels": [
+          "time"
+        ],
+        "pregnancy_channels": [
+          "family.pregnancy"
+        ]
+      },
+      "state": {},
+      "access": {
+        "strength": 12,
+        "channels": [
+          "road",
+          "agreements",
+          "time",
+          "family.pregnancy",
+          "context.assembler.context",
+          "location",
+          "records"
+        ]
+      }
+    }
+  },
+  "offered_tools": [],
+  "toolboxes": [],
+  "expose": [],
+  "execution": null,
+  "inputs": null,
+  "context_cursor": null
+}

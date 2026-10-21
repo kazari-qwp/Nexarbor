@@ -47,6 +47,7 @@ def _plan(ctx,parameters):
     # 所有运算都在私有 JSON 副本上；任一步失败不会初始化或改写运行状态。
     values,references,receipts=_snapshot(ctx)
     request={field:_copy(parameters.get(field,[] if field=='references' else {})) for field in ('set','deltas','expected','references')}
+    if parameters.get('unset'):request['unset']=_copy(parameters['unset'])
     fingerprint=json.dumps(request,ensure_ascii=False,sort_keys=True,separators=(',',':'),allow_nan=False)
     key=parameters.get('key')
     if key is not None:
@@ -61,6 +62,9 @@ def _plan(ctx,parameters):
     updates=_references(request['references'],'参数 references')
     if set(updates)&set(values):raise ValueError('引用键与普通记录字段同名')
     references.update(updates)
+    removed=request.get('unset',[])
+    if set(removed)&(set(request['set'])|set(request['deltas'])|set(updates)):raise ValueError('删除字段不能同时写入')
+    for field in removed:values.pop(field,None);references.pop(field,None)
     changed=set()
     for field,value in request['set'].items():
         if field in references:

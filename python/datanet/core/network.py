@@ -31,7 +31,7 @@ class Network:
 
     def get_metadata(self, node_id):return self.nodes[node_id].get_metadata()
 
-    def routing_snapshot(self):
+    def routing_snapshot(self, *, include_aggregation=False):
         locks = getattr(self, 'node_locks', None)
         from contextlib import nullcontext
         with locks.condition if locks else nullcontext():
@@ -40,7 +40,11 @@ class Network:
                       for key,node in nodes.items()}
             links={key:value[0] for key,value in routes.items()}
             links=self.connection_views(links)
-            return nodes,links,{key:value[1] for key,value in routes.items()}
+            result = nodes,links,{key:value[1] for key,value in routes.items()}
+            if include_aggregation:
+                modes = {key: locks.aggregation(key) if locks else node.aggregation for key,node in nodes.items()}
+                return (*result, modes)
+            return result
 
     @property
     def ownership(self):
@@ -104,7 +108,8 @@ class Network:
                     raise ValueError('Agent 主动访问必须从所属节点出发')
                 if strength > agent.max_signal_strength:
                     raise ValueError(f'主动请求强度 {strength} 超过 Agent 上限 {agent.max_signal_strength}')
-        nodes, links, divergences = self.routing_snapshot()
+        nodes, links, divergences, modes = self.routing_snapshot(include_aggregation=True)
+        from .aggregation import aggregate
         layer = [(node_id, [node_id], strength)]
         visited = set()
         while layer:
@@ -128,11 +133,10 @@ class Network:
                     signal = remaining * interface.metadata.multiplier
                     validate_strength(signal)
                     if target.node_id not in pending:
-                        pending[target.node_id] = [0, [*path, target.node_id]]
-                    pending[target.node_id][0] += signal
-                    validate_strength(pending[target.node_id][0])
+                        pending[target.node_id] = [[], [*path, target.node_id]]
+                    pending[target.node_id][0].append(signal)
             layer = []
             for target_id, (total, path) in pending.items():
-                remaining = total + divergences[target_id]
+                remaining = aggregate(total, modes[target_id]) + divergences[target_id]
                 validate_signal(remaining)
                 if remaining>=0:layer.append((target_id,path,remaining))

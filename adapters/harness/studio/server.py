@@ -11,6 +11,15 @@ import asyncio
 import os,json
 
 class StudioTransport(Transport):
+    def __init__(self,backend,output=None):
+        super().__init__(backend,output)
+        # Reverse Agent callbacks must permit the explicit finite execution deadline.
+        self.host_timeout=lambda method,params: max(600,params.get('timeout_seconds',90)+60) if method=='agent-run' else 600
+
+    def error_message(self,error):
+        from datanet.studio.diagnostics import error_message
+        return error_message(error)
+
     def dispatch(self,method,p):
         if method=='skill_parse':
             from skill_resources import parse_skill
@@ -38,7 +47,13 @@ class StudioTransport(Transport):
         if method=='official_register':
             async def execute(actor,name,arguments):
                 return await asyncio.to_thread(self.host,'official-tool-invoke',dict(actor=actor,name=name,arguments=arguments))
+            from jsonschema import Draft202012Validator
+            contracts=p.get('contracts',{})
+            for name,contract in contracts.items():
+                if name not in {tool['name'] for tool in p['tools']} or contract.get('format')!='harness-tool-result/v1':raise ValueError('官方工具返回契约无效')
+                Draft202012Validator.check_schema(contract['value_schema'])
             self.backend.external_tools.register('harness',p['tools'],execute)
+            self.backend.port_contracts={**getattr(self.backend,'port_contracts',{}),**{'harness:'+name:contract for name,contract in contracts.items()}}
             return self.backend.external_tools.catalog()
         if method in ('executor_invoke','executor_prepare','executor_visit'):
             with self.backend.node_locks.import_owner(p.get('node_access_ticket'),p.get('actor')):

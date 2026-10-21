@@ -1,6 +1,12 @@
 const DENIED='DATANET_TOOL_PERMISSION_DENIED';
 const marker=`[${DENIED}]`;
 export const permissionReason=name=>`${marker} ${name} 当前已停用。`;
+export function toolPermissionLabel(definition){
+  if(!/^(mod|ext)_[a-f0-9]{24}$/.test(definition.name))return definition.name;
+  const parts=(definition.description??'').split(' · ');
+  if(definition.name.startsWith('mod_')&&parts.length>=3){const source=parts[2].startsWith('来源 ')?parts[2].slice(3):parts[0];return `${parts[1]}（${source}）`;}
+  return parts.slice(0,2).join(' · ')||'模块工具';
+}
 export function permissionError(name){const error=new Error(permissionReason(name));error.code=DENIED;return error;}
 export function isPermissionDenied(result){
   return result?.code===DENIED||result?.value?.code===DENIED||result?.error?.message?.startsWith(marker)||
@@ -12,7 +18,7 @@ export class ToolPermissions {
   constructor(message){this.message=message;this.states=new WeakMap();}
   state(ac){
     let s=this.states.get(ac);if(s)return s;
-    s={tools:new Map(),notices:[],official:new Set(),officialSeen:new Set(),managed:false};this.states.set(ac,s);
+    s={tools:new Map(),notices:new Map(),official:new Set(),officialSeen:new Set(),managed:false};this.states.set(ac,s);
     ac.tools.guard(exec=>{
       if(exec.agent?.ctx&&exec.agent.ctx!==ac)return;
       const local=s.tools.get(exec.name);
@@ -23,9 +29,10 @@ export class ToolPermissions {
       return s.managed?tools.filter(tool=>s.tools.has(tool.name)||s.officialSeen.has(tool.name)||tool.name==='run_code'):tools;
     });
     ac.on('agent/pre-step',async(_payload,next)=>{
-      const decision=await next();if(decision.kind!=='enter'||!s.notices.length)return decision;
-      const message=this.message({source:{kind:'user'},content:[{type:'text',text:'[DataNet 工具权限]\n'+s.notices.join('\n')}]});
-      s.notices=[];return {...decision,messages:[...decision.messages,message]};
+      const decision=await next();if(decision.kind!=='enter'||!s.notices.size)return decision;
+      const notices=[...s.notices].map(([name,change])=>`${toolPermissionLabel(s.tools.get(name)?.definition??{name})} ${change.enabled?'已恢复，可以调用。':'已停用，当前不能调用。'}`);
+      const message=this.message({source:{kind:'user'},content:[{type:'text',text:'[DataNet 工具权限]\n'+notices.join('\n')}]});
+      s.notices.clear();return {...decision,messages:[...decision.messages,message]};
     });
     return s;
   }
@@ -62,15 +69,20 @@ export class ToolPermissions {
     }});
     record.registered=definition;
   }
-  notify(ac,name,enabled){this.state(ac).notices.push(`${name} ${enabled?'已恢复，可以调用。':'已停用，当前不能调用。'}`);}
-  register(ac,definition){
+  notify(ac,name,enabled){
+    const pending=this.state(ac).notices,wasEnabled=pending.get(name)?.wasEnabled??!enabled;
+    // Refreshing a definition may dispose and re-register it before the next step.
+    // Only publish a net permission change, once, when the Agent next runs.
+    if(wasEnabled===enabled)pending.delete(name);else pending.set(name,{wasEnabled,enabled});
+  }
+  register(ac,definition,{enabled=true}={}){
     const s=this.state(ac);let record=s.tools.get(definition.name);
     if(!record){
-      record={enabled:true,execute:definition.execute,definition,lease:0};s.tools.set(definition.name,record);
+      record={enabled,execute:definition.execute,definition,lease:0};s.tools.set(definition.name,record);
       this.install(ac,record);
     }else{
       record.execute=definition.execute;record.definition=definition;
-      if(!record.enabled){record.enabled=true;this.notify(ac,definition.name,true);}
+      if(record.enabled!==enabled){record.enabled=enabled;this.notify(ac,definition.name,enabled);}
     }
     const lease=++record.lease;
     return ()=>{

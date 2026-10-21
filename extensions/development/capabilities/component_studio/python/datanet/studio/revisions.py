@@ -7,7 +7,7 @@ def create(studio,p):
     from .service import write_json,read_json,sources,digest,GUIDES,TEXT
     kind=p.get('kind','module')
     reference=p.get('reference','')
-    work=studio.create(dict(kind=kind,sample='blank',name='网络修改稿' if kind=='network' else '模块／工具修改稿',display_folder=p.get('display_folder'),reference_files={'咨询记录.json':reference}))
+    work=studio.create(dict(kind=kind,sample='blank',name='网络修改稿' if kind=='network' else '模块／工具修改稿',display_folder=p.get('display_folder'),reference_files={**p.get('reference_files',{}),'咨询记录.json':reference}))
     folder=studio.folder(work['id']);source=p.get('source')
     if kind=='network':
         document=deepcopy(p['document']);document['network']['signals']={}
@@ -15,6 +15,7 @@ def create(studio,p):
             node['context_cursor']=None
             if node['type']=='pulse':node.get('parameters',{}).pop('state',None)
         write_json(folder/'network.json',document)
+        write_json(folder/'runtime.json',dict(templates=(p.get('runtime') or {}).get('templates',[])))
     elif source:
         for name,content in source['files'].items():
             if name in GUIDES or name.startswith(('reference/','dependencies/','lessons/')):continue
@@ -27,7 +28,7 @@ def create(studio,p):
     if kind!='network':
         manifest=read_json(folder/'module.json',{});original=manifest['id']
         if not p.get('preserve_identity',False):
-            manifest['id']=original+'.rev_'+uuid4().hex[:10]
+            manifest['id']=original[:65].rstrip('.-_')+'.rev_'+uuid4().hex[:10]
             version=manifest.get('version','0.1.0').split('.');manifest['version']='.'.join(version[:2]+[str(int(version[2])+1)])
         metadata['branch_module']=manifest['id'];metadata['label']=(manifest.get('name') or original)+' · 修改副本'
         write_json(folder/'module.json',manifest)

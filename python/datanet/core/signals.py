@@ -37,7 +37,7 @@ class Signal:
             if type(getattr(self,key)) is not int or getattr(self,key)<minimum:raise ValueError('Invalid '+key)
         for key in ('timeout_seconds','node_timeout_seconds'):
             v=getattr(self,key)
-            if type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=3600:raise ValueError('Invalid '+key)
+            if type(v) not in (int,float) or not math.isfinite(v) or not 0<v<=86400:raise ValueError('Invalid '+key)
 
     def to_dict(self):return thaw(asdict(self))
 

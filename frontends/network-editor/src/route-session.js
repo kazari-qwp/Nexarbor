@@ -5,9 +5,9 @@ export const routingOptions={routingType:'orthogonal',shapeBufferDistance:12,seg
 export function sceneRouter(options=routingOptions){
   let session,signature;
   return {
-    async route(graph){
+    async route(graph,{reset=false}={}){
       const next=JSON.stringify([graph.children.map(({x,y,...node})=>node),graph.edges]);
-      if(next!==signature){session?.destroy();session=undefined;signature=undefined;session=await createRoutingSession(graph,options);signature=next;}
+      if(reset||next!==signature){session?.destroy();session=undefined;signature=undefined;session=await createRoutingSession(graph,options);signature=next;}
       else for(const node of graph.children)session.moveNode(node.id,{x:node.x,y:node.y});
       return session.processTransaction();
     },

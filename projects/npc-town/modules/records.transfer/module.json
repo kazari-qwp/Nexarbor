@@ -1,0 +1,188 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "records.transfer",
+  "name": "局部资源转交",
+  "version": "0.1.0",
+  "entry": "module.py:execute",
+  "description": "让真实 Agent 把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent，并按行动点配置收取成本；支持同地点限制与幂等重试。",
+  "node_types": [
+    "agent"
+  ],
+  "requires": [
+    "records.store",
+    "place.info"
+  ],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "cost": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 1,
+        "title": "行动点成本",
+        "description": "每次成功转交从发起者记录的 ap 字段扣除的行动点，必须是非负整数。"
+      },
+      "same_location": {
+        "type": "boolean",
+        "default": true,
+        "title": "要求同地点",
+        "description": "为真时双方 place.info.read 返回的 location 必须相同且非空；为假时只要求收件人当前可达。"
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "receipts": {
+        "type": "array",
+        "maxItems": 200,
+        "title": "最近转交回执",
+        "description": "最近 200 条带用户幂等键的成功回执，用于重试时返回旧结果并拒绝参数变化。",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "key",
+            "fingerprint",
+            "result"
+          ],
+          "properties": {
+            "key": {
+              "type": "string",
+              "title": "内部键"
+            },
+            "fingerprint": {
+              "type": "string",
+              "title": "参数指纹"
+            },
+            "result": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "from",
+                "to",
+                "resource",
+                "quantity",
+                "ap",
+                "duplicate"
+              ],
+              "properties": {
+                "from": {
+                  "type": "string"
+                },
+                "to": {
+                  "type": "string"
+                },
+                "resource": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "integer"
+                },
+                "ap": {
+                  "type": "number"
+                },
+                "duplicate": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "give",
+      "channels": [
+        "self"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recipient",
+          "resource",
+          "quantity"
+        ],
+        "properties": {
+          "recipient": {
+            "type": "string",
+            "format": "node-id",
+            "minLength": 1,
+            "title": "收件人",
+            "description": "另一位当前可达的真实 Agent 节点 ID。"
+          },
+          "resource": {
+            "type": "string",
+            "minLength": 1,
+            "title": "资源字段",
+            "description": "自己记录仓中要转交的数字字段名，例如金币、木材或 ap。"
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "title": "数量",
+            "description": "要转交的正整数数量。"
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1,
+            "title": "幂等键",
+            "description": "可选非空字符串；相同键和相同参数重试时返回旧结果，参数变化会被拒绝。"
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "from",
+          "to",
+          "resource",
+          "quantity",
+          "ap",
+          "duplicate"
+        ],
+        "properties": {
+          "from": {
+            "type": "string",
+            "title": "发起者"
+          },
+          "to": {
+            "type": "string",
+            "title": "收件人"
+          },
+          "resource": {
+            "type": "string",
+            "title": "资源字段"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "转交数量"
+          },
+          "ap": {
+            "type": "number",
+            "title": "发起者剩余行动点"
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "是否幂等重试"
+          }
+        }
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "give",
+      "name": "赠送物品或资源",
+      "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
+      "operation": "give"
+    }
+  ]
+}

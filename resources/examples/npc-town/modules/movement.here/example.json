@@ -1,0 +1,29 @@
+{
+  "config": {
+    "timeout_seconds": 15,
+    "location_channels": [
+      "location"
+    ],
+    "before_hooks": [
+      {
+        "target": "requester",
+        "module": "records.store",
+        "operation": "apply",
+        "arguments": {
+          "deltas": {
+            "ap": -3
+          }
+        }
+      }
+    ]
+  },
+  "state": {},
+  "access": {
+    "strength": 2,
+    "channels": [
+      "road",
+      "location",
+      "records"
+    ]
+  }
+}

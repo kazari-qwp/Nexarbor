@@ -26,3 +26,10 @@ def assemble_document(document,library,registered=(),*,allow_missing=False):
     result=deepcopy(document)
     for node in result['network']['nodes']:node['modules']=assemble(node,library,registered,allow_missing=allow_missing)
     return result
+
+def materialize_document(document,definitions):
+    """Use the framework's drag-in expansion for actual candidate execution."""
+    from datanet.core.preset_repetition import expand_snapshot,REPEAT_FIELDS
+    if document['network'].get('repeat_unit_count') is None:return deepcopy(document)
+    expanded=expand_snapshot({**document['network'],'files':document.get('files',{})},definitions=definitions)
+    return dict(network={k:expanded[k] for k in document['network'] if k not in REPEAT_FIELDS},files=expanded['files'])

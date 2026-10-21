@@ -16,7 +16,8 @@ from datanet.core.serialization import _build
 from datanet.core.management import validate_management
 from datanet.studio.service import read_json,write_json as _write_json
 from datanet.studio.network_work import validate_network
-from datanet.studio.assembly import assemble_document
+from datanet.studio.assembly import assemble_document,materialize_document
+from datanet.studio.text_pages import text_page
 
 def write_json(path,value):
     # Windows读取者或文件扫描器短暂占用时，原子替换允许有限重试。
@@ -40,9 +41,33 @@ def remap(value,schema,ids,external=None):
     if isinstance(value,dict):return {k:remap(v,schema.get('properties',{}).get(k,schema.get('additionalProperties',{}) if isinstance(schema.get('additionalProperties'),dict) else {}),ids,external) for k,v in value.items()}
     return value
 
+def execution_refs(binding,ids,external=None):
+    if not binding:return binding
+    result=deepcopy(binding)
+    def reference(value):return ids.get(value,external(value) if external and value not in ids else value)
+    if 'tool_sources' in result:result['tool_sources']=[reference(value) for value in result['tool_sources']]
+    for entry in result.get('prepare',[]):
+        if entry.get('node'):entry['node']=reference(entry['node'])
+    return result
+
 def data_roots(entry):
     codec=codecs()[entry['type']];params=entry['parameters']
     return [(label,params[label],'file') for label in codec.resources]+[(label,params[label],'directory') for label in codec.resource_directories]
+
+def check_new_offers(node,original,channels):
+    """Compose visible grants; self-execution remains bound to the new Agent."""
+    from datanet.core.external_tools import validate_offers
+    grants={}
+    for entry in original.values():
+        for offer in entry.get('offered_tools',[]):grants.setdefault(offer['ref'],set()).update(offer['channels'])
+    for offer in validate_offers(node.get('offered_tools',[])):
+        selected=set(offer['channels'])
+        if not selected<=set(channels):raise PermissionError('新增工具频道超出管理员授权')
+        if offer['ref']=='runtime:agent_run':
+            binding=node.get('execution') or {}
+            if node['type']!='agent' or not binding:raise PermissionError('自身执行端口需要已绑定执行器的 Agent')
+            continue
+        if not selected<=grants.get(offer['ref'],set()):raise PermissionError('新增节点只能复用可见节点已提供的工具与频道')
 
 class Administrator:
     def __init__(self,backend):
@@ -76,7 +101,10 @@ class Administrator:
         for n in sorted(ids,key=lambda n:aliases[n]):
             node=deepcopy(raw[n]);node['node_id']=aliases[n];node['management_parent_id']=aliases.get(node['management_parent_id'],'root') if n!=actor else None
             node['connections']['interfaces']=[dict(target_node_id=aliases[e['target_node_id']],metadata=e['metadata']) for e in node['connections']['interfaces'] if e['target_node_id'] in ids]
-            node['offered_tools']=[];node['toolboxes']=[];node['expose']=[];node['agent']=None
+            # Existing local offers are part of the visible graph, kept read-only
+            # by check(). Removing them makes the test copy unlike the real graph.
+            node['toolboxes']=[];node['expose']=[];node['agent']=None
+            node['execution']=execution_refs(node.get('execution'),aliases,mask)
             node['modules']={name:mount for name,mount in node['modules'].items() if name not in b.components.module_extensions}
             for name,mount in node['modules'].items():
                 definition=b.components.module_types[name]
@@ -117,11 +145,11 @@ class Administrator:
         if len(keys)>=200:raise ValueError('管理员已保留200项制作任务，请先整理')
         workspace=self.studio.create(dict(kind='network',sample='blank',name='局部网络 · '+self.backend.network.nodes[actor].name));id=workspace['id'];scope.update(workspace=id,role='network')
         write_json(self.home/(id+'.json'),scope);write_json(self.studio.folder(id)/'network.json',scope['document'])
-        text='# 局部管理员制作流程\nroot 是管理员所在节点的锚点，不是全网根节点。先读 network.json。保留已有编号；新节点用新局部编号。\n已有节点只修改名称、说明、可见出边和普通模块配置；保留状态、权限、类型、文件位置、执行绑定。root 只修改名称、说明、出边。\n新增模块和Agent的强度、频道不能超过下列授权。禁止装配外部工具和官方越权模块。文本只属于副本节点。\n测试在副本中进行，模型和外部副作用禁用；完成后由宿主重新检查可达性和版本再提交。\n授权：'+json.dumps(scope['policy'],ensure_ascii=False)
+        text='# 局部管理员制作流程\nroot 是管理员所在节点的锚点，不是全网根节点。先读 network.json。保留已有编号；新节点用新局部编号。\n已有节点只修改名称、说明、可见出边和普通模块配置；保留状态、权限、类型、文件位置、执行绑定。root 只修改名称、说明、出边。\n新增模块和Agent的强度、频道不能超过下列授权。新增节点可复用可见节点已提供的工具及其频道；新增且绑定执行器的 Agent 可提供自己的 runtime:agent_run。已有工具授权只读；不能引入其他外部工具或官方越权模块。文本只属于副本节点。\n当前只是运行中局部网络管理：放置预设并接线后查看一次实例即可；不编写测试、不模拟讨论和协作。完成后由宿主检查格式、授权和版本再提交。\n授权：'+json.dumps(scope['policy'],ensure_ascii=False)
         ref=self.studio.folder(id)/'reference';ref.mkdir(exist_ok=True);(ref/'局部网络说明.md').write_text(text,encoding='utf-8')
         keys[args['key']]=dict(requirement=args['requirement'],workspace=id,task=None);write_json(keyfile,keys)
         try:
-            job=await self.host('start',dict(id=id,name='局部网络管理员',requirement=args['requirement'],allow_component_creation=scope['policy']['allow_component_creation'],allow_network_testing=True,auto_publish=False,timeout=scope['policy']['timeout_seconds'],max_steps=90))
+            job=await self.host('start',dict(id=id,name='局部网络管理员',requirement=args['requirement'],allow_component_creation=scope['policy']['allow_component_creation'],allow_network_testing=True,auto_publish=False,timeout=scope['policy']['timeout_seconds']))
             scope['task']=job['id'];write_json(self.home/(id+'.json'),scope);keys[args['key']]['task']=job['id'];write_json(keyfile,keys)
         except BaseException:keys.pop(args['key'],None);write_json(keyfile,keys);raise
         return dict(task=job['id'],workspace=id,status=job['status'],mode='允许制作组件' if scope['policy']['allow_component_creation'] else '仅组装已有组件',duplicate=False)
@@ -138,6 +166,7 @@ class Administrator:
         scope=self.record(workspace)
         if scope.get('role')!='network':return document
         p=scope['policy'];original={n['node_id']:n for n in scope['document']['network']['nodes']};document=assemble_document(deepcopy(document),self.studio.library,self.backend.components.module_types)
+        document=materialize_document(document,self.backend.components.module_types)
         graph=document.get('network',{});nodes=graph.get('nodes',[]);ids={n['node_id'] for n in nodes}
         if len(ids)!=len(nodes) or len(nodes)>p['max_nodes']:raise ValueError('局部网络节点重复或超过上限')
         if graph.get('signals') or graph.get('delegations'):raise PermissionError('草稿不能带运行信号或全局委托许可')
@@ -156,7 +185,8 @@ class Administrator:
                 if node['type'] not in active_codecs() or node.get('agent') or node.get('inputs') or node.get('context_cursor'):raise PermissionError('新增节点不能继承会话、上下文或执行身份')
                 embedding=node.get('parameters',{}).get('embedding')
                 if embedding and not any(embedding==entry.get('parameters',{}).get('embedding') for entry in original.values()):raise PermissionError('新增节点只能复用可见节点已配置的嵌入模型')
-                if node.get('offered_tools') or node.get('toolboxes') or node.get('expose'):raise PermissionError('不能授予外部工具；请使用普通模块携带工具')
+                if node.get('toolboxes') or node.get('expose'):raise PermissionError('不能引入额外工具箱或暴露入口')
+                check_new_offers(node,original,p['channels'])
                 binding=node.get('execution') or {}
                 if binding.get('strength',0)>p['strength'] or not set(binding.get('channels',[]))<=set(p['channels']):raise PermissionError('新增Agent执行范围不能扩大授权')
                 if node['type']=='pulse' and (node['parameters'].get('strength',0)>p['strength'] or not set(node['parameters'].get('channels',[]))<=set(p['channels'])):raise PermissionError('脉冲不能扩大传播授权')
@@ -198,10 +228,11 @@ class Administrator:
         if any(source in removed or set(targets)&removed for source,targets in b.network.delegation_permissions.items()):raise PermissionError('节点仍被委托许可引用，不能删除')
         oldbindings=deepcopy(b.agents)
         before={n:b.network.nodes[n] for n in scope['aliases']};oldattrs={n:dict(name=v.name,description=v.description,interfaces=list(v.interfaces)) for n,v in before.items()};oldmodules={n:deepcopy(v.modules) for n,v in before.items()}
-        published=deepcopy(b.modules._published);resources=deepcopy(b.extension_state.get('document_resources',[]));file_images={};changed=set();new_nodes=[];files={}
+        published=deepcopy(b.modules._published);resources=deepcopy(b.extension_state.get('document_resources',[]));file_images={};changed=set();added_mounts={};new_nodes=[];files={}
         for alias,node in draft.items():
             old_path=node['parameters'].get('file_path');node['node_id']=ids[alias]
             node['management_parent_id']=before[ids[alias]].management_parent_id if alias in original else ids.get(node.get('management_parent_id'),scope['actor'])
+            node['execution']=execution_refs(node.get('execution'),ids)
             for edge in node['connections']['interfaces']:edge['target_node_id']=ids[edge['target_node_id']]
             for name,mount in node['modules'].items():
                 definition=b.components.module_types[name]
@@ -241,10 +272,19 @@ class Administrator:
                     if name in node.modules:mount['state']=deepcopy(node.modules[name]['state'])
                 if alias=='root':wanted=oldmodules[node.node_id]
                 if wanted!=node.modules:
-                    if b.node_locks.leases.get(node.node_id):raise RuntimeError('正在调用链中执行的节点不能重装模块')
-                    changed.add(node.node_id)
-                    for name in list(node.modules):b.modules.unmount(node.node_id,name)
-                    for name,mount in wanted.items():b.modules.mount(node.node_id,name,mount['config'],mount['state'],access=mount['access'])
+                    removed_modules=set(node.modules)-set(wanted)
+                    replaced={name for name in node.modules.keys() & wanted.keys() if node.modules[name]!=wanted[name]}
+                    added=set(wanted)-set(node.modules)
+                    # Adding a separate instance does not invalidate the active
+                    # caller's context. Existing instances are kept untouched.
+                    if removed_modules or replaced:
+                        if b.node_locks.leases.get(node.node_id):raise RuntimeError('正在调用链中执行的节点不能重装模块')
+                        changed.add(node.node_id)
+                    for name in removed_modules | replaced:b.modules.unmount(node.node_id,name)
+                    for name,mount in wanted.items():
+                        if name not in added and name not in replaced:continue
+                        b.modules.mount(node.node_id,name,mount['config'],mount['state'],access=mount['access'])
+                        if node.node_id not in changed:added_mounts.setdefault(node.node_id,[]).append(name)
                 node.name=entry['name'];node.description=entry['description'];node.interfaces=list(candidate.nodes[node.node_id].interfaces)
             for node_id in removed:
                 if b.node_locks.leases.get(node_id):raise RuntimeError('不能删除调用链中仍在执行的节点')
@@ -258,6 +298,9 @@ class Administrator:
                 for name in list(b.network.nodes[node_id].modules):b.modules.unmount(node_id,name)
                 b.network.nodes.pop(node_id,None)
             b.network.nodes.update(before);b.agents.clear();b.agents.update(oldbindings)
+            for node_id,names in added_mounts.items():
+                for name in names:
+                    if name in b.network.nodes[node_id].modules:b.modules.unmount(node_id,name)
             for node_id,attrs in oldattrs.items():
                 node=before[node_id]
                 for key,value in attrs.items():setattr(node,key,value)
@@ -285,7 +328,25 @@ class Administrator:
         self.task(actor,args['task'])
         if operation=='apply':return await self.apply(actor,args['task'])
         value=await self.host('cancel' if operation=='cancel' else 'status',dict(task=args['task']))
-        return {k:value.get(k) for k in ('id','workspace','status','phase','steps','error','validation_log')}
+        if operation=='status':
+            wait=args.get('wait_seconds',15)
+            if type(wait) not in (int,float) or not 0<=wait<=30:raise ValueError('等待时间为0至30秒')
+            deadline=time.monotonic()+wait
+            while value.get('status')=='running' and time.monotonic()<deadline:
+                await asyncio.sleep(min(1,max(0,deadline-time.monotonic())))
+                value=await self.host('status',dict(task=args['task']))
+        result={k:value.get(k) for k in ('id','workspace','status','phase','steps')}
+        if value.get('error'):result['error']=str(value['error'])[:1200]
+        log=str(value.get('validation_log') or '')
+        if log:
+            count=re.search(r'(?:测试数量：|Ran )(\d+)',log)
+            summary=[line for line in log.splitlines() if re.match(r'^(?:ERROR:|FAIL:|Ran |OK$|FAILED |PASS[:：])',line)]
+            result['validation']={k:v for k,v in dict(status=value.get('validation_status'),test_count=int(count[1]) if count else None,summary='\n'.join(summary[:6])[:1200]).items() if v is not None}
+            if args.get('include_log'):
+                page=text_page(log,args,default_lines=60,max_lines=100)
+                result['validation_log']=page.pop('text');result['log_page']=page
+            else:result['hint']='需要诊断时用 include_log=true 分页读验证日志；运行中可 wait_seconds=30 等待，避免频繁轮询。'
+        return result
 
 def register(services):
     factory=services.module_types[MODULE]

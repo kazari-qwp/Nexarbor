@@ -1,0 +1,1254 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "discussion.session.rev_697d80a33d",
+  "name": "讨论会话",
+  "version": "0.1.3",
+  "description": "一组讨论的运行与协议中心：发现 discussion.seat 席位，管理运行身份、轮次、完整发言、Leader 决策、Recorder 草稿与最终成果，以及停止、重开、成员退出和失败报告。只按频道发现席位并用信号驱动，不直接运行模型或拼装提示词。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "title": "讨论会话配置",
+    "additionalProperties": false,
+    "properties": {
+      "rounds": {
+        "type": "integer",
+        "title": "讨论轮次",
+        "description": "一次运行需要完成的讨论轮数，范围 1 到 20，默认 3。",
+        "minimum": 1,
+        "maximum": 20,
+        "default": 3
+      },
+      "max_speech_chars": {
+        "type": "integer",
+        "title": "单条发言上限",
+        "description": "每条发言允许的最大字符数，范围 100 到 8000，默认 4000。",
+        "minimum": 100,
+        "maximum": 8000,
+        "default": 4000
+      },
+      "max_speeches": {
+        "type": "integer",
+        "title": "保留发言条数",
+        "description": "当前运行最多保留的完整发言条数，超出后删除最旧的发言，范围 10 到 5000，默认 500。",
+        "minimum": 10,
+        "maximum": 5000,
+        "default": 500
+      },
+      "max_runs": {
+        "type": "integer",
+        "title": "历史运行保留数",
+        "description": "状态中保留的最近运行摘要条数，范围 1 到 50，默认 20。",
+        "minimum": 1,
+        "maximum": 50,
+        "default": 20
+      },
+      "member_channel": {
+        "type": "array",
+        "title": "参与者发现频道",
+        "description": "用于发现 discussion.seat 席位并调用 describe 的频道；默认 discussion.member。",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "minItems": 1,
+        "default": [
+          "discussion"
+        ]
+      },
+      "channel_modes": {
+        "type": "object",
+        "title": "频道模式",
+        "description": "按频道名声明 allow 或 deny，与当前授权相交后再用于参与者发现。",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        },
+        "default": {}
+      },
+      "activity_timeout_seconds": {
+        "type": "integer",
+        "title": "信号处理时限（秒）",
+        "description": "该模块发出的每轮信号及单个目标的有限处理时限；应能容纳模型读取资料、执行与验证。",
+        "minimum": 1,
+        "maximum": 86400,
+        "default": 86400
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "title": "讨论会话状态",
+    "additionalProperties": false,
+    "properties": {
+      "run": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "title": "当前运行",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "task": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "round": {
+            "type": "integer"
+          },
+          "rounds": {
+            "type": "integer"
+          },
+          "started_at": {
+            "type": "string"
+          },
+          "ended_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "task",
+          "phase",
+          "round",
+          "rounds",
+          "started_at",
+          "ended_at",
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "participants": {
+        "type": "array",
+        "title": "参与者",
+        "maxItems": 500,
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "role": {
+              "enum": [
+                "leader",
+                "recorder",
+                "member"
+              ]
+            },
+            "status": {
+              "enum": [
+                "active",
+                "left"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "name",
+            "role",
+            "status"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "speeches": {
+        "type": "array",
+        "title": "完整发言",
+        "maxItems": 5000,
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "run": {
+              "type": "string"
+            },
+            "round": {
+              "type": "integer"
+            },
+            "member": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "text": {
+              "type": "string"
+            },
+            "at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "run",
+            "round",
+            "member",
+            "role",
+            "text",
+            "at"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "decision": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "title": "Leader 决策",
+        "properties": {
+          "text": {
+            "type": "string"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "paths"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "member": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "tasks",
+          "member",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "draft": {
+        "type": "object",
+        "title": "Recorder 草稿",
+        "properties": {
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "text",
+                "updated_at"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "sections"
+        ],
+        "additionalProperties": false
+      },
+      "artifact": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "title": "最终成果",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "paths": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "title",
+                "paths"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "at": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "run",
+          "title",
+          "content",
+          "tasks",
+          "at"
+        ],
+        "additionalProperties": false
+      },
+      "runs": {
+        "type": "array",
+        "title": "历史运行摘要",
+        "maxItems": 50,
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "task": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "round": {
+              "type": "integer"
+            },
+            "started_at": {
+              "type": "string"
+            },
+            "ended_at": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "error": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "task",
+            "status",
+            "round",
+            "started_at",
+            "ended_at",
+            "error"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "errors": {
+        "type": "array",
+        "title": "最近错误",
+        "maxItems": 20,
+        "items": {
+          "type": "object",
+          "properties": {
+            "at": {
+              "type": "string"
+            },
+            "operation": {
+              "type": "string"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "at",
+            "operation",
+            "message"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "receipts": {
+        "type": "array",
+        "title": "幂等键最近记录",
+        "maxItems": 300,
+        "items": {
+          "type": "object",
+          "properties": {
+            "op": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            },
+            "fingerprint": {
+              "type": "string"
+            },
+            "run": {
+              "type": "string"
+            },
+            "member": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "round": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "at": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "op",
+            "key",
+            "fingerprint",
+            "run",
+            "member",
+            "round",
+            "at"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "events": {
+        "type": "array",
+        "title": "最近事件",
+        "description": "最近的讨论事件；成员退出会写入参与者状态并在这里留下记录。",
+        "maxItems": 200,
+        "items": {
+          "type": "object",
+          "properties": {
+            "at": {
+              "type": "string"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "member": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "at",
+            "kind",
+            "member",
+            "text"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "start",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "开始讨论",
+        "properties": {
+          "task": {
+            "type": "string",
+            "title": "任务简述",
+            "description": "本次讨论要完成的任务，1 到 2000 个字符。",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "rounds": {
+            "type": "integer",
+            "title": "本轮运行轮次",
+            "description": "可选，覆盖配置中的讨论轮次，范围 1 到 20。",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "key": {
+            "type": "string",
+            "title": "去重键",
+            "description": "可选；已有相同运行且键与任务一致时返回 duplicate:true。",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "task"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "round": {
+            "type": "integer"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "duplicate": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "run",
+          "status",
+          "round",
+          "participants",
+          "duplicate"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "speak",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "成员发言",
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "发言正文",
+            "description": "完整发言正文，至少 1 个字符；运行时再按 max_speech_chars 检查上限。",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "round": {
+            "type": "integer",
+            "title": "轮次",
+            "description": "可选；省略时按调用时的当前轮处理，显式填写时必须与当前轮一致。",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "key": {
+            "type": "string",
+            "title": "去重键",
+            "description": "可选；同一运行、成员、轮次内的相同键与相同正文只记录一次。",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "round": {
+            "type": "integer",
+            "description": "本次操作完成后的当前轮次；最后一位成员发言可能令轮次自动推进。"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "recorded": {
+            "type": "boolean"
+          },
+          "waiting_for": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "accepted_round": {
+            "type": "integer",
+            "description": "本条发言实际被记录的轮次。"
+          }
+        },
+        "required": [
+          "run",
+          "round",
+          "phase",
+          "recorded",
+          "waiting_for",
+          "accepted_round"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "read",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "读取讨论",
+        "properties": {
+          "round": {
+            "type": "integer",
+            "title": "只看轮次",
+            "description": "可选；只返回指定轮次的发言。",
+            "minimum": 1,
+            "maximum": 20
+          },
+          "limit": {
+            "type": "integer",
+            "title": "读取发言条数",
+            "description": "返回最近多少条完整发言，范围 1 到 200，默认 20。",
+            "minimum": 1,
+            "maximum": 200,
+            "default": 20
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "speeches": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "decision": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "draft": {
+            "type": "object"
+          },
+          "artifact": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "run",
+          "participants",
+          "speeches",
+          "decision",
+          "draft",
+          "artifact",
+          "errors",
+          "events"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "decide",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "Leader 决策",
+        "properties": {
+          "decision": {
+            "type": "string",
+            "title": "决策正文",
+            "description": "Leader 的最终决策，1 到 4000 个字符。",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "tasks": {
+            "type": "array",
+            "title": "任务清单",
+            "description": "可为零项；每项包含标题、路径和可选说明。",
+            "default": [],
+            "items": {
+              "type": "object",
+              "properties": {
+                "title": {
+                  "type": "string",
+                  "title": "任务标题",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "paths": {
+                  "type": "array",
+                  "title": "相关路径",
+                  "items": {
+                    "type": "string"
+                  },
+                  "default": []
+                },
+                "detail": {
+                  "type": "string",
+                  "title": "任务说明",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "title",
+                "paths"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "key": {
+            "type": "string",
+            "title": "去重键",
+            "description": "可选；相同键与相同决策只处理一次。",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "run",
+          "phase",
+          "tasks"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "draft",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "Recorder 草稿",
+        "properties": {
+          "section": {
+            "type": "string",
+            "title": "章节名",
+            "description": "草稿章节名，1 到 200 个字符；同名章节会被覆盖。",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "text": {
+            "type": "string",
+            "title": "章节正文",
+            "description": "章节正文，1 到 8000 个字符。",
+            "minLength": 1,
+            "maxLength": 8000
+          },
+          "key": {
+            "type": "string",
+            "title": "去重键",
+            "description": "可选；相同键与相同章节内容只处理一次。",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "section",
+          "text"
+        ],
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "run",
+          "phase",
+          "sections"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "生成最终成果",
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "成果标题",
+            "description": "可选；省略时使用“讨论成果：任务简述”。",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "artifact": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "run",
+          "artifact"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "advance",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "推进轮次",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "推进原因",
+            "description": "可选的说明，只用于调用方记录。"
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "round": {
+            "type": "integer"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "run",
+          "round",
+          "phase",
+          "missing"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "leave",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "成员退出",
+        "properties": {
+          "member": {
+            "type": "string",
+            "title": "退出成员",
+            "description": "可选；省略时让调用者本人退出。代其他成员退出只允许控制方经 discussion.control 频道调用。"
+          },
+          "reason": {
+            "type": "string",
+            "title": "退出原因",
+            "description": "可选的说明，只用于调用方记录。"
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "round": {
+            "type": "integer"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "member": {
+            "type": "string"
+          },
+          "missing": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "duplicate": {
+            "type": "boolean",
+            "title": "是否重复退出",
+            "description": "成员已经退出时重复调用返回 true，且不重复写入事件。"
+          }
+        },
+        "required": [
+          "run",
+          "round",
+          "phase",
+          "member",
+          "missing",
+          "duplicate"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "stop",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "停止讨论",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "停止原因",
+            "description": "可选的停止原因，会写入运行错误字段与摘要。"
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "speeches": {
+            "type": "integer"
+          },
+          "decision": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "draft": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "artifact": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "started_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ended_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "run",
+          "status",
+          "phase",
+          "speeches",
+          "decision",
+          "draft",
+          "artifact",
+          "started_at",
+          "ended_at",
+          "reason"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "status",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "查看会话状态",
+        "properties": {
+          "include_history": {
+            "type": "boolean",
+            "title": "包含历史运行",
+            "description": "为真时返回最近的历史运行摘要。",
+            "default": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": "string"
+          },
+          "phase": {
+            "type": "string"
+          },
+          "round": {
+            "type": "integer"
+          },
+          "participants": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "speeches": {
+            "type": "integer"
+          },
+          "decision": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "draft": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "artifact": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "required": [
+          "run",
+          "status",
+          "phase",
+          "round",
+          "participants",
+          "speeches",
+          "decision",
+          "draft",
+          "artifact",
+          "errors",
+          "runs"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "signals": [
+    "discussion.round",
+    "discussion.decision",
+    "discussion.record"
+  ],
+  "agent_tools": [
+    {
+      "id": "speak",
+      "name": "讨论发言",
+      "description": "在当前讨论的当前轮次发言；调用者必须是状态为 active 的参与者。 返回 accepted_round 为本条发言所属轮次，round/phase 为操作后会话状态。",
+      "operation": "speak"
+    },
+    {
+      "id": "read",
+      "name": "读取讨论",
+      "description": "读取当前运行、参与者、最近完整发言、决策、草稿与成果。",
+      "operation": "read"
+    },
+    {
+      "id": "decide",
+      "name": "提交决策",
+      "description": "Leader 在 deciding 阶段提交决策和任务清单。",
+      "operation": "decide"
+    },
+    {
+      "id": "draft",
+      "name": "写讨论草稿",
+      "description": "Recorder 在 drafting 阶段按章节撰写或覆盖草稿。",
+      "operation": "draft"
+    },
+    {
+      "id": "finish",
+      "name": "生成讨论成果",
+      "description": "Recorder 在已有决策和草稿后生成 Markdown 最终成果。",
+      "operation": "finish"
+    },
+    {
+      "id": "leave",
+      "name": "退出讨论",
+      "description": "退出当前讨论；本人之后的轮次不再等待其发言，退出会记录在参与者与事件中。",
+      "operation": "leave"
+    }
+  ]
+}

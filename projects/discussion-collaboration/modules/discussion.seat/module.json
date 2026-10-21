@@ -1,0 +1,90 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "discussion.seat",
+  "name": "讨论席位",
+  "version": "0.1.0",
+  "description": "标记真实 Agent 在讨论组中的角色与显示名称，供讨论会话沿成员频道发现；不运行模型、不保存发言。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "agent"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "title": "讨论席位配置",
+    "properties": {
+      "role": {
+        "type": "string",
+        "title": "席位角色",
+        "description": "该 Agent 在讨论组中的职责；leader 为主持，recorder 为记录，member 为普通成员。",
+        "enum": [
+          "leader",
+          "recorder",
+          "member"
+        ],
+        "default": "member"
+      },
+      "name": {
+        "type": "string",
+        "title": "显示名称",
+        "description": "讨论时展示的名称，最多 40 个字符；留空或只含空白时使用节点名称。",
+        "maxLength": 40,
+        "default": ""
+      }
+    },
+    "additionalProperties": false
+  },
+  "state_schema": {
+    "type": "object",
+    "title": "组件状态",
+    "description": "讨论席位不保存运行状态。",
+    "properties": {},
+    "additionalProperties": false
+  },
+  "operations": [
+    {
+      "name": "describe",
+      "channels": [
+        "discussion"
+      ],
+      "parameters": {
+        "type": "object",
+        "title": "描述参数",
+        "description": "describe 操作不需要参数。",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "object",
+        "title": "席位信息",
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "节点 ID"
+          },
+          "name": {
+            "type": "string",
+            "title": "显示名称",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "title": "席位角色",
+            "enum": [
+              "leader",
+              "recorder",
+              "member"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "role"
+        ],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "signals": []
+}

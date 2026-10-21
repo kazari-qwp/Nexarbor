@@ -13,6 +13,6 @@ repeat_unit 是一个单元包含的节点 ID，亚节点后代自动包含。�
 
 数字随书签、历史缓存和磁盘预设保存，历史按配置区分数量。右侧未保存的数量也立即用于当前预设的拖动；Save 可把该配置保留为书签，再按 S 写入当前网络预设目录。原预设文件不会被仅一次拖动覆盖。
 
-示例为 fixed_groups_v3/presets/ 下的协作小组与讨论小组：成员可重复，公共任务板或讨论板与公告箱只有一份。三个完整应用仍保留原来的完整拓扑。
+示例在 [预设组网项目](../projects/preset-compatibility/) 的 `network_presets/fragments/`：`discussion.json` 和 `execution.json` 分别定义讨论组与执行组，成员可重复，组内公共资源只保留一份。该项目初始只有根节点与管理员；[完整讨论与协作项目](../projects/discussion-collaboration/) 保留已组装拓扑及相同预设。
 
 实现：python/datanet/core/preset_repetition.py。边界：最多 100 个单元、展开后最多 10000 个节点。验证包含共享对象、嵌套亚节点、节点引用、独立存储、ID 冲突、可选字段及旧格式兼容。

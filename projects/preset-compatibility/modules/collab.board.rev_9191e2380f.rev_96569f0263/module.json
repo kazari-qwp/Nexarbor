@@ -1,0 +1,755 @@
+{
+  "format": "nexarbor-module/v3",
+  "id": "collab.board.rev_9191e2380f.rev_96569f0263",
+  "name": "认领协作板",
+  "version": "1.0.3",
+  "description": "平等成员自主认领任务与路径、拒绝重叠冲突、补充路径、完成与释放、共享发现／失败／修改摘要，并保留成员退出与轮次结束后的进度。成员退出时可按配置把退出同步给同节点的 Git 整合器，使候选验收名单重新计算。本模块不执行 Git，也不做验收；Git 整合与全员验收交给 git.integrator。",
+  "entry": "module.py:execute",
+  "node_types": [
+    "node"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "member_channel": {
+        "type": "array",
+        "title": "成员发现频道",
+        "description": "沿这些频道用 ctx.network.nodes 发现成员；只接受 metadata.node_type 为 agent 的节点。",
+        "default": [
+          "collaboration"
+        ],
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true
+      },
+      "max_tasks": {
+        "type": "integer",
+        "title": "单轮最大任务数",
+        "description": "open 一次最多接受的任务数量，超出时拒绝且不写入状态。",
+        "default": 100,
+        "minimum": 1,
+        "maximum": 500
+      },
+      "max_shared": {
+        "type": "integer",
+        "title": "共享记录上限",
+        "description": "发现与失败摘要的保留条数，超出后丢弃最早的记录。",
+        "default": 500,
+        "minimum": 10,
+        "maximum": 2000
+      },
+      "channel_modes": {
+        "type": "object",
+        "title": "频道匹配模式",
+        "description": "按配置字段选择 allow 或 deny；用于 member_channel 的成员发现与 integrator_channel 的整合器调用。",
+        "default": {},
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      },
+      "integrator_module": {
+        "type": "string",
+        "title": "整合器模块",
+        "description": "同一节点上负责 Git 成果整合与验收的模块 ID；留空表示不同步退出。填写后 leave 会在协作板事务锁释放后调用该模块的 leave 操作，例如 git.integrator。",
+        "default": ""
+      },
+      "integrator_channel": {
+        "type": "array",
+        "title": "整合器调用频道",
+        "description": "调用整合器 leave 时使用的频道；节点 access 与连接边必须同时允许。仅在 integrator_module 非空时使用。",
+        "default": [
+          "collaboration"
+        ],
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": 1,
+        "uniqueItems": true
+      },
+      "activity_timeout_seconds": {
+        "type": "integer",
+        "title": "信号处理时限（秒）",
+        "description": "该模块发出的每轮信号及单个目标的有限处理时限；应能容纳模型读取资料、执行与验证。",
+        "minimum": 1,
+        "maximum": 86400,
+        "default": 86400
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "run": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "title": "当前执行轮次",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "running",
+              "closed"
+            ]
+          },
+          "task_count": {
+            "type": "integer"
+          },
+          "started_at": {
+            "type": "number"
+          },
+          "ended_at": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        }
+      },
+      "tasks": {
+        "type": "object",
+        "title": "任务与认领",
+        "additionalProperties": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "title": {
+              "type": "string"
+            },
+            "detail": {
+              "type": "string"
+            },
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "status": {
+              "enum": [
+                "open",
+                "claimed",
+                "completed"
+              ]
+            },
+            "claims": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "member": {
+                    "type": "string"
+                  },
+                  "paths": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "claimed_at": {
+                    "type": "number"
+                  },
+                  "updated_at": {
+                    "type": "number"
+                  }
+                }
+              }
+            },
+            "commit": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "summary": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "completed_at": {
+              "type": [
+                "number",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "shared": {
+        "type": "array",
+        "title": "共享发现与失败",
+        "maxItems": 2000,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "enum": [
+                "discovery",
+                "failure"
+              ]
+            },
+            "member": {
+              "type": "string"
+            },
+            "task": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "type": "string"
+            },
+            "at": {
+              "type": "number"
+            }
+          }
+        }
+      },
+      "members": {
+        "type": "array",
+        "title": "成员",
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "active",
+                "left"
+              ]
+            },
+            "left_reason": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      },
+      "events": {
+        "type": "array",
+        "title": "最近事件",
+        "maxItems": 200,
+        "items": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "at": {
+              "type": "number"
+            },
+            "kind": {
+              "type": "string"
+            },
+            "member": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "text": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "seen": {
+        "type": "object",
+        "title": "幂等键",
+        "additionalProperties": true
+      }
+    }
+  },
+  "operations": [
+    {
+      "name": "open",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "轮次 ID",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "tasks": {
+            "type": "array",
+            "title": "任务清单",
+            "minItems": 1,
+            "maxItems": 500,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "title": "任务 ID",
+                  "description": "可省略；省略时按 task-1、task-2 顺序生成。",
+                  "minLength": 1,
+                  "maxLength": 100
+                },
+                "title": {
+                  "type": "string",
+                  "title": "任务标题",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "paths": {
+                  "type": "array",
+                  "title": "计划路径",
+                  "description": "可空；每项是仓库相对路径，用于说明任务涉及范围。",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "detail": {
+                  "type": "string",
+                  "title": "任务详情",
+                  "minLength": 1,
+                  "maxLength": 2000
+                }
+              },
+              "required": [
+                "title",
+                "paths"
+              ]
+            }
+          },
+          "key": {
+            "type": "string",
+            "title": "幂等键",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "tasks"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "list",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "include_closed": {
+            "type": "boolean",
+            "title": "包含已结束轮次",
+            "description": "为假时，已结束轮次不再返回任务与共享明细；默认保留，便于结束后的进度复盘。",
+            "default": true
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "claim",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "task": {
+            "type": "string",
+            "title": "任务 ID",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "paths": {
+            "type": "array",
+            "title": "认领路径",
+            "description": "至少一项；与同任务其他有效成员的认领路径前缀相同或相等即冲突。",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "key": {
+            "type": "string",
+            "title": "幂等键",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "task",
+          "paths"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "extend",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "task": {
+            "type": "string",
+            "title": "任务 ID",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "paths": {
+            "type": "array",
+            "title": "补充路径",
+            "minItems": 1,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            }
+          },
+          "key": {
+            "type": "string",
+            "title": "幂等键",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "task",
+          "paths"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "release",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "task": {
+            "type": "string",
+            "title": "任务 ID",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "member": {
+            "type": "string",
+            "title": "成员 ID",
+            "description": "仅控制方代释放时填写；填写后必须经 collab.admin 频道调用。",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "reason": {
+            "type": "string",
+            "title": "释放原因",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "task"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "complete",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "task": {
+            "type": "string",
+            "title": "任务 ID",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "commit": {
+            "type": "string",
+            "title": "提交哈希",
+            "description": "7 到 64 位十六进制提交标识；本模块只记录，不校验 Git 仓库。",
+            "pattern": "^[0-9a-fA-F]{7,64}$"
+          },
+          "summary": {
+            "type": "string",
+            "title": "修改摘要",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "key": {
+            "type": "string",
+            "title": "幂等键",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "task",
+          "commit",
+          "summary"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "discover",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "发现摘要",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "task": {
+            "type": "string",
+            "title": "相关任务",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "key": {
+            "type": "string",
+            "title": "幂等键",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "fail",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "失败与修改摘要",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "task": {
+            "type": "string",
+            "title": "相关任务",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "key": {
+            "type": "string",
+            "title": "幂等键",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "text"
+        ]
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "leave",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "member": {
+            "type": "string",
+            "title": "成员 ID",
+            "description": "仅控制方代操作时填写；填写后必须经 collab.admin 频道调用。",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "reason": {
+            "type": "string",
+            "title": "退出原因",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "status",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "include_events": {
+            "type": "boolean",
+            "title": "包含最近事件",
+            "default": true
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    {
+      "name": "close",
+      "channels": [
+        "collaboration"
+      ],
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "结束摘要",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      },
+      "result": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    }
+  ],
+  "signals": [],
+  "agent_tools": [
+    {
+      "id": "list",
+      "name": "查看协作板",
+      "description": "查看当前协作轮次、任务认领与完成情况、成员和共享摘要。",
+      "operation": "list"
+    },
+    {
+      "id": "claim",
+      "name": "认领任务路径",
+      "description": "以当前成员身份认领任务的若干路径；与其他成员已认领路径重叠时会被拒绝。",
+      "operation": "claim"
+    },
+    {
+      "id": "extend",
+      "name": "补充认领路径",
+      "description": "给自己已认领的任务补充更多路径，同样检查冲突。",
+      "operation": "extend"
+    },
+    {
+      "id": "release",
+      "name": "释放认领",
+      "description": "释放当前成员对某个未完成任务的认领，路径重新可被他人认领。",
+      "operation": "release"
+    },
+    {
+      "id": "complete",
+      "name": "完成任务",
+      "description": "记录当前成员所认领任务的提交哈希与修改摘要，并把任务标记为完成。",
+      "operation": "complete"
+    },
+    {
+      "id": "discover",
+      "name": "共享发现",
+      "description": "把工作中发现的重要信息共享给协作板。",
+      "operation": "discover"
+    },
+    {
+      "id": "fail",
+      "name": "共享失败摘要",
+      "description": "共享失败原因、已尝试的修改和后续需要注意的限制。",
+      "operation": "fail"
+    },
+    {
+      "id": "leave",
+      "name": "退出协作",
+      "description": "退出本轮协作；自己的未完成认领会被释放，其他成员可重新认领。",
+      "operation": "leave"
+    }
+  ]
+}
