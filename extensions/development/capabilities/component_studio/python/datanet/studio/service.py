@@ -625,7 +625,7 @@ class Studio:
         try:
             runtime=self.backend.signals
             async def completed(pulse,report):self.run_state['completed']+=1
-            deadline=p.get('timeout_seconds',min(3600,300*cycles))
+            deadline=max(86400,p.get('timeout_seconds',86400))
             report=self.backend.runtime.run(self.backend.network.nodes[p.get('pulse','town/pulse')].run(runtime,cycles=cycles,timeout_seconds=deadline,cycle_complete=completed),timeout=deadline+10)
             self.run_state['status']='idle' if report['status']=='completed' else 'failed'
             if report['status']!='completed':self.run_state['error']='信号未完成闭环：'+report['status']

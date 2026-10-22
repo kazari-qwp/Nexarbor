@@ -128,10 +128,10 @@ class NodeModules:
         if parent and parent['lease']['active']:
             trace=parent['trace']
         else:
-            # Respect an Agent's explicit finite execution allowance throughout
-            # its module callback, including time spent in the native model.
+            # Keep legacy short budgets from interrupting a long Agent callback,
+            # including time spent waiting for the native model.
             binding=getattr(self.backend.network.nodes[key[0]],'execution_binding',None) or {}
-            trace=dict(calls=0,deadline=time.monotonic()+max(180,binding.get('timeout_seconds',180)),max_calls=max(1000,binding.get('max_steps',1000)))
+            trace=dict(calls=0,deadline=time.monotonic()+max(86400,binding.get('timeout_seconds',86400)),max_calls=max(1000000,binding.get('max_steps',1000000)))
         lease = {'active': True}
         token = _executing.set(dict(key=key, generation=generation, lease=lease, strength=strength, channels=channels,
                                    caller=caller, requester=parent['requester'] if parent and parent['lease']['active'] else caller, children=[], trace=trace, scopes=[]))

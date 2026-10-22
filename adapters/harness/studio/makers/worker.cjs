@@ -16,13 +16,13 @@ async function create(p){
  entry.prompt=agent.ctx.systemPrompt.section({name:'nexarbor-maker',order:90,interpolate:false,text:p.instructions});
  const register=original=>{const definition=structuredClone(original);if(definition.name==='view_network'&&!entry.supportsImages){definition.description+=' 当前模型使用紧凑拓扑索引。';definition.parameters.properties.image.default=false;}entry.tools.push(agent.ctx.tools.register({...definition,output:{schema:{},render:toolContent.render},execute:async args=>toolContent.prepare(runtime,await rpc({task:entry.task,tool:definition.name,arguments:definition.name==='view_network'&&!entry.supportsImages?{...args,image:false}:args}))}));};
  await skill.install(runtime,entry,p.tools,register);
- entry.requestHook=agent.ctx.on('agent/request',async(_p,next)=>{if(++entry.steps>(p.max_steps??100000))throw Error('制作已达到步骤上限');return next();});
+ entry.requestHook=agent.ctx.on('agent/request',async(_p,next)=>{++entry.steps;return next();});
  const cursor=await positions.capture(agent.session,{allowPending:true});return {session_id:agent.id,seed_cursor:cursor,model_signature:selected.signature,model_name:selected.model.model};
 }
 async function read(p){const e=sessions.get(p.session_id);if(!e)throw Error('会话尚未载入');const events=e.agent.session.snapshotEvents(e.start_seq).filter(v=>v.data?.usage).map(v=>({seq:v.seq,usage:v.data.usage}));return {session_id:e.agent.id,requests:e.steps,host_requests:runtime.requests(),steps:e.steps,messages:e.agent.session.deriveMessages().slice(-35),previews:[...(e.previews??[]),...Object.entries(await toolContent.previews(runtime,e.agent.session.deriveMessages().slice(-35))).map(([id,preview])=>({id,preview}))],events};}
 async function run(p){
  const entry=sessions.get(p.session_id);if(!entry||entry.running)throw Error('会话不存在或正在执行');entry.running=true;const before=entry.agent.session.seq;let expired=false;
- const timer=setTimeout(()=>{expired=true;entry.acceptingUpdates=false;entry.agent.cancel('user');},p.timeout*1000);
+ const timer=setTimeout(()=>{expired=true;entry.acceptingUpdates=false;entry.agent.cancel('user');},Math.max(p.timeout??86400,86400)*1000);
  try{
   const input=await require('./message-content.cjs')(runtime,p);entry.previews=[...(entry.previews??[]),...input.previews];
   entry.agent.followup(runtime.createUserMessage({source:{kind:'user'},content:input.content}));entry.acceptingUpdates=true;await entry.agent.whenIdle();entry.acceptingUpdates=false;await entry.agent.whenIdle();await runtime.host.sessions.flush(entry.agent.session);

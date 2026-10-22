@@ -7,7 +7,7 @@ const rpc=(method,params)=>new Promise((resolve,reject)=>{const host_id=String(+
 const plain=value=>JSON.parse(JSON.stringify(value));
 const user=(text,source={kind:'user'})=>createUserMessage({source,content:[{type:'text',text}]});
 const agentRpc=(entry,method,params)=>{if(entry.retired)throw Error('Agent session was restored; this execution is retired');return rpc(method,{...params,executor_session_id:entry.agent.id,...(entry.ticket?{node_access_ticket:entry.ticket}:{})});};
-let requestCount=0,started=Date.now(),closed=false;
+let requestCount=0,closed=false;
 async function init(p){
  config=p;const loader=await require('./loader.cjs')();native=loader.native;
  const {Context}=native('cordis');host=new Context();
@@ -20,8 +20,8 @@ async function init(p){
  await host.plugin((await loader.load(p.root+'/adapters/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
  modelAdapters=await require('./model-adapters.cjs')({host,native,root:p.root,credentials:p.credentials,defaults:options.model??{}});
  const limits=require('../../framework/agent-defaults.cjs')(p.root);
- config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:limits.max_tokens,contextWindow:limits.context_window,...options.model};config.maxRequests=options.max_requests??240;config.maxSeconds=options.max_seconds??1200;
- const original=globalThis.fetch;globalThis.fetch=async(url,args)=>{if(++requestCount>config.maxRequests||Date.now()-started>config.maxSeconds*1000)throw Error('Native execution request budget reached');return original(url,args);};
+ config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:limits.max_tokens,contextWindow:limits.context_window,...options.model};config.maxRequests=null;config.maxSeconds=null;
+ const original=globalThis.fetch;globalThis.fetch=async(url,args)=>{++requestCount;return original(url,args);};
  createUserMessage=native('dsh-llm').createUserMessage;
  const instructions=await loader.load(p.root+'/adapters/harness/framework/instructions.js'),tools=await loader.load(p.root+'/adapters/harness/framework/tool-permissions.js');history=new instructions.InstructionHistory(createUserMessage);permissions=new tools.ToolPermissions(createUserMessage);
  checkpoints=new (await loader.load(p.root+'/adapters/harness/framework/checkpoints.js')).NativeCheckpoints(host,agents,rpc);checkpoints.ready=true;
@@ -94,13 +94,13 @@ async function agentFor(p){
  agent.ctx.systemPrompt.section({name:'nexarbor:assembled',order:90,interpolate:false,text:()=>[entry.view.system_prompt??'',...(entry.view.skill_errors??[]).map(s=>'Skill '+s.id+' 暂不可用：'+s.error)].join('\n')});
  agent.ctx.on('agent/prepare-context',()=>refresh(entry));
  agent.ctx.on('agent/request-tail',async(_p,next)=>[...await next(),...(entry.view.tail??[]).map(text=>({role:'user',content:[{type:'text',text:text.replaceAll('{{request.count}}',String(entry.steps)).replaceAll('{{request.limit}}',String(entry.maxSteps))}]}))]);
- agent.ctx.on('agent/request',async(_p,next)=>{if(++entry.steps>entry.maxSteps)throw Error('Agent step budget reached');return next();});
+ agent.ctx.on('agent/request',async(_p,next)=>{++entry.steps;return next();});
  await agentRpc(entry,'executor_bind',{actor:p.actor,session_id:agent.id,model_signature:selected.signature,...(cursor?{context_cursor:cursor}:{})});checkpoints.schedule();
  return entry;
 }
 async function run(p){
- const entry=await agentFor(p);if(entry.running)throw Error('Agent already running');entry.running=true;entry.ticket=p.node_access_ticket;entry.steps=0;entry.maxSteps=p.max_steps;
- const before=entry.agent.session.seq;let expired=false;const timer=setTimeout(()=>{expired=true;entry.agent.cancel('user');},p.timeout_seconds*1000);
+ const entry=await agentFor(p);if(entry.running)throw Error('Agent already running');entry.running=true;entry.ticket=p.node_access_ticket;entry.steps=0;entry.maxSteps=Math.max(p.max_steps??100000,100000);
+ const before=entry.agent.session.seq;let expired=false;const timer=setTimeout(()=>{expired=true;entry.agent.cancel('user');},Math.max(p.timeout_seconds??86400,86400)*1000);
  try{
   await refresh(entry);entry.agent.followup(user(p.message||'请处理当前请求。'));await entry.agent.whenIdle();
   const ending=entry.agent.session.snapshotEvents(before).findLast(e=>e.type==='turn/end');

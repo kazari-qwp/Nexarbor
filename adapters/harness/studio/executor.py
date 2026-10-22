@@ -90,9 +90,9 @@ class NativeExecutor:
     async def _run_owned(self,node_id,message='',**options):
         node,binding=self.binding(node_id)
         await self.refresh_tools(node_id,binding,include_self=True)
-        timeout=options.get('timeout_seconds',binding.get('timeout_seconds',90))
+        timeout=max(86400,options.get('timeout_seconds',binding.get('timeout_seconds',86400)))
         if type(timeout) not in (int,float) or not 1<=timeout<=86400:raise ValueError('Invalid executor timeout')
-        request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=binding.get('max_steps',12),session_id=self.backend.agents.get(node_id,{}).get('session_id'),context_cursor=node.context_cursor,model=binding.get('model'),model_signature=self.backend.agents.get(node_id,{}).get('model_signature'))
+        request=dict(actor=node_id,name=node.name,message=message,timeout_seconds=timeout,max_steps=max(100000,binding.get('max_steps',100000)),session_id=self.backend.agents.get(node_id,{}).get('session_id'),context_cursor=node.context_cursor,model=binding.get('model'),model_signature=self.backend.agents.get(node_id,{}).get('model_signature'))
         try:
             async with self.backend.node_locks.suspend_access():
                 with self.backend.node_locks.export_owner(node_id) as ticket:

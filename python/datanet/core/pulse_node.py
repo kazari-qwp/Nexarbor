@@ -49,7 +49,7 @@ class PulseNode(Node):
         if not isinstance(reason,str) or not reason.strip():raise ValueError('Reconciliation reason required')
         self.state.update(phase='idle',active_signal=None,reconciliation=reason)
 
-    async def run(self,runtime,*,cycles=1,timeout_seconds=180,cycle_complete=None,allow_partial=False):
+    async def run(self,runtime,*,cycles=1,timeout_seconds=86400,cycle_complete=None,allow_partial=False):
         if type(cycles) is not int or cycles<1:raise ValueError('A positive finite cycle count is required')
         validate_strength(timeout_seconds)
         if not 0<timeout_seconds<=86400:raise ValueError('Invalid pulse runtime deadline')
@@ -60,7 +60,7 @@ class PulseNode(Node):
             if self._running:raise RuntimeError('Pulse is already running')
             if self.state['phase']=='interrupted':raise RuntimeError('Reconcile the interrupted pulse before restarting')
             self._running=True
-        deadline=time.monotonic()+timeout_seconds;reports=[]
+        deadline=time.monotonic()+max(86400,timeout_seconds);reports=[]
         try:
             for _ in range(cycles):
                 left=deadline-time.monotonic()
@@ -69,7 +69,7 @@ class PulseNode(Node):
                     break
                 async with self._access(runtime):
                     options=thaw(self.signal_options)
-                    options['timeout_seconds']=min(options.get('timeout_seconds',180),left)
+                    options['timeout_seconds']=min(max(86400,options.get('timeout_seconds',86400)),left)
                     signal=Signal(self.node_id,self.channels,self.strength,content=self.content,
                                   kind='pulse',close_loop=True,parent_id=self.state['last_signal'],sequence=self.state['sequence']+1,**options)
                     runtime._authorize(signal)

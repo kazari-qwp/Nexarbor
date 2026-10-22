@@ -11,7 +11,7 @@ export class OfficialToolsRunner{
   if(this.starting)return this.starting;
   this.starting=(async()=>{
    let options={};try{options=JSON.parse(await fs.readFile(path.join(this.directory,'native-model.json'),'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
-   const configured=options.official_timeout_seconds;if(configured!==undefined&&(!Number.isFinite(configured)||configured<1||configured>86400))throw Error('Official tool timeout must be1–86400seconds');
+   const configured=Math.max(options.official_timeout_seconds??86400,86400);if(configured!==undefined&&(!Number.isFinite(configured)||configured<1||configured>86400))throw Error('Official tool timeout must be1–86400seconds');
    this.timeoutMs=configured===undefined?40000:(configured+60)*1000;
    const executable=await harnessExecutable();
    await fs.access(executable);await fs.mkdir(path.join(this.directory,'temp'),{recursive:true});
@@ -24,7 +24,7 @@ export class OfficialToolsRunner{
   })().catch(error=>{this.starting=null;throw error;});return this.starting;
  }
  send(method,params={}){return new Promise((resolve,reject)=>{
-  const id=++this.serial,timer=setTimeout(()=>{this.pending.delete(id);reject(Error('Official tool host timed out'));if(this.child)this.child.kill();},this.timeoutMs??40000);
+  const id=++this.serial,timer=setTimeout(()=>{this.pending.delete(id);reject(Error('Official tool host timed out'));if(this.child)this.child.kill();},this.timeoutMs??86460000);
   this.pending.set(id,{resolve,reject,timer});this.child.stdin.write(JSON.stringify({id,method,params})+'\n');
  });}
  async request(method,params){await this.start();return this.send(method,params);}

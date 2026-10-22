@@ -20,8 +20,8 @@ class Signal:
     failure_policy:str='stop'
     max_hops:int=32
     max_deliveries:int=1000
-    timeout_seconds:float=180
-    node_timeout_seconds:float=60
+    timeout_seconds:float=86400
+    node_timeout_seconds:float=86400
 
     def __post_init__(self):
         for key in ('origin','signal_id','kind'):

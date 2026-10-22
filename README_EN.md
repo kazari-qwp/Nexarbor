@@ -150,6 +150,8 @@ The runtime archive includes Electron, Python and base dependencies, so **no sep
 
 Defaults are a **600k context window** and **50k maximum output**. Edit [`configs/agent-defaults.json`](configs/agent-defaults.json) in the extracted release and reopen the project to change them. Explicit project or node settings take precedence, and the selected model must support the configured limits.
 
+**Since 0.9.2, consultation, maker and network Agents no longer stop at a model-request count, and runner-wide cumulative request and lifetime limits have been removed.** Execution waits and the associated signal, pulse and module-call deadlines are relaxed to 24 hours, including smaller legacy execution allowances at runtime. Tasks can still be stopped manually. Context capacity and per-response output length remain separate settings with the defaults above.
+
 ### 3. Open the six demo projects
 
 The release's **`项目演示/`** folder contains six independent projects. Folder names remain in Chinese:

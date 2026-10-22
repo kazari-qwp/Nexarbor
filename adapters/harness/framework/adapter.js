@@ -201,7 +201,7 @@ async function createRuntime(ctx,config,rootAgent,owned,openRestored){
       const eventStart=agent.session.snapshotEvents().length;
       const cancel=()=>agent.cancel('user');let expired=false;
       signal?.throwIfAborted();signal?.addEventListener('abort',cancel,{once:true});
-      const timer=setTimeout(()=>{expired=true;cancel();},p.timeout_ms??180000);
+      const timer=setTimeout(()=>{expired=true;cancel();},Math.max(p.timeout_ms??86400000,86400000));
       try{
         if(p.input_event)await host('input-message',{actor:p.actor,source:p.input_source,event:p.input_event});else agent.followup(user(p.text));
         await agent.whenIdle();signal?.throwIfAborted();

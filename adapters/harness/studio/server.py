@@ -14,7 +14,7 @@ class StudioTransport(Transport):
     def __init__(self,backend,output=None):
         super().__init__(backend,output)
         # Reverse Agent callbacks must permit the explicit finite execution deadline.
-        self.host_timeout=lambda method,params: max(600,params.get('timeout_seconds',90)+60) if method=='agent-run' else 600
+        self.host_timeout=lambda method,params: max(86460,params.get('timeout_seconds',86400)+60)
 
     def error_message(self,error):
         from datanet.studio.diagnostics import error_message

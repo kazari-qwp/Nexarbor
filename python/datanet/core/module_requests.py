@@ -30,7 +30,7 @@ def dispatch_request(runtime,key,operation,p):
         if not network.same_family(key[0],local):raise PermissionError('本地调用只能访问同一归属树')
         target_key=(local,p['module']);callee=runtime._check(target_key)
         if p['operation'] not in callee.operations:raise PermissionError('本地模块未声明该操作')
-        if frame['trace']['calls']>=frame['trace'].get('max_calls',1000) or time.monotonic()>=frame['trace']['deadline']:raise RuntimeError('Access request resource budget exhausted')
+        if frame['trace']['calls']>=frame['trace'].get('max_calls',1000000) or time.monotonic()>=frame['trace']['deadline']:raise RuntimeError('Access request resource budget exhausted')
         frame['trace']['calls']+=1
         request=AccessRequest(runtime._run(target_key,callee.operations[p['operation']][0],**json_copy(p['arguments'])))
         frame['children'].append(request);return request
@@ -192,7 +192,7 @@ def dispatch_request(runtime,key,operation,p):
                 runtime._scope(key)
                 return json_copy(result)
         trace = frame['trace']
-        if trace['calls'] >= trace.get('max_calls',1000) or time.monotonic() >= trace['deadline']:
+        if trace['calls'] >= trace.get('max_calls',1000000) or time.monotonic() >= trace['deadline']:
             raise RuntimeError('Access request resource budget exhausted')
         trace['calls'] += 1
         task = AccessRequest(invoke())

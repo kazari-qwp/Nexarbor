@@ -58,7 +58,7 @@ class SignalRuntime:
         locks=getattr(self.network,'node_locks',None)
         if not locks:return dict(status='returned')
         try:
-            left=min(signal.node_timeout_seconds,deadline-time.monotonic())
+            left=min(max(86400,signal.node_timeout_seconds),deadline-time.monotonic())
             if left<=0:raise TimeoutError('Signal deadline exceeded')
             async def enter():
                 async with locks.access([node.node_id],mutable=False):return dict(status='returned')
@@ -91,7 +91,7 @@ class SignalRuntime:
         try:
             left=deadline-time.monotonic()
             if left<=0:raise TimeoutError('Signal deadline exceeded')
-            return await asyncio.wait_for(self._process(node,delivery,signal,record),min(signal.node_timeout_seconds,left))
+            return await asyncio.wait_for(self._process(node,delivery,signal,record),min(max(86400,signal.node_timeout_seconds),left))
         except (asyncio.TimeoutError,TimeoutError):return dict(status='timed_out',error='Node processing deadline exceeded')
         except asyncio.CancelledError:raise
         except Exception as error:return dict(status='failed',error=str(error))
@@ -135,7 +135,7 @@ class SignalRuntime:
         record=dict(signal=signal.to_dict(),status='running',returned=False,deliveries=[],layers=[],started_at=time.time())
         self.network.signal_runs[signal.signal_id]=record
         self._active[signal.signal_id]=asyncio.current_task()
-        deadline=time.monotonic()+signal.timeout_seconds
+        deadline=time.monotonic()+max(86400,signal.timeout_seconds)
         visited={signal.origin};returned=False;depth=0;count=0
         frontier=[SignalDelivery(signal.origin,0,signal.strength,(signal.origin,),())]
         try:

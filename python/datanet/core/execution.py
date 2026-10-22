@@ -11,8 +11,8 @@ class ExecutionRequest:
     message:str
     prompt:str=''
     tools:list=field(default_factory=list)
-    max_steps:int=8
-    timeout_seconds:float=60
+    max_steps:int=100000
+    timeout_seconds:float=86400
     input_state:dict=field(default_factory=dict)
 
 @dataclass
@@ -86,7 +86,7 @@ class ExecutorRegistry:
             for source,event in node.inputs.pending():
                 if any(e['id']==event['id'] for e in request.input_state.get(source,{}).get('inputs',[])):node.inputs.acknowledge(source,event['id'])
         return result
-    def bind_signals(self,runtime,node_id,*,max_steps=8):
+    def bind_signals(self,runtime,node_id,*,max_steps=100000):
         """Register normal executor completion as signal completion; no model ready tool."""
         import asyncio
         import json
@@ -100,7 +100,7 @@ class ExecutorRegistry:
             content=thaw(context.signal.content)
             message=content if isinstance(content,str) else json.dumps(content,ensure_ascii=False)
             binding=self.bindings[node_id]
-            worker=asyncio.create_task(asyncio.to_thread(self.run,node_id,message,max_steps=max_steps,timeout_seconds=context.signal.node_timeout_seconds))
+            worker=asyncio.create_task(asyncio.to_thread(self.run,node_id,message,max_steps=max(100000,max_steps),timeout_seconds=max(86400,context.signal.node_timeout_seconds)))
             self._signal_workers[node_id]=worker
             def finished(task):
                 if self._signal_workers.get(node_id) is task:self._signal_workers.pop(node_id,None)

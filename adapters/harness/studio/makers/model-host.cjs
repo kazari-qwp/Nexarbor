@@ -16,7 +16,7 @@ module.exports=async function(p){
  const limits=require('../../framework/agent-defaults.cjs')(p.root);
  const model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:limits.max_tokens,contextWindow:limits.context_window,...p.options?.model};
  const models=await require('../runtime/model-adapters.cjs')({host,native,root:p.root,credentials:p.credentials,defaults:model});
- let requests=0;const started=Date.now(),fetch=globalThis.fetch,limit=p.options?.max_requests??1200;
- globalThis.fetch=async(url,args)=>{if(++requests>limit||Date.now()-started>(p.options?.max_seconds??21600)*1000)throw Error('制作测试已达到请求数或时间上限');return fetch(url,args);};
+ let requests=0;const fetch=globalThis.fetch;
+ globalThis.fetch=async(url,args)=>{++requests;return fetch(url,args);};
  return {host,native,loader,model,resolveModel:profile=>models.resolve(profile),redact:models.redact,requests:()=>requests,createUserMessage:native('dsh-llm').createUserMessage};
 };

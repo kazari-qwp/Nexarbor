@@ -110,7 +110,7 @@ def operate(studio,p):
     env=dict(os.environ,DATANET_PROJECT_RESOURCES_ONLY='0',DATANET_PROJECT_DIRECTORY=str(home/'runtime'),PYTHONUTF8='1',PYTHONDONTWRITEBYTECODE='1',TEMP=str(temporary),TMP=str(temporary))
     request={k:v for k,v in p.items() if k!='id'}
     try:
-        completed=subprocess.run([sys.executable,'-m','datanet.studio.environment',str(home)],input=json.dumps(request),text=True,encoding='utf-8',capture_output=True,timeout=35,cwd=PROJECT,env=env,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+        completed=subprocess.run([sys.executable,'-m','datanet.studio.environment',str(home)],input=json.dumps(request),text=True,encoding='utf-8',capture_output=True,timeout=86460,cwd=PROJECT,env=env,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
     except subprocess.TimeoutExpired:
         return dict(ok=False,error='测试操作超过 35 秒，已停止本次进程；正式项目未执行该操作。',error_type='TimeoutError',hint='检查是否存在递归等待、过大的检索范围或跨节点锁等待；缩小场景定位，不要重复原样重试。')
     if completed.returncode:raise ValueError('测试环境执行失败：'+completed.stderr[-5000:])
