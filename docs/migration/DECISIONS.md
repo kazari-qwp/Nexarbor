@@ -67,3 +67,11 @@ save_data=False 保存实际源文件路径；True 复制源 JSON 文件。旧�
 原 module_requests.local_call / ModuleRuntime.local_access 中按 same_family 直接跳转的捷径不迁移。原执行器 prepare 对外部节点也不能借 same_family 绕过连接；旧配置依赖该入口时迁成可见的业务连接和对应频道授权，不引入隐式家庭连接或旧 ctx 后门。
 
 原 tests/test_subnodes.py 的 parent_pure_local_call_ignores_channels 等允许无连线调用的断言因本决定不再适用，替换为“有归属也不可越过连接/频道/阈值”的负向验证；业务输出断言仍需保留。D008 不自动删除亚节点类型或显式配置的出边共享能力，其他原行为继续逐项迁移。
+
+## D009：管理复用频道，不为遗留机制扩展核心（2026-10-27）
+
+用户明确指出，管理需求可以拉管理员频道，复用现有频道逻辑，并要求核对三个应用是否实际使用旧机制。
+
+核对实际 profile 入口后：讨论/资料库没有无连线跨节点依赖；小镇 7 个工具亚节点确实通过 tool_sources + same_family 被访问。迁移方案是把工具发现器直接装到 NPC 节点，保持它自己的频道与强度，取消这条亲缘捷径，不添加 family 模式。管理用显式频道，不另造权限体系。
+
+执行准则：先核对当前三个项目及明确要求保留的前端/制作 Agent 功能的真实调用，再决定旧实现去留。不能只因旧测试存在就认定某旧能力必须迁入 core。具体证据与当前入口见 ACTIVE_APPLICATIONS.md。
