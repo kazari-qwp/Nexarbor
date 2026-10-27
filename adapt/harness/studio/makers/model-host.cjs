@@ -1,0 +1,23 @@
+// 使用已安装 Harness SDK；模型与凭据按每个制作职责的选择解析。
+const fs=require('node:fs/promises'),path=require('node:path');
+module.exports=async function(p){
+ const loader=await require('../../native/loader.cjs')(),native=loader.native,{Context}=native('cordis'),host=new Context();
+ for(const [name,service] of [['dsh-llm','LlmRuntime'],['dsh-session','SessionStore'],['dsh-session-projection','SessionProjectionRegistry'],['dsh-system-prompt','SystemPrompt'],['dsh-tools','ToolRuntime'],['dsh-agent','AgentRegistry']])await host.plugin(native(name)[service]??native(name).default);
+ await host.plugin(native('dsh-skill').SkillRegistry);
+ // Newer Harness skill loaders resolve the session's committed working directory.
+ if(native('dsh-tool-skill').inject.includes('workingDirectory')){
+  await host.plugin(native('dsh-fs-local').LocalFileSystem,{cwd:p.directory});
+  await host.plugin(native('dsh-working-directory').WorkingDirectoryService,{defaultDirectory:path.resolve(p.directory)});
+ }
+ await host.plugin(native('dsh-session-title').SessionTitleService,{fallbackMaxWords:12,fallbackMaxBytes:120,maxTitleBytes:256});
+ await host.plugin(native('dsh-attachment-local').LocalAttachmentStore,{dshHome:p.directory});
+ await require('../../runtime/session-services.cjs')({host,native});
+ const persistence=native('dsh-session-persistence-jsonl');await host.plugin(persistence.default??persistence,{root:path.join(p.directory,'maker-logs')});
+ await host.plugin((await loader.load(p.root+'/adapt/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
+ const limits=require('../../framework/agent-defaults.cjs')(p.root);
+ const model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:limits.max_tokens,contextWindow:limits.context_window,...p.options?.model};
+ const models=await require('../../native/model-adapters.cjs')({host,native,root:p.root,credentials:p.credentials,defaults:model});
+ let requests=0;const fetch=globalThis.fetch;
+ globalThis.fetch=async(url,args)=>{++requests;return fetch(url,args);};
+ return {host,native,loader,model,resolveModel:profile=>models.resolve(profile),redact:models.redact,requests:()=>requests,createUserMessage:native('dsh-llm').createUserMessage};
+};

@@ -1,0 +1,55 @@
+[
+  {
+    "id": "send",
+    "operation": "send",
+    "name": "发送消息",
+    "description": "向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "消息正文",
+          "description": "要发送的非空消息正文，最长 4000 个字符。",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "topic": {
+          "type": "string",
+          "title": "话题",
+          "description": "可选的话题或公告栏目，省略时为空字符串。",
+          "default": ""
+        },
+        "key": {
+          "type": "string",
+          "title": "去重键",
+          "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "read",
+    "operation": "read",
+    "name": "读取消息",
+    "description": "读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "title": "读取条数",
+          "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 20
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+]

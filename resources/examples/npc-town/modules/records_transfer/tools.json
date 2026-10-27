@@ -1,0 +1,44 @@
+[
+  {
+    "id": "give",
+    "name": "赠送物品或资源",
+    "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
+    "operation": "give",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recipient",
+        "resource",
+        "quantity"
+      ],
+      "properties": {
+        "recipient": {
+          "type": "string",
+          "format": "node-id",
+          "minLength": 1,
+          "title": "收件人",
+          "description": "另一位当前可达的真实 Agent 节点 ID。"
+        },
+        "resource": {
+          "type": "string",
+          "minLength": 1,
+          "title": "资源字段",
+          "description": "自己记录仓中要转交的数字字段名，例如金币、木材或 ap。"
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "title": "数量",
+          "description": "要转交的正整数数量。"
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "title": "幂等键",
+          "description": "可选非空字符串；相同键和相同参数重试时返回旧结果，参数变化会被拒绝。"
+        }
+      }
+    }
+  }
+]

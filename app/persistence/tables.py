@@ -71,6 +71,9 @@ class ModuleTables:
             module = modules[spec["module_id"]]
             module._dependencies = tuple(modules[key] for key in spec["modules"])
             module._bind(node)
+            if hasattr(module,'_tool_specs'):
+                from app.projects.module_tools import bind_tools
+                bind_tools(module,node,module._tool_specs)
             node.modules._add(module)
         factory_tools = {key: {tool.name: tool for tool in module.tools} for key, module in modules.items()}
         tools = {(None, name): tool for name, tool in initial_tools.items()}

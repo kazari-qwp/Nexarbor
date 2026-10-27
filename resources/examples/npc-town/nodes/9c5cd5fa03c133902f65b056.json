@@ -1,0 +1,73 @@
+{
+  "type": "markdown",
+  "node_id": "世界时钟",
+  "name": "世界时钟",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "clock.counter",
+        "description": "",
+        "channels": [
+          "tick",
+          "time"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "signal_channels": [
+            "tick"
+          ],
+          "labels": [
+            "早上",
+            "中午",
+            "下午",
+            "傍晚",
+            "午夜"
+          ],
+          "initial_tick": 0,
+          "checkpoint_every": 0,
+          "write_text": false
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 1,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "tick"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "data": {
+    "type": "markdown",
+    "path": "data/世界时钟.md",
+    "save_data": true,
+    "directory": false
+  }
+}

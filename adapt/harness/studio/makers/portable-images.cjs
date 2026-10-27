@@ -1,0 +1,4 @@
+// 原生图片引用随已提交的会话搬迁；相同图片在项目中按内容去重。
+const fs=require('node:fs/promises');
+exports.exportImages=async(runtime,prefix)=>{const refs=new Map(),visit=value=>{if(!value||typeof value!=='object')return;if(value.type==='image'&&value.attachment?.attachmentId)refs.set(value.attachment.attachmentId,value.attachment);for(const child of Object.values(value))if(typeof child==='object')visit(child);};visit(prefix.events);const images=[];for(const ref of refs.values())images.push({name:ref.name??'图片',mediaType:ref.mediaType,data:(await fs.readFile(runtime.host.get('attachments').imageHostPath(ref))).toString('base64'),attachmentId:ref.attachmentId});return {...prefix,images};};
+exports.admitImages=async(runtime,prefix)=>{if(prefix?.images?.length)await runtime.native('dsh-attachment').admitEncodedImages(runtime.host.get('attachments'),prefix.images.map(({name,mediaType,data})=>({name,mediaType,data})));};
