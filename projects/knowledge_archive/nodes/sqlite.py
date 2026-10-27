@@ -174,4 +174,3 @@ class SqliteNode(DataNode):
     @property
     def parameters(self) -> dict:
         return {"table_name": self.dataer.table_name, "key_column": self.dataer.key_column}
-

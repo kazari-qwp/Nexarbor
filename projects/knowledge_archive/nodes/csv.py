@@ -143,4 +143,3 @@ class CsvNode(DataNode):
         if not all(isinstance(key, str) and isinstance(value, str) for key, value in self.dataer.dtype.items()):
             raise ValueError("保存 CSV dtype 时请使用字符串类型名，例如 Int64")
         return {"key_column": self.dataer.key_column, "dtype": dict(self.dataer.dtype)}
-

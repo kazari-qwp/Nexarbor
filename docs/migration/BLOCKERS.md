@@ -67,3 +67,11 @@
 此前建议下移 path 的方案不实施。按用户最新决定，ValueNode 改为真实 JSON 文件存储，Saver 接口不变；这是用户授权的存储语义变化，不再要求保持旧内存/内联形式。
 
 现已有真实源文件，False 保存路径引用、True 复制文件均已验证。旧内联值的应用模板和配置仍待转换为独立 JSON 资源。
+
+## B006：同归属树的无连线模块调用与新 access 冲突
+
+状态：已由用户选择不保留而解除，见 D008；未修改 core，未添加 family 模式。
+
+旧 module_requests.py 的 local_call 和 tests/test_subnodes.py 允许 parent→sub 无业务边调用；新 access 的空频道仅执行本节点，不读取 parent_id。复现得到 {'owner': 'owner'}。
+
+用户决定采用新规则：归属本身不授予访问权。原捷径和相关正向许可断言不迁移，旧项目需要显式配置真实连接/频道。新增 test_no_implicit_family_access.py 验证归属、错误频道和不足阈值都不能授权；真实边通过后才调用。

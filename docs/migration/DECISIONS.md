@@ -59,3 +59,11 @@
 save_data=False 保存实际源文件路径；True 复制源 JSON 文件。旧内联 parameters.value 在项目数据迁移时写入真实 JSON 资源后改成文件路径，不能只改节点外观。业务节点位于 projects/knowledge_archive/nodes，采用可直接作为 Python 包导入的目录名。
 
 状态：ValueNode 与 7 项文件/保存/跨节点测试已实现并通过；旧应用模板/配置转换随完整项目迁移接入。core 未改。
+
+## D008：不保留同归属树的无连线调用（2026-10-27）
+
+用户明确选择“不保留这种无连线调用”。因此不增加 access(scope="family")；parent_id 自身不授予访问权。跨节点模块调用统一经实际连接、频道、强度和阈值判断，包含节点与亚节点之间的调用。
+
+原 module_requests.local_call / ModuleRuntime.local_access 中按 same_family 直接跳转的捷径不迁移。原执行器 prepare 对外部节点也不能借 same_family 绕过连接；旧配置依赖该入口时迁成可见的业务连接和对应频道授权，不引入隐式家庭连接或旧 ctx 后门。
+
+原 tests/test_subnodes.py 的 parent_pure_local_call_ignores_channels 等允许无连线调用的断言因本决定不再适用，替换为“有归属也不可越过连接/频道/阈值”的负向验证；业务输出断言仍需保留。D008 不自动删除亚节点类型或显式配置的出边共享能力，其他原行为继续逐项迁移。

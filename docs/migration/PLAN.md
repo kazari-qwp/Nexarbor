@@ -26,6 +26,7 @@
 12. 不调用子智能体。按阶段提交，未达到最终验收不得声称全量迁移完成。
 13. 复制节点/网络直接恢复已有表，不检查或补装依赖；表级浅拷贝与完整独立节点复制分开处理，详见 D005。
 14. 上下文按现有 access 顺序收集 Markdown 文件地址，不增加网络路径参数，详见 D006。
+15. 按 D007 将 ValueNode 改为真实 JSON 文件；按 D008 删除同归属树无连线调用捷径，使用显式业务连接与频道。
 
 ## 目标目录
 
@@ -48,7 +49,7 @@ adapt/
 frontends/                   # 原桌面与编辑器，按新接口适配
 projects/
   discussion-collaboration/   # 原讨论/协作应用，含自己的 modules/tools/skills/data
-  knowledge-archive/         # 原资料库应用
+  knowledge_archive/         # 原资料库应用
   npc-town/                  # 原小镇应用
 scripts/                     # 迁移、构建和验收入口
 tests/                      # 原行为断言及新核心行为验证

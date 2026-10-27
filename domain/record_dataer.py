@@ -23,3 +23,6 @@ class RecordDataer(Dataer):
 
     def _read_semantic(self, query: str, top_k: int) -> DataResult:
         return DataResult(status="unsupported", errors=["节点不支持语义检索"])
+
+    def write(self, key: str, value, *, mode: str = "upsert") -> DataResult:
+        return DataResult(status="unsupported", errors=["节点不支持本地写入"])

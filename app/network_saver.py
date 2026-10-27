@@ -3,7 +3,8 @@
 from dataclasses import asdict
 import json
 from pathlib import Path
-from tempfile import NamedTemporaryFile
+from tempfile import NamedTemporaryFile, mkdtemp
+from shutil import rmtree
 
 from domain.core import (
     Aggregation, AverageAggregation, MaxAggregation, MinAggregation, SumAggregation,
@@ -46,7 +47,15 @@ class NetworkSaver:
             temporary.replace(path)
         except Exception:
             for copy in copies:
-                copy.unlink(missing_ok=True)
+                directory = (path.parent / f"{path.stem}_data").resolve()
+                if copy.is_symlink():
+                    copy.unlink()
+                elif copy.resolve().parent != directory:
+                    raise RuntimeError("拒绝清理本次保存目录之外的文件")
+                elif copy.is_dir():
+                    rmtree(copy)
+                else:
+                    copy.unlink(missing_ok=True)
             raise
         finally:
             if temporary is not None:
@@ -97,10 +106,13 @@ class NetworkSaver:
             directory = config_path.parent / f"{config_path.stem}_data"
             directory.mkdir(parents=True, exist_ok=True)
             # 先分配本次拥有的新文件，失败清理不会碰到源文件或旧副本。
-            with NamedTemporaryFile(
-                dir=directory, prefix="snapshot-", suffix=source.suffix, delete=False,
-            ) as stream:
-                destination = Path(stream.name)
+            if source.is_dir():
+                destination = Path(mkdtemp(dir=directory, prefix="snapshot-"))
+            else:
+                with NamedTemporaryFile(
+                    dir=directory, prefix="snapshot-", suffix=source.suffix, delete=False,
+                ) as stream:
+                    destination = Path(stream.name)
             copies.append(destination)
             node.saver.save(destination)
             reference = destination.relative_to(config_path.parent).as_posix()

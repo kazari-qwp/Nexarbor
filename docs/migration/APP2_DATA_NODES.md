@@ -1,6 +1,6 @@
 # 应用二数据节点迁移清单
 
-依据用户要求，全部数据节点直接或间接继承 `domain.core.DataNode`。Value、CSV、SQLite 已完成节点级迁移；LlamaIndex、CollectionNode 仍待迁移。完整应用数据模块、模板与前端链路尚未接入。
+依据用户要求，全部数据节点直接或间接继承 `domain.core.DataNode`。五种数据节点均已完成节点级迁移，统一为新 DataNode + Dataer/Saver。完整应用数据模块、模板与前端链路尚未接入。
 
 | 旧类型 | 原源码 | 新结构要求 |
 | --- | --- | --- |
@@ -27,7 +27,7 @@
 
 ## 状态
 
-Value/CSV/SQLite 已迁移，CSV/SQLite 数据方法在仅替换结果类型名后与原方法 AST 一致。158 项 Python 测试通过，含 7 项 Value 与 10 项 CSV/SQLite 文件、查询、写入、复制及 WAL 验证。其他具体方法、存储结构及旧断言继续逐文件审查后迁移。遇到 DataNode/Dataer/Saver 协议不兼容，按用户要求先讨论，不能私自改 core 或编造占位实现。
+五种数据节点已完成节点级迁移。原数据方法在只改导入与结果类型名后保持 AST 一致；当前 169 项回归及真实向量/计算进程验证通过。完整应用、权限和工具接入仍继续逐文件迁移。遇到 DataNode/Dataer/Saver 协议不兼容，按用户要求先讨论，不能私自改 core 或编造占位实现。
 
 ## 当前具体兼容点：B005
 
@@ -40,3 +40,12 @@ B005 已由 D007 解除：用户明确允许 ValueNode 改为文件存储。真�
 - projects/knowledge_archive/nodes/sqlite.py：SqliteNode/SqliteDataer，一致数据库快照包含 WAL。
 - domain/data_result.py、data_request.py、data_write.py、record_dataer.py：原结构化访问值对象与查询分派，均在 core 外。
 - app/network_saver.py：保留业务节点 parameters，应用自行登记节点类型；不把应用类型内置进平台。
+
+## 知识集合与向量阶段
+
+- nodes/collection.py、nodes/vector/node.py 提供具体节点与访问器/保存器；storage/knowledge.py 保留原 KnowledgeStore 的修订、恢复、检索与物化规则。
+- 文档结构、Wiki 身份/链接和 MkDocs 导出辅助代码移入项目 storage；原子写入和 Windows 路径处理位于 adapt/files。
+- 目录保存沿用原资源规则，排除运行锁、SQLite 伴随文件与临时文件，SQLite 内容仍用 backup 获得一致快照。失败只清理本次分配的副本目录。
+- 当前 169 项回归通过；2 项原 Wiki 存储导航断言未改；原 LlamaIndex/Collection 数据方法在只改导入与结果类型后 AST 一致。
+- 两个真实向量验证脚本均通过：中文检索与位置校验、源目录移走后的副本独立查询/修订/删除、原始向量节点，以及主线程计算进程协议。无付费 API 调用。
+- 以上仍是节点/存储层验证；完整应用模块、模板、预览工具、权限和保存重开链路继续迁移，不能据此报告应用二完成。
