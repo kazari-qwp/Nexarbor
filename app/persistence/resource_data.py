@@ -42,3 +42,13 @@ def write_data(path,content):
     path.parent.mkdir(parents=True,exist_ok=True)
     temporary=path.with_name(path.name+'.resource.tmp')
     temporary.write_bytes(data);temporary.replace(path)
+
+
+TRANSIENT = (".lock", "-wal", "-shm", "-journal", ".tmp")
+
+
+def resource_files(root):
+    root = Path(root)
+    if not root.is_dir():return [root]
+    return [path for path in sorted(root.rglob('*'))
+            if path.is_file() and not path.is_symlink() and not path.name.endswith(TRANSIENT)]

@@ -42,7 +42,7 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
             node.install(probe)
             self.nodes[key], self.probes[key] = node, probe
         self.network = Network(self.nodes.values())
-        self.execution = {'a': {'session_id': 'session-a'}}
+        self.execution = {'a': {'activity': 'before'}}
         self.bindings = {'a': {'executor': 'harness', 'model': {'model': 'before'}}}
         self.snapshots = NodeSnapshots(self.network, self.directory, execution=self.execution, bindings=self.bindings)
         self.locks = NodeLocks(self.network, self.snapshots)
@@ -145,7 +145,7 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
                 probe.published['value'] = 'new'
                 node.dataer.write('NEW')
                 node.update_inputs('producer', tail=['new'])
-                self.execution['a']['session_id'] = 'changed'
+                self.execution['a']['activity'] = 'changed'
                 link.channels, link.processor.factor = ('wrong',), 9
                 node.links.remove(link)
                 node.links.add(Link('c', 'red'))
@@ -166,7 +166,7 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(probe._access_origin, node)
         self.assertEqual(node.dataer.read(), 'OLD')
         self.assertEqual(node.inputs.tail(), [])
-        self.assertEqual(self.execution['a']['session_id'], 'session-a')
+        self.assertEqual(self.execution['a']['activity'], 'before')
         self.assertEqual(node.links.list(), [link])
         self.assertEqual(link.channels, ('red',))
         self.assertIs(link.processor, processor)
@@ -306,6 +306,7 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
                 return {node: dict(session_id=session, event_count=self.count) for node, session in bindings.items()}
             async def restore(self, cursors):
                 return {'contexts': {node: dict(cursor, event_count=self.count) for node, cursor in cursors.items()}}
+        self.execution['a']['session_id'] = 'session-a'
         contexts = self.locks.contexts = Contexts()
         self.locks.commit = lambda group: events.append(('before' if group is None else 'after', self.execution['a']['context_cursor']['event_count']))
         with self.assertRaises(ValueError):
@@ -430,6 +431,7 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(list(await reader), ['c', 'a', 'b'])
 
     async def test_before_records_include_the_fresh_native_cursor_in_execution_state(self):
+        self.execution['a']['session_id'] = 'session-a'
         self.execution['a']['context_cursor'] = {'session_id': 'session-a', 'event_count': 0}
         self.snapshots.document = lambda: {
             'network': {'nodes': [{'node_id': node.info.node_id} for node in self.network]},
@@ -459,3 +461,20 @@ class NodeLockTests(unittest.IsolatedAsyncioTestCase):
         self.assertIs(self.bindings['a'], original)
         self.assertEqual(original, {'executor': 'harness', 'model': {'model': 'before'}})
         self.assertIsNone(self.nodes['a'].runner)
+
+    async def test_bound_agent_needs_a_context_port_before_transaction_body(self):
+        self.execution['a']['session_id'] = 'session-a'
+        with self.assertRaisesRegex(RuntimeError, 'context capture port'):
+            async with self.locks.transaction(['a']):
+                self.fail('不能在缺少会话快照时进入业务处理')
+
+    async def test_cursor_capture_must_match_the_selected_sessions(self):
+        self.execution['a']['session_id'] = 'session-a'
+        for returned in ({}, {'a': {'session_id': 'other-session'}}):
+            class Contexts:
+                async def capture(inner, bindings):
+                    return returned
+            self.locks.contexts = Contexts()
+            with self.assertRaises(ValueError):
+                async with self.locks.transaction(['a']):
+                    self.fail('不能使用错误会话游标')

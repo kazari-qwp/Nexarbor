@@ -123,3 +123,12 @@ ContextAssemblerModule 主流程为 collect → 收集本地配置与四路 Mark
 本决定取代之前“所有 Agent 功能放可安装 AgentModule”的安排。内置节点包为 domain/agent/，内置业务模块现在是工具发现与上下文组装两个包；应用模块仍按独立模块目录迁移。没有恢复旧 AgentNode 实现或旧 ctx/公开工具表机制。
 
 验证：22 项 Agent/输入/隔离行为断言通过；新执行器 13 项行为断言通过；当前全部 186 项 Python 测试通过。原模块安装/卸载专项因 Agent 已不再是模块而删除，记忆 CRUD 等断言已移入 Agent 节点测试。证据见 evidence/2026-10-27-agent-nodes.json。
+
+
+### D001 / P4 持久化接线进展（2026-10-27）
+
+- app/runtime/backend.py 以新 Network、Node/DataNode、Module/access 实现原快照/事务提交协议，没有保留旧 Backend 或 ctx 的运行路径。
+- app/network_saver.py 增加纯配置生成/重建入口；节点信息平铺为 NodeRecords 所需 node_id。日志保存引用当前资源，显式导出才按 save_data 复制；事务快照独立于导出开关。
+- 模块实现由应用登记工厂，恢复实际配置/状态/工具表并绑定新节点；不重新安装或校验依赖。工具函数不作为 Python 对象写进 JSON，直接调用方式没有变化。
+- 原恢复包校验、游标待确认/确认协议迁入 app/persistence/recovery.py，3 个独立函数 AST 一致。
+- 原 inside、inside-no-save、committed 三种节点事务杀进程断言全部通过；10 项新持久化行为验证通过，当前全量 234 项。真实宿主、项目装配和模块自有工作目录快照还在迁移中，未宣称 P4/三应用完成。

@@ -1,0 +1,47 @@
+{
+  "date": "2026-10-27",
+  "decisions": [
+    "D001",
+    "D005",
+    "D010",
+    "D013"
+  ],
+  "all_python_tests": 234,
+  "original_node_transaction_crash_tests": {
+    "passed": 3,
+    "modes": [
+      "inside",
+      "inside-no-save",
+      "committed"
+    ],
+    "business_assertions_preserved": true
+  },
+  "persistent_runtime_tests": 10,
+  "recovery_functions_ast_equal": [
+    "validate_bundle",
+    "required_contexts",
+    "acknowledge_executors"
+  ],
+  "verified": [
+    "before-image durable before transaction body",
+    "independent commits mask locked node state, file, inputs, execution binding and session cursor",
+    "full commit persists new node and native cursor",
+    "resource files restored before constructing DataNodes",
+    "recovery fork requires exact session acknowledgement",
+    "optimistic checkpoint version and bindings checked",
+    "shared toolbox references preserved",
+    "saved module state/publications/dependencies restored without reinstalling dependencies",
+    "removed module tools stay removed",
+    "disk failure closes node admission"
+  ],
+  "core_changes": [],
+  "user_unstaged_default_preserved": true,
+  "paid_api_calls": 0,
+  "pending": [
+    "full studio/project importer and component-owned resource snapshots",
+    "real JS NativeRunner/Python RPC integration",
+    "signal/pulse runtime",
+    "application modules and 3 real application runs",
+    "frontends and final maker documentation"
+  ]
+}

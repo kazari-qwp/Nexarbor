@@ -1,5 +1,6 @@
 """网络结构存取；数据节点选择保留源文件引用或生成文件副本。"""
 
+from copy import deepcopy
 from dataclasses import asdict
 import json
 from pathlib import Path
@@ -17,11 +18,12 @@ from domain.core import Node
 from domain.core import NodeInfo
 from domain.agent import AgentNode, MarkdownAgentNode
 from domain.agent.inputs import AgentInputs
+from .persistence.tables import ModuleTables
 
 
 class NetworkSaver:
-    def __init__(self) -> None:
-        # 数据节点接收 info、path、save_data 及自身 parameters，负责装配访问器和保存器。
+    def __init__(self, *, read_text=None) -> None:
+        self.tables = ModuleTables(read_text=read_text)
         self.node_types: dict[str, type[DataNode]] = {"markdown": MarkdownNode}
         self.agent_node_types: dict[str, type[AgentNode]] = {"markdown": MarkdownAgentNode}
         self.aggregation_types: dict[str, type[Aggregation]] = {
@@ -38,7 +40,7 @@ class NetworkSaver:
         copies: list[Path] = []
         temporary = None
         try:
-            document = {"nodes": [self._encode_node(node, path, copies) for node in network]}
+            document = self.document(network, path.parent, copies=copies, data_directory=path.stem + "_data")
             content = json.dumps(document, ensure_ascii=False, indent=2) + "\n"
             path.parent.mkdir(parents=True, exist_ok=True)
             with NamedTemporaryFile(
@@ -67,9 +69,21 @@ class NetworkSaver:
     def load(self, path: str | Path) -> Network:
         path = Path(path).resolve()
         document = json.loads(path.read_text(encoding="utf-8"))
+        return self.build(document, path.parent)
+
+    def document(self, network: Network, base: str | Path, *, node_overrides=None,
+                 copies=None, data_directory="network_data") -> dict:
+        """生成配置。日志提交保留资源地址；显式导出才按 save_data 生成副本。"""
+        base = Path(base).resolve()
+        overrides = node_overrides or {}
+        return {"nodes": [deepcopy(overrides[node.info.node_id]) if node.info.node_id in overrides
+                          else self._encode_node(node, base, copies, data_directory) for node in network]}
+
+    def build(self, document: dict, base: str | Path) -> Network:
+        base = Path(base).resolve()
         network = Network()
         for record in document["nodes"]:
-            info = NodeInfo(**record["info"])
+            info = NodeInfo(**{key: record[key] for key in ("node_id", "name", "description") if key in record})
             data = record.get("data")
             is_agent = record.get("type") == "agent"
             if data is None:
@@ -80,7 +94,7 @@ class NetworkSaver:
                     raise ValueError(f"未知的数据节点类型：{kind}")
                 data_path = Path(data["path"])
                 if not data_path.is_absolute():
-                    data_path = path.parent / data_path
+                    data_path = base / data_path
                 node_class = self.agent_node_types[kind] if is_agent else self.node_types[kind]
                 node = node_class(info, data_path, save_data=data["save_data"], **data.get("parameters", {}))
             if is_agent:
@@ -92,14 +106,16 @@ class NetworkSaver:
             node.aggregation = self.aggregation_types[aggregation]()
             for config in record.get("links", []):
                 node.links.add(self._decode_link(config))
+            self.tables.restore(node, record.get("tables"))
             network.add(node)
         self._check_targets(network)
         return network
 
-    def _encode_node(self, node: Node, config_path: Path, copies: list[Path]) -> dict:
+    def _encode_node(self, node: Node, base: Path, copies, data_directory: str) -> dict:
         record = {
             "type": node.node_type,
-            "info": asdict(node.info),
+            **asdict(node.info),
+            "tables": self.tables.encode(node),
             "bias": node.bias,
             "aggregation": self._encode_aggregation(node.aggregation),
             "links": [self._encode_link(link) for link in node.links],
@@ -112,8 +128,8 @@ class NetworkSaver:
         if kind not in self.node_types:
             raise ValueError(f"尚未登记的数据节点类型：{kind}")
         source = node.saver.path.resolve()
-        if node.save_data:
-            directory = config_path.parent / f"{config_path.stem}_data"
+        if copies is not None and node.save_data:
+            directory = base / data_directory
             directory.mkdir(parents=True, exist_ok=True)
             # 先分配本次拥有的新文件，失败清理不会碰到源文件或旧副本。
             if source.is_dir():
@@ -125,11 +141,11 @@ class NetworkSaver:
                     destination = Path(stream.name)
             copies.append(destination)
             node.saver.save(destination)
-            reference = destination.relative_to(config_path.parent).as_posix()
+            reference = destination.relative_to(base).as_posix()
         else:
             # 只记录路径，不调用数据保存方法，也不读写源文件内容。
-            reference = str(source)
-        record["data"] = {"type": kind, "path": reference, "save_data": node.save_data}
+            reference = source.relative_to(base).as_posix() if copies is None and source.is_relative_to(base) else str(source)
+        record["data"] = {"type": kind, "path": reference, "save_data": node.save_data, "directory": source.is_dir()}
         parameters = getattr(node, "parameters", {})
         if parameters:
             record["data"]["parameters"] = parameters

@@ -60,8 +60,8 @@ class NetworkAppTests(unittest.TestCase):
 
     def test_minimal_config_uses_default_connection_values(self):
         config = {"nodes": [
-            {"info": {"node_id": "a", "name": "A"}, "links": [{"target_id": "b"}]},
-            {"info": {"node_id": "b", "name": "B"}},
+            {"node_id": "a", "name": "A", "links": [{"target_id": "b"}]},
+            {"node_id": "b", "name": "B"},
         ]}
         self.path.write_text(json.dumps(config), encoding='utf-8')
         network = NetworkSaver().load(self.path)
@@ -83,7 +83,7 @@ class NetworkAppTests(unittest.TestCase):
 
     def test_unknown_aggregation_is_rejected_on_load(self):
         self.path.write_text(json.dumps({"nodes": [
-            {"info": {"node_id": "a", "name": "A"}, "aggregation": "unknown"},
+            {"node_id": "a", "name": "A", "aggregation": "unknown"},
         ]}), encoding='utf-8')
         with self.assertRaisesRegex(ValueError, '未知的节点汇合方法'):
             NetworkSaver().load(self.path)
@@ -101,20 +101,20 @@ class NetworkAppTests(unittest.TestCase):
 
     def test_invalid_targets_and_duplicate_node_ids_are_rejected_on_load(self):
         self.path.write_text(json.dumps({"nodes": [
-            {"info": {"node_id": "a", "name": "A"}, "links": [{"target_id": "missing"}]},
+            {"node_id": "a", "name": "A", "links": [{"target_id": "missing"}]},
         ]}), encoding='utf-8')
         with self.assertRaisesRegex(ValueError, '目标不存在'):
             NetworkSaver().load(self.path)
         self.path.write_text(json.dumps({"nodes": [
-            {"info": {"node_id": "a", "name": "A"}},
-            {"info": {"node_id": "a", "name": "Other A"}},
+            {"node_id": "a", "name": "A"},
+            {"node_id": "a", "name": "Other A"},
         ]}), encoding='utf-8')
         with self.assertRaisesRegex(ValueError, '节点 ID 冲突'):
             NetworkSaver().load(self.path)
 
     def test_unknown_processor_is_rejected(self):
         self.path.write_text(json.dumps({"nodes": [
-            {"info": {"node_id": "a", "name": "A"}, "links": [
+            {"node_id": "a", "name": "A", "links": [
                 {"target_id": "a", "processor": {"type": "unknown"}},
             ]},
         ]}), encoding='utf-8')

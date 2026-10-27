@@ -3,10 +3,9 @@
 from copy import deepcopy
 from pathlib import Path
 
-from app.persistence.resource_data import read_bytes
+from app.persistence.resource_data import read_bytes, resource_files
 from domain.core import DataNode, Multiplier, Tools
 
-_TRANSIENT = (".lock", "-wal", "-shm", "-journal", ".tmp")
 _MODULE_FIELDS = ("description", "channels", "strength", "channel_mode", "config", "state", "published")
 _DATA_FIELDS = ("node_id", "name", "directory", "storage_path", "storage", "schema_fields",
                 "embedding", "embedding_config", "collection_id", "table_name", "_table_sql", "_key_sql", "key_column", "dtype",
@@ -50,10 +49,7 @@ class NodeSnapshots:
     def _files(root):
         if root is None:
             return []
-        if not root.is_dir():
-            return [root]
-        return [path for path in sorted(root.rglob('*'))
-                if path.is_file() and not path.is_symlink() and not path.name.endswith(_TRANSIENT)]
+        return resource_files(root)
 
     def capture(self, nodes):
         selected = set(nodes)
@@ -101,7 +97,7 @@ class NodeSnapshots:
             groups=groups, tools=tools, inputs=node.inputs.snapshot() if node.node_type == 'agent' else None,
             execution=deepcopy(self.execution.get(node.info.node_id)),
             binding=deepcopy(self.bindings.get(node.info.node_id)),
-            runner=getattr(node, 'runner', None), root=root,
+            runner=getattr(node, 'runner', None), root=root, directory=root is not None and root.is_dir(),
             files={path: read_bytes(path) for path in self._files(root)},
         )
         if isinstance(node, DataNode):

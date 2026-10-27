@@ -414,15 +414,27 @@ class NodeLocks:
 
 
     async def capture_contexts(self, nodes):
-        if self.contexts is None:
-            return {}
         bindings = {node: self.snapshots.execution[node]['session_id'] for node in nodes
                     if self.snapshots.execution.get(node, {}).get('session_id')}
-        return await self.contexts.capture(bindings) if bindings else {}
+        if not bindings:
+            return {}
+        if self.contexts is None:
+            raise RuntimeError('Bound Agents require an executor context capture port before locking')
+        cursors = await self.contexts.capture(bindings)
+        if set(cursors) != set(bindings):
+            raise ValueError('Executor cursor set does not match locked Agents')
+        for node, cursor in cursors.items():
+            if not isinstance(cursor, dict) or cursor.get('session_id') != bindings[node]:
+                raise ValueError('Executor session changed during node context capture')
+        return cursors
 
     async def restore_contexts(self, cursors):
-        restored = await self.contexts.restore(cursors)
-        for node, cursor in restored.get('contexts', restored).items():
+        result = await self.contexts.restore(cursors)
+        if set(result.get('contexts', {})) != set(cursors):
+            raise ValueError('Restored executor cursor set mismatch')
+        for node, cursor in result['contexts'].items():
+            if not isinstance(cursor, dict) or not isinstance(cursor.get('session_id'), str):
+                raise ValueError('Invalid restored executor cursor')
             self.snapshots.set_execution_cursor(node, cursor)
 
 
