@@ -19,6 +19,7 @@ from domain.core import NodeInfo
 from domain.agent import AgentNode, MarkdownAgentNode
 from domain.agent.inputs import AgentInputs
 from domain.pulse_node import PulseNode
+from domain.annotated_link import AnnotatedLink
 from domain.json_values import thaw
 from .persistence.tables import ModuleTables
 
@@ -172,6 +173,7 @@ class NetworkSaver:
             "channel_mode": link.channel_mode,
             "threshold": link.threshold,
             "processor": {"type": "multiplier", "factor": link.processor.factor},
+            **({"attributes": thaw(link.attributes)} if isinstance(link, AnnotatedLink) else {}),
         }
 
     @staticmethod
@@ -180,7 +182,7 @@ class NetworkSaver:
         processor = dict(fields.pop("processor", {}))
         if processor.pop("type", "multiplier") != "multiplier":
             raise ValueError("未知的连接处理器类型")
-        return Link(**fields, processor=Multiplier(**processor))
+        return (AnnotatedLink if "attributes" in fields else Link)(**fields, processor=Multiplier(**processor))
 
     @staticmethod
     def _check_targets(network: Network) -> None:

@@ -1,0 +1,34 @@
+{
+  "date": "2026-10-27",
+  "all_python_tests": 305,
+  "focused_tests": 11,
+  "migrated": [
+    "place.info",
+    "movement.here",
+    "records.transfer"
+  ],
+  "core_changes": [],
+  "verified": [
+    "private requester and immediate source checks",
+    "location visitors from actual annotated edges",
+    "bidirectional roads required",
+    "ordered movement hooks, same-place no-op and exact location edge updates",
+    "movement hook and final location write failures roll back all three nodes including AP/inputs/edges",
+    "hooks cannot mutate nodes outside transaction",
+    "resource transfer owner/Agent/reachability/same-location checks",
+    "AP resource quantity and cost merged into one debit",
+    "second account write failure rolls back both accounts and receipt",
+    "concurrent same-key transfer charges once",
+    "journal reopen preserves edge attributes, movement tool callbacks, positions and transfer receipts"
+  ],
+  "tool_parameter_schemas": "exactly copied from original movement.here and records.transfer operations",
+  "new_application_values": [
+    "domain/annotated_link.py extends core Link; attributes saved/restored by app saver"
+  ],
+  "identity_metadata": "caller_id is only immediate caller identity; requester_id retains original actor; neither exposes graph access",
+  "pending": [
+    "remaining town modules and real project assembly",
+    "three complete application acceptance"
+  ],
+  "paid_api_calls": 0
+}

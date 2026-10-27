@@ -13,3 +13,15 @@ def as_requester(node_id):
         yield
     finally:
         requester_id.reset(token)
+
+
+caller_id = ContextVar("caller_id", default=None)
+
+
+@contextmanager
+def as_caller(node_id):
+    token = caller_id.set(node_id)
+    try:
+        yield
+    finally:
+        caller_id.reset(token)
