@@ -70,3 +70,12 @@
 旧 module_requests.py 的 local_call 和 tests/test_subnodes.py 允许 parent→sub 无业务边调用；新 access 的空频道仅执行本节点，不读取 parent_id。复现得到 {'owner': 'owner'}。
 
 用户决定采用新规则：归属本身不授予访问权。原捷径和相关正向许可断言不迁移，旧项目需要显式配置真实连接/频道。新增 test_no_implicit_family_access.py 验证归属、错误频道和不足阈值都不能授权；真实边通过后才调用。
+
+
+## B007：信号层生命周期与当前 access
+
+状态：用户选择信号共用 access，并已确认 deduplicate 参数（D014）；去重参数完成，层生命周期接口待继续讨论。
+
+原 SignalRuntime 在同层处理后调用 LayerWork.drain，脉冲还使用 close_loop 回源回执。新 access 原先没有对应入口。按用户要求不额外保留独立信号遍历器，也不擅自追加未讨论的核心接口。
+
+False 允许普通节点和起点都重访，不等于只放开一次回源。信号原有跳数/投递数/超时预算、异常和保存协议仍需在接入时保留；详细来源见 SIGNAL_BOUNDARY.md。

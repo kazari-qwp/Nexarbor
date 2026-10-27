@@ -1,0 +1,24 @@
+{
+  "date": "2026-10-27",
+  "decision": "D014",
+  "parameter": "deduplicate: bool = True",
+  "focused_tests": 7,
+  "all_python_tests": 277,
+  "verified": [
+    "default and explicit True unchanged",
+    "sync and async cross-layer revisits",
+    "repeated origin applies normal incoming aggregation/bias",
+    "same-layer fanin still executes once",
+    "last result retained per node",
+    "no implicit cycle detection or stop rule",
+    "empty channels still local-only",
+    "layer concurrency and barriers preserved"
+  ],
+  "core_change_scope": [
+    "domain/core/access.py: optional deduplicate flag"
+  ],
+  "pending": [
+    "signal layer lifecycle interface",
+    "signal integration using deduplicate=False with existing budgets and persistence"
+  ]
+}

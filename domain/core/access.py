@@ -84,7 +84,7 @@ async def _gather(operations):
 def access(
     operation: Callable | None = None, *,
     channels: str | Iterable[str] | None = None, strength: float | None = None,
-    channel_mode: str | None = None,
+    channel_mode: str | None = None, deduplicate: bool = True,
 ):
     """装饰 operation(self, node, ...)；调用时省略 node，返回 {节点ID: 结果}。
 
@@ -92,6 +92,7 @@ def access(
     显式参数优先；显式频道表默认白名单，空表只访问本节点。
     频道黑名单推进时按当前声明解析；锁定节点解锁后使用恢复或提交的出边。
     向外访问按广度分层推进，异步操作同层并发、整层结束后推进。
+    deduplicate=False 允许跨层重访；同层仍汇合，返回表保留每个节点最后一次结果。
     同步操作保持逐节点执行。节点门禁同时保护汇合、偏置、操作和出边读取。
     调用对象的 _access_origin 由装配方绑定，装饰器不依赖具体模块类型。
     """
@@ -141,7 +142,8 @@ def access(
                     layer = [value for value in await _gather(visit(node_id, strengths, first)
                              for node_id, strengths in pending.items()) if value is not None]
                     first = False
-                    visited.update(node_id for node_id, _, _ in layer)
+                    if deduplicate:
+                        visited.update(node_id for node_id, _, _ in layer)
                     results.update((node_id, value) for node_id, _, value in layer)
                     if not selected_channels and selected_mode == "allow":
                         break
@@ -164,7 +166,8 @@ def access(
                                 results[node_id] = operation(owner, node, *args, **kwargs)
                                 layer.append((node_id, remaining))
                     first = False
-                    visited.update(node_id for node_id, _ in layer)
+                    if deduplicate:
+                        visited.update(node_id for node_id, _ in layer)
                     if not selected_channels and selected_mode == "allow":
                         break
                     branches = []
