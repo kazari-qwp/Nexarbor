@@ -14,7 +14,7 @@
 
 ## B002：旧工具来源身份与新 Tools 的重名规则
 
-状态：已记录差异；优先沿用原有来源别名机制，不能随意改名或抛弃重名工具。
+状态：模块级差异已解决，保留 core 重名规则。工具发现 collect/invoke 与执行层 ToolCatalog 使用原来源 ID/稳定别名算法，保留 origin/via 和调用时检查；13 项新增行为测试通过。原 NativeExecutor 的完整接入仍待迁移。
 
 - 旧 `extensions/foundation/capabilities/tool_collector/module.py:6` 按 node_id 与 reference 生成稳定 ID。
 - 旧 `python/datanet/core/module_tools.py:39` 为来源和工具生成稳定模型别名，并保留 origin/via。

@@ -16,8 +16,10 @@
 - D006 的上下文组装器、原 AgentInputs 和文件端口已迁移，提交 `02aa403`；131 项测试及来源 UI 脚本语法检查通过，core 未改。
 - 原 state_journal/state_store/Checkpoints 已迁入 app/persistence（提交 `d062d7b`），AST 一致。8 项原存储层断言及 2 项原杀进程恢复断言通过；该阶段 141 项 Python 测试通过。
 - 原 DSH AgentLoop、会话事件和原生日志游标实现已迁入 adapt/harness；3 项真实 SDK 的本地模型替身测试通过。证据见 evidence/2026-10-27-runtime.json；不代表三应用验收完成。
-- 当前 169 项 Python 回归通过；本地真实 BGE/LlamaIndex 检索、源目录移走后副本查询、独立修订、索引删除和计算进程均验证通过。证据见 evidence/2026-10-27-knowledge-nodes.json。
+- 知识节点阶段 169 项 Python 回归通过；本地真实 BGE/LlamaIndex 检索、源目录移走后副本查询、独立修订、索引删除和计算进程均验证通过。证据见 evidence/2026-10-27-knowledge-nodes.json。
 - D008 已确认：不保留同归属树无连线调用，不增加 family 访问模式；新负向/显式连线验证通过。
+
+- 工具来源目录已迁入 ToolDiscoveryModule.collect/invoke 和 app/runtime/ToolCatalog：原稳定身份/别名、origin/via、中继预算、调用时撤销检查与私有记忆工具隔离；13 项新增行为断言通过，当前全量 182 项 Python 测试通过。实际 NativeExecutor 尚待接入，见 evidence/2026-10-27-tool-catalog.json。
 
 ## 尚未完成
 
