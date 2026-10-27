@@ -279,3 +279,12 @@ WorkspaceFiles与只读DSH log-host已迁入。上下文游标放在agents执行
 原bookmark-views.browser.mjs已真实客户端通过：build/bookmark-views-e2e-1793139781029/verification.json。包含3:1书签历史区、缩略图/文字切换、节点/边/网络/纯边历史拖入、取消无头连线、撤销重做、删除及草稿保存、侧栏自动展开/折叠与关闭重开、布局/运行区域，截图5张已目视核对02-text-view.png。模型调用0。真实渲染发现的bookmarks.jsx缩略图、use-bookmarks.js新增边历史、main.jsx连线属性/删除残留connections.interfaces已改为真实links。原脚本菜单定位“自定义快捷键”也落后于实际源客户端，改为源菜单“外部文本编辑器与快捷键”；未更改产品菜单。B011本地视角及其他前端分支仍未全部验收。
 
 接下来继续实际最终应用1的管理员与分组模块，再做原hone CSV任务；当前六目录WIP尚未激活。B010知识集合仍只跳过有依赖的装配，其他分支持续推进。用户data_node.py改动保留，不暂存。
+
+
+## 2026-10-28 最终演示的小组模块专项
+
+最终演示实际源的 discussion.group/member、collaboration.group/member、groups.control 已迁入各自模块文件夹。讨论的按轮快照、并行闭环信号、记录员本次非空定稿、归档与冷重开；协作的真实Git个人工作区/串行集成、原认领/投票规则、任意成员提候选、全体通知/审核、否决退回、通过归档与成员结束标记均已接入实际 Module/access。跨组访问使用配置的单一channel，避免把模块全部频道误当作该操作的频道；工具与实际表照常由当前工厂生成。D017要求提出验收同时带测试脚本和结果，已在组模块入口明确要求，具体文件归属/不可变源码由原Workspace检查。没有通过提示词替代阶段约束。
+
+新增组专项含真实Python测试运行、Git工作树与不可变候选材料，联合旧Workspace/官方终端日志/制作工厂12项15.100秒通过（build/final-demo-group-regression-fixed.log），付费0。此前冷重开夹具重复关闭SQLite和wait操作分派问题已修复。不是原根/管理员/两预设/hone CSV应用验收，项目装配仍未切换。
+
+ProjectModules现注入已有信号wait端口；区分运行目录directory和原project_directory，最终Git工作区、命令日志、讨论/协作归档保持在项目文件夹。core未动。上述改动发生在最新单次466全量之后，目前只有本轮12项专项，不宣称新全量478。network_administrator仍只迁清单，服务及完整局部提交待接通，继续工作。

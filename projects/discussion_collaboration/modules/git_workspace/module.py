@@ -7,9 +7,9 @@ from domain.core import Module,access
 from .workspace import Workspace
 
 class GitWorkspaceModule(Module):
-    def __init__(self,directory,config=None,state=None,**access_settings):
+    def __init__(self,project_directory,config=None,state=None,**access_settings):
         super().__init__('git.workspace',**access_settings)
-        self.directory=Path(directory).resolve();self.config=deepcopy(config or {});self.state=deepcopy(state or {});self._lock=asyncio.Lock()
+        self.directory=Path(project_directory).resolve();self.config=deepcopy(config or {});self.state=deepcopy(state or {});self._lock=asyncio.Lock()
 
     def workspace(self,node):
         directory=self.directory/self.config.get('directory','workspace/cooperation')/sha256(node.info.node_id.encode()).hexdigest()[:12]

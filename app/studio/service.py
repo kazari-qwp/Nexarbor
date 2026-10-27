@@ -73,7 +73,7 @@ class Studio:
         self._attach_lifecycle()
 
     def _load_releases(self):
-        self.modules=ProjectModules(self.backend,{name:self.root/release['folder'] for name,release in self.library.items()},agent_run=self.agent_run,instantiate=self.instantiate)
+        self.modules=ProjectModules(self.backend,{name:self.root/release['folder'] for name,release in self.library.items()},agent_run=self.agent_run,instantiate=self.instantiate,project_directory=self.project_directory)
         if self.catalog_changed is not None:self.catalog_changed(self.library)
 
     def select_releases(self,releases):

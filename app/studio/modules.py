@@ -12,8 +12,8 @@ from app.runtime.module_emitter import emit_module_signal
 from domain.core import Module
 
 class ProjectModules:
-    def __init__(self,backend,library,*,agent_run=None,instantiate=None):
-        self.backend=backend;self.library={key:Path(value).resolve() for key,value in library.items()};self.agent_run=agent_run;self.instantiate=instantiate
+    def __init__(self,backend,library,*,agent_run=None,instantiate=None,project_directory=None):
+        self.backend=backend;self.project_directory=Path(project_directory).resolve() if project_directory is not None else backend.directory;self.library={key:Path(value).resolve() for key,value in library.items()};self.agent_run=agent_run;self.instantiate=instantiate
         self.builtins={key:backend.saver.tables.module_types[key] for key in ('tool_discovery','context.assembler')}
         self.manifests={key:json.loads((folder/'module.json').read_text(encoding='utf-8')) for key,folder in self.library.items()}
         self.defaults={key:json.loads((folder/'example.json').read_text(encoding='utf-8')) if (folder/'example.json').exists() else {} for key,folder in self.library.items()};self.classes={}
@@ -32,9 +32,9 @@ class ProjectModules:
         self.classes[key]=cls;return cls
 
     def ports(self):
-        return dict(directory=self.backend.directory,transaction=lambda nodes,**p:self.backend.node_locks.transaction(nodes,**p),
+        return dict(directory=self.backend.directory,project_directory=self.project_directory,transaction=lambda nodes,**p:self.backend.node_locks.transaction(nodes,**p),
                     emit=lambda node,**p:emit_module_signal(self.backend.signals,node,**p),
-                    checkpoint=self.checkpoint,agent_run=self.run_agent,instantiate=self.create_nodes)
+                    checkpoint=self.checkpoint,agent_run=self.run_agent,instantiate=self.create_nodes,wait_signal=lambda signal_id:self.backend.signals.wait(signal_id))
 
     async def checkpoint(self,**p):
         await self.backend.node_locks.wait_prepared()

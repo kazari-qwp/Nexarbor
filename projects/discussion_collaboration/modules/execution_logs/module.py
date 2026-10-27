@@ -5,9 +5,9 @@ from pathlib import Path
 from domain.core import Module,access
 
 class ExecutionLogsModule(Module):
-    def __init__(self,directory,config=None,state=None,**access_settings):
+    def __init__(self,project_directory,config=None,state=None,**access_settings):
         super().__init__('execution.logs',**access_settings)
-        self.directory=Path(directory).resolve();self.config=deepcopy(config or {});self.state=deepcopy(state or {})
+        self.directory=Path(project_directory).resolve();self.config=deepcopy(config or {});self.state=deepcopy(state or {})
 
     def records(self,p):
         rows=[]
