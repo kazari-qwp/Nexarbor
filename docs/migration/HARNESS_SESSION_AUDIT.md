@@ -31,4 +31,6 @@
 
 7 个前缀均用 NativePositions.read 校验；最后事件都是 completed turn/end，工具未配对数为 0。前缀长度分别为 902、892、989、924、887、589、1026。原文档中较早的节点级 context_cursor 有处于工具过程的游标，不能直接当作完整波次断点。scripts/town_resume/contexts.cjs 计算并验证准确日志前缀；prepare.py 验证原 SQLite 链并调用既有 restore_bundle；bind.mjs 用原 agent-context-restore 创建 DSH 原生前缀分支，再用既有 acknowledge/bind/checkpoint 接口登记。原会话及失败第 17 时刻日志全部保留；新分支有明确原生 parentSession，不覆盖日志或重放前 16 时刻。
 
-已离线恢复至 build/town-resume-7b_5az3v/runtime，7 会话已确认，恢复检查点 16c10846e7ac43f79e46ec831bad3b41，恢复过程模型调用 0。付费续跑入口：scripts/verify_native_town.py --days 5 --resume-directory build/town-resume-7b_5az3v/runtime。目标只执行第 17–25 时刻；每个完成时刻显式发布原生会话与节点一致的完整检查点。保留原 0 时刻 initial-state.json，续跑初态另存 continuation-initial-state.json。前 16 结果保留，第 17 次失败消耗单列，最终分别记录有效运行消耗和包含失败尝试的总消耗。
+已离线恢复至 build/town-resume-000c16ss/runtime，7 会话已确认，恢复检查点 a61415979f7549cdbc3d5a2adbc908d7，恢复过程模型调用 0。付费续跑入口：scripts/verify_native_town.py --days 5 --resume-directory build/town-resume-000c16ss/runtime。目标只执行第 17–25 时刻；每个完成时刻显式发布原生会话与节点一致的完整检查点。保留原 0 时刻 initial-state.json，续跑初态另存 continuation-initial-state.json。前 16 结果保留，第 17 次失败消耗单列，最终分别记录有效运行消耗和包含失败尝试的总消耗。
+
+恢复资源补充：首次恢复目录缺少 DSH attachments/v1 的一个 45788 字节对象，原生执行器在请求前拒绝，API 请求 0；该失败目录原样保留。prepare.py 现在一并复制附件库，并逐文件 SHA-256 核对。重新恢复后的当前目录以本页更新路径为准。

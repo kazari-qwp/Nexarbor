@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+from hashlib import sha256
 import sqlite3
 import subprocess
 import sys
@@ -41,7 +42,12 @@ def main():
     bundle={'version':1,'point':point,'document':document,'checksum':checksum({'point':point,'document':document})}
     (setup/'bundle.json').write_text(json.dumps(bundle,ensure_ascii=False),encoding='utf-8')
     restore_bundle(bundle,runtime,saver=TownModules().saver)
-    shutil.copytree(source/'native-logs',runtime/'native-logs');shutil.copyfile(source/'initial-state.json',runtime/'initial-state.json')
+    shutil.copytree(source/'native-logs',runtime/'native-logs')
+    if (source/'attachments').exists():
+        shutil.copytree(source/'attachments',runtime/'attachments')
+        for original in (source/'attachments').rglob('*'):
+            if original.is_file():assert sha256(original.read_bytes()).digest()==sha256((runtime/'attachments'/original.relative_to(source/'attachments')).read_bytes()).digest()
+    shutil.copyfile(source/'initial-state.json',runtime/'initial-state.json')
     (runtime/'temp').mkdir()
     from dotenv import dotenv_values
     for key,value in dotenv_values(ROOT/'.env').items():

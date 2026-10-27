@@ -190,3 +190,5 @@ B009 已提出适配层原请求事件的最小方案，批准前只跳过精确
 420 项全量回归通过（190.718 秒），两版实际 DSH 均通过压缩、超限恢复、取消、同会话重开，原生日志/锁位置及生产 RPC 通过，付费 0。用户明确不要重跑，按 D022 从断点继续。提交 1383 的稳定 tick16 与 7 个原生完成前缀已验证并恢复到 build/town-resume-7b_5az3v/runtime（恢复点 16c10846e7ac43f79e46ec831bad3b41）。下一步提交修复后，仅续跑 tick17–25；每 tick 显式完整检查点，保留失败尝试并分开消耗。详见 HARNESS_SESSION_AUDIT.md。
 
 协作源审计修正：实际 项目演示/应用1-讨论协作-最终 使用 collaboration.group/member、git.workspace、execution.logs、groups.control、network.administrator，初始为两节点和 discussion/execution 两片段；较早三节点脚本属于另一引导版本。旧插件的单次回复/100 请求预算不是这份最终应用模块的依赖，B009 不阻塞最终演示源迁移。最终应迁移实际演示模块，不把当前 17 节点组件夹具当作完整 hone 验收。知识模块 WIP、制作 Agent、完整前端及六份演示仍未完成。
+
+当前续跑目录更新为 build/town-resume-000c16ss/runtime，恢复点 a61415979f7549cdbc3d5a2adbc908d7。第一次恢复因未复制一个 DSH 附件对象而在请求前停止，付费请求 0；现已补复制整个附件库并逐文件哈希核对。旧失败目录保留，不续用其中的未完成第 17 时刻。
