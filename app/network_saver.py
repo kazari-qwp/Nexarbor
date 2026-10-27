@@ -15,12 +15,15 @@ from domain.core import MarkdownNode
 from domain.core import Network
 from domain.core import Node
 from domain.core import NodeInfo
+from domain.agent import AgentNode, MarkdownAgentNode
+from domain.agent.inputs import AgentInputs
 
 
 class NetworkSaver:
     def __init__(self) -> None:
         # 数据节点接收 info、path、save_data 及自身 parameters，负责装配访问器和保存器。
         self.node_types: dict[str, type[DataNode]] = {"markdown": MarkdownNode}
+        self.agent_node_types: dict[str, type[AgentNode]] = {"markdown": MarkdownAgentNode}
         self.aggregation_types: dict[str, type[Aggregation]] = {
             "sum": SumAggregation,
             "max": MaxAggregation,
@@ -68,8 +71,9 @@ class NetworkSaver:
         for record in document["nodes"]:
             info = NodeInfo(**record["info"])
             data = record.get("data")
+            is_agent = record.get("type") == "agent"
             if data is None:
-                node = Node(info)
+                node = AgentNode(info) if is_agent else Node(info)
             else:
                 kind = data["type"]
                 if kind not in self.node_types:
@@ -77,7 +81,10 @@ class NetworkSaver:
                 data_path = Path(data["path"])
                 if not data_path.is_absolute():
                     data_path = path.parent / data_path
-                node = self.node_types[kind](info, data_path, save_data=data["save_data"], **data.get("parameters", {}))
+                node_class = self.agent_node_types[kind] if is_agent else self.node_types[kind]
+                node = node_class(info, data_path, save_data=data["save_data"], **data.get("parameters", {}))
+            if is_agent:
+                node.inputs = AgentInputs(record.get("agent", {}).get("inputs", {}))
             node.bias = record.get("bias", 0)
             aggregation = record.get("aggregation", "sum")
             if aggregation not in self.aggregation_types:
@@ -91,11 +98,14 @@ class NetworkSaver:
 
     def _encode_node(self, node: Node, config_path: Path, copies: list[Path]) -> dict:
         record = {
+            "type": node.node_type,
             "info": asdict(node.info),
             "bias": node.bias,
             "aggregation": self._encode_aggregation(node.aggregation),
             "links": [self._encode_link(link) for link in node.links],
         }
+        if node.node_type == "agent":
+            record["agent"] = {"inputs": node.inputs.snapshot()}
         if not isinstance(node, DataNode):
             return record
         kind = node.saver.kind

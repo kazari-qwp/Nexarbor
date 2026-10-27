@@ -74,6 +74,8 @@ class MarkdownSaver(Saver):
 
 
 class MarkdownNode(DataNode):
+    node_type = "markdown"
+
     def __init__(self, info: NodeInfo, path: str | Path, *, save_data: bool = True) -> None:
         data = MarkdownData(Path(path))
         super().__init__(

@@ -101,3 +101,17 @@ ContextAssemblerModule 主流程为 collect → 收集本地配置与四路 Mark
 用户要求：同一模块拆成多个文件时，所有组件放在同一个模块文件夹，不在 modules 根目录散放；后续应用模块迁移同样遵守。
 
 三个内置模块统一为 modules/<模块名>/ 包。Agent 的 inputs/memory 与主体放在一起；上下文组装器的 strategies 与主体放在一起。__init__.py 公开模块类，原 modules.agent / modules.context_assembler / modules.tool_discovery 导入名称保留为正式包入口。应用项目以后同样采用 projects/<项目>/modules/<模块名>/ 归拢实现及其内部辅助文件。
+
+## D013：Agent 改为节点类型，按类型隔离收集内容（2026-10-27）
+
+用户要求：Agent 实现为节点，继承记忆策略对应的节点；目前支持 Markdown 与其他/空记忆，节点类型统一为 agent。上下文只读取 Markdown 节点，工具收集器跳过 Agent 节点。完成后继续全量迁移。
+
+现实现位于 domain/agent/：AgentNode(Node) 提供空记忆分支；MarkdownAgentNode(AgentNode, MarkdownNode) 复用 Markdown 的 Dataer/Saver 并选择 Markdown 记忆策略。Node.node_type='node'、MarkdownNode.node_type='markdown'，AgentNode 覆盖为 'agent'。AgentModule 已删除，不留旧安装入口。
+
+工具发现器跳过所有 agent 类型节点的工具表与中继调用，本 Agent 自身的工具由 AgentNode.available_tools 加入。跳过内容不裁剪 access 的路径；仍沿现有频道、强度继续遍历。上下文按 node_type='markdown' 选择文件，MarkdownAgentNode 即使继承 MarkdownNode 也不被当作普通文档读取。
+
+保存加载记录 Agent 类型及输入状态；Markdown Agent 仍遵守 save_data 的文件引用/复制行为。自定义数据 Agent 可通过多继承选择对应数据节点，未匹配记忆策略时为空策略；自定义数据类型的持久化按 node_types/agent_node_types 注册。
+
+本决定取代之前“所有 Agent 功能放可安装 AgentModule”的安排。内置节点包为 domain/agent/，内置业务模块现在是工具发现与上下文组装两个包；应用模块仍按独立模块目录迁移。没有恢复旧 AgentNode 实现或旧 ctx/公开工具表机制。
+
+验证：22 项 Agent/输入/隔离行为断言通过；新执行器 13 项行为断言通过；当前全部 186 项 Python 测试通过。原模块安装/卸载专项因 Agent 已不再是模块而删除，记忆 CRUD 等断言已移入 Agent 节点测试。证据见 evidence/2026-10-27-agent-nodes.json。

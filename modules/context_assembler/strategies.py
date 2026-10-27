@@ -2,7 +2,7 @@
 
 from abc import ABC, abstractmethod
 
-from domain.core import MarkdownNode, access
+from domain.core import access
 
 
 def channel_filter(owner, config, field, default):
@@ -25,7 +25,7 @@ class ContextStrategy(ABC):
 
         @access(channels=channels, channel_mode=mode)
         async def read(module, node):
-            if node.info.node_id == origin_id or not isinstance(node, MarkdownNode):
+            if node.info.node_id == origin_id or node.node_type != "markdown":
                 return None
             source = dict(
                 id="node:" + node.info.node_id, kind=self.kind, source=node.info.node_id,

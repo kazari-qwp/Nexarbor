@@ -13,6 +13,8 @@ from .tool import CallableTool, Tools
 
 
 class Node:
+    node_type = "node"
+
     def __init__(
         self, info: NodeInfo, *, aggregation: Aggregation | None = None, bias: float = 0,
     ) -> None:

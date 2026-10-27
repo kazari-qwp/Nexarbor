@@ -32,6 +32,8 @@ class ToolDiscoveryModule(Module):
 
     @access()
     def _read_nodes(self, node: Node, visited: set[ToolDiscoveryModule]) -> dict[str, Tools]:
+        if node.node_type == "agent":
+            return {}
         sources = {node.info.node_id: node.tools}
         relay = node.modules.get("tool_discovery")
         if isinstance(relay, ToolDiscoveryModule) and relay not in visited:

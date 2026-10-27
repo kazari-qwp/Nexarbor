@@ -5,7 +5,7 @@ from collections.abc import Callable
 from functools import partial
 
 from domain.core import access
-from domain.core import Module
+from domain.core import Node
 from domain.core import CallableTool, Tools
 
 
@@ -13,12 +13,12 @@ class MemoryStrategy(ABC):
     auto_memory: Callable[[str], list[str]] | None = None
 
     @abstractmethod
-    def create_tools(self, owner: Module) -> Tools | None:
+    def create_tools(self, owner: Node) -> Tools | None:
         pass
 
 
 class EmptyMemoryStrategy(MemoryStrategy):
-    def create_tools(self, owner: Module) -> None:
+    def create_tools(self, owner: Node) -> None:
         return None
 
 
@@ -38,7 +38,7 @@ def _append(owner, node, content: str) -> int:
 
 
 class MarkdownMemoryStrategy(MemoryStrategy):
-    def create_tools(self, owner: Module) -> Tools:
+    def create_tools(self, owner: Node) -> Tools:
         return Tools([
             CallableTool(
                 "memory_query", partial(_query, owner),
@@ -48,7 +48,6 @@ class MarkdownMemoryStrategy(MemoryStrategy):
                     "properties": {"query": {"type": "string"}},
                     "additionalProperties": False,
                 },
-                modules=(owner,),
             ),
             CallableTool(
                 "memory_modify", partial(_modify, owner),
@@ -62,7 +61,6 @@ class MarkdownMemoryStrategy(MemoryStrategy):
                     "required": ["old_text", "new_text"],
                     "additionalProperties": False,
                 },
-                modules=(owner,),
             ),
             CallableTool(
                 "memory_append", partial(_append, owner),
@@ -73,6 +71,5 @@ class MarkdownMemoryStrategy(MemoryStrategy):
                     "required": ["content"],
                     "additionalProperties": False,
                 },
-                modules=(owner,),
             ),
         ])

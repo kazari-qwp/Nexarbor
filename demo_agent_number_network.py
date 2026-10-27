@@ -10,7 +10,7 @@ from pathlib import Path
 from app.agent_loop import MinimalAgentLoop
 from adapt.models.deepseek import DeepSeekChat
 from domain.core import access
-from modules.agent import AgentModule
+from domain.agent import MarkdownAgentNode
 from domain.core import Link
 from domain.core import MarkdownNode
 from domain.core import Module
@@ -53,7 +53,7 @@ def build_network(runner):
     DIRECTORY.mkdir(parents=True, exist_ok=True)
     memory_path = DIRECTORY / 'memory.md'
     memory_path.write_text(MEMORY, encoding='utf-8')
-    agent_node = MarkdownNode(NodeInfo('agent', '记忆 Agent'), memory_path, save_data=False)
+    agent_node = MarkdownAgentNode(NodeInfo('agent', '记忆 Agent'), memory_path, save_data=False, runner=runner)
     nodes = {'agent': agent_node}
     for node_id, value in NUMBERS.items():
         path = DIRECTORY / f'{node_id}.md'
@@ -77,10 +77,8 @@ def build_network(runner):
 
     reader = NumberReader()
     nodes['numbers_root'].install(reader)
-    agent = AgentModule(runner=runner)
-    agent_node.install(agent)
     agent_node.install(ToolDiscoveryModule(channels='tools', strength=2))
-    return Network(nodes.values()), agent
+    return Network(nodes.values()), agent_node
 
 
 def main():

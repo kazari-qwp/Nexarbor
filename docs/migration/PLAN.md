@@ -14,9 +14,9 @@
 
 1. 目标是完整迁移原项目，让原来的三个应用逻辑在新核心上跑通，不是新写三个简化案例。
 2. 逐个旧文件审查、确定迁移位置或删除理由；不能只迁移用户点名的几项。
-3. 原来的 AgentNode 删除，使用普通/Markdown 节点 + 新 Agent 模块；不能保留旧 AgentNode 当实际运行底座。
+3. 原来的 AgentNode 实现删除；按 D013 使用新 AgentNode/MarkdownAgentNode。Agent 是节点类型，当前支持 Markdown 与空记忆，不再保留可安装 AgentModule。
 4. 现有 domain 的基础对象整理进`domain/core/` 包，保留按职责拆分的文件；不擅自修改其行为。机械合并与改 import 不应改变语义。
-5. 平台只内置 Agent、工具发现、上下文组装器三个业务模块，放根目录 `modules/`。记忆策略属于 Agent 内部实现，不另注册平台模块。
+5. 按 D013，Agent 节点及记忆策略位于 domain/agent/；根目录 modules/ 只保留工具发现和上下文组装器。
 6. 应用二的数据节点均继承当前 DataNode，具体 Dataer/Saver 保留原行为；其他模块迁到 `projects/<应用>/modules/`，随新 Nexarbor 应用项目保存。应用目录如用户另行指定，再调整。
 7. 工程按 `domain / app / adapt / frontends` 分层。业务规则与平台适配不能倒灌进 core。
 8. 保存/加载实现可以迁回原项目的实现；锁、事务、日志、恢复、会话等原有能力必须完整迁移。
@@ -31,15 +31,16 @@
 16. D010：修改旧实现适配新设计；Tools 直接迭代或 list，不添加来源/调用包装层，不重复做可达性检查。
 
 17. D012：每个模块及其辅助组件归入独立模块目录；内置和应用项目模块都遵守。
+18. D013：Agent 为独立节点类型；工具发现跳过 Agent 内容，普通上下文只读 markdown 类型。
 
 ## 目标目录
 
 ```text
 domain/
-  core/                      # 已设计好的基础对象，保留分文件实现，行为冻结
+  core/                      # 已设计好的基础对象，保留分文件实现；明确授权变动见 DECISIONS
+  agent/                     # Agent 节点、输入、记忆策略
   ...                        # 必要的信号/持久化值对象，需有清晰归属
 modules/
-  agent/                     # Agent 主体、inputs、memory
   tool_discovery/            # 内置工具发现
   context_assembler/         # 组装器主体与四路策略
 app/
@@ -102,7 +103,7 @@ docs/migration/             # 计划、文件清单、决定、进度与验收�
 
 ### P5：三个内置模块与所有应用模块
 
-- [ ] Agent：新节点组合方式接入原执行器、输入确认、会话与恢复。
+- [ ] Agent：按 D013 的 AgentNode/MarkdownAgentNode 接入原执行器、输入确认、会话与恢复。
 - [ ] 工具发现：沿用新 discover() 的可迭代 Tools；旧执行器直接使用工具声明和所得引用，不另造目录或重复检查可达性。
 - [ ] 上下文组装器：system_prompt/context/inputs/tail 四通道、稳定来源/事件 ID、动态移除和确认语义。
 - [ ] 将完整旧组件清单按平台服务或应用模块分类；业务模块全部进入应用项目。

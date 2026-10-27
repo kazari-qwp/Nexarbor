@@ -5,8 +5,8 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from domain.core import MarkdownNode, NodeInfo
-from modules.agent import AgentModule
-from modules.agent.inputs import AgentInputs
+from domain.agent import MarkdownAgentNode
+from domain.agent.inputs import AgentInputs
 from modules.context_assembler import ContextAssemblerModule
 
 
@@ -61,13 +61,12 @@ class ContextInputIntegrationTests(unittest.IsolatedAsyncioTestCase):
         with TemporaryDirectory(prefix='.context-inputs-', dir=Path(__file__).resolve().parents[1]) as folder:
             file = Path(folder) / 'memory.md'
             file.write_text('私人记忆', encoding='utf-8')
-            node = MarkdownNode(NodeInfo('actor', 'actor'), file)
-            agent = AgentModule()
+            node = MarkdownAgentNode(NodeInfo('actor', 'actor'), file)
+            agent = node
             assembly = ContextAssemblerModule({'sources': [
                 {'id': 'event', 'kind': 'inputs', 'type': 'text', 'text': 'one task', 'event_id': 'one'},
                 {'id': 'persona', 'kind': 'system_prompt', 'type': 'text', 'text': 'persona'},
             ]})
-            node.install(agent)
             node.install(assembly)
             packet = await assembly.preview()
             self.assertEqual(agent.inputs.snapshot(), {})
