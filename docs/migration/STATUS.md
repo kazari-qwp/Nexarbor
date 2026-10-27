@@ -192,3 +192,5 @@ B009 已提出适配层原请求事件的最小方案，批准前只跳过精确
 协作源审计修正：实际 项目演示/应用1-讨论协作-最终 使用 collaboration.group/member、git.workspace、execution.logs、groups.control、network.administrator，初始为两节点和 discussion/execution 两片段；较早三节点脚本属于另一引导版本。旧插件的单次回复/100 请求预算不是这份最终应用模块的依赖，B009 不阻塞最终演示源迁移。最终应迁移实际演示模块，不把当前 17 节点组件夹具当作完整 hone 验收。知识模块 WIP、制作 Agent、完整前端及六份演示仍未完成。
 
 当前续跑目录更新为 build/town-resume-000c16ss/runtime，恢复点 a61415979f7549cdbc3d5a2adbc908d7。第一次恢复因未复制一个 DSH 附件对象而在请求前停止，付费请求 0；现已补复制整个附件库并逐文件哈希核对。旧失败目录保留，不续用其中的未完成第 17 时刻。
+
+续跑当前目录更新：build/town-resume-y7_z7dk1/runtime，point=05188b9404ea4b5d813d185ff6ad9cac。前一个目录 7 次请求被 DeepSeek 以 developer 角色不支持的 422 拒绝，无 usage/无工具执行；现显式声明 API 路由不支持 developer，两版原生离线契约测试通过。仍只从原 tick16 断点继续。

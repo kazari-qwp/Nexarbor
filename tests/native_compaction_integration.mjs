@@ -14,6 +14,7 @@ const content=m=>typeof m?.content==='string'?m.content:(m?.content??[]).map(b=>
 const server=http.createServer(async(req,res)=>{
  try{
   let raw='';for await(const part of req)raw+=part;const body=JSON.parse(raw),last=content(body.messages.at(-1));
+  assert.ok(body.messages.every(m=>m.role!=='developer'),'DeepSeek requires system role on this route');
   const summary=last.includes('checkpoint')&&last.includes('Rules:');
   const cancelOverflow=!summary&&last==='CANCEL_OVERFLOW_CHECK'&&!cancelArmed;
   const overflow=cancelOverflow||!summary&&last==='OVERFLOW_CHECK'&&!overflowInjected;
@@ -30,7 +31,7 @@ const server=http.createServer(async(req,res)=>{
  }catch(error){res.writeHead(500);res.end(String(error));}
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+server.address().port+'/v1',api_key:'local-fixture',signature:'native-compaction-fixture',model:{model:'deepseek-flash',reasoningEfforts:{off:'none',low:'low',high:'high',max:'max'},compat:{thinkingFormat:'deepseek',supportsReasoningEffort:true,requiresReasoningContentOnAssistantMessages:true,maxTokensField:'max_tokens'},maxTokens:limits.max_tokens,contextWindow:limits.context_window,reasoningEffort:'low'}};
+const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+server.address().port+'/v1',api_key:'local-fixture',signature:'native-compaction-fixture',model:{model:'deepseek-flash',reasoningEfforts:{off:'none',low:'low',high:'high',max:'max'},compat:{supportsDeveloperRole:false,thinkingFormat:'deepseek',supportsReasoningEffort:true,requiresReasoningContentOnAssistantMessages:true,maxTokensField:'max_tokens'},maxTokens:limits.max_tokens,contextWindow:limits.context_window,reasoningEffort:'low'}};
 async function callback(method,p){
  if(method==='executor_prepare')return {tools:[],context:[],inputs:[],tail:[],retained_tools:[]};
  if(method==='executor_prune')return [];
