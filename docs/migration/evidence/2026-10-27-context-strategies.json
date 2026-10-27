@@ -1,0 +1,29 @@
+{
+  "date": "2026-10-27",
+  "stage": "context-strategies",
+  "core_modified": false,
+  "main": "modules/context_assembler.py",
+  "strategies": "modules/context_strategy.py",
+  "strategy_classes": [
+    "SystemPromptStrategy",
+    "ContextDocumentStrategy",
+    "InputEventStrategy",
+    "TailStrategy"
+  ],
+  "cleanup": [
+    "repeated validation",
+    "repeated per-request config copying",
+    "duplicate source text comparisons",
+    "explanatory inline comments"
+  ],
+  "source_deduplication": "first source wins by (kind,id)",
+  "restored_modules_ast_equal_to_commit": "5847794",
+  "restored_modules": [
+    "modules/tool_discovery.py",
+    "modules/memory_strategy.py"
+  ],
+  "context_behavior_tests": 12,
+  "all_python_tests": 169,
+  "validation_command": ".venv-runtime/Scripts/python.exe -B -X utf8 -m unittest discover -s tests -q",
+  "full_application_migration_complete": false
+}

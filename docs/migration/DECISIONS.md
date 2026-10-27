@@ -85,3 +85,13 @@ save_data=False 保存实际源文件路径；True 复制源 JSON 文件。旧�
 状态/配置等确有原业务职责的协议随实际应用逐项迁移，不能先搭空框架。未验证的 RuntimeModule 原型已撤回。未接入真实调用点的 JSON 值支持原型一并撤回。
 
 D010 替代之前 B002 和工具目录阶段中“保持旧来源协议、调用时可达性复查”的迁移安排。原 f422995 的 182 项记录仅为当时实验结果，不代表当前实现必须保留这些代码或断言。旧应用若实际暴露与新核心冲突的行为，记录具体实例讨论，不能预先加兼容层。
+
+## D011：上下文组装器保持清楚主流程，四路策略拆分（2026-10-27）
+
+用户要求清理非必要验证/核实/注释，并将四类重复处理拆为策略类，主结构像工具发现器一样清楚。
+
+ContextAssemblerModule 主流程为 collect → 收集本地配置与四路 Markdown 来源，assemble → 合并下游 collect 并生成 patch，preview → 复用 assemble。SystemPromptStrategy、ContextDocumentStrategy、InputEventStrategy、TailStrategy 分别处理四种输出格式，共用 ContextStrategy 的 access 收集过程。策略为模块内部支持类，不注册额外业务模块。
+
+删除重复模式/字符串验证、每次请求的重复深拷贝、重复来源正文核对和说明性注释。去重按 (kind,id) 保留首次来源，不再逐字比较后续副本；相应断言改为首次来源优先。频道选择、BFS 顺序、下游自身配置、文件读取错误展示、预览不消费输入等行为继续验证。
+
+验证：12 项组装器行为测试及全部 169 项 Python 回归通过，未改 core。见 evidence/2026-10-27-context-strategies.json。

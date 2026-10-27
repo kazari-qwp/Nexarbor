@@ -192,7 +192,7 @@ class ContextAssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(packet['patch']['context'], [{'id': 'node:doc', 'text': '共享资料'}])
         self.assertEqual(len(packet['sources']), 1)
 
-    async def test_a_source_changing_during_collection_is_reported(self):
+    async def test_duplicate_source_keeps_first_collected_value(self):
         root, relay_node, doc = self.node('root'), self.node('relay'), self.node('doc', 'first')
         self.connect(root, relay_node, 'chain')
         self.connect(root, doc, 'context')
@@ -205,7 +205,8 @@ class ContextAssemblerTests(unittest.IsolatedAsyncioTestCase):
         relay.collect = changed
         packet = await module.assemble()
         self.assertEqual(packet['patch']['context'], [{'id': 'node:doc', 'text': 'first'}])
-        self.assertIn('内容发生变化', packet['errors'][0]['error'])
+        self.assertEqual(packet['errors'], [])
+        self.assertEqual(len(packet['sources']), 1)
 
     async def test_config_filters_cannot_expand_module_channel_grant(self):
         root = self.node('root')
