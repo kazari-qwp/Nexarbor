@@ -12,16 +12,11 @@
 
 不得用全局串行替代局部锁，不得以代理旧 Node、旧 ctx 或其他遍历后门实现。
 
-## B002：旧工具来源身份与新 Tools 的重名规则
+## B002：旧工具来源协议与新 Tools
 
-状态：模块级差异已解决，保留 core 重名规则。工具发现 collect/invoke 与执行层 ToolCatalog 使用原来源 ID/稳定别名算法，保留 origin/via 和调用时检查；13 项新增行为测试通过。原 NativeExecutor 的完整接入仍待迁移。
+状态：按 D010 取消保持旧工具来源/别名/中继调用协议的迁移方案。执行器直接 for/list 使用 discover() 所得 Tools，直接调用取得的工具引用；access 已完成可达性判断，不重复检查。core 重名规则不变。
 
-- 旧 `extensions/foundation/capabilities/tool_collector/module.py:6` 按 node_id 与 reference 生成稳定 ID。
-- 旧 `python/datanet/core/module_tools.py:39` 为来源和工具生成稳定模型别名，并保留 origin/via。
-- 新 `domain/core/tool.py` 对不同对象同名报错。
-
-多个节点安装同一业务模块时，这项必须按原来源身份/调用路由移到内置工具发现模块或原适配边界。
-不改 core 重名规则、不把两个来源合成一个工具、不丢弃来源与撤销检查。若沿用原方案仍有不可兼容处，再讨论。
+先前为保留旧协议增加的 collect/invoke 与 ToolCatalog 尚未接入实际执行器，已撤回。多个实际应用如何声明工具，随真实装配迁移；遇到具体冲突先记录讨论，不擅自修改新设计或偷偷绕开 Tools 的迭代规则。
 
 ## B003：原平台的频道黑名单尚无对应核心匹配能力
 
