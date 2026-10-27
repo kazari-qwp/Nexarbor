@@ -198,3 +198,10 @@ B009 已提出适配层原请求事件的最小方案，批准前只跳过精确
 小镇第 17 时刻已完成，56 请求，已持久化 point 0139c32c4f7a47989fa73d0a3f745584（commit103、pending为空）。脚本额外登记与自动登记碰撞已改为复用现有 NativeCheckpoints；两版原生验证再次通过。当前续跑仍用 town-resume-y7_z7dk1/runtime，下一时刻 18，不从 16 再恢复。
 
 知识模块独立分支：documents.tasks、knowledge.tools、knowledge.collection 及 catalog 公开操作/Schema/原向导与 Wiki vendor 已迁移为新 Module/access。原始输入不可变、交付修订/作者、证据版本/回执、真实 CSV 原件保留/类型、只读保护及断线后不能直接读取真实记录，新增 4 项均通过；与原 catalog 7 项联合 11 项通过（5.174 秒），API=0。不是完整六阶段应用验收，也不宣称集合节点 DataNode 装配完成。B010 等待用户确认原文归档与 Wiki 目录关系；继续独立协作/制作 Agent/前端迁移。最近单次全量仍为 420 项（190.718 秒）。小镇续跑现已完成 tick18，执行 tick19，不能重启或重跑已完成波次。
+
+
+## 2026-10-28 最新：五天小镇通过且已停止 API
+
+当前没有小镇付费运行。build/town-resume-y7_z7dk1/runtime 完成 25 tick、保存冷重开、同会话续接及记忆读取；保留前16，从17续跑，17完成后协调器竞态停止一次再从18继续，没有重跑完成时刻。只读重建全部25完成状态并校验原提交链，976项业务检查全通过；7条实际原生日志 formal inputs无重复，usage与网关精确一致。五天1220请求、1398.573秒、输入91259448（缓存78820480）、输出548687、总91808135；含重开探针92087572，含原失败阶段已观测98005051，另7个422无usage。配置跨128k/10k→600k/16k/low，不宣称严格同比。完整证据 TOWN_FIVE_DAY_RESULT.md 与 evidence/2026-10-28-town-five-days.json。
+
+实际最终应用1的 GitWorkspaceModule / ExecutionLogsModule 已按 项目演示 最终源迁入独立模块文件夹，Workspace 104行原样保留；4项真实Git、不可变候选源/结果、日志归属/分页和实际官方PowerShell证据专项通过（2.809秒），API0。尚未接入最终根/管理员与两片段，不能称完整应用1通过。下步继续迁移实际 discussion.group/member、collaboration.group/member、groups.control、network.administrator，并接通 Studio 管理端口；保留当前17节点夹具作组件测试，最终验收不能用它替代hone原任务。资料库B010仍等选择，不阻塞这些独立模块。完整前端、制作Agent工具/文档、内置小镇和六份可移植项目仍未完成。用户 domain/core/data_node.py 编辑保持，不暂存。最近全量420；其后知识联合11项与最终工作区4项为专项验证，不伪称已经全量428。

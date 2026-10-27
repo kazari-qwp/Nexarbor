@@ -44,4 +44,3 @@ class KnowledgeCollectionModule(Module):
 
     async def wiki(self, **parameters):
         return await self.execute("wiki", **parameters)
-
