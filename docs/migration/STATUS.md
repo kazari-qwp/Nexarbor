@@ -2,7 +2,7 @@
 
 更新时间：2026-10-27。
 
-当前最新验证：**369 项 Python 测试通过**；真实小镇一天及保存重开通过。用户已接受性能差异并明确恢复迁移：继续讨论/协作、资料库、完整宿主/前端与制作 Agent 文档更新，后续验收仍监测 token 与时间。离线分析确认主要内容增量是模型推理，可见文字平均每次约 47→48 字符；不再继续做本次性能对照实验。
+当前最新验证：**386 项全量 Python 测试通过，另 3 项讨论应用差异专项通过**；真实小镇一天及保存重开通过。用户已接受性能差异并明确恢复迁移：继续讨论/协作、资料库、完整宿主/前端与制作 Agent 文档更新，后续验收仍监测 token 与时间。离线分析确认主要内容增量是模型推理，可见文字平均每次约 47→48 字符；不再继续做本次性能对照实验。
 
 
 ## 已完成
@@ -97,4 +97,15 @@ CORE_BASELINE.json 描述的是结构整理时与基线一致的状态；当前�
 
 discussion.session.rev_697d80a33d 和 collab.board.rev_9191e2380f.rev_96569f0263 已迁为新 Module/access。新增 23 项专项通过，全量 369 项通过（32.894 秒）。原轮次/角色/成果/回执、路径冲突/成员退出/共享记录、短事务提交后发信号和失败报告保留；验证了跨事务状态写入限制。原配置的成员发现采用 access，不保留 ctx。未调用付费 API。
 
-WIP：git.integrator 的源算法已逐段审查，正在迁移；adapt/harness/official 为原 SDK 工具宿主和运行器，尚未专项验收。实际讨论项目装配、协调器、真实 Git/真实 Agent 流程尚未完成。
+Git 整合器与应用协调器已经迁移并验证；原 SDK 工具宿主已分别在配置所选 0.2.1-rc.2 和默认安装 0.2.0-rc.2 验证。实际讨论项目的 15 节点配置装配与真实 Agent 验收仍未完成。
+
+
+## Git 整合与应用编排阶段
+
+- 新 GitIntegratorModule 保留原候选、成员分支、merge-tree/commit-tree、投票、退出、否决重开及 update-ref CAS；统一上下文参数和本节点 ID 表达后，39 个函数 AST 与源实现相同，仅配置/成员发现/终端入口 3 个函数适配新接口。终端直接迭代本节点 Tools 并调用实际工具引用，不经过别名目录、旧 invoke 或可达性复查。
+- 9 项真实 Git/原生 SDK 终端测试通过（104.625 秒），包括保存重开、冲突保护、全票发布、外部改分支拒绝覆盖、busy 租约。测试仓库全在 E 盘 build，模型/API 调用 0。
+- AppCoordinatorModule 已迁移；8 项专项通过（17.943 秒）。真实讨论/协作/成员入口/Git 模块共同完成手动驱动的讨论→交接→候选→否决重开→全员投票→发布→冷重开；不代表真实模型或原 15 节点应用已验收。保留部分 status/stop 报告，不再用旧 ComponentResult 包裹内部模块调用。
+- 此阶段全量 386 项 Python 回归通过（154.364 秒），日志 build/discussion-git-full-regression.log。另 3 项应用差异专项通过：原讨论应用的活动续接提示词、消息 record_channels 与扣费回滚，不能直接套小镇差异配置。当前累计验证 389 项，但最后单次全量是 386 项。
+- 原 OfficialToolsRunner 已迁入 adapt/harness/official；scripts/verify_native_official.py 验证配置所选及默认安装两版本各 10 个工具、返回契约和真实命令。兼容探测按实际插件依赖要求 workingDirectory，不把 app.asar 的虚拟包目录当普通目录检查。配置所选程序为 E:/dsh/Harness/DeepSeek Harness.exe；默认安装为 LOCALAPPDATA/Programs/DeepSeek Harness/DeepSeek Harness.exe。
+
+下一步：迁移实际 discussion-collaboration 项目配置与 12 份资源，装配 15 个节点、宿主工具和原生执行器。旧配置 terminal_ref=harness:pwsh 须转为本节点真正的 CallableTool.name；多节点公开同款 SDK 工具可沿用原 ext_ + sha256(node_id + NUL + ref)[:24] 作为工具本身的名称，直接引用调用，不恢复旧 alias/catalog。接通后按原应用流程验收并监控真实 token/耗时。随后仍有资料库 catalog/tasks、完整 Studio/前端、资源/复制服务和制作 Agent 文档。
