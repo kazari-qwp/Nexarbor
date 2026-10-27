@@ -4,6 +4,7 @@ from collections.abc import Callable
 
 from domain.core import access
 from domain.core import MarkdownNode
+from .agent_inputs import AgentInputs
 from .memory_strategy import EmptyMemoryStrategy, MarkdownMemoryStrategy
 from domain.core import Module
 from domain.core import Node
@@ -17,6 +18,7 @@ class AgentModule(Module):
     def __init__(self, runner: Callable[[str, Tools], str] | None = None) -> None:
         super().__init__("agent", description="Agent 及记忆能力")
         self.runner = runner
+        self.inputs = AgentInputs()
         self.memory_strategy = EmptyMemoryStrategy()
         self._memory_tools: Tools | None = None
 
@@ -39,6 +41,10 @@ class AgentModule(Module):
     def available_tools(self, node: Node) -> Tools:
         discovery = node.modules.get("tool_discovery")
         return discovery.discover() if isinstance(discovery, ToolDiscoveryModule) else node.tools
+
+    def update_inputs(self, source: str, **patch) -> dict:
+        """按原协议更新四路输入；来源和一次性事件状态由 Agent 模块持有。"""
+        return self.inputs.update(source, patch)
 
     @property
     def auto_memory(self):
