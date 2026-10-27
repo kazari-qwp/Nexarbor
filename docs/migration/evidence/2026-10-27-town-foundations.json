@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-27",
+  "all_python_tests": 253,
+  "town_record_tests": 6,
+  "town_clock_tests": 7,
+  "preserved_record_algorithms": [
+    "_number",
+    "_equal",
+    "_references",
+    "_items",
+    "_view",
+    "_snapshot",
+    "_plan"
+  ],
+  "preserved_clock_algorithms": [
+    "_labels",
+    "_clock"
+  ],
+  "modules": [
+    "records.store",
+    "clock.counter",
+    "world.time",
+    "runtime.periodic_checkpoint"
+  ],
+  "entry_style": "core Module subclasses; plain operations, own node accessed with @access(channels=())",
+  "old_ctx_or_execute_runtime_retained": false,
+  "ports": [
+    "transaction callback",
+    "checkpoint callback"
+  ],
+  "core_changes": [],
+  "paid_api_calls": 0,
+  "verified": [
+    "reference fields remain separate from arbitrary strings",
+    "minimum/expected checks keep original atomic planning",
+    "idempotent receipts preserve original response snapshots",
+    "20 concurrent increments do not lose updates",
+    "record state rolls back with node transaction",
+    "5 clock ticks form one day (component test only)",
+    "duplicate clock signals are counted once",
+    "write failure restores clock state, metadata and file",
+    "checkpoint occurs after node transaction release",
+    "pending checkpoint survives restore and flush retries",
+    "periodic saver retries duplicate signals without recounting"
+  ],
+  "pending": [
+    "project resource manifests/factories and loader",
+    "signal runtime and full town",
+    "remaining application modules",
+    "3 complete application acceptance runs"
+  ]
+}
