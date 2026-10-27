@@ -74,8 +74,6 @@
 
 ## B007：信号层生命周期与当前 access
 
-状态：用户选择信号共用 access，并已确认 deduplicate 参数（D014）；去重参数完成，层生命周期接口待继续讨论。
+状态：按用户最新决定 D015 解除。撤回 D014 的共享方案和可选去重；信号不复用 access，不再等待核心层生命周期接口讨论。
 
-原 SignalRuntime 在同层处理后调用 LayerWork.drain，脉冲还使用 close_loop 回源回执。新 access 原先没有对应入口。按用户要求不额外保留独立信号遍历器，也不擅自追加未讨论的核心接口。
-
-False 允许普通节点和起点都重访，不等于只放开一次回源。信号原有跳数/投递数/超时预算、异常和保存协议仍需在接入时保留；详细来源见 SIGNAL_BOUNDARY.md。
+原 SignalRuntime 的同层 LayerWork.drain、脉冲 close_loop 回源回执以及预算、取消、故障、保存规则，由独立 app 信号运行器迁移。access 恢复原有去重访问行为，已有门禁与节点快照保留。独立运行器仍未完成；来源与边界见 SIGNAL_BOUNDARY.md。

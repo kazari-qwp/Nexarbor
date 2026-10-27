@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-27",
+  "decision": "D015",
+  "supersedes": "D014",
+  "all_python_tests": 270,
+  "test_duration_seconds": 15.898,
+  "test_command": ".venv-runtime/Scripts/python.exe -B -X utf8 -m unittest discover -s tests -q",
+  "verified": [
+    "domain/core/access.py exactly matches e79b09e parent commit content",
+    "optional deduplicate flag and seven dedicated revisit tests withdrawn",
+    "existing channel traversal, node deduplication, layer concurrency and lock admission preserved",
+    "user DataNode.save_data default edit preserved outside this commit"
+  ],
+  "signal_direction": "standalone app runtime preserving original business semantics; does not reuse access",
+  "retained": "app/runtime/signal_work.py: existing original LayerWork, already used by migrated message modules",
+  "pending": [
+    "standalone signal runtime and pulse migration",
+    "three complete application acceptance tests"
+  ],
+  "paid_api_calls_this_change": 0
+}
