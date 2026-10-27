@@ -1,0 +1,321 @@
+{
+  "type": "node",
+  "node_id": "商店",
+  "name": "商店",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "place.info",
+        "description": "",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "visitors_from_edges": false,
+          "description": "杂货商店，货架上摆着锯和斧，柜台收矿石、木材和黄金。",
+          "visitors": []
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "movement.here",
+        "description": "",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
+        ],
+        "config": {
+          "timeout_seconds": 60,
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "before_hooks": [
+            {
+              "target": "requester",
+              "module": "records.store",
+              "operation": "apply",
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              }
+            }
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "tool": "mod_a9955f2f2c1949074abd1a12",
+              "description": "商店 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "movement.here"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "records.store",
+        "description": "",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "initial": {
+            "saw": 5,
+            "axe": 5,
+            "ore": 0,
+            "wood": 0,
+            "gold": 0,
+            "coins": 50
+          },
+          "references": [],
+          "minimum": {}
+        },
+        "state": {},
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "module_id": "shop.market",
+        "description": "",
+        "channels": [
+          "service",
+          "road",
+          "records",
+          "movement",
+          "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "config": {
+          "products": [
+            {
+              "item": "saw",
+              "name": "锯",
+              "sale_price": 5,
+              "buyback_price": null
+            },
+            {
+              "item": "axe",
+              "name": "斧",
+              "sale_price": 5,
+              "buyback_price": null
+            },
+            {
+              "item": "ore",
+              "name": "矿石",
+              "sale_price": null,
+              "buyback_price": 3
+            },
+            {
+              "item": "wood",
+              "name": "木材",
+              "sale_price": null,
+              "buyback_price": 2
+            },
+            {
+              "item": "gold",
+              "name": "黄金",
+              "sale_price": null,
+              "buyback_price": 10
+            }
+          ],
+          "cost": 1,
+          "currency": "coins"
+        },
+        "state": {},
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "tool": "mod_db998f8bc0a23a8e7ed03524",
+              "description": "商店 · 查看价目表 · 查看商品售价、回收价和当前库存。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "shop.market"
+            },
+            {
+              "tool": "mod_9ab30edf05d099f5eb08367b",
+              "description": "商店 · 购买商品 · 按售价购买指定商品和数量，须本人在商店。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "default": 1
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "item",
+                  "key"
+                ]
+              },
+              "modules": [],
+              "factory_module": "shop.market"
+            },
+            {
+              "tool": "mod_817e8caa287db4d41e09ce66",
+              "description": "商店 · 出售商品 · 按回收价出售指定商品和数量，须本人在商店。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "item": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000,
+                    "default": 1
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "item",
+                  "key"
+                ]
+              },
+              "modules": [],
+              "factory_module": "shop.market"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 4,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "居民楼A",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "居民楼B",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "酒馆",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "铁匠铺",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    }
+  ]
+}

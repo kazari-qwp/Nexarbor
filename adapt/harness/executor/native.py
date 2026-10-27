@@ -19,6 +19,7 @@ class NativeExecutor:
         self.bindings = {} if bindings is None else bindings
         self.states = {} if states is None else states
         self._available = {}
+        self._fixed_tools = set()
         self._tools = {}
 
     def binding(self, actor):
@@ -44,6 +45,8 @@ class NativeExecutor:
 
     async def _run_owned(self, actor, message="", *, tools=None, **options):
         agent, binding = self.binding(actor)
+        if tools is None:self._fixed_tools.discard(actor)
+        else:self._fixed_tools.add(actor)
         self._available[actor] = Tools((await asyncio.to_thread(agent.available_tools)).values()) if tools is None else tools
         state = self.states.setdefault(actor, {})
         request = dict(
@@ -76,7 +79,7 @@ class NativeExecutor:
 
     def definitions(self, actor):
         agent, _ = self.binding(actor)
-        if actor not in self._available:
+        if actor not in self._fixed_tools:
             self._available[actor] = Tools(agent.available_tools().values())
         definitions, tools = [], {}
         history = self.states.setdefault(actor, {}).setdefault("tool_history", {})

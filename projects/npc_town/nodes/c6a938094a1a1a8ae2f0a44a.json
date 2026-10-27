@@ -1,0 +1,217 @@
+{
+  "type": "node",
+  "node_id": "民政局",
+  "name": "民政局",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "place.info",
+        "description": "",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "visitors_from_edges": false,
+          "description": "民政局，婚姻登记需要双方本人到场并分别同意。",
+          "visitors": []
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "movement.here",
+        "description": "",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
+        ],
+        "config": {
+          "timeout_seconds": 60,
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "before_hooks": [
+            {
+              "target": "requester",
+              "module": "records.store",
+              "operation": "apply",
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              }
+            }
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "tool": "mod_a8c6541ffe2e9b7b46cc8ed8",
+              "description": "民政局 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "movement.here"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "agreements.pair",
+        "description": "",
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ],
+        "strength": 3,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "address": "民政局",
+          "rules": [
+            {
+              "id": "marriage",
+              "title": "婚姻登记",
+              "cost": 1,
+              "require_values": {
+                "adult": true
+              },
+              "pair_field": "spouse",
+              "forbid_existing_pair": true,
+              "set_values": {
+                "married": true
+              }
+            }
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 2,
+          "members": [
+            {
+              "tool": "mod_b301b0846817f00481ecd28a",
+              "description": "民政局 · 查看协议 · 查看本地点的协议规则和自己参与的协议。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "modules": [],
+              "factory_module": "agreements.pair"
+            },
+            {
+              "tool": "mod_b145413ac0b7a1cfe04153d4",
+              "description": "民政局 · 同意协议 · 双方在场时，以自己的身份登记同意。双方分别同意后立即完成；离场使未完成的旧同意失效。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "partner",
+                  "rule",
+                  "key"
+                ],
+                "properties": {
+                  "partner": {
+                    "type": "string",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "协议对方",
+                    "description": "另一位当前可达的真实 Agent 节点 ID；不能代替请求者身份。"
+                  },
+                  "rule": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "规则标识",
+                    "description": "要同意的配置规则 id。"
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "description": "请求者在当前模块实例内使用的非空幂等键；相同键与相同对象重试不会重复扣费。"
+                  }
+                }
+              },
+              "modules": [],
+              "factory_module": "agreements.pair"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 3,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "居民楼A",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "医院",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    }
+  ]
+}

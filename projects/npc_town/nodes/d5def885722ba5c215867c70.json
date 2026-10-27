@@ -1,0 +1,237 @@
+{
+  "type": "node",
+  "node_id": "树林",
+  "name": "树林",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "place.info",
+        "description": "",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "visitors_from_edges": false,
+          "description": "镇北的树林，用斧头能砍下木材。",
+          "visitors": []
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "movement.here",
+        "description": "",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
+        ],
+        "config": {
+          "timeout_seconds": 60,
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "before_hooks": [
+            {
+              "target": "requester",
+              "module": "records.store",
+              "operation": "apply",
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              }
+            }
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "tool": "mod_b68945209d23d4c170bfc08d",
+              "description": "树林 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "movement.here"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "records.store",
+        "description": "",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "initial": {},
+          "references": [],
+          "minimum": {}
+        },
+        "state": {},
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "module_id": "service.actions",
+        "description": "",
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "address": "树林",
+          "actions": [
+            {
+              "id": "chop",
+              "title": "砍柴",
+              "description": "用斧头砍三根木材，消耗六点行动值。",
+              "cost": 6,
+              "require_items": {
+                "axe": 1
+              },
+              "actor_deltas": {
+                "wood": 3
+              }
+            }
+          ],
+          "events": []
+        },
+        "state": {},
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "tool": "mod_c3cae9dd47b45f59d6629458",
+              "description": "树林 · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "service.actions"
+            },
+            {
+              "tool": "mod_0f88fa3e0eddb5b1731b83c9",
+              "description": "树林 · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "title": "动作标识",
+                    "description": "要执行的配置动作 id。",
+                    "minLength": 1
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "title": "数量",
+                    "description": "1 到 100 的整数，默认 1。",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 1
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "幂等键",
+                    "description": "可选非空字符串；相同键和相同动作数量重试时返回旧结果，不重复扣费。",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "service.actions"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 4,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "矿坑",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "医院",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    }
+  ]
+}

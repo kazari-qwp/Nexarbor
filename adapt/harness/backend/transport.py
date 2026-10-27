@@ -17,11 +17,21 @@ class Transport(JsonRpcTransport):
         backend.context_port = self.executor
         backend.agent_executor = self.executor.run
         backend.commit_observer = lambda commit_id: self.write(dict(notification='core/committed', commit_id=commit_id))
+        backend.graph_observer = self.attach_agents
+        self.attach_agents()
+        self.routes = {}
+
+    def attach_agents(self):
+        backend = self.backend
+        if self.executor.network is not backend.network:
+            self.executor.network = backend.network
+            self.executor.locks = backend.node_locks
+            self.executor._available.clear();self.executor._tools.clear();self.executor._fixed_tools.clear()
+            backend.context_port = self.executor
         for node in backend.network:
             if node.node_type == 'agent':
-                backend.bindings.setdefault(node.info.node_id, {'executor': 'harness'})
-                self.executor.attach(node.info.node_id, self.runtime)
-        self.routes = {}
+                backend.bindings.setdefault(node.info.node_id, {'executor':'harness'})
+                self.executor.attach(node.info.node_id,self.runtime)
 
     def dispatch(self, method, p):
         backend = self.backend

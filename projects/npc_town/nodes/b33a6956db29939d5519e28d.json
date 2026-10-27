@@ -1,0 +1,253 @@
+{
+  "type": "node",
+  "node_id": "铁匠铺",
+  "name": "铁匠铺",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "place.info",
+        "description": "",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "visitors_from_edges": false,
+          "description": "炉火通明的铁匠铺，能修好坏掉的镐子。",
+          "visitors": []
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "movement.here",
+        "description": "",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
+        ],
+        "config": {
+          "timeout_seconds": 60,
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "before_hooks": [
+            {
+              "target": "requester",
+              "module": "records.store",
+              "operation": "apply",
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              }
+            }
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "tool": "mod_6b6b0ce5262696e60d108477",
+              "description": "铁匠铺 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "movement.here"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "records.store",
+        "description": "",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "initial": {
+            "ore": 0,
+            "coins": 0,
+            "repairs": 0
+          },
+          "references": [],
+          "minimum": {}
+        },
+        "state": {},
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "module_id": "service.actions",
+        "description": "",
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "address": "铁匠铺",
+          "actions": [
+            {
+              "id": "repair",
+              "title": "修坏镐",
+              "description": "用两金币和一矿石把坏镐修成可用的镐。",
+              "cost": 1,
+              "require_items": {
+                "broken_pickaxe": 1,
+                "ore": 1
+              },
+              "actor_deltas": {
+                "coins": -2,
+                "ore": -1,
+                "broken_pickaxe": -1,
+                "pickaxe": 1
+              },
+              "actor_set": {
+                "pickaxe_state": "良好"
+              },
+              "local_deltas": {
+                "coins": 2,
+                "ore": 1,
+                "repairs": 1
+              }
+            }
+          ],
+          "events": []
+        },
+        "state": {},
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "tool": "mod_03568e2ca09bfeed612a201e",
+              "description": "铁匠铺 · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "service.actions"
+            },
+            {
+              "tool": "mod_80697685dab949109a4146ef",
+              "description": "铁匠铺 · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "title": "动作标识",
+                    "description": "要执行的配置动作 id。",
+                    "minLength": 1
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "title": "数量",
+                    "description": "1 到 100 的整数，默认 1。",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 1
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "幂等键",
+                    "description": "可选非空字符串；相同键和相同动作数量重试时返回旧结果，不重复扣费。",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "service.actions"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 4,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "商店",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "矿坑",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    }
+  ]
+}

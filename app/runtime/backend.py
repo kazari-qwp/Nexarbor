@@ -14,7 +14,7 @@ from domain.core import DataNode, Network, NodeInfo
 
 
 class Backend:
-    def __init__(self, directory, *, network=None, saver=None, snapshot_interval=100):
+    def __init__(self, directory, *, network=None, saver=None, snapshot_interval=100, initial_document=None):
         self.directory = Path(directory).resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         self._transaction_lock = RLock()
@@ -26,10 +26,14 @@ class Backend:
         self.snapshot_extra = None
         self._context_port = None
         self.agent_executor = None
+        self.graph_observer = None
         try:
             previous = self.store.latest()
             if previous is not None:
                 self.restore(previous)
+            elif initial_document is not None:
+                self.restore(initial_document)
+                self.store.commit(self.snapshot())
             else:
                 if network is None:
                     memory = self.directory / 'root-memory.md'

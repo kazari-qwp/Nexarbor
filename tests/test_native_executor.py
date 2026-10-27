@@ -32,6 +32,26 @@ class NativeExecutorTests(unittest.IsolatedAsyncioTestCase):
         self.executor = NativeExecutor(self.network, None, bindings={'actor': self.binding})
         self.parameters = dict(actor='actor')
 
+    async def test_each_prepare_refreshes_discovery_after_location_or_edge_changes(self):
+        before = Node(NodeInfo('before','Before'))
+        after = Node(NodeInfo('after','After'))
+        calls = []
+        before.install(CallableTool('old_place',lambda:calls.append('old')))
+        after.install(CallableTool('new_place',lambda:calls.append('new')))
+        self.network.add(before);self.network.add(after)
+        edge = Link('before','tools');self.node.links.add(edge)
+        first = await self.executor.prepare(self.parameters)
+        self.assertIn('old_place',{tool['name'] for tool in first['tools']})
+        self.node.links.remove(edge);self.node.links.add(Link('after','tools'))
+        second = await self.executor.prepare(self.parameters)
+        self.assertIn('new_place',{tool['name'] for tool in second['tools']})
+        self.assertNotIn('old_place',{tool['name'] for tool in second['tools']})
+        self.assertIn('old_place',second['unavailable'])
+        forbidden = await self.executor.invoke(dict(actor='actor',name='old_place'))
+        self.assertEqual(forbidden['status'],'forbidden')
+        await self.executor.invoke(dict(actor='actor',name='new_place'))
+        self.assertEqual(calls,['new'])
+
     def mount_context(self, node=None):
         node = self.node if node is None else node
         module = ContextAssemblerModule({'sources': [

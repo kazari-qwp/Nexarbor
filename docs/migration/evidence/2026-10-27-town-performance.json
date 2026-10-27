@@ -1,0 +1,122 @@
+{
+  "date": "2026-10-27",
+  "status": "paused_for_performance_review_at_user_request",
+  "scope": "five completed town waves only; excludes startup, previous failed attempts and final reopen continuation",
+  "old": {
+    "directory": "E:\\DataNet-模块化成品\\build\\native-town-1792347145756",
+    "matched_successful_responses": 248,
+    "input_including_cache": 6194131,
+    "output_tokens": 66194,
+    "total_tokens": 6260325,
+    "usage_consistent": true,
+    "five_wave_elapsed_seconds": 741.607,
+    "per_wave": [
+      {
+        "cycle": 1,
+        "seconds": 139.685,
+        "requests": 54,
+        "tokens": 821105
+      },
+      {
+        "cycle": 2,
+        "seconds": 162.022,
+        "requests": 54,
+        "tokens": 1109469
+      },
+      {
+        "cycle": 3,
+        "seconds": 143.328,
+        "requests": 46,
+        "tokens": 1163071
+      },
+      {
+        "cycle": 4,
+        "seconds": 156.023,
+        "requests": 49,
+        "tokens": 1533576
+      },
+      {
+        "cycle": 5,
+        "seconds": 137.97,
+        "requests": 45,
+        "tokens": 1633104
+      }
+    ]
+  },
+  "new": {
+    "directory": "E:\\项目_手动重构\\build\\native-town-newcore-p1wf2guj",
+    "matched_successful_responses": 342,
+    "input_including_cache": 7647070,
+    "output_tokens": 133334,
+    "total_tokens": 7780404,
+    "usage_consistent": true,
+    "five_wave_elapsed_seconds": 327.265,
+    "per_wave": [
+      {
+        "cycle": 1,
+        "seconds": 92.223,
+        "requests": 128,
+        "tokens": 1421627
+      },
+      {
+        "cycle": 2,
+        "seconds": 83.81,
+        "requests": 52,
+        "tokens": 1108141
+      },
+      {
+        "cycle": 3,
+        "seconds": 43.051,
+        "requests": 52,
+        "tokens": 1276199
+      },
+      {
+        "cycle": 4,
+        "seconds": 61.819,
+        "requests": 60,
+        "tokens": 2023293
+      },
+      {
+        "cycle": 5,
+        "seconds": 44.438,
+        "requests": 50,
+        "tokens": 1951144
+      }
+    ]
+  },
+  "comparison": {
+    "matched_successful_responses": {
+      "old": 248,
+      "new": 342,
+      "change_percent": 37.9
+    },
+    "input_including_cache": {
+      "old": 6194131,
+      "new": 7647070,
+      "change_percent": 23.46
+    },
+    "output_tokens": {
+      "old": 66194,
+      "new": 133334,
+      "change_percent": 101.43
+    },
+    "total_tokens": {
+      "old": 6260325,
+      "new": 7780404,
+      "change_percent": 24.28
+    },
+    "five_wave_elapsed_seconds": {
+      "old": 741.607,
+      "new": 327.265,
+      "change_percent": -55.87
+    }
+  },
+  "method": "Read every concatenated Zstd frame, count usage only on assistant/message events (not repeated step usage); include cacheReadTokens/cacheWriteTokens in input. Input + output equals reported total in both runs.",
+  "comparability_limits": [
+    "old accepted run resumed existing sessions after an earlier failed attempt; new run is a cold start",
+    "old used Harness account route, new used API-key route",
+    "runs are from different dates; model label alone does not prove identical backend behavior"
+  ],
+  "user_instruction": "Record tokens and elapsed time for all three apps; stop and report any very obvious difference.",
+  "action": "No further application API tests or migration work until performance difference is discussed; existing code and results preserved."
+}
