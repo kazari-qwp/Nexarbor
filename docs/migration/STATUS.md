@@ -2,7 +2,7 @@
 
 更新时间：2026-10-27。
 
-当前最新验证：**337 项 Python 测试通过**；真实小镇一天（五 tick）、七个 Agent、真实 API、保存重开与同一会话续跑全部通过。已按用户性能要求暂停后续应用测试和迁移：新五时段总 token +24.3%、输出 token 约 2 倍、耗时 -55.9%；旧基线为续跑，新为冷启动，接入方式不同，原因未定。先读 PERFORMANCE_REVIEW.md。
+当前最新验证：**346 项 Python 测试通过**；真实小镇一天及保存重开通过。用户已接受性能差异并明确恢复迁移：继续讨论/协作、资料库、完整宿主/前端与制作 Agent 文档更新，后续验收仍监测 token 与时间。离线分析确认主要内容增量是模型推理，可见文字平均每次约 47→48 字符；不再继续做本次性能对照实验。
 
 
 ## 已完成
@@ -56,7 +56,7 @@
 
 - 真实小镇项目：原 59 节点转为 52 个新节点；7 个工具发现器按 D009 放回 Agent，仅删除确认无引用的 7 个空工具亚节点，通信亚节点有引用而保留。33 份真实数据文件、2 个原固定模板和全部业务模块已装配。实际模板创建、参数/节点 ID/工具名称重映射、回滚与冷重开验证通过。Backend 支持新格式 initial_document，原生 RPC 可启动 TownProject。
 - 原执行器每步刷新工具表行为已补齐，仍直接使用 Tools 和已取得的工具引用，不重复检查可达性。完整回归 337 项；真实 DSH 本机模型桥再次通过；真实 API 小镇 5 tick 完成，344 次请求（含重开续跑 2 次）。见 evidence/2026-10-27-town-project.json。
-- 性能门槛：用户要求三个应用关注 token 和时间，明显差异时停止汇报。已暂停后续 API 测试和迁移，见 PERFORMANCE_REVIEW.md 与 evidence/2026-10-27-town-performance.json。性能对照已读取完整压缩日志并去除重复 usage，未额外调用模型。
+- 性能门槛：用户要求三个应用关注 token 和时间，明显差异时停止汇报。本轮已完成暂停、汇报和离线对照，用户接受差异并明确恢复迁移；见 PERFORMANCE_REVIEW.md、evidence/2026-10-27-town-performance.json 和 output-analysis.json。后续应用继续监测。
 
 ## 尚未完成
 
@@ -66,9 +66,9 @@
 
 ## 下一步
 
-当前先等待性能差异讨论，遵守用户“明显差异时停下来汇报”的要求，不自行继续付费测试或迁移。性能统计与可比性限制见 PERFORMANCE_REVIEW.md。后续需要同条件基线后再推进讨论/协作模块、资料库实际 catalog/tasks、完整 Studio/前端、复制/资源/宿主服务以及最终制作 Agent Skill/提示词更新。根目录模块技术清单还需与新 discover API 完全对齐，不能把旧 collect/invoke 教给制作 Agent。
+用户已解除性能暂停并要求继续迁移。当前处理讨论/协作应用，notes.text、discussion.seat、collab.participant 已完成组件迁移，接下来逐段迁移实际 discussion.session、collab.board、git.integrator 与 app.coordinator.entry；模块只能通过 access 跨节点访问，信号使用独立运行器。之后迁实际资料库 catalog/tasks、完整 Studio/前端、复制/资源/宿主服务，最后更新制作 Agent 的 Skill/提示词。两个应用验收继续记录 token、API 次数和耗时。
 
-WIP：projects/discussion_collaboration/modules/notes_text 已开始按源代码迁移，尚无专项测试，不作为本轮已完成内容；本轮提交不包含它。用户 domain/core/data_node.py 的 save_data=True 编辑仍保留且未暂存。
+讨论基础模块：notes.text、discussion.seat、collab.participant 已迁为新 Module/access；9 项专项和全量 346 项通过（30.972 秒）。覆盖真实文件部分写入回滚、并发追加、回执冷重开、角色发布、成员身份与候选委派。完整讨论状态机/实际 Git 整合与应用验收尚未完成。用户 domain/core/data_node.py 的 save_data=True 编辑继续保留且未暂存。scripts/analyze_town_output.cjs 是本轮离线诊断脚本，不打印推理文本，未调用 API。
 
 ## 继续时遵守
 

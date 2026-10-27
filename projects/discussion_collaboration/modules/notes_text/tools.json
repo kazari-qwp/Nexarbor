@@ -1,0 +1,43 @@
+[
+  {
+    "id": "append",
+    "name": "追加笔记",
+    "description": "把一段文字按配置的分隔符追加到便笺末尾；可带幂等键避免重试时重复追加，超出正文上限时不写入。",
+    "operation": "append",
+    "parameters": {
+      "type": "object",
+      "title": "追加笔记",
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "追加内容",
+          "description": "要追加到便笺末尾的内容，1 到 8000 个字符。",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "key": {
+          "type": "string",
+          "title": "幂等键",
+          "description": "可选。同一便笺上相同键与相同内容只追加一次；相同键配不同内容会被拒绝。",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "read",
+    "name": "读取笔记",
+    "description": "读取便笺的标题、正文、版本和最后更新时间。",
+    "operation": "read",
+    "parameters": {
+      "type": "object",
+      "title": "读取笔记",
+      "properties": {},
+      "additionalProperties": false
+    }
+  }
+]

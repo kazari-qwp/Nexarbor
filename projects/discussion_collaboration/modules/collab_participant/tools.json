@@ -1,0 +1,90 @@
+[
+  {
+    "id": "submit",
+    "name": "提交成果",
+    "description": "以自己的身份把完成的分支提交交给整合器。",
+    "operation": "submit",
+    "parameters": {
+      "type": "object",
+      "title": "成员提交",
+      "properties": {
+        "commit": {
+          "type": "string",
+          "title": "提交哈希",
+          "pattern": "^[0-9a-fA-F]{7,64}$"
+        },
+        "branch": {
+          "type": "string",
+          "title": "成员分支",
+          "minLength": 1
+        },
+        "key": {
+          "type": "string",
+          "title": "请求键",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "commit"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "approve",
+    "name": "认可候选",
+    "description": "以自己的身份认可当前或指定候选；调用者身份由请求链决定。",
+    "operation": "approve",
+    "parameters": {
+      "type": "object",
+      "title": "认可候选",
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "title": "候选编号",
+          "pattern": "^cand-[0-9a-f]{16}$"
+        },
+        "reason": {
+          "type": "string",
+          "title": "认可说明",
+          "maxLength": 500
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "veto",
+    "name": "否决候选",
+    "description": "以自己的身份否决当前或指定候选，并说明理由。",
+    "operation": "veto",
+    "parameters": {
+      "type": "object",
+      "title": "否决候选",
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "title": "候选编号",
+          "pattern": "^cand-[0-9a-f]{16}$"
+        },
+        "reason": {
+          "type": "string",
+          "title": "否决理由",
+          "maxLength": 500
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "read",
+    "name": "查看整合状态",
+    "description": "查看实际工作仓库、本人分支、成员提交与当前候选；成员身份由真实调用者绑定。",
+    "operation": "read",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  }
+]
