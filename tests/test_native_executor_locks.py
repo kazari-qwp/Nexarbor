@@ -52,6 +52,26 @@ class NativeExecutorLockTests(unittest.IsolatedAsyncioTestCase):
         await owner
         self.assertEqual((await prepared)['tail'], ['NEW'])
 
+    async def test_run_waits_for_a_locked_discovery_target_off_the_event_loop(self):
+        self.actor.links.add(Link('target', 'tools'))
+        held, release = asyncio.Event(), asyncio.Event()
+        class Transport:
+            def host(inner, method, parameters):
+                return dict(status='completed', session_id='session', output='done')
+        self.executor.transport = Transport()
+        async def writer():
+            async with self.locks.transaction(['target']):
+                held.set()
+                await release.wait()
+        owner = asyncio.create_task(writer())
+        await held.wait()
+        run = asyncio.create_task(self.executor.run('actor'))
+        await asyncio.sleep(.02)
+        self.assertFalse(run.done())
+        release.set()
+        await owner
+        self.assertEqual((await run)['output'], 'done')
+
     async def test_model_wait_yields_admission_and_reenters_after_transaction(self):
         entered, returned = Event(), Event()
         requests = []

@@ -152,6 +152,25 @@ class PersistentRuntimeTests(unittest.TestCase):
         args.update(expected_commit=backend.store.head, bindings={'root': 'wrong'})
         with self.assertRaises(ValueError):backend.checkpoint(**args)
 
+    def test_checkpoint_confirmation_does_not_broadcast_another_ordinary_commit(self):
+        backend = self.backend()
+        notifications = []
+        backend.commit_observer = notifications.append
+        backend.save()
+        self.assertEqual(len(notifications), 1)
+        backend.checkpoint(contexts={}, bindings={}, expected_commit=backend.store.head)
+        self.assertEqual(len(notifications), 1)
+
+    def test_known_operation_failure_commits_partial_state_and_clears_uncertainty(self):
+        backend = self.backend()
+        def fail():
+            backend.extension_state['partial'] = 1
+            raise ValueError('known failure')
+        with self.assertRaises(ValueError):backend.perform('fixture_fail', fail)
+        self.assertEqual(backend.store.pending(), [])
+        self.assertEqual(backend.store.latest()['partial'], 1)
+        self.assertTrue(backend.checkpoint(contexts={}, bindings={}, expected_commit=backend.store.head))
+
     def test_restore_validates_every_resource_before_writing(self):
         backend = self.backend()
         document = backend.snapshot()

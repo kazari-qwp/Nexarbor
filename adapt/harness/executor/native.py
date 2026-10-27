@@ -42,7 +42,7 @@ class NativeExecutor:
 
     async def _run_owned(self, actor, message="", *, tools=None, **options):
         agent, binding = self.binding(actor)
-        self._available[actor] = Tools(agent.available_tools().values()) if tools is None else tools
+        self._available[actor] = Tools((await asyncio.to_thread(agent.available_tools)).values()) if tools is None else tools
         state = self.states.setdefault(actor, {})
         request = dict(
             actor=actor, name=agent.info.name, message=message,

@@ -144,6 +144,20 @@ class Backend:
             raise
         self._notify_commit(commit_id)
 
+    def perform(self, method, operation):
+        from uuid import uuid4
+        if self.failed:raise RuntimeError('Checkpoint failed; restart before further operations')
+        operation_id = uuid4().hex
+        self.store.begin(operation_id, method)
+        try:
+            result = operation()
+        except Exception:
+            try:self.save(operation_id=operation_id)
+            except Exception:pass
+            raise
+        self.save(operation_id=operation_id)
+        return result
+
     def persistence_info(self):
         from app.persistence.recovery import required_contexts
         with self.node_locks.condition:
@@ -160,7 +174,10 @@ class Backend:
             if expected_commit != self.store.head:raise RuntimeError('Network changed during executor cursor capture')
             for node, cursor in contexts.items():
                 if node not in self.node_locks.exclusive:self.node_locks.snapshots.set_execution_cursor(node, cursor)
-            self.save()
+            try:self.store.commit(self._snapshot())
+            except BaseException:
+                self._failed_commit()
+                raise
             return self.store.mark(contexts, kind, self.store.head, reuse=True)
 
     def mark(self, *, contexts, kind='incremental', expected_commit=None):
