@@ -117,3 +117,14 @@ Git 整合器与应用协调器已经迁移并验证；原 SDK 工具宿主已�
 
 
 实际讨论项目阶段：scripts/migrate_discussion_project.py 已转换完整 15 节点、12 文档和 31 宿主工具；应用层共用 Project 加载器、HostTools 工厂及原 runtime_ports 已接入。模块和工具恢复仍直接重建已有表，不检查依赖或重复判断可达性。只在 RPC 展示边界编码 Tools 的工具声明，核心对象及 discover() 不变；发现器 module.json 删除旧 collect/invoke/routes 声明，改为 discover。生产宿主可选择 discussion_collaboration。全量 397 项通过；付费 API 调用仍为 0。已准备 scripts/verify_native_discussion.py 和 native_discussion_acceptance.mjs；当前下一步是在确认代码检查后执行真实 API 验收，按 DISCUSSION_ACCEPTANCE.md 记录每阶段 usage/时间，遇到实际核心冲突停下讨论。
+
+
+## 当前需用户决定：原 submit 请求键矛盾（B008）
+
+已执行真实 API：讨论阶段完成，79 次请求、134.963 秒，输入 1,317,106、输出 45,176（总数含缓存读）；随后进入真实四成员协作，模型实际编写、测试并提交了部分成果。发现 participant.submit 的 key 契约冲突后停止 API 代理，运行中所有本次子进程均已退出。共开始 142 次请求，其中 140 次取得完整 usage；已观测输入 2,065,706、输出 65,227、合计 2,130,933，另 2 次中止请求没有完整 usage，不能称为最终总量。运行 build/native-discussion-newcore-4mg660xk，证据 evidence/2026-10-27-discussion-api-stopped.json。
+
+原 collab.participant 的 Schema 允许 key，源码会把它原样传下游；原 Git submit Schema 不允许 key，旧 NodeModule 调用也会按该 Schema 校验。这是旧项目已有矛盾，并非已确认的新核心限制。按用户“不擅自改变原逻辑”的要求已通过异步问题请求决定。最小提案在 build/participant-submit-key-proposal.patch，尚未应用：仅成员入口不再向 Git 转交 key，仍使用原有 commit 幂等，不添加新业务规则。
+
+等待此决定时可以继续资料库等不依赖该改动的离线迁移；不得自动重跑或继续付费讨论测试。若获准修复，先补回归。尽量保留已有真实仓库、会话和成果进行显式续跑；不能改状态强迫成功或自动重放 interrupted 信号，须使用原恢复/显式触发能力。完整三应用仍未验收完成。
+
+资料库已读 projects/knowledge-archive/modules/knowledge.catalog/AGENTS.md（使用/查询/版本/来源规则），并逐段读取 documents.tasks、knowledge.tools、context.network、knowledge.catalog 的 module.py。当前 catalog 的 Historical KnowledgeStore 720 行，与先前五类新 DataNode 所用的其他 store 不是同一业务引擎，禁止直接换引擎。下一步审查该 store、自有 workspace/tasks/knowledge 资源的快照与事务边界，再按原逻辑迁移。

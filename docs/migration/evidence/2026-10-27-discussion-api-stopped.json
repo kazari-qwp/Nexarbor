@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-27",
+  "status": "stopped_pending_user_choice",
+  "real_api": true,
+  "run": "E:\\项目_手动重构\\build\\native-discussion-newcore-4mg660xk",
+  "requests_started": 142,
+  "requests_with_complete_usage": 140,
+  "observed_usage": {
+    "input": 2065706,
+    "output": 65227,
+    "total": 2130933,
+    "cached": 1733248
+  },
+  "completed_stages": [
+    {
+      "phase": "discussion",
+      "elapsed_ms": 134963,
+      "requests": 79,
+      "usage": {
+        "input": 1317106,
+        "output": 45176,
+        "total": 1362282,
+        "cached": 1081344
+      }
+    }
+  ],
+  "finding": "Original collab.participant submit parameters include key; execute forwards every parameter. Original Git submit schema forbids undeclared properties and does not declare key; original NodeModule call validates that schema too. This defect predates migration.",
+  "production_change_applied": false,
+  "proposal": "build/participant-submit-key-proposal.patch",
+  "proposal_behavior": "Consume optional participant submit key before forwarding. Preserve existing Git commit-based duplicate handling. Do not add key idempotency or change core.",
+  "user_question": "Allow this specific original contract defect fix and continue, or preserve original failure behavior and defer discussion acceptance?",
+  "not_yet_verified": [
+    "remaining collaboration/submissions",
+    "candidate review/publish",
+    "actual model cold reopen/continuation"
+  ],
+  "model_reasoning_text_exported": false,
+  "api_process_stopped": true
+}

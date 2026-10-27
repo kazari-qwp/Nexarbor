@@ -77,3 +77,12 @@
 状态：按用户最新决定 D015 解除。撤回 D014 的共享方案和可选去重；信号不复用 access，不再等待核心层生命周期接口讨论。
 
 原 SignalRuntime 的同层 LayerWork.drain、脉冲 close_loop 回源回执以及预算、取消、故障、保存规则，由独立 app 信号运行器迁移。access 恢复原有去重访问行为，已有门禁与节点快照保留。独立运行器仍未完成；来源与边界见 SIGNAL_BOUNDARY.md。
+
+
+## B008：旧成员提交接口允许 key，但旧 Git 提交接口禁止 key
+
+状态：等待用户选择。真实付费验收已停止，不自动重试。属于原项目已有契约矛盾，未确认涉及新核心限制。
+
+来源：projects/discussion-collaboration/modules/collab.participant/module.json 的 submit.parameters 包含 key；module.py 会把 activation.parameters 全部复制并转发。git.integrator.rev_2863bbe53e.rev_c376775a7e/module.json 的 submit.parameters 仅 member/commit/branch，additionalProperties=false；旧 python/datanet/core/local_modules.py NodeModule.install.call 在执行前也校验该 Schema。
+
+最小提案：成员入口消费/不转交 key，Git 仍按原 commit 判断 duplicate；不增加新幂等规则。补丁已准备但尚未应用：build/participant-submit-key-proposal.patch。因用户要求迁移不得擅自改变原业务，已请求明确选择。参见 evidence/2026-10-27-discussion-api-stopped.json。
