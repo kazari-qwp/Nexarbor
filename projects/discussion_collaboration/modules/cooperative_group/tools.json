@@ -1,0 +1,188 @@
+[
+  {
+    "id": "datanet_team_status",
+    "operation": "status",
+    "name": "按需查看本组认领、共享记录或验收材料。",
+    "description": "按需查看本组认领、共享记录或验收材料。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string"
+        },
+        "section": {
+          "type": "string",
+          "enum": [
+            "all",
+            "summary",
+            "claims",
+            "records",
+            "candidate"
+          ],
+          "default": "all",
+          "description": "选择要读取的内容。"
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "datanet_team_claim",
+    "operation": "claim",
+    "name": "认领子任务及文件路径、补充路径，或完成、释放自己的认领。",
+    "description": "认领子任务及文件路径、补充路径，或完成、释放自己的认领。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "claim",
+            "extend",
+            "complete",
+            "release"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1
+        },
+        "paths": {
+          "type": "array",
+          "description": "预计添加、修改或删除的工作区相对文件或目录路径；调查任务可省略。extend 时补充原认领的路径。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "datanet_team_note",
+    "operation": "note",
+    "name": "向本组共享记录发布发现、事实、失败尝试或成果摘要。",
+    "description": "向本组共享记录发布发现、事实、失败尝试或成果摘要。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "OBSERVED",
+            "FACT",
+            "FAIL",
+            "PATCH_SUMMARY"
+          ]
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "content"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "datanet_team_workspace",
+    "operation": "workspace",
+    "name": "查看个人工作目录、同步共同成果或提交并整合修改。",
+    "description": "查看个人工作目录、同步共同成果或提交并整合修改。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "inspect",
+            "sync",
+            "publish"
+          ]
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "datanet_team_finish",
+    "operation": "finish",
+    "name": "提交成果与验收材料，或批准、否决当前候选。",
+    "description": "提交成果与验收材料，或批准、否决当前候选。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "propose",
+            "approve",
+            "reject"
+          ]
+        },
+        "content": {
+          "type": "string",
+          "minLength": 1
+        },
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_scripts": {
+          "type": "array",
+          "description": "已提交的测试脚本在共同工作区中的相对路径。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "test_results": {
+          "type": "array",
+          "description": "自己的测试结果文件路径。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "log_ids": {
+          "type": "array",
+          "description": "附上的终端日志ID；省略时附上自己本次运行的日志。",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "action",
+        "evidence"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

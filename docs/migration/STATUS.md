@@ -135,3 +135,35 @@ Git 整合器与应用协调器已经迁移并验证；原 SDK 工具宿主已�
 用户明确批准仅在 participant.submit 转交时消费 key，保留 Git 的 commit 幂等，并要求后续业务逻辑改动继续先确认。修复及两项回归已实现：基础模块 10 项通过（1.408 秒），新增真实 Git/官方 SDK 专项 1 项通过（9.108 秒），证明相同 commit 返回重复、新 commit 即使沿用同一 key 仍可提交。最近单次全量仍为 397 项；新增两项尚未合入单次全量统计。证据 evidence/2026-10-27-participant-submit-key-fix.json。
 
 中断运行只读恢复核对：日志校验到提交 258，存在两条未确认 executor_invoke；4 个任务由 3 位成员完成，另一个成员在任何工具执行前遇到上游 502，两个活动仍为 running。原活动状态机拒绝重放失败/运行中的活动，不能为验收篡改状态、补造提交或自动重放信号。因此保留 build/native-discussion-newcore-4mg660xk 的仓库、会话和证据，修复提交后用全新运行目录重新完成实际讨论应用验收。不对旧运行调用 reconcile 来假定未知效果已经处理。
+
+
+## 当前 API 暂停：验收任务活动阶段互等
+
+D016 修复已提交 9d825dd。新运行 build/native-discussion-newcore-6d98yuxv：讨论 81 请求、123.734 秒、输入 1,485,247、输出 45,752；4 位执行成员各完成一项任务并提交真实 Git commit，确认修复生效。随后成员在本次工作活动内反复等待候选，宿主却等待活动结束后才 integrate，构成验收驱动互等。按用户异常耗时/消耗先停要求，已核验并停止唯一验收主进程，保留仓库/会话/日志，不篡改状态。完整数字见 evidence/2026-10-27-discussion-activity-wait.json。
+
+原业务协调器使用独立 collaboration.review 信号，活动状态机拒绝重叠活动；不应让宿主在旧活动运行时强行进入新验收信号。已准备纯测试输入修正：任务明确 complete+submit 后立即结束本活动、不轮询不 sleep，独立 review 信号到达后再验收并结束。未改任何业务提示词、模块、核心或断言。后续付费重跑等用户答复，期间继续资料库离线迁移。
+
+
+## 当前任务恢复：D017 模块级旧协作协议；D018 资料库结构
+
+用户批准继续，按 D017 恢复正确旧 propose/approve/reject/自动交付协议，只改模块及必要配置/验收接线，核心与通用执行器不动。真实 API 先等新协议离线及原生宿主验证通过，不再使用仅提示词结束活动的修补。D018：资料库 RAG 作为 Wiki 检索目录，返回链接，Agent 可直达 Wiki/数据库/其他信息节点。
+
+历史资料库存储 WIP：projects/knowledge_archive/modules/knowledge_catalog/store.py 的 721 行由实际项目 720 行源码迁入，仅 CSV/SQLite/LlamaIndex 构造器改成现有 Dataer、文件原子替换及导航 import 改新路径；7 项真实文件/SQLite 专项通过（1.089 秒）。catalog module.py 为待接线 WIP，尚未应用验收；完整资料库协议和 D018 尚未完成。
+
+
+## 新增约束与当前模块实现检查点
+
+D019/D020 为最新完整验收依据：冲突分支可跳过，继续独立工作；前端阶段按原文档及真实旧客户端逐项比对书签/跳转等，真实客户端截图且不用 Computer Use；网络与组件两个制作 Agent 的工具、按需 Skill、所有文档都要可用，只更新过时内容；新小镇内置作学习范例。右键小镇节点咨询网络 Agent，真实工具查看后正确介绍是明确验收。三应用分别为五天小镇、根→管理员→两预设动态组装→CSV 转 JSON 的原测试、资料库原六阶段测试；不能继续把之前简化验收当最终目标。
+
+D017 当前 WIP：cooperative_group 的原 claim/note/finish/member_exit 规则及 Workspace 原源码、快照材料、全员交付、通知、控制 conclude 已实现；cooperative_member 有继续/批准等待/否决唤醒模块循环。9 项真实 Git/文件协议专项通过（13.458 秒），未调用 API。正在把实际讨论项目的模块接线更新为该协议，新增交付/记录两个 Markdown 节点，当前 17 节点；此固定项目只是应用装配验证，尚未实现 D020 的根/管理员/动态预设全流程，不能付费跑替代任务。原测试/前端/文档清单继续定位。
+
+注意：app_coordinator、runtime、17 节点配置与新模块均有未提交 WIP，尚需接线/循环/原生 conclude 验证；旧 tests/test_discussion_project.py 仍按 15 节点和 GitIntegrator 检查，待按 D017 改为检查新增交付节点和真实协议。保留 domain/core/data_node.py 用户编辑，不纳入迁移提交。原生适配器已经有控制结果支持，无需改 core 或 adapt。
+
+
+## 网络中断恢复检查点：415 回归、原生协作收尾已通过
+
+最近单次全量 415 项通过（188.106 秒，build/cooperative-full-regression.log），包括新协议 9 项与历史 catalog 7 项。实际项目 3 项通过；原协调器 8 项通过（18.798 秒）。真实 Harness SDK/原生 JSONL 集成 build/native-cooperative-iivg6a8b 通过：4 名成员工具都返回 conclude=true、全票、交付文件和归档；12 次本地 HTTP 模型夹具请求，包括结束通知后的简短回复，付费 API=0。测试入口 tests/cooperative_rpc_fixture.py 仅为实际项目指定 root 调用身份，其余执行/工具/事务/SDK 均走现有路径；不把本地回复当真实模型验收。现阶段 core 与 adapt 均未修改，DataNode 用户默认值编辑保留。
+
+D017 仍有原同伴消息/一次性回复、终端日志、逐请求预算/全局期限等策略待迁，不宣称完整协作应用通过。新 17 节点配置仅用于组件装配；D020 最终原驱动已定位 scripts/prepare_root_hone_learning.mjs、run_learning_root_hone.mjs、grade_learning_hone.py：初始仅 root/administrator/workspace 三节点，真实模型委托组网，不预建团队；任务夹具来自 build/hone-fixed-20261014-r6/workspace/task，独立原测试为 7 单测+5验收+6CLI，原成功基线见 docs/evaluation/HONE_FIXED_RETEST.md（1617.418 秒，329 消息，未缓存 8044304、缓存 23292416、输出 546287）。最终比较应优先核对当前根委托版本的对应结果，不能把高推理旧固定组织直接当同条件基线。
+
+D021 已记录六份演示与双击历史要求；旧演示确为六个独立目录，含可携带会话分块和 Git bundle，依据原 项目演示/README.md、scripts/package_release.py。前端清单见 FRONTEND_ACCEPTANCE.md；原文档已阅读，实际旧客户端对照留到前端阶段。网络中断恢复时未发现本任务付费测试进程，不重启已完成测试。

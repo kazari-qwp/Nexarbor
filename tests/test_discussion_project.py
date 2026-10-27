@@ -1,4 +1,4 @@
-"""实际 15 节点讨论项目的装配、上下文、工具和保存恢复。"""
+"""实际讨论项目与原候选验收协议的装配、上下文、工具和保存恢复。"""
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -22,17 +22,24 @@ class DiscussionProjectTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_actual_project_keeps_nodes_resources_modules_and_host_tools(self):
         backend = self.project.backend
-        self.assertEqual(len(list(backend.network)), 15)
+        self.assertEqual(len(list(backend.network)), 17)
         self.assertEqual(len(backend.bindings), 10)
         data_nodes = [node for node in backend.network if isinstance(node, DataNode)]
-        self.assertEqual(len(data_nodes), 12)
+        self.assertEqual(len(data_nodes), 14)
         self.assertTrue(all(node.saver.path.resolve().is_relative_to(Path(self.temp.name).resolve()) for node in data_nodes))
         self.assertEqual(sum(tool.name.startswith("ext_") for node in backend.network for tool in node.tools), 31)
-        self.assertEqual(len(backend.snapshot()["files"]), 12)
+        self.assertEqual(len(backend.snapshot()["files"]), 14)
         group = backend.network.get("collab")
-        integrator = group.modules.get("git.integrator.rev_2863bbe53e.rev_c376775a7e")
-        self.assertEqual(integrator.config["terminal_ref"], host_tool_name("collab", "harness:pwsh"))
-        self.assertTrue(any(tool.name == integrator.config["terminal_ref"] for tool in group.tools))
+        cooperation = group.modules.get("cooperation.group")
+        self.assertEqual(cooperation.config["output"], "collab/output")
+        self.assertIsNone(group.modules.get("git.integrator.rev_2863bbe53e.rev_c376775a7e"))
+        self.assertTrue(any(tool.name == host_tool_name("collab", "harness:pwsh") for tool in group.tools))
+        for name in ("collab/output", "collab/findings"):
+            self.assertIsInstance(backend.network.get(name), DataNode)
+        for index in range(1, 5):
+            actor = backend.network.get("executor-" + str(index))
+            self.assertIsNotNone(actor.modules.get("cooperation.member"))
+            self.assertIsNone(actor.modules.get("agents.activity"))
 
     async def test_real_agent_prepare_reads_markdown_context_and_excludes_other_agents_memory(self):
         backend = self.project.backend

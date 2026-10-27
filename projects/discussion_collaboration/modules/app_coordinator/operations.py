@@ -1,6 +1,7 @@
 """原讨论→执行→整合→验收编排；下游方法直接返回业务数据。"""
 
 import time
+import json
 import uuid
 from .state import (
     ACTIVE_STATUSES,
@@ -129,16 +130,13 @@ async def _handoff(module):
         decision = {}
 
     tasks = _normalize_tasks(artifact, decision, run)
-    board_result = await _downstream(
-        module,
-        "board_node",
-        _board_module(module),
-        "open",
-        {"tasks": tasks},
-        ["collaboration"],
-    )
-    board_data = board_result
-    execution_run = board_data["run"]["id"]
+    if module.config.get("cooperative_module"):
+        board_data = await _downstream(module, "board_node", module.config["cooperative_module"], "start",
+                                       {"task": json.dumps(dict(task=run["task"], artifact=artifact, tasks=tasks), ensure_ascii=False)}, ["collaboration"])
+        execution_run = board_data["run_id"]
+    else:
+        board_data = await _downstream(module, "board_node", _board_module(module), "open", {"tasks": tasks}, ["collaboration"])
+        execution_run = board_data["run"]["id"]
 
     run["execution_run"] = execution_run
     run["artifact_title"] = (
@@ -278,6 +276,10 @@ async def _promote(module):
 
 
 async def _status(module):
+    if module.config.get("cooperative_module"):
+        cooperation = await _safe_target(module, "status", "board_node", module.config["cooperative_module"], "status", {}, ["collaboration"])
+        discussion = await _safe_target(module, "status", "discussion_node", _discussion_module(module), "status", {}, ["discussion"])
+        return {"run": _plain(_state(module).get("run")), "discussion": discussion, "cooperation": cooperation, "errors": _plain(module.state.get("errors", []))}
     summary = {}
     summary["discussion"] = await _safe_target(
         module, "status", "discussion_node",
@@ -309,6 +311,8 @@ async def _stop(module, params):
     if run.get("status") == "discussing":
         result["discussion"] = await _stop_target(module, "discussion_node", _discussion_module(module),
                                                   "stop", {"reason":reason} if reason else {}, ["discussion"])
+    elif module.config.get("cooperative_module"):
+        result["board"] = await _stop_target(module, "board_node", module.config["cooperative_module"], "stop", {"failure":reason}, ["collaboration"])
     elif run.get("status") == "executing":
         result["board"] = await _stop_target(module, "board_node", _board_module(module),
                                              "close", {}, ["collaboration"])

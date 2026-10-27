@@ -11,6 +11,8 @@ from app.runtime.module_emitter import emit_module_signal
 from modules.context_assembler import ContextAssemblerModule
 from modules.tool_discovery import ToolDiscoveryModule
 from .modules.agents_activity import AgentsActivityModule
+from .modules.cooperative_group import CooperativeGroupModule
+from .modules.cooperative_member import CooperativeMemberModule
 from .modules.app_coordinator import AppCoordinatorModule
 from .modules.collab_board import CollabBoardModule
 from .modules.collab_participant import CollabParticipantModule
@@ -23,11 +25,14 @@ from .modules.records_store import RecordsStoreModule
 
 
 class DiscussionModules:
-    def __init__(self, definitions):
+    def __init__(self, definitions, directory=None):
+        self.directory = Path(directory or ".").resolve()
         self.backend = None
         self.official_port = None
         self.saver = NetworkSaver()
         self.factories = {
+            "cooperation.group":lambda config, **settings:CooperativeGroupModule(self.directory, self.transaction, self.emit, self.write_documents, config, **settings),
+            "cooperation.member":lambda config, **settings:CooperativeMemberModule(self.execute_agent, config, **settings),
             "agents.activity":lambda config, **settings:AgentsActivityModule(self.execute_agent, config, **settings),
             "app.coordinator.entry":lambda config, **settings:AppCoordinatorModule(self.emit, config, **settings),
             "collab.board.rev_9191e2380f.rev_96569f0263":lambda config, **settings:CollabBoardModule(self.transaction, self.emit, config, **settings),
@@ -54,6 +59,9 @@ class DiscussionModules:
     def restore_module(self, record):
         return self.make(record["module_id"], record.get("config", {}), record)
 
+    def write_documents(self, files):
+        self.backend.write_documents(files)
+
     def transaction(self, nodes, **options):
         return self.backend.node_locks.transaction(nodes, **options)
 
@@ -73,7 +81,7 @@ class DiscussionProject(DiscussionModules, Project):
     def __init__(self, directory, project=None):
         folder = Path(project).resolve() if project is not None else Path(__file__).resolve().parent
         definitions = json.loads((folder / "host_tools.json").read_text(encoding="utf-8"))
-        DiscussionModules.__init__(self, definitions)
+        DiscussionModules.__init__(self, definitions, directory)
         Project.__init__(self, directory, folder)
 
     def configure_project(self):

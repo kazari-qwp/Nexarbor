@@ -3,7 +3,7 @@
   "id": "app.coordinator.entry",
   "name": "运行编排器（修订三）",
   "version": "0.1.5",
-  "description": "根入口编排器：启动讨论、交接执行、生成候选、推进验收与发布；成员提交与投票由执行组的 collab.participant 处理。",
+  "description": "启动讨论并交接执行组；成员提出候选、全员验收后自动交付并同步运行状态。",
   "entry": "module.py:AppCoordinatorModule",
   "node_types": [
     "node",
@@ -101,6 +101,9 @@
         "minimum": 1,
         "maximum": 86400,
         "default": 86400
+      },
+      "cooperative_module": {
+        "type": "string"
       }
     },
     "required": [
@@ -310,44 +313,6 @@
       }
     },
     {
-      "name": "integrate",
-      "channels": [
-        "app"
-      ],
-      "parameters": {
-        "type": "object",
-        "title": "整合参数",
-        "properties": {
-          "reason": {
-            "type": "string",
-            "title": "重开理由",
-            "description": "可选；验收阶段发现候选被否决时，作为重开验收的理由传给整合器；缺省为“成员否决后重开验收”。",
-            "maxLength": 500
-          }
-        },
-        "additionalProperties": false
-      },
-      "result": {
-        "type": "object",
-        "additionalProperties": true
-      }
-    },
-    {
-      "name": "promote",
-      "channels": [
-        "app"
-      ],
-      "parameters": {
-        "type": "object",
-        "properties": {},
-        "additionalProperties": false
-      },
-      "result": {
-        "type": "object",
-        "additionalProperties": true
-      }
-    },
-    {
       "name": "status",
       "channels": [
         "app"
@@ -399,18 +364,6 @@
       "name": "交接执行",
       "description": "读取讨论成果并把任务交给协作板执行，运行进入执行阶段。",
       "operation": "handoff"
-    },
-    {
-      "id": "integrate",
-      "name": "整合成果",
-      "description": "让整合器生成候选，并沿验收频道广播验收信号。",
-      "operation": "integrate"
-    },
-    {
-      "id": "promote",
-      "name": "发布成果",
-      "description": "全员认可后发布当前候选，运行标记为完成。",
-      "operation": "promote"
     },
     {
       "id": "status",

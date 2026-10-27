@@ -3,6 +3,7 @@
 from copy import deepcopy
 from hashlib import sha256
 import json
+import time
 from pathlib import Path
 
 from app.runtime.requester import as_caller
@@ -37,14 +38,15 @@ class AppCoordinatorModule(Module):
         self.emit = emit
         self.config = deepcopy(config or {})
         self.state = deepcopy(state or {})
-        for spec in TOOLS:
+        self.tool_specs = [spec for spec in TOOLS if not self.config.get("cooperative_module") or spec["operation"] not in ("integrate", "promote")]
+        for spec in self.tool_specs:
             self.tools._add(CallableTool(spec["id"], getattr(self, spec["operation"]),
                                          spec["description"], deepcopy(spec["parameters"])))
 
     def _bind(self, node):
         super()._bind(node)
         source_id = sha256((node.info.node_id + "\0" + self.module_id).encode()).hexdigest()[:24]
-        for tool, spec in zip(self.tools, TOOLS):
+        for tool, spec in zip(self.tools, self.tool_specs):
             tool.name = "mod_" + sha256((source_id + "\0" + spec["id"]).encode()).hexdigest()[:24]
             tool.description = node.info.node_id + " · " + spec["name"] + " · " + spec["description"]
 
@@ -100,3 +102,16 @@ class AppCoordinatorModule(Module):
 
     async def stop(self, reason=None):
         return await self._call("stop", {"reason":reason})
+
+    async def cooperation_completed(self, result):
+        return next(iter((await self._cooperation_completed(result)).values()))
+
+    @access(channels=())
+    async def _cooperation_completed(self, node, result):
+        require_transaction_node(node.info.node_id)
+        run = self.state.get("run")
+        if run is None or run.get("execution_run") != result["run_id"]:
+            return
+        run.update(status=result["phase"], candidate=(result.get("candidate") or {}).get("id"), ended_at=time.time(), error=result.get("failure"))
+        from .state import _archive_run
+        _archive_run(self.state)

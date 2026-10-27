@@ -30,40 +30,6 @@
         }
       },
       {
-        "module_id": "agents.activity",
-        "description": "",
-        "channels": [
-          "tick",
-          "activity",
-          "records",
-          "self",
-          "runtime.agent",
-          "collaboration.work",
-          "collaboration.review"
-        ],
-        "strength": 2,
-        "channel_mode": "allow",
-        "modules": [
-          "records.store"
-        ],
-        "config": {
-          "signal_channels": [
-            "collaboration.work",
-            "collaboration.review"
-          ],
-          "budget_field": "ap",
-          "budget": 20,
-          "prompt": "协作信号已到达。请读取协作板任务与候选状态：自主认领任务与路径，用独立 worktree 完成、测试并提交；收到验收信号后检查同一候选，调用 approve 或 veto。",
-          "enabled": true
-        },
-        "state": {},
-        "published": {},
-        "tools": {
-          "group": 1,
-          "members": []
-        }
-      },
-      {
         "module_id": "tool_discovery",
         "description": "串联工具发现",
         "channels": [
@@ -73,6 +39,22 @@
         "strength": 2,
         "channel_mode": "allow",
         "modules": [],
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "module_id": "cooperation.member",
+        "description": "",
+        "channels": [
+          "collaboration"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {},
+        "state": {},
         "tools": {
           "group": 2,
           "members": []
@@ -211,6 +193,14 @@
       "runtime.agent"
     ],
     "max_steps": 100000,
-    "timeout_seconds": 86400
+    "timeout_seconds": 86400,
+    "prepare": [
+      {
+        "module": "cooperation.member",
+        "operation": "prepare",
+        "arguments": {},
+        "channels": []
+      }
+    ]
   }
 }
