@@ -23,7 +23,7 @@ export async function readProjectSnapshot(directory){
  const entry=project.networks[project.activeNetwork],network=JSON.parse(await read(entry.file));
  if(network.format!=='nexarbor-project-network/v2')throw Error('项目网络清单格式无效');
  const nodes=await Promise.all(network.nodes.map(async item=>JSON.parse(await read(item.file))));
- const document={network:{nodes},files:{},node_properties:network.properties??{},runtime:network.runtime??{}},resources={},missing=[];
+ const document={network:{nodes,properties:network.properties??{}},files:{},runtime:network.runtime??{}},resources={},missing=[];
  for(const file of network.files??[])document.files[file]=await read(file);
  const visit=async id=>{
   if(Object.hasOwn(resources,id)||missing.includes(id))return;

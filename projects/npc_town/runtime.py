@@ -85,6 +85,6 @@ class TownModules:
 
 
 class TownProject(TownModules, Project):
-    def __init__(self, directory, project=None):
+    def __init__(self, directory, project=None, *, studio=False):
         TownModules.__init__(self)
-        Project.__init__(self, directory, project or Path(__file__).resolve().parent)
+        Project.__init__(self, directory, project or Path(__file__).resolve().parent,studio=studio)

@@ -40,7 +40,7 @@ class Visit:
         return (await value if inspect.isawaitable(value) else value,)
 
 class ModuleHarness:
-    def __init__(self,module_directory,*,library=None,_runtime_directory=None,_initial_document=None,_configure_saver=None):
+    def __init__(self,module_directory,*,library=None,_runtime_directory=None,_initial_document=None,_configure_saver=None,_store=None):
         source=Path(module_directory).resolve() if module_directory is not None else None
         self.spec=json.loads((source/'module.json').read_text(encoding='utf-8')) if source else {}
         self.module_id=self.spec.get('id')
@@ -55,14 +55,17 @@ class ModuleHarness:
         self.folder.mkdir(parents=True,exist_ok=True)
         self._active_agents=set();self.agent_callback=None;self.port_contracts=environment_contracts();self.providers={};self.definitions={};self.last_agent_views={};self._closed=False
         saver=NetworkSaver(read_text=self._read_text)
-        self.modules=ProjectModules(SimpleNamespace(directory=self.folder,saver=saver),self.library,agent_run=self.run_agent)
+        claimed=False
         try:
+            self.modules=ProjectModules(SimpleNamespace(directory=self.folder,saver=saver),self.library,agent_run=self.run_agent)
             if _configure_saver is not None:_configure_saver(saver)
-            self.backend=Backend(self.folder,network=Network(),saver=saver,initial_document=_initial_document)
+            claimed=True
+            self.backend=Backend(self.folder,network=Network(),saver=saver,initial_document=_initial_document,store=_store)
             self.modules.backend=self.backend
             self._configure_runtime()
         except BaseException:
             if hasattr(self,'backend'):self.backend.close()
+            elif not claimed and _store is not None:_store.close()
             if self.temporary is not None:self.temporary.cleanup()
             raise
 

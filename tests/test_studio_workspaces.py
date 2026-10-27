@@ -115,3 +115,39 @@ class CurrentGraph(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError,'reset'):self.studio.environment({'id':id,'action':'inspect'})
         fresh=self.studio.environment({'id':id,'action':'reset','source':'current'})
         self.assertTrue(fresh['ok'],fresh);self.assertNotEqual(fresh['directory'],reset['directory']);self.assertTrue(Path(reset['directory']).is_dir())
+
+    def test_parallel_environment_processes_keep_the_original_runtime_lease(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from domain.core import Node,NodeInfo
+        self.backend.network.add(Node(NodeInfo('subject','实际当前节点')))
+        work=self.studio.create({'kind':'module'});id=work['id']
+        self.assertTrue(self.studio.environment({'id':id,'action':'reset'})['ok'])
+        self.assertTrue(self.studio.environment({'id':id,'action':'mount','node':'subject'})['ok'])
+        def increment(_):return self.studio.environment({'id':id,'action':'call','actor':'subject','node':'subject','operation':'increment','arguments':{'amount':1}})
+        with ThreadPoolExecutor(max_workers=2) as pool:results=list(pool.map(increment,range(2)))
+        self.assertTrue(all(result['ok'] for result in results),results)
+        self.assertEqual(sorted(result['result']['data'] for result in results),[1,2])
+
+    def test_checkpoint_restores_the_published_component_source_version(self):
+        from app.studio.project_sources import materialize
+        from app.studio.service import digest,sources,read_json
+        from domain.core import Node,NodeInfo
+        work=self.studio.create({'kind':'tool'});files=work['files'];spec=json.loads(files['module.json'])
+        def install_version(files,version):
+            spec=json.loads(files['module.json']);spec['version']=version;files={**files,'module.json':json.dumps(spec)}
+            fingerprint=digest(files);folder=self.studio.root/'releases'/spec['id']/version/fingerprint;materialize(folder,files,self.studio.root)
+            return dict(id=spec['id'],version=version,folder=str(folder.relative_to(self.studio.root)),digest=fingerprint,manifest=spec,defaults={},mount_defaults={'config':{},'state':{}},origin='module')
+        first=install_version(files,'0.1.0');self.studio.library[spec['id']]=first;self.studio._load_releases()
+        node=Node(NodeInfo('counter','计数'));self.backend.network.add(node);self.studio.modules.mount(node,spec['id'])
+        self.backend.save(full=True);saved=self.backend.snapshot()
+        node.remove(node.modules.get(spec['id']))
+        second=install_version({**files,'module.py':files['module.py'].replace(" + amount", " + amount * 10")},'0.2.0')
+        self.studio.library[spec['id']]=second;self.studio._load_releases();self.studio.modules.mount(node,spec['id'])
+        self.assertEqual(next(iter(node.tools)).invoke(amount=1),10)
+        self.backend.restore(saved)
+        restored=self.backend.network.get('counter');self.assertEqual(next(iter(restored.tools)).invoke(amount=1),1)
+        self.assertEqual(self.studio.library[spec['id']]['version'],'0.1.0')
+        self.backend.save(full=True);self.backend.close()
+        reopened=Backend(self.temp.name,configure=lambda backend:Studio(backend));self.addCleanup(reopened.close)
+        self.assertEqual(next(iter(reopened.network.get('counter').tools)).invoke(amount=1),2)
+        self.assertEqual(reopened.studio.library[spec['id']]['version'],'0.1.0')

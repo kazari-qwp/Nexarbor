@@ -31,8 +31,7 @@ def sanitized(document):
         return value
     for node in result['network']['nodes']:
         if 'tables' in node:node['tables']=rewrite(node['tables'])
-    result.update(version=1,agents={},signals={},files=copied)
-    return result
+    return dict(version=1,network=result['network'],files=copied,agents={},signals={},runtime=result.get('runtime',{}),node_properties=result.get('node_properties',{}),document_resources=list(copied))
 
 def prepare(studio,p,*,folder=None,activate=True):
     work=folder or studio.folder(p['id']);metadata=read_json(studio.folder(p['id'])/'workspace.json',{})
@@ -128,7 +127,7 @@ async def worker(home,request):
             return dict(ok=True,**text_page(json.dumps(previous,ensure_ascii=False,indent=2),request,default_lines=120,max_lines=200))
         if action=='mount':
             node=h.network.get(request['node']);name=request.get('module') or setup['module'];current=node.modules.get(name)
-            if current is not None and any(key in request for key in ('config','state','access')):node.uninstall(current)
+            if current is not None and any(key in request for key in ('config','state','access')):node.remove(current)
             h.mount(node.info.node_id,module=name,**{key:request[key] for key in ('config','state','access') if key in request})
             result=dict(mounted=name,node=node.info.node_id)
         elif action=='call':

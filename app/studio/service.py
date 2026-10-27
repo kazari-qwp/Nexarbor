@@ -52,23 +52,57 @@ def sources(folder):
 def digest(files):return sha256(json.dumps(files,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
 
 class Studio:
-    def __init__(self,backend,library=None,*,agent_run=None,instantiate=None,ports=None,port_contracts=None):
+    def __init__(self,backend,library=None,*,agent_run=None,instantiate=None,ports=None,port_contracts=None,project_directory=None):
         self.backend=backend;self.root=backend.directory/'studio';self.root.mkdir(exist_ok=True)
         self.work=self.root/'work';self.work.mkdir(exist_ok=True)
         self.agent_run=agent_run;self.instantiate=instantiate;self.ports=ports or {};self.port_contracts=port_contracts or {}
+        self.project_directory=Path(project_directory).resolve() if project_directory is not None else None
         self.standard_releases={}
         for name,folder in (library or {}).items():
             folder=Path(folder).resolve();spec=manifest(folder);files=sources(folder);defaults=read_json(folder/'example.json',{})
-            self.standard_releases[name]=dict(id=name,version=spec['version'],folder=str(folder),digest=digest(files),manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin='project')
-        self.library={**self.standard_releases,**read_json(self.root/'library.json',{})}
-        self.removed=set(read_json(self.root/'removed-modules.json',[]));self.jobs={};self.processes={};self.pool=ThreadPoolExecutor(max_workers=2);self.lock=threading.RLock();self.running=False;self.closed=False
+            self.standard_releases[name]=dict(id=name,version=spec['version'],folder=str(folder),digest=digest(files),manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin='project' if self.project_directory else 'standard')
+        self.removed=set(read_json(self.root/'removed-modules.json',[]))
+        self.library=self.select_releases(read_json(self.root/'library.json',{}))
+        self.jobs={};self.processes={};self.pool=ThreadPoolExecutor(max_workers=2);self.lock=threading.RLock();self.running=False;self.closed=False
         self.workspace_busy=lambda id:False
+        self.run_state=dict(status='idle',completed=0,requested=0)
+        self.graph_changed=None
         self._load_releases()
+        self.persist_library()
+        self._attach_lifecycle()
 
     def _load_releases(self):
         self.modules=ProjectModules(self.backend,{name:self.root/release['folder'] for name,release in self.library.items()},agent_run=self.agent_run,instantiate=self.instantiate)
 
-    def persist_library(self):write_json(self.root/'library.json',{name:release for name,release in self.library.items() if release.get('origin')!='project'})
+    def select_releases(self,releases):
+        selected={**self.standard_releases,**{name:release for name,release in releases.items() if release.get('origin')!='project'}}
+        from .project_sources import scan
+        selected.update(scan(self))
+        return {name:release for name,release in selected.items() if name not in self.removed}
+
+    def persist_library(self):
+        file=self.root/'library.json';previous=read_json(file,None)
+        if previous==self.library:return
+        if previous is not None:
+            backup=self.root/'library-history'/(digest(previous)+'.json')
+            if not backup.exists():write_json(backup,previous)
+        write_json(file,self.library)
+
+    def _attach_lifecycle(self):
+        backend=self.backend
+        if not hasattr(backend,'studio'):
+            previous_snapshot,previous_restore,previous_close=backend.snapshot_extra,backend.restore_extra,backend.close_extra
+            def snapshot(current):return {**(previous_snapshot(current) if previous_snapshot is not None else {}),'studio_releases':deepcopy(current.studio.library)}
+            def restore(current,document):
+                if previous_restore is not None:previous_restore(current,document)
+                studio=current.studio;studio.library=studio.select_releases(document.get('studio_releases',studio.library));studio._load_releases();studio.persist_library()
+            def close(current):
+                try:current.studio.close()
+                finally:
+                    if previous_close is not None:previous_close(current)
+            backend.snapshot_extra=snapshot;backend.restore_extra=restore;backend.close_extra=close
+        backend.studio=self
+
 
     def catalog(self,p=None):
         library={name:dict(release,available=True,name=release['manifest'].get('name') or name) for name,release in self.library.items()}
@@ -407,3 +441,135 @@ class Studio:
     def environment(self,p):
         from .environment import operate
         return operate(self,p)
+
+    def runtime_settings(self,p):
+        return dict(templates=deepcopy(self.backend.extension_state.get('runtime',{}).get('templates',[])))
+
+    def state(self,p=None):
+        snapshot=self.backend.snapshot();network=deepcopy(snapshot['network']);network['properties']=deepcopy(snapshot.get('node_properties',{}))
+        names={node['node_id']:node['name'] for node in network['nodes']}
+        return dict(moduleProblems={},mode='组件开发 · Harness后端',live=dict(document=dict(network=network,files=snapshot['files']),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),job=self.run_state,studio=True)
+
+    def observe(self,p):
+        folder=self.folder(p['id']);source=p.get('source','candidate');scoped=getattr(self.backend,'network_administrator',None)
+        if source=='candidate':
+            if read_json(folder/'workspace.json',{}).get('kind')!='network':raise ValueError('组件副本请使用 current 或 environment 观察网络')
+            document=read_json(folder/'network.json',{})
+            if scoped and scoped.has(p['id']):document=scoped.check(p['id'],document)
+        elif source=='current':
+            snapshot=scoped.source(p['id']) if scoped and scoped.has(p['id']) else self.backend.snapshot()
+            document=dict(network={**snapshot['network'],'properties':snapshot.get('node_properties',{})},files=snapshot['files'])
+        elif source=='environment':return self.environment(dict(id=p['id'],action='snapshot'))['document']
+        else:raise ValueError('未知观察来源')
+        if not isinstance(document.get('network',{}).get('nodes'),list):raise ValueError('当前副本还没有有效网络，请先建立 network.json')
+        return deepcopy(document)
+
+    def copy_current(self,p):
+        folder=self.folder(p['id'])
+        if read_json(folder/'workspace.json',{}).get('kind')!='network':raise ValueError('仅网络制作副本可以复制当前配置')
+        document=self.observe(dict(id=p['id'],source='current'))
+        for node in document['network']['nodes']:
+            if node['type']=='pulse':node.get('parameters',{}).pop('state',None)
+        file=folder/'network.json';old=file.read_text(encoding='utf-8')
+        self.save(dict(id=p['id'],file='network.json',content=json.dumps(document,ensure_ascii=False,indent=2),expected=sha256(old.encode()).hexdigest()))
+        scoped=getattr(self.backend,'network_administrator',None)
+        templates=[] if scoped and scoped.has(p['id']) else self.runtime_settings(p)['templates']
+        file=folder/'runtime.json';old=file.read_text(encoding='utf-8') if file.exists() else ''
+        self.save(dict(id=p['id'],file='runtime.json',content=json.dumps(dict(templates=templates),ensure_ascii=False,indent=2),expected=sha256(old.encode()).hexdigest()))
+        return dict(copied=True,file='network.json',nodes=len(document['network']['nodes']),runtime_file='runtime.json',templates=len(templates))
+
+    def graph_validate(self,p):
+        try:
+            from .network_work import validate_network
+            validate_network(p['document'],self.backend,self.library,allow_missing=p.get('allow_missing',False),port_definitions=self.ports)
+            return dict(valid=True,errors=[],warnings=[])
+        except Exception as error:return dict(valid=False,errors=[dict(path='network',message=str(error))],warnings=[])
+
+    def draft(self,p):
+        previous=read_json(self.root/'draft.json',{'version':0})
+        if p.get('expected_version',0)!=previous['version']:raise ValueError('Draft changed in another window; reload')
+        value=dict(document=p['document'],layout=p.get('layout',{}),version=previous['version']+1,base_commit=p.get('base_commit'),applied=False)
+        write_json(self.root/'draft.json',value);return value
+
+
+    def project_modules(self,p):
+        from .project_sources import load
+        return load(self)
+
+    def revision(self,p):
+        from .revisions import create
+        return create(self,p)
+
+    async def frontend_preview(self,p):
+        from inspect import isawaitable
+        node=self.backend.network.get(p['node']);name=p['module']
+        spec=manifest(self.root/self.library[name]['folder'])
+        operation=spec.get('frontend',{}).get('preview_operation')
+        if not operation:raise PermissionError('模块未提供预览操作')
+        module=node.modules.get(name)
+        if module is None:raise ValueError('请先装配模块并校验更新网络，再预览当前接线')
+        value=getattr(module,operation)(**({'config':p['config']} if 'config' in p else {}))
+        return await value if isawaitable(value) else value
+
+    async def mount(self,p):
+        if self.running:raise ValueError('Wait until the signal completes')
+        from jsonschema import Draft202012Validator
+        node=self.backend.network.get(p['node']);pending={}
+        module=self.modules.create(node,p['module'],p.get('config'),access=p.get('access'),pending=pending)
+        for name,item in pending.items():
+            spec=self.library[name]['manifest']
+            if node.node_type not in spec['node_types']:raise ValueError('模块不支持节点类型：'+name)
+            for field in ('config','state'):Draft202012Validator(spec.get(field+'_schema',{})).validate(getattr(item,field,{}))
+        def install():
+            node.install(module)
+            from app.projects.module_tools import bind_tools
+            for item in pending.values():
+                if hasattr(item,'_tool_specs'):bind_tools(item,node,item._tool_specs)
+        await self.backend.node_locks.mutate([p['node']],install)
+        return self.state()
+
+    async def unmount(self,p):
+        if self.running:raise ValueError('Wait until the signal completes')
+        node=self.backend.network.get(p['node'])
+        await self.backend.node_locks.mutate([p['node']],lambda:node.remove(node.modules.get(p['module'])))
+        return self.state()
+
+    async def pulse(self,p):
+        if self.running:raise ValueError('Signal is active')
+        self.running=True;cycles=p.get('cycles',1)
+        self.run_state=dict(status='running',completed=0,requested=cycles)
+        try:
+            async def completed(pulse,report):self.run_state['completed']+=1
+            node=self.backend.network.get(p.get('pulse','town/pulse'))
+            report=await node.run(self.backend.signals,cycles=cycles,timeout_seconds=p.get('timeout_seconds',86400),cycle_complete=completed)
+            self.run_state['status']='idle' if report['status']=='completed' else 'failed'
+            if report['status']!='completed':self.run_state['error']='信号未完成闭环：'+report['status']
+            return dict(report=report,state=self.state())
+        except Exception as error:
+            self.run_state.update(status='failed',error=str(error));raise
+        finally:self.running=False
+
+    def reconcile(self,p):
+        self.backend.node_locks.lifecycle()
+        if self.running or self.backend.signals._active:raise ValueError('请等待当前执行彻底停止后再核对中断轮次')
+        pulse=self.backend.network.get(p['pulse'])
+        if pulse.node_type!='pulse':raise ValueError('请选择脉冲节点')
+        pulse.reconcile(p['reason']);return self.state()
+
+    def apply(self,p):
+        backend=self.backend;backend.node_locks.lifecycle()
+        if self.running or backend.signals._active:raise ValueError('Wait until component access and detached signals complete before replacing the graph')
+        if p.get('base_commit')!=backend.store.head:raise ValueError('Network changed; reload before applying')
+        from .network_work import validate_network
+        document=validate_network(p['document'],backend,self.library,allow_missing=True,port_definitions=self.ports)
+        old=backend.snapshot();bindings=p.get('agent_bindings',old['agents'])
+        if not isinstance(bindings,dict) or any(not isinstance(v,dict) or (v.get('session_id') is not None and not isinstance(v['session_id'],str)) for v in bindings.values()):raise ValueError('Agent 上下文绑定无效')
+        agents={node['node_id'] for node in document['network']['nodes'] if node['type']=='agent'}
+        candidate={**old,'network':document['network'],'files':document['files'],'agents':{id:deepcopy(value) for id,value in bindings.items() if id in agents},'node_properties':document['network'].get('properties',{}),'document_resources':list(document['files'])}
+        try:backend.restore(candidate)
+        except BaseException:backend.restore(old);raise
+        if self.graph_changed is not None:self.graph_changed()
+        elif backend.graph_observer is not None:backend.graph_observer()
+        draft=read_json(self.root/'draft.json',{'version':0});draft.update(document=document,layout=p.get('layout',{}),applied=True)
+        write_json(self.root/'draft.json',draft)
+        return dict(valid=True,document=document,draft=draft,commit=backend.store.head,warnings=[])

@@ -87,11 +87,11 @@ class DiscussionModules:
 
 
 class DiscussionProject(DiscussionModules, Project):
-    def __init__(self, directory, project=None):
+    def __init__(self, directory, project=None, *, studio=False):
         folder = Path(project).resolve() if project is not None else Path(__file__).resolve().parent
         definitions = json.loads((folder / "host_tools.json").read_text(encoding="utf-8"))
         DiscussionModules.__init__(self, definitions, directory)
-        Project.__init__(self, directory, folder)
+        Project.__init__(self, directory, folder,studio=studio)
 
     def configure_project(self):
         self.host_tools.register(self.manifest["properties"])

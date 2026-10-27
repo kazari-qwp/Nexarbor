@@ -21,6 +21,9 @@ class Transport(JsonRpcTransport):
         backend.graph_observer = self.attach_agents
         self.attach_agents()
         self.routes = {}
+        if hasattr(backend,'studio'):
+            from app.studio.rpc import register
+            register(self)
 
     def encode_value(self, item):
         if isinstance(item, Tools):

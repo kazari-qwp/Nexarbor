@@ -14,20 +14,23 @@ from domain.core import DataNode, Network, NodeInfo
 
 
 class Backend:
-    def __init__(self, directory, *, network=None, saver=None, snapshot_interval=100, initial_document=None):
+    def __init__(self, directory, *, network=None, saver=None, snapshot_interval=100, initial_document=None, store=None, configure=None):
         self.directory = Path(directory).resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         self._transaction_lock = RLock()
         self.saver = NetworkSaver() if saver is None else saver
-        self.store = Checkpoints(self.directory, snapshot_interval=snapshot_interval)
+        self.store = Checkpoints(self.directory, snapshot_interval=snapshot_interval) if store is None else store
         self.agents, self.bindings, self.extension_state = {}, {}, {}
         self.failed = False
         self.commit_observer = None
         self.snapshot_extra = None
+        self.restore_extra = None
+        self.close_extra = None
         self._context_port = None
         self.agent_executor = None
         self.graph_observer = None
         try:
+            if configure is not None:configure(self)
             previous = self.store.latest()
             if previous is not None:
                 self.restore(previous)
@@ -232,6 +235,7 @@ class Backend:
                 if not path.resolve().is_relative_to(self.directory):raise ValueError('Node resource escapes runtime directory')
                 if path not in expected:path.unlink(missing_ok=True)
         for target, content in files:write_data(target, content)
+        if self.restore_extra is not None:self.restore_extra(self,document)
         candidate = self.saver.build(document['network'], self.directory)
         self.agents.clear()
         self.agents.update(deepcopy(document['agents']))
@@ -240,7 +244,10 @@ class Backend:
                               if entry.get('execution') is not None})
         self.extension_state = deepcopy({key: value for key, value in document.items()
             if key not in {'version', 'network', 'agents', 'files', 'tools', 'tool_names', 'node_publications'}})
+        self.extension_state.setdefault('document_resources',list(document['files']))
         self._use_network(candidate)
 
     def close(self):
-        self.store.close()
+        try:
+            if self.close_extra is not None:self.close_extra(self)
+        finally:self.store.close()

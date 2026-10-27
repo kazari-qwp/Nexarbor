@@ -21,7 +21,8 @@ class NetworkWork(unittest.IsolatedAsyncioTestCase):
         spec=json.loads(files['module.json']);spec['agent_tools']=[dict(id='increment',name='计数',description='增加计数',operation='increment')];files['module.json']=json.dumps(spec)
         for file,text in files.items():(component/file).write_text(text,encoding='utf-8')
         self.backend=Backend(self.root/'runtime',network=Network());self.addCleanup(self.backend.close)
-        self.studio=Studio(self.backend,{'example.counter':component,'tool_discovery':ROOT/'modules/tool_discovery'});self.addCleanup(self.studio.close)
+        (self.root/'nexarbor.json').write_text(json.dumps({'format':'nexarbor-project/v2','resources':{'modules':{'example.counter':{'folder':'counter'},'tool_discovery':{'builtin':True}}}}),encoding='utf-8')
+        self.studio=Studio(self.backend,{'example.counter':component,'tool_discovery':ROOT/'modules/tool_discovery'},project_directory=self.root);self.addCleanup(self.studio.close)
 
     def edit(self,commands,document=None,expect_failure=False):
         file=self.root/'input.json';out=self.root/'output.json';file.write_text(json.dumps(dict(document=document or {'network':{'nodes':[]},'files':{}},commands=commands,library=self.studio.library,expect_failure=expect_failure)),encoding='utf-8')
@@ -62,7 +63,7 @@ class NetworkWork(unittest.IsolatedAsyncioTestCase):
         from app.studio.preset_repetition import expand_snapshot
         component=Path(self.studio.library['example.counter']['folder']);spec=json.loads((component/'module.json').read_text(encoding='utf-8'))
         spec['node_types']=['node','agent'];spec['config_schema']={'type':'object','properties':{'partner':{'type':'string','format':'node-id'},'tool':{'type':'object'}}}
-        (component/'module.json').write_text(json.dumps(spec),encoding='utf-8');self.studio=Studio(self.backend,{'example.counter':component});self.addCleanup(self.studio.close)
+        (component/'module.json').write_text(json.dumps(spec),encoding='utf-8');self.studio=Studio(self.backend,{'example.counter':component},project_directory=self.root);self.addCleanup(self.studio.close)
         draft=self.edit([{'op':'node.create','id':'shared'},{'op':'node.create','id':'unit','kind':'agent'},{'op':'text.write','path':'data/unit.md','text':'独立记忆'},{'op':'module.mount','node':'unit','module':'example.counter','config':{'partner':'unit','tool':{'path':'业务值'}},'state':{'count':5}},{'op':'edge.add','source':'shared','target':'unit','channels':['tick']}])['document']
         compiled=validate_network(draft,self.backend,self.studio.library)
         expanded=expand_snapshot({**compiled['network'],'files':compiled['files'],'repeat_unit':['unit'],'repeat_unit_count':3},definitions={key:item['manifest'] for key,item in self.studio.library.items()})
@@ -115,3 +116,27 @@ class Candidate(unittest.IsolatedAsyncioTestCase):
         h=NetworkHarness(fixture);self.addAsyncCleanup(h.close)
         packet=await h.network.get('agent').modules.get('context.assembler').assemble()
         self.assertEqual(packet['patch']['context'][0]['text'],'跨两层的真实资料')
+
+    async def test_frontend_copy_library_and_actual_restored_tool_calls(self):
+        from app.runtime import ports
+        from app.projects.host_tools import host_tool_name
+        component=Path(self.studio.library['example.counter']['folder']);spec=json.loads((component/'module.json').read_text(encoding='utf-8'))
+        spec['node_types']=['node','agent'];spec['config_schema']={'type':'object','properties':{'partner':{'type':'string','format':'node-id'}}}
+        (component/'module.json').write_text(json.dumps(spec),encoding='utf-8');self.studio=Studio(self.backend,{'example.counter':component},project_directory=self.root);self.addCleanup(self.studio.close)
+        draft=self.edit([{'op':'node.create','id':'hub'},{'op':'node.create','id':'unit','kind':'agent'},{'op':'text.write','path':'data/unit.md','text':'独立文件'},{'op':'module.mount','node':'unit','module':'example.counter','config':{'partner':'unit'},'state':{'count':5}},{'op':'edge.add','source':'hub','target':'unit','channels':['route']}])['document']
+        draft['network']['properties']={'unit':{'management_parent_id':'hub','offered_ports':[{'ref':'runtime:checkpoint','channels':['runtime.checkpoint']}]}}
+        definitions={'runtime:checkpoint':ports.DEFINITIONS[1]}
+        document=validate_network(draft,self.backend,self.studio.library,port_definitions=definitions)
+        document['network']['nodes'][1]['execution']={'executor':'harness','strength':2,'channels':[]}
+        catalog={key:item['manifest'] for key,item in self.studio.library.items()}
+        source=self.root/'copy-input.json';out=self.root/'copy-output.json';source.write_text(json.dumps({'document':document,'catalog':catalog}),encoding='utf-8')
+        result=subprocess.run([r'C:\Program Files\nodejs\node.exe',str(ROOT/'tests/studio_copy_library_fixture.mjs'),str(source),str(out)],capture_output=True,text=True,encoding='utf-8')
+        self.assertEqual(result.returncode,0,result.stdout+result.stderr);value=json.loads(out.read_text(encoding='utf-8'));id=value['id']
+        fixture=self.root/'copy-runtime';fixture.mkdir();(fixture/'initial.json').write_text(json.dumps({'version':1,'agents':{},'node_properties':value['document']['network']['properties'],**value['document']}),encoding='utf-8')
+        (fixture/'setup.json').write_text(json.dumps({'modules':{'example.counter':str(component)},'port_definitions':definitions}),encoding='utf-8')
+        h=NetworkHarness(fixture);self.addAsyncCleanup(h.close)
+        for actor,expected in [('unit',6),(id,124)]:
+            view=await h.prepare_agent(actor);name=next(tool['name'] for tool in view['tools'] if '计数' in tool['description'])
+            self.assertEqual(await h.agent_tool(actor,name,{'amount':1}),expected)
+        self.assertGreater(await h.agent_tool(id,host_tool_name(id,'runtime:checkpoint'),{'full':True}),0)
+        h.write(id,'仅修改复制文件');self.assertEqual(h.read('unit'),'独立文件')

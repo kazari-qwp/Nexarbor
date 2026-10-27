@@ -23,11 +23,12 @@ class NetworkHarness(ModuleHarness):
         library={key:(source/value).resolve() for key,value in setup['modules'].items()}
         document=json.loads((source/'initial.json').read_text(encoding='utf-8'))
         runtime=source/'runtime' if _persistent else None
-        if runtime is not None and (runtime/'checkpoints.sqlite3').exists():
+        store=None
+        if runtime is not None:
             from app.persistence.checkpoints import Checkpoints
+            runtime.mkdir(parents=True,exist_ok=True)
             store=Checkpoints(runtime)
-            try:document=store.latest() or document
-            finally:store.close()
+            document=store.latest() or document
         def configure(saver):
             for label in ('node_types','agent_node_types'):
                 for kind,reference in setup.get(label,{}).items():
@@ -39,7 +40,7 @@ class NetworkHarness(ModuleHarness):
                 for offer in metadata.get('offered_ports',[]):
                     ref=offer['ref'];name=host_tool_name(node,ref)
                     saver.tables.tool_types[name]=lambda current,record,ref=ref:self.make_port(current.info.node_id,ref)
-        super().__init__(None,library=library,_runtime_directory=runtime,_initial_document={'version':1,'agents':{},**document},_configure_saver=configure)
+        super().__init__(None,library=library,_runtime_directory=runtime,_initial_document={'version':1,'agents':{},**document},_configure_saver=configure,_store=store)
         self.module_schemas=self.modules.manifests
         self.tool_specs={key:item.get('agent_tools',[]) for key,item in self.module_schemas.items()}
         try:self._configure_templates()

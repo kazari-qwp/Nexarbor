@@ -14,16 +14,22 @@ def main():
     sys.stdin.reconfigure(encoding='utf-8')
     sys.stdout.reconfigure(encoding='utf-8')
     project = None
+    studio = os.environ.get('NEXARBOR_STUDIO') == '1'
     if os.environ.get('NEXARBOR_APPLICATION') == 'npc_town':
         from projects.npc_town.runtime import TownProject
-        project = TownProject(sys.argv[1],os.environ.get('NEXARBOR_PROJECT_DIRECTORY'))
+        project = TownProject(sys.argv[1],os.environ.get('NEXARBOR_PROJECT_DIRECTORY'),studio=studio)
         backend = project.backend
     elif os.environ.get('NEXARBOR_APPLICATION') == 'discussion_collaboration':
         from projects.discussion_collaboration.runtime import DiscussionProject
-        project = DiscussionProject(sys.argv[1],os.environ.get('NEXARBOR_PROJECT_DIRECTORY'))
+        project = DiscussionProject(sys.argv[1],os.environ.get('NEXARBOR_PROJECT_DIRECTORY'),studio=studio)
         backend = project.backend
     else:
-        backend = Backend(sys.argv[1])
+        def configure(backend):
+            from app.studio.service import Studio
+            from pathlib import Path
+            root=Path(__file__).resolve().parents[3]
+            Studio(backend,{'tool_discovery':root/'modules/tool_discovery','context.assembler':root/'modules/context_assembler'},agent_run=backend.execute_agent)
+        backend = Backend(sys.argv[1],configure=configure if studio else None)
     transport = Transport(backend)
     if project is not None:
         if hasattr(project, 'official_port'):

@@ -17,7 +17,7 @@ class ProjectModules:
         self.builtins={key:backend.saver.tables.module_types[key] for key in ('tool_discovery','context.assembler')}
         self.manifests={key:json.loads((folder/'module.json').read_text(encoding='utf-8')) for key,folder in self.library.items()}
         self.defaults={key:json.loads((folder/'example.json').read_text(encoding='utf-8')) if (folder/'example.json').exists() else {} for key,folder in self.library.items()};self.classes={}
-        backend.saver.tables.module_types.update({key:(lambda record,key=key:self.restore(key,record)) for key in self.library})
+        backend.saver.tables.module_types.update({key:(lambda record,key=key:self.restore(key,record)) for key in self.library if key not in self.builtins})
 
     def module_type(self,key):
         if key in self.classes:return self.classes[key]
@@ -50,8 +50,7 @@ class ProjectModules:
         if key in self.builtins:
             value=dict(record)
             if key=='tool_discovery':
-                config=value.get('config',{})
-                value={**dict(channels=config.get('channels',()),strength=config.get('strength',1),channel_mode=config.get('channel_mode','allow')),**value}
+                value={**dict(channels=(),strength=1,channel_mode='allow'),**value}
             return self.builtins[key](value)
         cls=self.module_type(key);parameters=signature(cls).parameters
         options={name:port for name,port in self.ports().items() if name in parameters}

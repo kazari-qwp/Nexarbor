@@ -228,3 +228,14 @@ B009 已提出适配层原请求事件的最小方案，批准前只跳过精确
 制作测试环境第三检查点：ModuleHarness/NetworkHarness 已改为先登记真实模块、节点及工具工厂再打开 Backend；作者用例默认独立克隆，交互测试进程显式复用同一 runtime/checkpoints.sqlite3。原 reset/mount/call/signal/inspect/snapshot、源码指纹、结果分页和超时边界已迁移；测试副本禁用真实模型及外部副作用，不用字典替代运行时。新增真实多进程专项6.803秒通过，状态2→5持续、源码变化必须reset、旧目录保留、正式图不变。联合18项17.334秒通过（build/studio-persistent-combined-regression.log）；上下文/检查点原有22项1.979秒通过（build/studio-context-persistence-regression.log）。付费0。仍未更新单次全量435的基线数字。
 
 保存表工厂现在把明确的 channels/strength/channel_mode 交给 ContextAssembler 原构造器，防止新草稿装配丢掉设置；新增两层真实 Markdown 资料收集通过。通用检查点端口沿用原 TownModules 的 await wait_prepared 再 save，未改 core。下一步继续磁盘预设、复制粘贴与历史/书签资料、MakerManager/Advisors 和管理员RPC。应用1最终模块WIP保留；知识B010仍待选择但不阻塞其他工作。
+
+
+## 2026-10-28 制作宿主与真实前端渲染检查点
+
+451项单次全量Python回归通过，213.826秒（build/studio-host-full-regression.log），包含本轮Backend启动前配置、制作库检查点版本选择/冷重开、交互环境进程租约、真实新表复制与依赖装配。早先联合23项中的两个失败来自夹具把可编辑项目源码作为不可变标准发布登记，已改用实际project/v2资源映射扫描；两个业务断言保留，7项网络专项4.691秒通过后再跑上述全量。未改core，用户data_node.py默认值编辑仍不暂存。
+
+MakerManager与Advisors控制器已迁入；Studio RPC接通原读写分类、修订、装配/卸载、数据/模块预览、图应用、脉冲与当前图观察。Studio在可选启用时先于图冷恢复登记模块，真实小镇52节点/19模块及Agent工具关闭重开专项通过。native_studio_advisors_integration.mjs使用真实原生DSH、控制器、Git咨询快照、Python stdio和当前核心，18次本地模型夹具请求通过：网络角色读取图/模块/文件，组件角色创建工作副本、写实际测试、运行验证，网络会话关闭重开后同session续接。记录build/native-studio-advisors-7hxcnpbs/verification.json；付费0，尚非真实API右键咨询验收。管理员局部范围与完整项目Git宿主仍待接通。
+
+原frontends/network-editor与desktop源码及固定版本依赖已迁入，新产物输出build/network-editor；原项目只读。共享复制/预设/书签历史已使用新表，节点渲染摘要使用tables.modules与markdown。实际Electron图片观察器已接新路径，工具调用生成build/studio-renderer-nj6aj9k5/actual-town-network.png（8/52节点、43/205连线、159483字节）并目视核对，未使用Computer Use。这仅验收view_network图片入口；编辑器主体仍有旧modules/connections/参数字段、桌面项目入口/Host RPC/Skills/外部文本尚待适配，不可声称完整前端可用。
+
+接着迁移完整前端的实际记录读写和项目宿主，随后真实右键咨询/工具使用；未完成应用1六个最终模块、知识集合B010及六份演示继续保留未完成状态。用户要求冲突先跳过，独立分支持续推进，不因未答复停止。

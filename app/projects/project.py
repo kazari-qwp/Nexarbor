@@ -12,12 +12,13 @@ from app.templates import TemplateService
 
 
 class Project:
-    def __init__(self, directory, project):
+    def __init__(self, directory, project, *, studio=False):
         self.project = Path(project).resolve()
         self.metadata = self._json('nexarbor.json')
         entry = self.metadata['networks'][self.metadata['activeNetwork']]
         self.manifest = self._json(entry['file'])
         self.module_schemas = {}
+        self.module_folders = {}
         self.tool_specs = {}
         for name, resource in self.metadata['resources']['modules'].items():
             if resource.get('builtin'):
@@ -27,12 +28,19 @@ class Project:
                 folder = (self.project/resource['folder']).resolve()
                 spec = json.loads((folder/'module.json').read_text(encoding='utf-8'))
             self.module_schemas[name] = spec
+            self.module_folders[name] = folder
             self.tool_specs[name] = spec.get('agent_tools',[])
         self.configure_project()
         records = [self._json(ref['file']) for ref in self.manifest['nodes']]
         initial = dict(version=1,network={'nodes':records},files={name:self._path(name).read_text(encoding='utf-8') for name in self.manifest['files']},
                        agents={},node_properties=deepcopy(self.manifest['properties']),runtime=deepcopy(self.manifest['runtime']),signals=deepcopy(self.manifest['signals']))
-        self.backend = Backend(directory,saver=self.saver,initial_document=initial)
+        def configure(backend):
+            from app.studio.service import Studio
+            async def instantiate(actor,**parameters):return await self.templates.instantiate(actor,**parameters)
+            service=Studio(backend,self.module_folders,project_directory=self.project,agent_run=backend.execute_agent,instantiate=instantiate,
+                           ports=getattr(getattr(self,'host_tools',None),'definitions',{}))
+            service.graph_changed=self.graph_changed
+        self.backend = Backend(directory,saver=self.saver,initial_document=initial,configure=configure if studio else None)
         self.module_signals = None
         self.templates = TemplateService(self,self.backend.extension_state['runtime'].get('templates',[]))
         self.graph_changed()
