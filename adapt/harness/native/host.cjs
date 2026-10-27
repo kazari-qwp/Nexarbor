@@ -1,4 +1,4 @@
-// Optional, bounded native Agent executor. Only core-declared tools are registered.
+// Native DSH sessions, persistence and compaction; core-declared tools only.
 const fs=require('node:fs/promises'),path=require('node:path'),readline=require('node:readline'),crypto=require('node:crypto');
 const toolContent=require('./tool-content.cjs');
 const callbacks=new Map(),agents=new Map();let next=0,host,native,config,history,permissions,createUserMessage,checkpoints,modelAdapters;
@@ -16,6 +16,7 @@ async function init(p){
  await host.plugin(native('dsh-session-title').SessionTitleService,{fallbackMaxWords:12,fallbackMaxBytes:120,maxTitleBytes:256});
  await host.plugin(native('dsh-attachment-local').LocalAttachmentStore,{dshHome:p.directory});
  const optionsFile=path.join(p.directory,'native-model.json');let options={};try{options=JSON.parse(await fs.readFile(optionsFile,'utf8'));}catch(e){if(e.code!=='ENOENT')throw e;}
+ await require('../runtime/session-services.cjs')({host,native});
  const persistence=native('dsh-session-persistence-jsonl');await host.plugin(persistence.default??persistence,{root:options.native_logs??path.join(p.directory,'native-logs')});
  await host.plugin((await loader.load(p.root+'/adapt/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
  modelAdapters=await require('./model-adapters.cjs')({host,native,root:p.root,credentials:p.credentials,defaults:options.model??{}});

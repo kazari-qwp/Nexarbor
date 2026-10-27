@@ -8,6 +8,7 @@ import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {Bridge} from '../adapt/harness/framework/bridge.js';
 import {NativeRunner} from '../adapt/harness/native/runner.mjs';
+import readAgentDefaults from '../adapt/harness/framework/agent-defaults.cjs';
 import {OfficialToolsRunner} from '../adapt/harness/official/official-runner.mjs';
 
 const root=fileURLToPath(new URL('../',import.meta.url)), directory=path.resolve(process.argv[2]);
@@ -16,13 +17,14 @@ if(!key)throw Error('Missing configured DeepSeek API key');
 const redact=value=>String(value?.stack??value).split(key).join('[已隐藏密钥]');
 const calls=[];let requests=0,stage='setup';
 const gateway=http.createServer(async(req,res)=>{
+ const upstreamAbort=new AbortController();res.once('close',()=>upstreamAbort.abort());
  try{
   let raw='';for await(const part of req)raw+=part;
   const id=++requests;
   if(id>360){res.writeHead(429,{'Content-Type':'application/json'});res.end(JSON.stringify({error:{message:'Acceptance request budget exceeded'}}));return;}
   const entry={request:id,stage,started:Date.now()};calls.push(entry);
   console.log(JSON.stringify({stage:'api_start',phase:stage,request:id}));
-  const upstream=await fetch(base+req.url.replace(/^\/v1/,''),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},body:raw,signal:AbortSignal.timeout(180000),redirect:'error'});
+  const upstream=await fetch(base+req.url.replace(/^\/v1/,''),{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+key},body:raw,signal:upstreamAbort.signal,redirect:'error'});
   entry.status=upstream.status;
   res.writeHead(upstream.status,{'Content-Type':upstream.headers.get('content-type')??'application/json'});
   const decoder=new TextDecoder();let pending='';
@@ -40,7 +42,7 @@ const gateway=http.createServer(async(req,res)=>{
 });
 await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
 const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+gateway.address().port+'/v1',api_key:'acceptance-proxy',
- signature:crypto.createHash('sha256').update('newcore-discussion:'+base+':'+model).digest('hex'),model:{model,maxTokens:10000,contextWindow:128000}};
+ signature:crypto.createHash('sha256').update('newcore-discussion:'+base+':'+model+':'+JSON.stringify({...readAgentDefaults(root),max_tokens:16000,reasoning_effort:'low'})).digest('hex'),model:{model,reasoningEfforts:{off:'none',low:'low',high:'high',max:'max'},compat:{thinkingFormat:'deepseek',supportsReasoningEffort:true,requiresReasoningContentOnAssistantMessages:true,maxTokensField:'max_tokens'},reasoningEffort:'low',maxTokens:16000,contextWindow:readAgentDefaults(root).context_window}};
 const evidence={mode:'discussion_collaboration',directory,started:new Date().toISOString(),real_api:true,model,stages:[],turns:[],api_calls:calls,
  baseline_limit:'Old groups script refers to obsolete actor/task interfaces. Current actual application exercises discussion/session, four-way Git collaboration and acceptance; no same-task old performance baseline.'};
 const save=async()=>fs.writeFile(path.join(directory,'verification.json'),JSON.stringify(evidence,null,2));
