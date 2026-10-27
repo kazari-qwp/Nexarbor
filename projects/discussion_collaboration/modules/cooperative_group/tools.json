@@ -184,5 +184,38 @@
       ],
       "additionalProperties": false
     }
+  },
+  {
+    "id": "datanet_command_logs",
+    "operation": "command_logs",
+    "name": "查询已执行命令的日志。",
+    "description": "查询已执行命令的日志。",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": [
+            "list",
+            "read"
+          ]
+        },
+        "log_id": {
+          "type": "string"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    }
   }
 ]

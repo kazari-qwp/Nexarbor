@@ -86,3 +86,10 @@
 来源：projects/discussion-collaboration/modules/collab.participant/module.json 的 submit.parameters 包含 key；module.py 会把 activation.parameters 全部复制并转发。git.integrator.rev_2863bbe53e.rev_c376775a7e/module.json 的 submit.parameters 仅 member/commit/branch，additionalProperties=false；旧 python/datanet/core/local_modules.py NodeModule.install.call 在执行前也校验该 Schema。
 
 最小提案：成员入口消费/不转交 key，Git 仍按原 commit 判断 duplicate；不增加新幂等规则。补丁已准备但尚未应用：build/participant-submit-key-proposal.patch。因用户要求迁移不得擅自改变原业务，已请求明确选择。参见 evidence/2026-10-27-discussion-api-stopped.json。
+
+
+## B009：仅模块修改边界与原精确模型请求预算事件
+
+状态：提案已准备，等用户确认是否允许迁移适配层事件；跳过该分支，继续独立工作。原 decentralized_group/runtime.py 的 request/pre_step 按真实模型请求累计限额；现有 native/host.cjs 只有本地 entry.steps 计数，不转交模块，prepare 又不是每请求一次。不能用 prepare 次数或一次 turn 完成后的统计冒充逐请求预算。
+
+最小提案在 build/cooperative-request-hook-proposal.md：将现有 agent/request 事件转交 executor_request，再按 binding.request_hooks 调用 cooperation.member.request。core 与 Agent 定义不动，但涉及适配层/执行器，超出本阶段用户“只做模块级修改”的范围；未批准前不应用。依赖项：精确请求预算、最终 CSV 协作的完整原策略验收；不影响命令日志、消息、五天小镇、资料库及前端的独立迁移。

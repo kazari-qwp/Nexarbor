@@ -167,3 +167,17 @@ D017 当前 WIP：cooperative_group 的原 claim/note/finish/member_exit 规则�
 D017 仍有原同伴消息/一次性回复、终端日志、逐请求预算/全局期限等策略待迁，不宣称完整协作应用通过。新 17 节点配置仅用于组件装配；D020 最终原驱动已定位 scripts/prepare_root_hone_learning.mjs、run_learning_root_hone.mjs、grade_learning_hone.py：初始仅 root/administrator/workspace 三节点，真实模型委托组网，不预建团队；任务夹具来自 build/hone-fixed-20261014-r6/workspace/task，独立原测试为 7 单测+5验收+6CLI，原成功基线见 docs/evaluation/HONE_FIXED_RETEST.md（1617.418 秒，329 消息，未缓存 8044304、缓存 23292416、输出 546287）。最终比较应优先核对当前根委托版本的对应结果，不能把高推理旧固定组织直接当同条件基线。
 
 D021 已记录六份演示与双击历史要求；旧演示确为六个独立目录，含可携带会话分块和 Git bundle，依据原 项目演示/README.md、scripts/package_release.py。前端清单见 FRONTEND_ACCEPTANCE.md；原文档已阅读，实际旧客户端对照留到前端阶段。网络中断恢复时未发现本任务付费测试进程，不重启已完成测试。
+
+
+## 当前运行与并行分支
+
+已提交 e6a0101：415 项回归与原生协作控制证据。五天小镇真实 API 验收已开始：build/native-town-newcore-9h_00tqg，exec session 40813，命令 scripts/verify_native_town.py --days 5；未完成前先读取该目录 verification.json 与该 session，不重复启动。沿用此前已通过一天的 API profile（maxTokens=10000/contextWindow=128000，未指定推理强度）；逐日 usage/耗时在新脚本记录，旧基线参数另列，不称严格同参数性能实验。保存 initial-state.json/final-state.json 为演示导出的原始依据。
+
+B009 已提出适配层原请求事件的最小方案，批准前只跳过精确请求预算分支。继续消息/命令日志等无依赖工作；不拿 prepare 计数替代真实请求。
+
+
+## 命令日志独立分支完成专项
+
+原 command_logs 的四个记录/目录/筛选/查询方法及 record_values 原脱敏规则已迁入 cooperative_group 子组件；应用现有 official_port 返回时记录，不改 adapt/core。候选收集本成员、本次开始后的日志，log_ids 按原规则核对，复制源码/脚本/结果/日志到固定验收材料。项目协作工具表显式升级为 6 项（含 command_logs），不是加载时偷偷补表。4 项文件/分页/来源专项通过（1.131 秒），另实际官方 PowerShell 经新应用宿主端口记录并保留 executor-1 请求身份专项通过（0.899 秒），模型 API=0。最近单次全量仍为此前 415，不伪称本批单次全量已跑。
+
+消息回执/一次性回复、精确请求预算等仍未完成；B009 等待宿主事件迁移边界答复时，继续资料库等独立分支。小镇五天运行 session40813 / native-town-newcore-9h_00tqg 正常：第1天302.307秒/323请求/input7340969/output136025；第2天224.105秒/215请求/input11858751/output90054。第一天与此前已接受的一天基线差异不大，继续其余天；原五天对应完整基线仍待归档核对。

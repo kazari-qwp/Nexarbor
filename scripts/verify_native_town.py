@@ -1,5 +1,6 @@
-"""真实 API 验收原小镇一天（五 tick），并验证原生会话冷重开。"""
+"""真实 API 验收原小镇五天（25 tick），并验证原生会话冷重开。"""
 
+import argparse
 import json
 import os
 from pathlib import Path
@@ -13,6 +14,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 def main():
+    parser=argparse.ArgumentParser();parser.add_argument('--days',type=int,choices=range(1,6),default=5);args=parser.parse_args()
     values=dotenv_values(ROOT/'.env')
     key=values.get('DEEPSEEK_API_KEY') or ''
     if not key:raise RuntimeError('本项目未配置 DEEPSEEK_API_KEY')
@@ -23,14 +25,14 @@ def main():
         if values.get(name):env[name]=values[name]
     executable=Path(os.environ['LOCALAPPDATA'])/'Programs/DeepSeek Harness/DeepSeek Harness.exe'
     print('Evidence: '+str(directory),flush=True)
-    process=subprocess.Popen([str(executable),'--experimental-vm-modules',str(ROOT/'scripts/native_town_acceptance.mjs'),str(directory)],cwd=ROOT,env=env,
+    process=subprocess.Popen([str(executable),'--experimental-vm-modules',str(ROOT/'scripts/native_town_acceptance.mjs'),str(directory),str(args.days)],cwd=ROOT,env=env,
         stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,encoding='utf-8',errors='replace',creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
     output=[]
-    timer=Timer(2400,process.terminate);timer.daemon=True;timer.start()
+    timer=Timer(2400*args.days,process.terminate);timer.daemon=True;timer.start()
     try:
         for line in process.stdout:
             safe=line.replace(key,'[已隐藏密钥]');output.append(safe);print(safe,end='',flush=True)
-        code=process.wait(timeout=2400)
+        code=process.wait(timeout=2400*args.days)
     finally:
         timer.cancel()
         if process.poll() is None:process.terminate();process.wait(timeout=15)

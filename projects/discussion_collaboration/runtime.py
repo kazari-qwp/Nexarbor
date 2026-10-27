@@ -12,6 +12,7 @@ from modules.context_assembler import ContextAssemblerModule
 from modules.tool_discovery import ToolDiscoveryModule
 from .modules.agents_activity import AgentsActivityModule
 from .modules.cooperative_group import CooperativeGroupModule
+from .modules.cooperative_group.command_logs import CommandLogs
 from .modules.cooperative_member import CooperativeMemberModule
 from .modules.app_coordinator import AppCoordinatorModule
 from .modules.collab_board import CollabBoardModule
@@ -29,9 +30,10 @@ class DiscussionModules:
         self.directory = Path(directory or ".").resolve()
         self.backend = None
         self.official_port = None
+        self._command_logs = None
         self.saver = NetworkSaver()
         self.factories = {
-            "cooperation.group":lambda config, **settings:CooperativeGroupModule(self.directory, self.transaction, self.emit, self.write_documents, config, **settings),
+            "cooperation.group":lambda config, **settings:CooperativeGroupModule(self.directory, self.transaction, self.emit, self.write_documents, config, command_logs=self.command_logs(), **settings),
             "cooperation.member":lambda config, **settings:CooperativeMemberModule(self.execute_agent, config, **settings),
             "agents.activity":lambda config, **settings:AgentsActivityModule(self.execute_agent, config, **settings),
             "app.coordinator.entry":lambda config, **settings:AppCoordinatorModule(self.emit, config, **settings),
@@ -59,6 +61,11 @@ class DiscussionModules:
     def restore_module(self, record):
         return self.make(record["module_id"], record.get("config", {}), record)
 
+    def command_logs(self):
+        if self._command_logs is None:
+            self._command_logs = CommandLogs(self.directory)
+        return self._command_logs
+
     def write_documents(self, files):
         self.backend.write_documents(files)
 
@@ -74,7 +81,9 @@ class DiscussionModules:
     async def execute_official(self, actor, name, arguments):
         if self.official_port is None:
             raise RuntimeError("当前宿主没有接入官方工具执行端口")
-        return await self.official_port(actor, name, arguments)
+        result = await self.official_port(actor, name, arguments)
+        self.command_logs().record(dict(actor=actor, name=name, arguments=arguments, result=result))
+        return result
 
 
 class DiscussionProject(DiscussionModules, Project):

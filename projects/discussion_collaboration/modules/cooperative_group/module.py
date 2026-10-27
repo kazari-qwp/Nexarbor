@@ -13,6 +13,7 @@ from domain.core import CallableTool, Module, access
 from domain.json_values import thaw
 from . import state as rules
 from .workspace import Workspace
+from .command_logs import CommandLogs
 
 TOOLS = json.loads(Path(__file__).with_name("tools.json").read_text(encoding="utf-8"))
 
@@ -30,12 +31,13 @@ class Members:
 
 
 class CooperativeGroupModule(Module):
-    def __init__(self, directory, transaction, emit, write_documents, config=None, state=None, **access_settings):
+    def __init__(self, directory, transaction, emit, write_documents, config=None, state=None, command_logs=None, **access_settings):
         super().__init__("cooperation.group", **access_settings)
         self.directory = Path(directory).resolve()
         self.transaction, self.emit, self.write_documents = transaction, emit, write_documents
         self.config, self.state = deepcopy(config or {}), deepcopy(state or {})
         self._work = None
+        self.command_log_store = CommandLogs(self.directory) if command_logs is None else command_logs
         for spec in TOOLS:
             function = self.finish_tool if spec["operation"] == "finish" else getattr(self, spec["operation"])
             self.tools._add(CallableTool(spec["id"], function, spec["description"], deepcopy(spec["parameters"])))
@@ -85,6 +87,8 @@ class CooperativeGroupModule(Module):
             if group["members"]:
                 result["repository"] = self.workspace_store().repository()
             return result
+        if operation == "command_logs":
+            return self.command_log_store.tool_datanet_command_logs(actor, parameters)
         targets = [node.info.node_id, group["entry_points"]["output"], group["entry_points"]["findings"]]
         if operation == "start":
             if group["phase"] in rules.ACTIVE:
@@ -97,6 +101,8 @@ class CooperativeGroupModule(Module):
             members = [value for value in (await Members(self).collect()).values() if value is not None]
             if actor in members:
                 raise PermissionError("由网络调用者启动或停止小组")
+            if not members:
+                raise ValueError("协作成员尚未装配")
             workspace = Workspace(self.directory / self.config.get("directory", "workspace/cooperation"), members)
             workspace.prepare()
             async with self.transaction(targets, timeout=20):
@@ -117,8 +123,7 @@ class CooperativeGroupModule(Module):
             if parameters["action"] != "inspect" and group["phase"] != "running":
                 raise ValueError("仅运行阶段允许修改共同成果")
             result = self.workspace_store().invoke(actor, parameters["action"], parameters.get("message", "Publish contribution"))
-            artifacts = self.workspace_store().directory / "artifacts" / actor.encode().hex()
-            artifacts.mkdir(parents=True, exist_ok=True)
+            artifacts = self.command_log_store.directory(actor)
             return dict(result, artifacts_path=str(artifacts))
         async with self.transaction(targets, timeout=20):
             before = len(group["entries"])
@@ -126,8 +131,9 @@ class CooperativeGroupModule(Module):
                 self.member(node)
                 parameters["actor"] = actor
             if operation == "finish" and parameters["action"] == "propose" and group["phase"] == "running" and not group["candidate"] and not any(c["state"] == "active" for c in group["claims"].values()):
-                artifacts = self.workspace_store().directory / "artifacts" / actor.encode().hex()
-                parameters["review"] = self.workspace_store().proposal(actor, parameters.get("test_scripts", []), parameters.get("test_results", []), [], artifacts)
+                artifacts = self.command_log_store.directory(actor)
+                logs = self.command_log_store.logs(actor, parameters.get("log_ids"), since=group.get("started_at", 0))
+                parameters["review"] = self.workspace_store().proposal(actor, parameters.get("test_scripts", []), parameters.get("test_results", []), logs, artifacts)
             if operation in ("claim", "note", "finish"):
                 result = getattr(rules, operation)(group, parameters)
             elif operation == "member_exit":
@@ -197,6 +203,9 @@ class CooperativeGroupModule(Module):
 
     async def claim(self, **parameters):
         return await self._call("claim", parameters)
+
+    async def command_logs(self, **parameters):
+        return await self._call("command_logs", parameters)
 
     async def note(self, **parameters):
         return await self._call("note", parameters)
