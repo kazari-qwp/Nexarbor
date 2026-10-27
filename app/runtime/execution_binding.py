@@ -5,7 +5,9 @@ def validate_execution_binding(node,network,definitions,*,allow_missing=False):
     if not binding:return
     if not isinstance(binding.get('executor'),str) or not binding['executor']:raise ValueError('执行器标识不能为空')
     if node['type']!='agent':raise ValueError('只有 Agent 节点可以绑定执行器')
-    if set(binding)-{'executor','strength','channels','max_steps','timeout_seconds','prepare','channel_mode','channel_modes','model'}:raise ValueError('执行配置含未知字段')
+    if set(binding)-{'executor','strength','channels','max_steps','timeout_seconds','prepare','channel_mode','channel_modes','model','skills'}:raise ValueError('执行配置含未知字段')
+    from domain.json_values import names
+    names(binding.get('skills',[]),'execution.skills')
     model=binding.get('model')
     if model is not None:
         if not isinstance(model,dict) or set(model)-{'connection','model','reasoning_effort','max_tokens','context_window'}:raise ValueError('模型配置只保存连接引用、模型和生成参数')

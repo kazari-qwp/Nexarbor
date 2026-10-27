@@ -32,8 +32,13 @@ class Project:
             self.tool_specs[name] = spec.get('agent_tools',[])
         self.configure_project()
         records = [self._json(ref['file']) for ref in self.manifest['nodes']]
-        initial = dict(version=1,network={'nodes':records},files={name:self._path(name).read_text(encoding='utf-8') for name in self.manifest['files']},
-                       agents={},node_properties=deepcopy(self.manifest['properties']),runtime=deepcopy(self.manifest['runtime']),signals=deepcopy(self.manifest['signals']))
+        files={}
+        for entry in self.manifest['files']:
+            if isinstance(entry,str):files[entry]=self._path(entry).read_text(encoding='utf-8')
+            elif entry.get('encoding')=='utf8':files[entry['name']]=self._path(entry['file']).read_text(encoding='utf-8')
+            else:files[entry['name']]=self._json(entry['file'])['value']
+        initial = dict(version=1,network={'nodes':records},files=files,
+                       agents=deepcopy(self.manifest.get('agents',{})),node_properties=deepcopy(self.manifest.get('properties',{})),runtime=deepcopy(self.manifest.get('runtime',{})),signals=deepcopy(self.manifest.get('signals',{})))
         def configure(backend):
             from app.studio.service import Studio
             async def instantiate(actor,**parameters):return await self.templates.instantiate(actor,**parameters)

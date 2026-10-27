@@ -98,3 +98,10 @@
 ## B010：RAG 原文集合与 Wiki 目录要求
 
 2026-10-28 已异步询问，等待选择；跳过集合最终装配及依赖验收，继续独立模块和协作/前端。实际历史 knowledge.catalog/store.py 的 _entry 仅给 Wiki 返回 wiki_link；search/index 同时支持 RAG 原文和 Wiki 页面，RAG 命中原文，Wiki 是另存的整理页。D018 明确要求 RAG 作为 Wiki 目录返回 Wiki 链接。待决定原文单独归档后 RAG 仅索引 Wiki，还是保留原文 RAG 并另设 Wiki 目录。不能默默拿先前另一存储引擎替换，也不能把旧普通集合服务节点冒称已实现 DataNode 继承。
+
+
+## B011：旧前端的亚节点、借用出边和遍历路径详情
+
+状态：按用户“问题先跳过、不因此停工”暂跳过这些UI分支及依赖测试；继续其余前端/数据/制作宿主与最终应用模块。尚未新增提问，不等待答复。
+
+来源：frontends/network-editor/src/main.jsx、subnodes.jsx、module-access.jsx与原studio/service.py:view。新核心无Subnode、共享出边/借用父权限、节点module_strength或遍历path/remaining输出；用户D008明确不保留无连线family调用，核心冻结。原main.jsx仍调用api('view')，所以此前“该诊断接口无调用”的检索结论不完整，不能据此删除本地视角。不得复制旧walk算法到新业务路径、增加隐式权限、伪造路径，或改core来绕开。源UI仍保留待迁代码，尚未宣布客户端可运行；完整前端验收时必须逐项处置这些差异。

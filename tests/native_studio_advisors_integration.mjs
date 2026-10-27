@@ -9,7 +9,9 @@ import {Bridge} from '../adapt/harness/framework/bridge.js';
 import {NativeRunner} from '../adapt/harness/native/runner.mjs';
 import {MakerManager} from '../adapt/harness/studio/makers/manager.mjs';
 import {Advisors} from '../adapt/harness/studio/makers/advisors.mjs';
+import {Project} from '../adapt/harness/studio/project.mjs';
 const root=process.cwd(),directory=path.resolve(process.argv[2]);await fs.mkdir(path.join(directory,'temp'),{recursive:true});
+const projectDirectory=path.join(directory,'project');await fs.cp(path.join(root,'resources/examples/npc-town'),projectDirectory,{recursive:true});
 const calls=[],counts=new Map(),receipts=[];let makers,advisors;
 const testSource=`import unittest
 from pathlib import Path
@@ -42,11 +44,12 @@ const server=http.createServer(async(req,res)=>{
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
 const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+server.address().port+'/v1',api_key:'local-fixture',signature:'advisors-local',model:{model:'deepseek-flash',maxTokens:16000,contextWindow:600000,compat:{supportsDeveloperRole:false,maxTokensField:'max_tokens'}}};
-const bridge=new Bridge(path.join(root,'.venv-runtime/Scripts/python.exe'),directory,['-B','-X','utf8','-m','adapt.harness.backend.server'],{NEXARBOR_STUDIO:'1',NEXARBOR_APPLICATION:'npc_town'},()=>{throw Error('unexpected business model/tool execution')});
+const bridge=new Bridge(path.join(root,'.venv-runtime/Scripts/python.exe'),directory,['-B','-X','utf8','-m','adapt.harness.backend.server'],{NEXARBOR_STUDIO:'1',NEXARBOR_APPLICATION:'npc_town',NEXARBOR_PROJECT_DIRECTORY:projectDirectory},()=>{throw Error('unexpected business model/tool execution')});
 const rpc=(method,args={})=>bridge.call(method,args,86460000);
+const project=new Project(projectDirectory,directory,rpc);await project.initialize();
 const start=async()=>{
  makers=new MakerManager(directory,rpc,{runnerFactory:async(p,callback)=>new NativeRunner(directory,async(method,args)=>{const result=await callback(method,args);receipts.push({tool:args.tool,result});return result;},{noCredentials:true,modelResolver:async()=>profile,script:fileURLToPath(new URL('../adapt/harness/studio/makers/worker.cjs',import.meta.url))})});
- await makers.initialize();advisors=new Advisors(directory,rpc,makers,async()=>({tools:[]}));makers.advisor=advisors;
+ makers.project=project;await makers.initialize();advisors=new Advisors(directory,rpc,makers,async()=>({tools:[]}));makers.advisor=advisors;
 };
 async function finished(id){const until=Date.now()+180000;for(;;){const record=await advisors.read({id});if(record.job.status!=='running'){assert.equal(record.job.status,'completed',JSON.stringify(record.job));return record;}assert.ok(Date.now()<until,'local fixture stalled');await new Promise(resolve=>setTimeout(resolve,50));}}
 try{
@@ -64,6 +67,8 @@ try{
  const reopened=await advisors.open({id:network.id,role:'network'});assert.equal(reopened.session_id,session);
  await advisors.send({id:network.id,text:'ADVICE_resume'});const resumed=await finished(network.id);assert.equal(resumed.session_id,session);
  const actual=await rpc('studio_state');assert.equal(actual.live.document.network.nodes.length,52);
- const result={status:'passed',paid_requests:0,requests:calls.length,network_session:session,component_workspace:created.workspace,cold_resume:true,roles:['network','component'],calls,tools:receipts.map(item=>item.tool)};
+ const archived=(await project.conversations('advice',{id:network.id,prefix:true}))[0];assert.ok(archived.portablePrefix.events.length);assert.ok(JSON.stringify(archived.job.messages).includes('ADVICE_resume_OK'));
+ assert.ok((await project.workFiles(created.work))['tests/test_counter.py']);
+ const result={status:'passed',paid_requests:0,requests:calls.length,network_session:session,component_workspace:created.workspace,cold_resume:true,project_git:true,portable_native_history:true,roles:['network','component'],calls,tools:receipts.map(item=>item.tool)};
  await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify(result,null,2));console.log(JSON.stringify({...result,calls:undefined}));
 }finally{await makers?.close();await bridge.close();server.close();}

@@ -1,0 +1,59 @@
+import {moduleTable,nodeSkills,offeredPorts} from '../../shared/graph/node-records.js';
+import {assembleResources} from '../../shared/graph/resource-assembly.js';
+import {repeatMetadata} from '../../shared/graph/preset-parameters.js';
+import {singleOwnedNode,ownershipRoots} from '../../shared/graph/ownership.js';
+const clone=value=>structuredClone(value);
+export const isAsset=value=>!!value?.asset&&['tool','module','skill'].includes(value.asset.kind);
+export const resourceTitle=value=>`${value.name}：${value.description||'暂无描述'}`;
+export const resourceId=value=>value.asset?.id??value.resourceId;
+const definition=(catalog,kind,id)=>kind==='module'?catalog.modules?.[id]:kind==='skill'?catalog.skills?.[id]:kind==='tool'?catalog.tools?.find(t=>t.ref===id):catalog[kind==='node'?'nodes':'presets']?.find(t=>t.id===id);
+export const resourceAvailable=(catalog,organization,kind,id)=>!!definition(catalog,kind,id)&&!organization?.[kind]?.items?.[id]?.archivedAt;
+export function resource(catalog,kind,id,organization={}){
+ const spec=definition(catalog,kind,id);if(!spec)throw Error('该资源已不在当前目录中');
+ const item=organization[kind]?.items?.[id]??{};
+ const local=kind==='skill'?!!spec.local:kind==='module'?!!catalog.localResources?.modules[id]:kind==='tool'?!!catalog.localResources?.tools[id]||!!catalog.localResources?.modules[spec.module]:kind==='preset'?!spec.application||!!catalog.localResources?.presets[id]:true;
+ const base={kind,local,name:item.name??(kind==='module'?spec.label:spec.name),description:spec.description??''};
+ return ['node','preset'].includes(kind)?{...base,...repeatMetadata(spec),resourceId:id,mode:spec.mode,snapshot:spec.snapshot?clone(spec.snapshot):undefined,lazySnapshot:spec.lazySnapshot,nodeCount:spec.nodeCount,file:spec.file,storageKind:spec.storageKind}:{...base,asset:kind==='skill'?{kind,id}:kind==='module'?{kind,id,...clone(spec.defaults??{config:{},state:{},access:{strength:0,channels:[]}})}:{kind,id,channels:clone(spec.channels??['tools'])}};
+}
+export function resources(catalog,kind,organization={},includeArchived=false){
+ const ids=kind==='skill'?Object.keys(catalog.skills??{}):kind==='module'?Object.keys(catalog.modules??{}):kind==='tool'?(catalog.tools??[]).map(t=>t.ref):(catalog[kind==='node'?'nodes':'presets']??[]).map(t=>t.id);return ids.filter(id=>includeArchived||resourceAvailable(catalog,organization,kind,id)).map(id=>resource(catalog,kind,id,organization));
+}
+export function attachResource(document,nodeId,asset,catalog,organization={}){
+ if(!resourceAvailable(catalog,organization,asset.kind,asset.id))throw Error('资源已归档或删除，请先恢复');
+ return assembleResources(document,nodeId,[asset],catalog,{available:(kind,id)=>resourceAvailable(catalog,organization,kind,id)});
+}
+export function nodeTools(node,catalog,properties={}){
+ const offered=offeredPorts(node,properties).map(t=>clone(t)),seen=new Set(offered.map(t=>t.ref));
+ for(const tool of catalog.tools??[])if(tool.module&&moduleTable(node)[tool.module]&&!seen.has(tool.ref)){offered.push({ref:tool.ref,channels:clone(tool.channels??[]),module:tool.module});seen.add(tool.ref);}
+ return offered;
+}
+export function resourceRelations(value,catalog){
+ const spec=definition(catalog,value.asset?.kind,value.asset?.id);
+ return {modules:spec?.requires??[],tools:spec?.tools??[],skills:spec?.skills??[]};
+}
+// 关系只列直接一层；编号用于跳转，缺失声明仍保留在列表中。
+export function relatedEntries(value,catalog,key){
+ const kind=key==='modules'?'module':key==='skills'?'skill':'tool';
+ return resourceRelations(value,catalog)[key].map(id=>{
+  const spec=definition(catalog,kind,id);
+  return {kind,id,name:(kind==='module'?spec?.label:spec?.name)??id,description:spec?.description??'',missing:!spec};
+ });
+}
+export function attachResources(document,nodeId,assets,catalog,organization={}){
+ if(!assets.length)throw Error('请选择工具、模块或 Skill');for(const asset of assets)if(!resourceAvailable(catalog,organization,asset.kind,asset.id))throw Error('资源已归档或删除，请先恢复');return assembleResources(document,nodeId,assets,catalog,{available:(kind,id)=>resourceAvailable(catalog,organization,kind,id)});
+}
+export function folderResources(tree,entries,id){
+ const folders=new Set([id]);for(const parent of folders)for(const f of tree.folders)if(f.parent===parent)folders.add(f.id);return entries.filter(e=>folders.has(tree.items[resourceId(e)]?.folder??null));
+}
+export const assetHistory=book=>({kind:book.asset.kind,id:book.id??book.asset.id,label:book.name,description:book.description??'',asset:clone(book.asset)});
+export const contentType=value=>isAsset(value)?value.asset.kind:value.snapshot?.repeat_unit_count!=null?'network':!value.snapshot?.nodes.length?(value.kind==='preset'||value.storageKind==='network'?'network':'edge'):singleOwnedNode(value.snapshot.nodes)?'node':'network';
+export const matchesType=(value,type)=>type==='all'||contentType(value)===type||(['internal','external'].includes(type)&&contentType(value)==='network'&&value.mode===type);
+
+export function moduleProblems(node,catalog,runtime={}){
+ const result={};for(const id of Object.keys(moduleTable(node))){
+  const definition=catalog.modules?.[id],reported=runtime[node.node_id]?.[id];
+  if(definition?.available===false)result[id]=definition.unavailableReason??('缺少本地模块：'+id);
+  else if(reported)result[id]=definition&&/^(缺少|模块源码缺失)/.test(reported)?'模块尚未装配，请校验并更新网络：'+id:reported;
+  else if(!definition)result[id]='缺少本地模块：'+id;
+ }for(const id of nodeSkills(node))if(!catalog.skills?.[id]||catalog.skills[id].available===false||catalog.skills[id].local===false)result['skill:'+id]=catalog.skills?.[id]?.unavailableReason??('缺少本地 Skill：'+id);return result;
+}

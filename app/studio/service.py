@@ -448,7 +448,7 @@ class Studio:
     def state(self,p=None):
         snapshot=self.backend.snapshot();network=deepcopy(snapshot['network']);network['properties']=deepcopy(snapshot.get('node_properties',{}))
         names={node['node_id']:node['name'] for node in network['nodes']}
-        return dict(moduleProblems={},mode='组件开发 · Harness后端',live=dict(document=dict(network=network,files=snapshot['files']),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),job=self.run_state,studio=True)
+        return dict(moduleProblems={},mode='组件开发 · Harness后端',live=dict(document=dict(network=network,files=snapshot['files']),signals=deepcopy(snapshot.get('signals',{})),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),job=self.run_state,studio=True)
 
     def observe(self,p):
         folder=self.folder(p['id']);source=p.get('source','candidate');scoped=getattr(self.backend,'network_administrator',None)
@@ -565,7 +565,7 @@ class Studio:
         old=backend.snapshot();bindings=p.get('agent_bindings',old['agents'])
         if not isinstance(bindings,dict) or any(not isinstance(v,dict) or (v.get('session_id') is not None and not isinstance(v['session_id'],str)) for v in bindings.values()):raise ValueError('Agent 上下文绑定无效')
         agents={node['node_id'] for node in document['network']['nodes'] if node['type']=='agent'}
-        candidate={**old,'network':document['network'],'files':document['files'],'agents':{id:deepcopy(value) for id,value in bindings.items() if id in agents},'node_properties':document['network'].get('properties',{}),'document_resources':list(document['files'])}
+        candidate={**old,'network':document['network'],'files':document['files'],'agents':{id:deepcopy(value) for id,value in bindings.items() if id in agents},'node_properties':document['network'].get('properties',{}),'document_resources':list(document['files']),'signals':deepcopy(p.get('signals',old.get('signals',{})))}
         try:backend.restore(candidate)
         except BaseException:backend.restore(old);raise
         if self.graph_changed is not None:self.graph_changed()

@@ -13,10 +13,18 @@ METHODS={
 }
 
 def register(transport):
+    from .skill_resources import parse_skill
+    transport.routes['skill_parse']=parse_skill
     def route(name,mutation,p):
         def invoke():
             value=getattr(transport.backend.studio,name)(p)
             return transport.runtime.run(value,timeout=86460) if isawaitable(value) else value
+        if name=='apply':
+            # 沿用原 StudioTransport：图应用的返回版本必须是外围事务提交后的编号。
+            with transport.backend._transaction_lock:
+                result=transport.backend.perform('studio_apply',invoke)
+                result['commit']=transport.backend.store.head
+                return result
         return transport.backend.perform('studio_'+name,invoke) if mutation else invoke()
     for name,mutation in METHODS.items():
         transport.routes['studio_'+name]=lambda p,name=name,mutation=mutation:route(name,mutation,p)

@@ -10,7 +10,7 @@ export class NetworkRenderer{
  async start(){
   if(this.starting)return this.starting;
   const epoch=this.epoch;this.starting=(async()=>{
-   const page=path.join(root,'extensions/editor/capabilities/network_editor/web/network-view.html');await fs.access(page);
+   const page=path.join(root,'build/network-editor/network-view.html');await fs.access(page);
    const source=path.join(root,'frontends/desktop');let executable;
    for(const candidate of [process.versions.electron?process.execPath:null,path.join(source,'node_modules/electron/dist/electron.exe'),path.join(root,'build/desktop/Nexarbor Workbench-win32-x64/Nexarbor.exe')].filter(Boolean)){try{await fs.access(candidate);executable=candidate;break;}catch{}}
    if(!executable)throw Error('未找到桌面图片渲染器，请使用 Nexarbor 桌面客户端。');

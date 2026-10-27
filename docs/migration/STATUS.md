@@ -239,3 +239,16 @@ MakerManager与Advisors控制器已迁入；Studio RPC接通原读写分类、�
 原frontends/network-editor与desktop源码及固定版本依赖已迁入，新产物输出build/network-editor；原项目只读。共享复制/预设/书签历史已使用新表，节点渲染摘要使用tables.modules与markdown。实际Electron图片观察器已接新路径，工具调用生成build/studio-renderer-nj6aj9k5/actual-town-network.png（8/52节点、43/205连线、159483字节）并目视核对，未使用Computer Use。这仅验收view_network图片入口；编辑器主体仍有旧modules/connections/参数字段、桌面项目入口/Host RPC/Skills/外部文本尚待适配，不可声称完整前端可用。
 
 接着迁移完整前端的实际记录读写和项目宿主，随后真实右键咨询/工具使用；未完成应用1六个最终模块、知识集合B010及六份演示继续保留未完成状态。用户要求冲突先跳过，独立分支持续推进，不因未答复停止。
+
+
+## 2026-10-28 前端记录、项目 Git 与原生工作区续接
+
+新增项目宿主沿用原 Project.mjs 的 Git 分支、独立索引、Commit、咨询与原生前缀归档；改读写当前project/v2与project-network/v2，文本/二进制描述符均保留逻辑资源名。Python Project 同步支持v2文件描述符。实际小镇项目Git链路通过build/studio-project-git-f0cyo3qf/verification.json：52节点/19模块、真实制作分支、Skill导入/懒加载、消息归档，单独暂存personal.txt未被提交。新Python跨语言冷加载测试及制作/小镇联合16项17.760秒通过（build/studio-frontend-project-regression.log），后来工作区/RPC联合10项13.793秒通过。
+
+原生制作角色再接入真实项目Git，build/native-studio-advisors-tkbxwfee/verification.json：18次本地HTTP夹具请求，两个角色、实际组件测试、同session冷续接、Git工作分支与可移植原生日志归档通过，付费0。不是最终真实API右键验收。
+
+WorkspaceFiles与只读DSH log-host已迁入。上下文游标放在agents执行状态，不再写入节点；导出/导入完整原生事件和附件协议。两版实际DSH均通过导出→新目录导入→原消息逐条一致→继续运行，核心Markdown文件亦恢复，恢复门禁和pending均为空：build/native-workspace-zgns4ki7（4请求、20事件、6条历史消息）与build/native-workspace-020-wgjmgcm_（4请求、19事件、5条历史消息），均付费0。沿用原StudioTransport应用网络后返回最终commit编号的逻辑，避免前端继续编辑持有过期版本。
+
+编辑器资源装配、模块配置、链接、Markdown路径、工具提供metadata和execution.skills已改直接操作新记录；复制放置等待真实异步工具名重映射，不再把复制结果送去补装依赖。保留已有组件状态/工具表/频道与强度；新记录专项3项通过，原模型选择约束2项通过，Vite构建通过。Skill解析与ModelConnections原实现已迁入。该版本仍为前端迁移中间态：原前端整套测试目前95项30通过65失败（build/frontend-original-suite.log），大多仍用旧记录、旧路径/同步paste，也包括未迁宿主或不兼容分支；不能用新3项宣称完整前端已通过。原桌面入口和startStudio Host尚未接通当前Python服务，尚不能交付正常桌面启动。
+
+修正此前“studio_view无调用”判断：原main.jsx实际调用api('view')，原host转发studio_view；前端本地视角需要继续迁移，不能当无用接口删掉。旧路径详情、亚节点/借用出边、节点默认模块强度没有对应新核心概念，按用户要求先记录跳过相关分支，不改core、不恢复family权限；详见B011。独立数据预览/清空、项目宿主、其余前端和最终应用模块继续迁移。最近单次全量仍是451项213.826秒，之后只跑上述专项，不能把数字相加。
