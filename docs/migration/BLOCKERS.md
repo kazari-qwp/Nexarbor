@@ -22,3 +22,20 @@
 
 多个节点安装同一业务模块时，这项必须按原来源身份/调用路由移到内置工具发现模块或原适配边界。
 不改 core 重名规则、不把两个来源合成一个工具、不丢弃来源与撤销检查。若沿用原方案仍有不可兼容处，再讨论。
+
+## B003：原平台的频道黑名单尚无对应核心匹配能力
+
+状态：待讨论；未修改 core 的频道规则。
+
+证据：
+
+- 原 python/datanet/core/channel_filters.py 实现 allow/deny 两种匹配。
+- 原 python/datanet/core/interface.py 第 48 行对连接调用 matches(..., channel_mode)。
+- 原 frontends/network-editor/src/module-access.jsx 公开了频道模式设置，属于原平台能力。
+- 新 domain/core/link.py 只支持 channel in channels；新 access.py 还在调用 link.transmit 前直接按 channels 列表过滤。
+
+旧行为：deny 列表表示排除列出的频道，其他频道可匹配。新实现按白名单解释同一列表会反转含义；静态展开成某次已知频道全集不能完整替代动态行为。
+
+当前扫描没有发现三个应用 JSON 显式启用 deny；这是完整平台功能迁移的差异，不应宣称三个应用当前配置已因此失败。
+
+建议讨论：是否允许沿用原 allow/deny 匹配规则，为 Link 增加模式设置，并让 access 统一调用连接的匹配方法而不重复预判。allow 作为默认值，现有行为保持。若不保留该功能，需要用户明确确认范围变化。

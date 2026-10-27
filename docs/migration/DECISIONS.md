@@ -19,3 +19,11 @@
 误合并尚未提交，现已纠正。14 个基础实现文件与迁移前提交的 AST 一致；`modules/` 保留内置模块，模型 HTTP 适配归入 `adapt/models/`。
 
 平台注册的业务模块仍只允许 Agent、工具发现、上下文组装器三种。记忆策略是 Agent 的内部支持代码，不另注册成模块。
+
+## D003：应用二的数据节点继承当前 DataNode（2026-10-27）
+
+用户明确要求：应用二的各种数据节点通过继承当前 `domain/core/data_node.py` 的 DataNode 实现。
+
+不复制旧 Node/数据节点继承树作为运行底座；具体节点保留原业务语义，以对应 Dataer 和 Saver 实现访问与保存。所有节点最终均应满足 isinstance(node, DataNode)。
+
+原项目实际类型已定位：ValueNode、CsvNode、SqliteNode、LlamaIndexNode、CollectionNode（含不同 storage 后端）。迁移位置与原行为对照详见 APP2_DATA_NODES.md。
