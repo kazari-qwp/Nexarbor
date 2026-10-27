@@ -288,3 +288,12 @@ WorkspaceFiles与只读DSH log-host已迁入。上下文游标放在agents执行
 新增组专项含真实Python测试运行、Git工作树与不可变候选材料，联合旧Workspace/官方终端日志/制作工厂12项15.100秒通过（build/final-demo-group-regression-fixed.log），付费0。此前冷重开夹具重复关闭SQLite和wait操作分派问题已修复。不是原根/管理员/两预设/hone CSV应用验收，项目装配仍未切换。
 
 ProjectModules现注入已有信号wait端口；区分运行目录directory和原project_directory，最终Git工作区、命令日志、讨论/协作归档保持在项目文件夹。core未动。上述改动发生在最新单次466全量之后，目前只有本轮12项专项，不宣称新全量478。network_administrator仍只迁清单，服务及完整局部提交待接通，继续工作。
+
+
+## 2026-10-28 管理员完整宿主链路与484项全量
+
+network.administrator已迁入独立模块文件夹，复用原制作Agent工作副本和原生DSH；使用真实access收集局部范围、共享/写锁、配置及文件冲突检查、别名与边界保护、幂等提交、节点局部快照回滚。保留既有节点对象、运行中调用者和范围外信号，不换整张图；当前模块工厂重新生成新节点工具，显式装配沿用Installer。Studio动态接入管理RPC、可见宿主端口、候选属性和隔离测试环境；没有修改core。
+
+管理员/Studio/小组联合36项48.278秒通过（build/admin-studio-groups-combined-fixed.log）；随后单次全量484项250.000秒通过（build/admin-current-full-regression.log），API0。实际原生Root执行器→工具发现→管理员→MakerManager→真实DSH→工作副本→局部提交也通过，7次本地HTTP模型夹具响应、3真实节点、付费0，build/native-admin-current-8_uzbkpn/verification.json；此原生专项早于最后的host_ref及只读工具表检查修复，之后相关组合回归及上述全量已绿。未宣称原hone应用已经通过。
+
+一次性转换器scripts/migrate_final_demo.py正在转换原项目演示中的真实两节点初始应用、讨论/执行两个原预设及公开hone输入，不使用旧运行时。已发现并修复转换时未在序列化前绑定稳定工具名的问题，独立build副本两节点加载成功，两个原预设分别8/3基础节点校验通过（重复数3/4）。交付目录第一版仍须刷新并补正式预检；真实根/管理员组网→两轮讨论→四人Git协作→18项历史判分尚未运行。用户data_node.py默认值变更保持不暂存。B010/B011/B012继续只跳过相关依赖，不停止其他迁移。

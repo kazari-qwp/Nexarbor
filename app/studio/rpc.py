@@ -16,6 +16,8 @@ METHODS={
 def register(transport):
     from .preset_repetition import expand_snapshot
     transport.routes['preset_expand']=lambda p:expand_snapshot(p['snapshot'],p.get('count'),{name:release['manifest'] for name,release in transport.backend.studio.library.items()})
+    transport.routes['network_admin_workspace']=lambda p:transport.backend.network_administrator.workspace(p) if hasattr(transport.backend,'network_administrator') else None
+    transport.routes['network_admin_child']=lambda p:transport.backend.network_administrator.bind_child(p)
     from .skill_resources import parse_skill
     transport.routes['skill_parse']=parse_skill
     from .data_preview import preview

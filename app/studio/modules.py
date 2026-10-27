@@ -34,7 +34,13 @@ class ProjectModules:
     def ports(self):
         return dict(directory=self.backend.directory,project_directory=self.project_directory,transaction=lambda nodes,**p:self.backend.node_locks.transaction(nodes,**p),
                     emit=lambda node,**p:emit_module_signal(self.backend.signals,node,**p),
-                    checkpoint=self.checkpoint,agent_run=self.run_agent,instantiate=self.create_nodes,wait_signal=lambda signal_id:self.backend.signals.wait(signal_id))
+                    checkpoint=self.checkpoint,agent_run=self.run_agent,instantiate=self.create_nodes,wait_signal=lambda signal_id:self.backend.signals.wait(signal_id),manage=self.manage)
+
+    async def manage(self,module,operation,parameters):
+        if not hasattr(self.backend,'network_administrator'):
+            from projects.discussion_collaboration.modules.network_administrator.service import Administrator
+            self.backend.network_administrator=Administrator(self.backend)
+        return await self.backend.network_administrator.operation(module,operation,parameters)
 
     async def checkpoint(self,**p):
         await self.backend.node_locks.wait_prepared()

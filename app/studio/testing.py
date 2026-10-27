@@ -134,7 +134,9 @@ class ModuleHarness:
         async def execute(**p):
             if provider not in self.providers:raise PermissionError('测试副本未启用外部端口：'+ref)
             return await self.providers[provider](requester_id.get() or node,name,p)
-        return CallableTool(host_tool_name(node,ref),execute,definition.get('description',''),definition['parameters'])
+        tool=CallableTool(host_tool_name(node,ref),execute,definition.get('description',''),definition['parameters'])
+        tool._host_ref=ref
+        return tool
 
     def offer(self,node,ref,channels):
         tool=self.make_port(node,ref);self.network.get(node).install(tool)

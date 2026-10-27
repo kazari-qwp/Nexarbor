@@ -52,12 +52,12 @@ def sources(folder):
 def digest(files):return sha256(json.dumps(files,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
 
 class Studio:
-    def __init__(self,backend,library=None,*,agent_run=None,instantiate=None,ports=None,port_contracts=None,project_directory=None,catalog_changed=None):
+    def __init__(self,backend,library=None,*,agent_run=None,instantiate=None,ports=None,port_contracts=None,project_directory=None,catalog_changed=None,register_properties=None):
         self.backend=backend;self.root=backend.directory/'studio';self.root.mkdir(exist_ok=True)
         self.work=self.root/'work';self.work.mkdir(exist_ok=True)
         self.agent_run=agent_run;self.instantiate=instantiate;self.ports=ports or {};self.port_contracts=port_contracts or {}
         self.project_directory=Path(project_directory).resolve() if project_directory is not None else None
-        self.catalog_changed=catalog_changed
+        self.catalog_changed=catalog_changed;self.register_properties=register_properties
         self.standard_releases={}
         for name,folder in (library or {}).items():
             folder=Path(folder).resolve();spec=manifest(folder);files=sources(folder);defaults=read_json(folder/'example.json',{})
@@ -71,6 +71,9 @@ class Studio:
         self._load_releases()
         self.persist_library()
         self._attach_lifecycle()
+        if 'network.administrator' in self.library:
+            from projects.discussion_collaboration.modules.network_administrator.service import Administrator
+            self.backend.network_administrator=Administrator(self.backend)
 
     def _load_releases(self):
         self.modules=ProjectModules(self.backend,{name:self.root/release['folder'] for name,release in self.library.items()},agent_run=self.agent_run,instantiate=self.instantiate,project_directory=self.project_directory)
@@ -329,6 +332,8 @@ class Studio:
         from .discovery import page
         query=args.get('query','').lower();rows=[]
         properties=self.backend.extension_state.get('node_properties',{})
+        scoped=getattr(self.backend,'network_administrator',None)
+        if scoped and scoped.has(workspace):properties=scoped.source(workspace)['network'].get('properties',{})
         for ref,definition in self.ports.items():
             if query and query not in (ref+' '+definition.get('description','')).lower():continue
             offers=[dict(node=node,channels=offer['channels']) for node,item in properties.items() for offer in item.get('offered_ports',[]) if offer['ref']==ref]
@@ -425,7 +430,7 @@ class Studio:
         if metadata.get('immutable_revision'):
             if metadata.get('branch_module')!=name:raise ValueError('修改分支的模块ID不可更换，请保留宿主分配的修订ID')
             if name in self.library and self.library[name]['digest']!=fingerprint:raise ValueError('该修订已发布；请从该版本建立新的修改副本')
-        if name in ('tool_discovery','context.assembler'):raise PermissionError('官方扩展模块不能发布替代实现')
+        if name in ('tool_discovery','context.assembler','network.administrator'):raise PermissionError('官方扩展模块不能发布替代实现')
         if any(node.modules.get(name) is not None for node in self.backend.network):raise ValueError('Unmount active instances before replacing their module')
         if any(dep not in self.library for dep in spec['requires']):raise ValueError('Publish dependencies first')
         destination=self.root/'releases'/name/spec['version']/fingerprint
@@ -460,7 +465,7 @@ class Studio:
             if scoped and scoped.has(p['id']):document=scoped.check(p['id'],document)
         elif source=='current':
             snapshot=scoped.source(p['id']) if scoped and scoped.has(p['id']) else self.backend.snapshot()
-            document=dict(network={**snapshot['network'],'properties':snapshot.get('node_properties',{})},files=snapshot['files'])
+            document=dict(network={**snapshot['network'],'properties':snapshot.get('node_properties',snapshot['network'].get('properties',{}))},files=snapshot['files'])
         elif source=='environment':return self.environment(dict(id=p['id'],action='snapshot'))['document']
         else:raise ValueError('未知观察来源')
         if not isinstance(document.get('network',{}).get('nodes'),list):raise ValueError('当前副本还没有有效网络，请先建立 network.json')

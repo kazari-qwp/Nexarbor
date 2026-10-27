@@ -45,7 +45,7 @@ class Project:
             if hasattr(self,'host_tools'):
                 backend.restore_extra=self.restore_metadata
             service=Studio(backend,self.module_folders,project_directory=self.project,agent_run=backend.execute_agent,instantiate=instantiate,
-                           ports=getattr(getattr(self,'host_tools',None),'definitions',{}),catalog_changed=self.sync_modules)
+                           ports=getattr(getattr(self,'host_tools',None),'definitions',{}),catalog_changed=self.sync_modules,register_properties=self.register_properties)
             service.graph_changed=self.graph_changed
         self.backend = Backend(directory,saver=self.saver,initial_document=initial,configure=configure if studio else None)
         self.module_signals = None

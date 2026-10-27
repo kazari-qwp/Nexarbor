@@ -31,13 +31,15 @@ def sanitized(document):
         return value
     for node in result['network']['nodes']:
         if 'tables' in node:node['tables']=rewrite(node['tables'])
-    return dict(version=1,network=result['network'],files=copied,agents={},signals={},runtime=result.get('runtime',{}),node_properties=result.get('node_properties',{}),document_resources=list(copied))
+    return dict(version=1,network=result['network'],files=copied,agents={},signals={},runtime=result.get('runtime',{}),node_properties=result.get('node_properties',result['network'].get('properties',{})),document_resources=list(copied))
 
 def prepare(studio,p,*,folder=None,activate=True):
     work=folder or studio.folder(p['id']);metadata=read_json(studio.folder(p['id'])/'workspace.json',{})
     if p.get('source','current')=='candidate':
         from .network_work import validate_network
-        document=validate_network(read_json(work/p.get('network_file','network.json'),{}),studio.backend,studio.library,port_definitions=studio.ports)
+        document=read_json(work/p.get('network_file','network.json'),{});scoped=getattr(studio.backend,'network_administrator',None)
+        if scoped and scoped.has(p['id']):document=scoped.check(p['id'],document)
+        document=validate_network(document,studio.backend,studio.library,port_definitions=studio.ports)
         from .preset_repetition import expand_snapshot
         network=document['network']
         expanded=expand_snapshot({**network,'files':document['files']},definitions={name:release['manifest'] for name,release in studio.library.items()})

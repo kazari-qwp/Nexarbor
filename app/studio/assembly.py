@@ -20,8 +20,7 @@ def assemble_document(document,backend,library,*,port_definitions=None):
         for node,properties in result['network'].get('properties',{}).items():
             for offer in properties.get('offered_ports',[]):
                 ref=offer['ref'];name=host_tool_name(node,ref)
-                if name not in h.backend.saver.tables.tool_types:
-                    h.backend.saver.tables.tool_types[name]=lambda current,record,ref=ref:h.make_port(current.info.node_id,ref)
+                h.backend.saver.tables.tool_types[name]=lambda current,record,ref=ref:h.make_port(current.info.node_id,ref)
         h.backend.restore({'version':1,'agents':{},'node_properties':result['network'].get('properties',{}),**result})
         for node,requests in pending.items():
             for item in requests:
