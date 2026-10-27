@@ -6,6 +6,7 @@ from inspect import isawaitable
 from contextlib import nullcontext
 
 from app.runtime.context_packets import apply_context_packet
+from app.runtime.requester import as_requester
 from domain.core import Tools, access
 
 
@@ -88,7 +89,8 @@ class NativeExecutor:
 
     async def prepare(self, parameters):
         async with self._scope(parameters["actor"], asynchronous=True):
-            return await self._prepare_owned(parameters)
+            with as_requester(parameters["actor"]):
+                return await self._prepare_owned(parameters)
 
     async def _prepare_owned(self, parameters):
         self._check_session(parameters)
@@ -140,7 +142,8 @@ class NativeExecutor:
 
     async def invoke(self, parameters):
         async with self._scope(parameters["actor"], asynchronous=True):
-            return await self._invoke_owned(parameters)
+            with as_requester(parameters["actor"]):
+                return await self._invoke_owned(parameters)
 
     async def _invoke_owned(self, parameters):
         self._check_session(parameters)

@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-27",
+  "all_python_tests": 259,
+  "town_memory_tests": 6,
+  "operation_schemas_preserved": true,
+  "module": "projects/npc_town/modules/agents_memory",
+  "module_id": "agents.memory",
+  "purpose": "original application memory list/key semantics; separate from the new AgentNode Markdown memory strategy",
+  "requester_metadata": "app/runtime/requester.py; original requester ID only, no node resolver, permissions or old ctx API",
+  "verified": [
+    "duplicate key returns original memories",
+    "different content cannot reuse memory key",
+    "casefold substring query and configured memory limit",
+    "foreign requester cannot read or mutate private memory",
+    "parallel actor invocations retain separate requester identities",
+    "direct leaked callback cannot change original requester",
+    "node transaction rolls memory state back",
+    "log restore binds new module tool callbacks",
+    "real DSH RPC and same JSONL session continuation still pass"
+  ],
+  "real_native_bridge": {
+    "passed": true,
+    "paid_api_calls": 0,
+    "http_fixture_requests": 5,
+    "session_reused": true,
+    "continued_turn": true,
+    "memory_file_updated": true,
+    "original_jsonrpc": true,
+    "original_native_runner": true,
+    "native_jsonl_cursors": true,
+    "recovery_points": 4
+  },
+  "core_changes": [],
+  "paid_api_calls": 0,
+  "pending": [
+    "messages, transfers, activities and other application modules",
+    "complete project loading, signal/pulse, frontend and 3 application acceptance runs"
+  ]
+}
