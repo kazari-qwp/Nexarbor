@@ -121,3 +121,10 @@ class DiscussionFoundations(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await participant.veto(candidate_id='explicit',reason='no'))['candidate_id'],'explicit')
             integrator.state['candidate']=None
             with self.assertRaisesRegex(ValueError,'没有待验收'):await participant.approve()
+
+    async def test_participant_consumes_submit_request_key_before_forwarding(self):
+        participant, integrator, calls = self.participant()
+        with as_requester('member'):
+            result = await participant.submit(commit='abc1234', branch='member/dev', key='request-1')
+        self.assertEqual(result, {'commit':'abc1234', 'branch':'member/dev', 'member':'member'})
+        self.assertNotIn('key', calls[0][1])

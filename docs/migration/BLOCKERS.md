@@ -81,7 +81,7 @@
 
 ## B008：旧成员提交接口允许 key，但旧 Git 提交接口禁止 key
 
-状态：等待用户选择。真实付费验收已停止，不自动重试。属于原项目已有契约矛盾，未确认涉及新核心限制。
+状态：用户已明确批准最小修复，见 D016。待专项回归通过后恢复实际验收；不再等待该项确认。属于原项目已有契约矛盾，未确认涉及新核心限制。
 
 来源：projects/discussion-collaboration/modules/collab.participant/module.json 的 submit.parameters 包含 key；module.py 会把 activation.parameters 全部复制并转发。git.integrator.rev_2863bbe53e.rev_c376775a7e/module.json 的 submit.parameters 仅 member/commit/branch，additionalProperties=false；旧 python/datanet/core/local_modules.py NodeModule.install.call 在执行前也校验该 Schema。
 

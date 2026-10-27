@@ -36,6 +36,8 @@ class CollabParticipantModule(Module):
         integrator = node.modules.get(self.config['integrator_module'])
         actor = requester_id.get() or node.info.node_id
         arguments = dict(thaw(parameters))
+        if operation == "submit":
+            arguments.pop("key", None)
         with as_caller(node.info.node_id):
             if operation == 'read':arguments = {'include_history':False}
             else:

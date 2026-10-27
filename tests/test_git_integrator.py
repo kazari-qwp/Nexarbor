@@ -11,6 +11,8 @@ import unittest
 
 from app.network_saver import NetworkSaver
 from app.runtime.backend import Backend
+from app.runtime.requester import as_requester
+from projects.discussion_collaboration.modules.collab_participant import CollabParticipantModule
 from domain.agent import AgentNode
 from domain.core import CallableTool, Link, Network, Node, NodeInfo
 from projects.discussion_collaboration.modules.git_integrator import GitIntegratorModule
@@ -261,3 +263,19 @@ class GitIntegratorTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(branch, _member_branch("member/", value))
             self.assertLessEqual(len(branch), 200)
             self.assertEqual(self.git("check-ref-format", "--branch", branch, check=False).returncode, 0)
+
+    async def test_participant_submit_key_preserves_real_commit_duplicate_rules(self):
+        self.saver.tables.module_types['collab.participant'] = lambda record:CollabParticipantModule({'integrator_module':MODULE})
+        participant = CollabParticipantModule({'integrator_module':MODULE})
+        self.group.install(participant)
+        with as_requester('one'):
+            first = await participant.submit(commit=self.one, key='same-request')
+            duplicate = await participant.submit(commit=self.one, key='same-request')
+        self.assertFalse(first['duplicate'])
+        self.assertTrue(duplicate['duplicate'])
+        changed = self.commit('member/one', 'one.txt', 'changed\n')
+        with as_requester('one'):
+            newer = await participant.submit(commit=changed, key='same-request')
+        self.assertFalse(newer['duplicate'])
+        self.assertEqual(newer['commit'], changed)
+        self.assertEqual(self.integrator.state['submissions']['one']['commit'], changed)

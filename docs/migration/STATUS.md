@@ -128,3 +128,10 @@ Git 整合器与应用协调器已经迁移并验证；原 SDK 工具宿主已�
 等待此决定时可以继续资料库等不依赖该改动的离线迁移；不得自动重跑或继续付费讨论测试。若获准修复，先补回归。尽量保留已有真实仓库、会话和成果进行显式续跑；不能改状态强迫成功或自动重放 interrupted 信号，须使用原恢复/显式触发能力。完整三应用仍未验收完成。
 
 资料库已读 projects/knowledge-archive/modules/knowledge.catalog/AGENTS.md（使用/查询/版本/来源规则），并逐段读取 documents.tasks、knowledge.tools、context.network、knowledge.catalog 的 module.py。当前 catalog 的 Historical KnowledgeStore 720 行，与先前五类新 DataNode 所用的其他 store 不是同一业务引擎，禁止直接换引擎。下一步审查该 store、自有 workspace/tasks/knowledge 资源的快照与事务边界，再按原逻辑迁移。
+
+
+## 当前进展：D016 已获准并实现
+
+用户明确批准仅在 participant.submit 转交时消费 key，保留 Git 的 commit 幂等，并要求后续业务逻辑改动继续先确认。修复及两项回归已实现：基础模块 10 项通过（1.408 秒），新增真实 Git/官方 SDK 专项 1 项通过（9.108 秒），证明相同 commit 返回重复、新 commit 即使沿用同一 key 仍可提交。最近单次全量仍为 397 项；新增两项尚未合入单次全量统计。证据 evidence/2026-10-27-participant-submit-key-fix.json。
+
+中断运行只读恢复核对：日志校验到提交 258，存在两条未确认 executor_invoke；4 个任务由 3 位成员完成，另一个成员在任何工具执行前遇到上游 502，两个活动仍为 running。原活动状态机拒绝重放失败/运行中的活动，不能为验收篡改状态、补造提交或自动重放信号。因此保留 build/native-discussion-newcore-4mg660xk 的仓库、会话和证据，修复提交后用全新运行目录重新完成实际讨论应用验收。不对旧运行调用 reconcile 来假定未知效果已经处理。
