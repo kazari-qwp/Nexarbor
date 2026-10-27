@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass, field
 
+from .channel_filters import matches, validate_mode
+
 
 DEFAULT_CHANNEL = "default"
 
@@ -27,6 +29,7 @@ class Link:
     channels: str | Iterable[str] = (DEFAULT_CHANNEL,)
     threshold: float = 0
     processor: Callable[[float], float] = field(default_factory=Multiplier)
+    channel_mode: str = "allow"
 
     def __post_init__(self) -> None:
         if not isinstance(self.target_id, str) or not self.target_id.strip():
@@ -35,13 +38,14 @@ class Link:
         if any(not isinstance(channel, str) or not channel.strip() for channel in channels):
             raise ValueError("频道名称必须是非空字符串")
         self.channels = tuple(dict.fromkeys(channels))
+        self.channel_mode = validate_mode(self.channel_mode)
         if self.threshold < 0:
             raise ValueError("阈值不能为负数")
         if not callable(self.processor):
             raise TypeError("处理函数必须可调用")
 
     def allows(self, strength: float, channel: str = DEFAULT_CHANNEL) -> bool:
-        return channel in self.channels and strength >= self.threshold
+        return strength >= self.threshold and matches(self.channels, (channel,), self.channel_mode)
 
     def transmit(self, strength: float, channel: str = DEFAULT_CHANNEL) -> float | None:
         """被阻挡时返回 None；否则返回处理后的强度。"""

@@ -3,6 +3,7 @@
 from collections.abc import Iterable, Iterator
 
 from .node import Node
+from .channel_filters import declared_channels
 
 
 class Network:
@@ -22,6 +23,10 @@ class Network:
             raise ValueError("同一个节点不能同时属于两个网络")
         self._nodes[node_id] = node
         node._resolve = self.get
+        node._channel_names = self.channel_names
+
+    def channel_names(self) -> tuple[str, ...]:
+        return declared_channels(self._nodes.values())
 
     def get(self, node_id: str) -> Node | None:
         return self._nodes.get(node_id)

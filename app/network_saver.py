@@ -123,6 +123,7 @@ class NetworkSaver:
         return {
             "target_id": link.target_id,
             "channels": list(link.channels),
+            "channel_mode": link.channel_mode,
             "threshold": link.threshold,
             "processor": {"type": "multiplier", "factor": link.processor.factor},
         }

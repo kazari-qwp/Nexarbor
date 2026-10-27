@@ -25,7 +25,7 @@
 
 ## B003：原平台的频道黑名单尚无对应核心匹配能力
 
-状态：待讨论；未修改 core 的频道规则。
+状态：用户已确认“沿用旧逻辑”，匹配扩展已实现，6 项频道回归通过；B003 解除，见 D004。
 
 证据：
 
@@ -38,4 +38,19 @@
 
 当前扫描没有发现三个应用 JSON 显式启用 deny；这是完整平台功能迁移的差异，不应宣称三个应用当前配置已因此失败。
 
-建议讨论：是否允许沿用原 allow/deny 匹配规则，为 Link 增加模式设置，并让 access 统一调用连接的匹配方法而不重复预判。allow 作为默认值，现有行为保持。若不保留该功能，需要用户明确确认范围变化。
+已实施：Link 增加 channel_mode，access 统一调用 Link.allows 匹配；Module 和工具发现支持模式，模块黑名单根据当前声明的频道全集解析。默认 allow，保存恢复包含连接模式。前面的旧实现描述作为差异发现时的证据保留。
+
+## B004：上下文来源的实际访问路径未由 access 提供
+
+状态：待与用户讨论；尚未扩展 access，尚未以二次遍历或伪造路径绕过。
+
+证据：
+
+- 原 extensions/composable/capabilities/context_assembler/module.py 的 collect 读取 reached.path，并写入每项来源的 path。
+- 同目录 ui.html 的预览直接展示 s.path.join(' → ')，属于实际前端功能。
+- 原 python/datanet/core/network.py 的 walk_states 记录从起点到目标的节点 ID 路径；多路汇入时使用同层最先到达的那一条，强度仍按汇合策略计算。
+- 当前 domain/core/access.py 的 _layers 只保留 (Node, remaining)，方法只能获得 Node，没有真实路径。
+
+保持旧来源信息需要在统一遍历中保留路径并提供只读取值入口。建议讨论一个最小的可选接口：@access(with_path=True) 时将路径作为额外参数传给方法；默认仍为 operation(self, node, ...)。路径用不可变 tuple，起点包含自身，汇入取首条到达路径，强度汇合与节点去重保持原规则。
+
+只增加数据，不提供另一套访问能力，不恢复 ctx，不在业务模块重新遍历网络。是否采用此形式需用户确认后才实施。

@@ -84,6 +84,12 @@ class Tools:
         """将递归迭代的结果收集为列表。"""
         return list(self)
 
+    def copy(self) -> Tools:
+        """浅拷贝工具箱；保留成员引用，不展开子工具箱或检查依赖。"""
+        copied = Tools()
+        copied._members = self._members.copy()
+        return copied
+
     def _contains_group(self, target: Tools) -> bool:
         if self is target:
             return True

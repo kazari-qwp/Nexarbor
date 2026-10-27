@@ -6,6 +6,7 @@ from collections.abc import Iterable, Iterator
 from typing import TYPE_CHECKING
 
 from .access import _normalize_channels, _validate_strength
+from .channel_filters import validate_mode
 from .tool import CallableTool, Tools
 
 if TYPE_CHECKING:
@@ -22,6 +23,7 @@ class Module:
         description: str = "",
         channels: str | Iterable[str] = (),
         strength: float = 1,
+        channel_mode: str = "allow",
         modules: Iterable[Module] = (),
         tools: Iterable[CallableTool | Tools] = (),
     ) -> None:
@@ -33,6 +35,7 @@ class Module:
         self.description = description
         self.channels = _normalize_channels(channels)
         self.strength = _validate_strength(strength)
+        self.channel_mode = validate_mode(channel_mode)
         self._access_origin: Node | None = None
         self._dependencies = tuple(modules)
         self._tools = Tools(tools)
@@ -85,6 +88,13 @@ class Modules:
         self._tools._remove(module.tools)
         del self._modules[module_id]
         return True
+
+    def copy(self) -> Modules:
+        """浅拷贝模块表及聚合工具箱；保留模块实例，不安装或检查依赖。"""
+        copied = Modules()
+        copied._modules = self._modules.copy()
+        copied._tools = self._tools.copy()
+        return copied
 
     def get(self, module_id: str) -> Module | None:
         """按标识查询模块，不存在时返回 None。"""

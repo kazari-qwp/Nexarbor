@@ -22,6 +22,7 @@ class Node:
         self.bias = bias
         self.aggregation = SumAggregation() if aggregation is None else aggregation
         self._resolve = None
+        self._channel_names = None
         self._links = Links()
         self._modules = Modules()
         self._tools = Tools()

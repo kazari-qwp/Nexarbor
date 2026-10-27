@@ -11,9 +11,9 @@ from domain.core import Tools
 
 
 class ToolDiscoveryModule(Module):
-    def __init__(self, channels: str | Iterable[str], strength: float) -> None:
+    def __init__(self, channels: str | Iterable[str], strength: float, *, channel_mode: str = "allow") -> None:
         super().__init__(
-            "tool_discovery", description="串联工具发现", channels=channels, strength=strength,
+            "tool_discovery", description="串联工具发现", channels=channels, strength=strength, channel_mode=channel_mode,
         )
 
     def discover(self) -> Tools:

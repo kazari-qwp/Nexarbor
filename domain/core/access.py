@@ -9,6 +9,8 @@ from inspect import iscoroutinefunction
 from math import isfinite
 from typing import TYPE_CHECKING
 
+from .channel_filters import declared_channels, normalize_channels as _normalize_channels, resolve, validate_mode
+
 if TYPE_CHECKING:
     from .node import Node
 
@@ -20,11 +22,6 @@ def _validate_strength(value: float) -> float:
 
 
 
-def _normalize_channels(channels: str | Iterable[str]) -> tuple[str, ...]:
-    channels = (channels,) if isinstance(channels, str) else tuple(channels)
-    if any(not isinstance(channel, str) or not channel.strip() for channel in channels):
-        raise ValueError("频道名称必须是非空字符串")
-    return tuple(dict.fromkeys(channels))
 
 def _layers(origin: Node, channels: tuple[str, ...], strength: float) -> Iterator[list[Node]]:
     """起点使用输入强度；目标先汇合再加偏置，负值不进入下一层。
@@ -44,7 +41,7 @@ def _layers(origin: Node, channels: tuple[str, ...], strength: float) -> Iterato
             for link in node.links:
                 if link.target_id in visited:
                     continue
-                channel = next((item for item in channels if item in link.channels), None)
+                channel = next((item for item in channels if link.allows(remaining, item)), None)
                 if channel is None:
                     continue
                 transmitted = link.transmit(remaining, channel)
@@ -67,17 +64,20 @@ def _layers(origin: Node, channels: tuple[str, ...], strength: float) -> Iterato
 def access(
     operation: Callable | None = None, *,
     channels: str | Iterable[str] | None = None, strength: float | None = None,
+    channel_mode: str | None = None,
 ):
     """装饰 operation(self, node, ...)；调用时省略 node，返回 {节点ID: 结果}。
 
     省略的参数使用对象的 channels 和 strength；对象未设置时使用空频道和强度 1。
-    显式参数优先，显式空频道表只访问本节点。
+    显式参数优先；显式频道表默认白名单，空表只访问本节点。
+    频道黑名单在每次调用时按当前已声明频道全集解析，与原平台一致。
     向外访问按广度分层推进，异步操作同层并发、整层结束后推进。
     同步操作保持逐节点执行。
     调用对象的 _access_origin 由装配方绑定，装饰器不依赖具体模块类型。
     """
     channels = None if channels is None else _normalize_channels(channels)
     strength = None if strength is None else _validate_strength(strength)
+    channel_mode = None if channel_mode is None else validate_mode(channel_mode)
 
     def decorate(operation: Callable):
         def layers_for(owner):
@@ -90,6 +90,15 @@ def access(
             selected_strength = strength if strength is not None else _validate_strength(
                 getattr(owner, "strength", 1),
             )
+            # 显式频道表默认是白名单；省略频道时连同模块的匹配模式一起继承。
+            selected_mode = channel_mode if channel_mode is not None else (
+                getattr(owner, "channel_mode", "allow") if channels is None else "allow"
+            )
+            if selected_mode == "deny":
+                universe = origin._channel_names() if origin._channel_names is not None else declared_channels((origin,))
+                selected_channels = resolve(selected_channels, selected_mode, universe)
+            else:
+                validate_mode(selected_mode)
             return _layers(origin, selected_channels, selected_strength)
 
         if iscoroutinefunction(operation):
