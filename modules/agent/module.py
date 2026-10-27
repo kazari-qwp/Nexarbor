@@ -4,12 +4,12 @@ from collections.abc import Callable
 
 from domain.core import access
 from domain.core import MarkdownNode
-from .agent_inputs import AgentInputs
-from .memory_strategy import EmptyMemoryStrategy, MarkdownMemoryStrategy
+from .inputs import AgentInputs
+from .memory import EmptyMemoryStrategy, MarkdownMemoryStrategy
 from domain.core import Module
 from domain.core import Node
 from domain.core import Tools
-from .tool_discovery import ToolDiscoveryModule
+from ..tool_discovery import ToolDiscoveryModule
 
 
 class AgentModule(Module):

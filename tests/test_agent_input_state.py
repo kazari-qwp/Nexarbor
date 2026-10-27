@@ -6,7 +6,7 @@ import unittest
 
 from domain.core import MarkdownNode, NodeInfo
 from modules.agent import AgentModule
-from modules.agent_inputs import AgentInputs
+from modules.agent.inputs import AgentInputs
 from modules.context_assembler import ContextAssemblerModule
 
 

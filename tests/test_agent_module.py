@@ -9,7 +9,7 @@ from modules.agent import AgentModule
 from domain.core import DataNode
 from domain.core import DependencyError
 from domain.core import MarkdownNode
-from modules.memory_strategy import EmptyMemoryStrategy, MarkdownMemoryStrategy
+from modules.agent.memory import EmptyMemoryStrategy, MarkdownMemoryStrategy
 from domain.core import Network
 from domain.core import Node
 from domain.core import NodeInfo

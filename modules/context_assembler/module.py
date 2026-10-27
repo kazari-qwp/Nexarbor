@@ -5,7 +5,7 @@ from copy import deepcopy
 from inspect import isawaitable
 
 from domain.core import Module, access
-from .context_strategy import STRATEGIES, assemble_packet, channel_filter
+from .strategies import STRATEGIES, assemble_packet, channel_filter
 
 KINDS = tuple(STRATEGIES)
 DEFAULT_CHANNELS = ("context.assembler", *("context.assembler." + kind for kind in KINDS))

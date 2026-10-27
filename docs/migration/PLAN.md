@@ -30,6 +30,8 @@
 
 16. D010：修改旧实现适配新设计；Tools 直接迭代或 list，不添加来源/调用包装层，不重复做可达性检查。
 
+17. D012：每个模块及其辅助组件归入独立模块目录；内置和应用项目模块都遵守。
+
 ## 目标目录
 
 ```text
@@ -37,10 +39,9 @@ domain/
   core/                      # 已设计好的基础对象，保留分文件实现，行为冻结
   ...                        # 必要的信号/持久化值对象，需有清晰归属
 modules/
-  agent.py                   # 内置 Agent
-  tool_discovery.py          # 内置工具发现
-  context_assembler.py       # 内置上下文组装器
-  ...                        # 仅三个模块的内部支持代码
+  agent/                     # Agent 主体、inputs、memory
+  tool_discovery/            # 内置工具发现
+  context_assembler/         # 组装器主体与四路策略
 app/
   runtime/                   # 原服务编排、信号/脉冲调度、模块生命周期
   transactions/              # 原节点锁、事务、取消/异常回滚

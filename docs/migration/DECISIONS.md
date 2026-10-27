@@ -95,3 +95,9 @@ ContextAssemblerModule 主流程为 collect → 收集本地配置与四路 Mark
 删除重复模式/字符串验证、每次请求的重复深拷贝、重复来源正文核对和说明性注释。去重按 (kind,id) 保留首次来源，不再逐字比较后续副本；相应断言改为首次来源优先。频道选择、BFS 顺序、下游自身配置、文件读取错误展示、预览不消费输入等行为继续验证。
 
 验证：12 项组装器行为测试及全部 169 项 Python 回归通过，未改 core。见 evidence/2026-10-27-context-strategies.json。
+
+## D012：模块组件归入同一模块目录（2026-10-27）
+
+用户要求：同一模块拆成多个文件时，所有组件放在同一个模块文件夹，不在 modules 根目录散放；后续应用模块迁移同样遵守。
+
+三个内置模块统一为 modules/<模块名>/ 包。Agent 的 inputs/memory 与主体放在一起；上下文组装器的 strategies 与主体放在一起。__init__.py 公开模块类，原 modules.agent / modules.context_assembler / modules.tool_discovery 导入名称保留为正式包入口。应用项目以后同样采用 projects/<项目>/modules/<模块名>/ 归拢实现及其内部辅助文件。
