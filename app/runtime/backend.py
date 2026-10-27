@@ -25,6 +25,7 @@ class Backend:
         self.commit_observer = None
         self.snapshot_extra = None
         self._context_port = None
+        self.agent_executor = None
         try:
             previous = self.store.latest()
             if previous is not None:
@@ -49,7 +50,25 @@ class Backend:
         self._context_port = port
         self.node_locks.contexts = port
 
+    @property
+    def signals(self):
+        if self._signals is None:
+            from app.runtime.signal_runtime import SignalRuntime
+            async def checkpoint():
+                await self.node_locks.wait_prepared()
+                self.save()
+            self._signals = SignalRuntime(self.network, records=self.extension_state.setdefault('signals', {}),
+                                          locks=self.node_locks, checkpoint=checkpoint)
+        return self._signals
+
+    async def execute_agent(self, node_id, message='', **options):
+        if self.agent_executor is None:raise RuntimeError('This host has no Agent executor installed')
+        return await self.agent_executor(node_id, message, **options)
+
     def _use_network(self, network):
+        from domain.signals import restore_records
+        if 'signals' in self.extension_state:self.extension_state['signals'] = restore_records(self.extension_state['signals'])
+        self._signals = None
         self.network = network
         snapshots = NodeSnapshots(network, self.directory, execution=self.agents, bindings=self.bindings,
                                   document=self._snapshot)
@@ -188,6 +207,8 @@ class Backend:
             return self.store.mark(contexts, kind, expected_commit)
 
     def restore(self, document):
+        if getattr(self, '_signals', None) is not None and self._signals._active:
+            raise RuntimeError('Stop active signals before restoring the network')
         if hasattr(self, 'node_locks'):self.node_locks.lifecycle()
         if document.get('version') != 1:raise ValueError('Unsupported checkpoint version')
         # 先校验全部资源地址，再恢复文件。新 DataNode 构造时就使用真实资源。

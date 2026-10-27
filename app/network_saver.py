@@ -18,6 +18,8 @@ from domain.core import Node
 from domain.core import NodeInfo
 from domain.agent import AgentNode, MarkdownAgentNode
 from domain.agent.inputs import AgentInputs
+from domain.pulse_node import PulseNode
+from domain.json_values import thaw
 from .persistence.tables import ModuleTables
 
 
@@ -87,7 +89,7 @@ class NetworkSaver:
             data = record.get("data")
             is_agent = record.get("type") == "agent"
             if data is None:
-                node = AgentNode(info) if is_agent else Node(info)
+                node = PulseNode(info, **record.get("parameters", {})) if record.get("type") == "pulse" else AgentNode(info) if is_agent else Node(info)
             else:
                 kind = data["type"]
                 if kind not in self.node_types:
@@ -120,6 +122,9 @@ class NetworkSaver:
             "aggregation": self._encode_aggregation(node.aggregation),
             "links": [self._encode_link(link) for link in node.links],
         }
+        if node.node_type == "pulse":
+            record["parameters"] = dict(channels=list(node.channels), strength=node.strength, content=thaw(node.content),
+                                        signal_options=thaw(node.signal_options), state=deepcopy(node.state))
         if node.node_type == "agent":
             record["agent"] = {"inputs": node.inputs.snapshot()}
         if not isinstance(node, DataNode):

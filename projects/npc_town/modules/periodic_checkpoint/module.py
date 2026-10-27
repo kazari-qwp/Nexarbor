@@ -6,6 +6,11 @@ from domain.core import Module, access
 
 
 class PeriodicCheckpointModule(Module):
+    signal_channels = ('tick',)
+
+    async def on_signal(self, context):
+        return await self.receive(context.signal.signal_id)
+
     def __init__(self, transaction, checkpoint, config=None, state=None, **access_settings):
         super().__init__("runtime.periodic_checkpoint", **access_settings)
         self.transaction = transaction

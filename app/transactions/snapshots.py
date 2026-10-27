@@ -100,6 +100,8 @@ class NodeSnapshots:
             runner=getattr(node, 'runner', None), root=root, directory=root is not None and root.is_dir(),
             files={path: read_bytes(path) for path in self._files(root)},
         )
+        if node.node_type == 'pulse':
+            image['pulse_fields'] = _fields(node, ('channels', 'strength', 'content', 'signal_options', 'state'))
         if isinstance(node, DataNode):
             image.update(dataer=node.dataer, saver=node.saver, save_data=node.save_data,
                          data_fields=_fields(node.dataer, _DATA_FIELDS), data_objects=[])
@@ -133,6 +135,7 @@ class NodeSnapshots:
                 group._members[:] = members
             for tool, fields in image['tools'].items():
                 _restore_fields(tool, fields)
+            if 'pulse_fields' in image:_restore_fields(node, image['pulse_fields'])
             if image['inputs'] is not None:
                 node.runner = image['runner']
                 with node.inputs.lock:

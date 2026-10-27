@@ -15,6 +15,7 @@ class Transport(JsonRpcTransport):
         self.executor = NativeExecutor(backend.network, self, bindings=backend.bindings,
                                        states=backend.agents, locks=backend.node_locks)
         backend.context_port = self.executor
+        backend.agent_executor = self.executor.run
         backend.commit_observer = lambda commit_id: self.write(dict(notification='core/committed', commit_id=commit_id))
         for node in backend.network:
             if node.node_type == 'agent':

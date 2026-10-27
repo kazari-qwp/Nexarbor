@@ -30,6 +30,11 @@ def _clock(config, tick):
 
 
 class ClockCounterModule(Module):
+    signal_channels = ('tick',)
+
+    async def on_signal(self, context):
+        return await self.receive(context.signal.signal_id)
+
     def __init__(self, transaction, checkpoint, config=None, state=None, **access_settings):
         super().__init__("clock.counter", **access_settings)
         self.transaction = transaction

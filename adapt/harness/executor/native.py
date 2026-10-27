@@ -7,6 +7,7 @@ from contextlib import nullcontext
 
 from app.runtime.context_packets import apply_context_packet
 from app.runtime.requester import as_requester
+from app.runtime.signal_authority import signal_authority
 from domain.core import Tools, access
 
 
@@ -89,7 +90,7 @@ class NativeExecutor:
 
     async def prepare(self, parameters):
         async with self._scope(parameters["actor"], asynchronous=True):
-            with as_requester(parameters["actor"]):
+            with as_requester(parameters["actor"]), signal_authority(parameters["actor"], self.bindings[parameters["actor"]].get("strength", 0)):
                 return await self._prepare_owned(parameters)
 
     async def _prepare_owned(self, parameters):
@@ -142,7 +143,7 @@ class NativeExecutor:
 
     async def invoke(self, parameters):
         async with self._scope(parameters["actor"], asynchronous=True):
-            with as_requester(parameters["actor"]):
+            with as_requester(parameters["actor"]), signal_authority(parameters["actor"], self.bindings[parameters["actor"]].get("strength", 0)):
                 return await self._invoke_owned(parameters)
 
     async def _invoke_owned(self, parameters):

@@ -12,6 +12,11 @@ def clock(module):
 
 
 class WorldTimeModule(Module):
+    signal_channels = ('tick',)
+
+    async def on_signal(self, context):
+        return await self.receive(context.signal.signal_id)
+
     def __init__(self, transaction, config=None, state=None, **access_settings):
         super().__init__("world.time", **access_settings)
         self.transaction = transaction
