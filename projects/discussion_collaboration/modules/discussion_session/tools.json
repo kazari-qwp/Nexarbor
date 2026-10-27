@@ -1,0 +1,211 @@
+[
+  {
+    "id": "speak",
+    "name": "讨论发言",
+    "description": "在当前讨论的当前轮次发言；调用者必须是状态为 active 的参与者。 返回 accepted_round 为本条发言所属轮次，round/phase 为操作后会话状态。",
+    "operation": "speak",
+    "parameters": {
+      "type": "object",
+      "title": "成员发言",
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "发言正文",
+          "description": "完整发言正文，至少 1 个字符；运行时再按 max_speech_chars 检查上限。",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "round": {
+          "type": "integer",
+          "title": "轮次",
+          "description": "可选；省略时按调用时的当前轮处理，显式填写时必须与当前轮一致。",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "key": {
+          "type": "string",
+          "title": "去重键",
+          "description": "可选；同一运行、成员、轮次内的相同键与相同正文只记录一次。",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "read",
+    "name": "读取讨论",
+    "description": "读取当前运行、参与者、最近完整发言、决策、草稿与成果。",
+    "operation": "read",
+    "parameters": {
+      "type": "object",
+      "title": "读取讨论",
+      "properties": {
+        "round": {
+          "type": "integer",
+          "title": "只看轮次",
+          "description": "可选；只返回指定轮次的发言。",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "limit": {
+          "type": "integer",
+          "title": "读取发言条数",
+          "description": "返回最近多少条完整发言，范围 1 到 200，默认 20。",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 20
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "decide",
+    "name": "提交决策",
+    "description": "Leader 在 deciding 阶段提交决策和任务清单。",
+    "operation": "decide",
+    "parameters": {
+      "type": "object",
+      "title": "Leader 决策",
+      "properties": {
+        "decision": {
+          "type": "string",
+          "title": "决策正文",
+          "description": "Leader 的最终决策，1 到 4000 个字符。",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "tasks": {
+          "type": "array",
+          "title": "任务清单",
+          "description": "可为零项；每项包含标题、路径和可选说明。",
+          "default": [],
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "title": "任务标题",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "paths": {
+                "type": "array",
+                "title": "相关路径",
+                "items": {
+                  "type": "string"
+                },
+                "default": []
+              },
+              "detail": {
+                "type": "string",
+                "title": "任务说明",
+                "minLength": 1,
+                "maxLength": 2000
+              }
+            },
+            "required": [
+              "title",
+              "paths"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "key": {
+          "type": "string",
+          "title": "去重键",
+          "description": "可选；相同键与相同决策只处理一次。",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "decision"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "draft",
+    "name": "写讨论草稿",
+    "description": "Recorder 在 drafting 阶段按章节撰写或覆盖草稿。",
+    "operation": "draft",
+    "parameters": {
+      "type": "object",
+      "title": "Recorder 草稿",
+      "properties": {
+        "section": {
+          "type": "string",
+          "title": "章节名",
+          "description": "草稿章节名，1 到 200 个字符；同名章节会被覆盖。",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "text": {
+          "type": "string",
+          "title": "章节正文",
+          "description": "章节正文，1 到 8000 个字符。",
+          "minLength": 1,
+          "maxLength": 8000
+        },
+        "key": {
+          "type": "string",
+          "title": "去重键",
+          "description": "可选；相同键与相同章节内容只处理一次。",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "section",
+        "text"
+      ],
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "finish",
+    "name": "生成讨论成果",
+    "description": "Recorder 在已有决策和草稿后生成 Markdown 最终成果。",
+    "operation": "finish",
+    "parameters": {
+      "type": "object",
+      "title": "生成最终成果",
+      "properties": {
+        "title": {
+          "type": "string",
+          "title": "成果标题",
+          "description": "可选；省略时使用“讨论成果：任务简述”。",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "leave",
+    "name": "退出讨论",
+    "description": "退出当前讨论；本人之后的轮次不再等待其发言，退出会记录在参与者与事件中。",
+    "operation": "leave",
+    "parameters": {
+      "type": "object",
+      "title": "成员退出",
+      "properties": {
+        "member": {
+          "type": "string",
+          "title": "退出成员",
+          "description": "可选；省略时让调用者本人退出。代其他成员退出只允许控制方经 discussion.control 频道调用。"
+        },
+        "reason": {
+          "type": "string",
+          "title": "退出原因",
+          "description": "可选的说明，只用于调用方记录。"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+]

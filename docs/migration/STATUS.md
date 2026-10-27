@@ -2,7 +2,7 @@
 
 更新时间：2026-10-27。
 
-当前最新验证：**346 项 Python 测试通过**；真实小镇一天及保存重开通过。用户已接受性能差异并明确恢复迁移：继续讨论/协作、资料库、完整宿主/前端与制作 Agent 文档更新，后续验收仍监测 token 与时间。离线分析确认主要内容增量是模型推理，可见文字平均每次约 47→48 字符；不再继续做本次性能对照实验。
+当前最新验证：**369 项 Python 测试通过**；真实小镇一天及保存重开通过。用户已接受性能差异并明确恢复迁移：继续讨论/协作、资料库、完整宿主/前端与制作 Agent 文档更新，后续验收仍监测 token 与时间。离线分析确认主要内容增量是模型推理，可见文字平均每次约 47→48 字符；不再继续做本次性能对照实验。
 
 
 ## 已完成
@@ -66,7 +66,7 @@
 
 ## 下一步
 
-用户已解除性能暂停并要求继续迁移。当前处理讨论/协作应用，notes.text、discussion.seat、collab.participant 已完成组件迁移，接下来逐段迁移实际 discussion.session、collab.board、git.integrator 与 app.coordinator.entry；模块只能通过 access 跨节点访问，信号使用独立运行器。之后迁实际资料库 catalog/tasks、完整 Studio/前端、复制/资源/宿主服务，最后更新制作 Agent 的 Skill/提示词。两个应用验收继续记录 token、API 次数和耗时。
+用户已解除性能暂停并要求继续迁移。当前处理讨论/协作应用，notes.text、discussion.seat、collab.participant 已完成组件迁移，discussion.session 和 collab.board 已完成组件迁移；接下来完成 git.integrator 与 app.coordinator.entry；模块只能通过 access 跨节点访问，信号使用独立运行器。之后迁实际资料库 catalog/tasks、完整 Studio/前端、复制/资源/宿主服务，最后更新制作 Agent 的 Skill/提示词。两个应用验收继续记录 token、API 次数和耗时。
 
 讨论基础模块：notes.text、discussion.seat、collab.participant 已迁为新 Module/access；9 项专项和全量 346 项通过（30.972 秒）。覆盖真实文件部分写入回滚、并发追加、回执冷重开、角色发布、成员身份与候选委派。完整讨论状态机/实际 Git 整合与应用验收尚未完成。用户 domain/core/data_node.py 的 save_data=True 编辑继续保留且未暂存。scripts/analyze_town_output.cjs 是本轮离线诊断脚本，不打印推理文本，未调用 API。
 
@@ -91,3 +91,10 @@ CORE_BASELINE.json 描述的是结构整理时与基线一致的状态；当前�
 - 基础开发环境 `.venv` 为 Python 3.14，当前向量依赖没有装在其中；后续默认使用 `.venv-runtime`，不要回到共享环境安装包。
 - 项目模型：build/models/bge-small-zh-v1.5，从原项目已有模型复制。模型、缓存、测试日志和环境目录不入 Git。
 - 向量工作进程现在显式使用 UTF-8，先 EOF 正常退出再升级终止；已验证中文路径和关闭后日志句柄释放。
+
+
+## 讨论会话与协作板阶段
+
+discussion.session.rev_697d80a33d 和 collab.board.rev_9191e2380f.rev_96569f0263 已迁为新 Module/access。新增 23 项专项通过，全量 369 项通过（32.894 秒）。原轮次/角色/成果/回执、路径冲突/成员退出/共享记录、短事务提交后发信号和失败报告保留；验证了跨事务状态写入限制。原配置的成员发现采用 access，不保留 ctx。未调用付费 API。
+
+WIP：git.integrator 的源算法已逐段审查，正在迁移；adapt/harness/official 为原 SDK 工具宿主和运行器，尚未专项验收。实际讨论项目装配、协调器、真实 Git/真实 Agent 流程尚未完成。

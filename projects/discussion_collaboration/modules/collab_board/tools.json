@@ -1,0 +1,263 @@
+[
+  {
+    "id": "list",
+    "name": "查看协作板",
+    "description": "查看当前协作轮次、任务认领与完成情况、成员和共享摘要。",
+    "operation": "list",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "include_closed": {
+          "type": "boolean",
+          "title": "包含已结束轮次",
+          "description": "为假时，已结束轮次不再返回任务与共享明细；默认保留，便于结束后的进度复盘。",
+          "default": true
+        }
+      }
+    }
+  },
+  {
+    "id": "claim",
+    "name": "认领任务路径",
+    "description": "以当前成员身份认领任务的若干路径；与其他成员已认领路径重叠时会被拒绝。",
+    "operation": "claim",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "type": "string",
+          "title": "任务 ID",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "paths": {
+          "type": "array",
+          "title": "认领路径",
+          "description": "至少一项；与同任务其他有效成员的认领路径前缀相同或相等即冲突。",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "key": {
+          "type": "string",
+          "title": "幂等键",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "task",
+        "paths"
+      ]
+    }
+  },
+  {
+    "id": "extend",
+    "name": "补充认领路径",
+    "description": "给自己已认领的任务补充更多路径，同样检查冲突。",
+    "operation": "extend",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "type": "string",
+          "title": "任务 ID",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "paths": {
+          "type": "array",
+          "title": "补充路径",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          }
+        },
+        "key": {
+          "type": "string",
+          "title": "幂等键",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "task",
+        "paths"
+      ]
+    }
+  },
+  {
+    "id": "release",
+    "name": "释放认领",
+    "description": "释放当前成员对某个未完成任务的认领，路径重新可被他人认领。",
+    "operation": "release",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "type": "string",
+          "title": "任务 ID",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "member": {
+          "type": "string",
+          "title": "成员 ID",
+          "description": "仅控制方代释放时填写；填写后必须经 collab.admin 频道调用。",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "reason": {
+          "type": "string",
+          "title": "释放原因",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "task"
+      ]
+    }
+  },
+  {
+    "id": "complete",
+    "name": "完成任务",
+    "description": "记录当前成员所认领任务的提交哈希与修改摘要，并把任务标记为完成。",
+    "operation": "complete",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "task": {
+          "type": "string",
+          "title": "任务 ID",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "commit": {
+          "type": "string",
+          "title": "提交哈希",
+          "description": "7 到 64 位十六进制提交标识；本模块只记录，不校验 Git 仓库。",
+          "pattern": "^[0-9a-fA-F]{7,64}$"
+        },
+        "summary": {
+          "type": "string",
+          "title": "修改摘要",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "key": {
+          "type": "string",
+          "title": "幂等键",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "task",
+        "commit",
+        "summary"
+      ]
+    }
+  },
+  {
+    "id": "discover",
+    "name": "共享发现",
+    "description": "把工作中发现的重要信息共享给协作板。",
+    "operation": "discover",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "发现摘要",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "task": {
+          "type": "string",
+          "title": "相关任务",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "key": {
+          "type": "string",
+          "title": "幂等键",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "text"
+      ]
+    }
+  },
+  {
+    "id": "fail",
+    "name": "共享失败摘要",
+    "description": "共享失败原因、已尝试的修改和后续需要注意的限制。",
+    "operation": "fail",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "title": "失败与修改摘要",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "task": {
+          "type": "string",
+          "title": "相关任务",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "key": {
+          "type": "string",
+          "title": "幂等键",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "text"
+      ]
+    }
+  },
+  {
+    "id": "leave",
+    "name": "退出协作",
+    "description": "退出本轮协作；自己的未完成认领会被释放，其他成员可重新认领。",
+    "operation": "leave",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "member": {
+          "type": "string",
+          "title": "成员 ID",
+          "description": "仅控制方代操作时填写；填写后必须经 collab.admin 频道调用。",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "reason": {
+          "type": "string",
+          "title": "退出原因",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      }
+    }
+  }
+]
