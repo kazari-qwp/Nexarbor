@@ -196,3 +196,5 @@ B009 已提出适配层原请求事件的最小方案，批准前只跳过精确
 续跑当前目录更新：build/town-resume-y7_z7dk1/runtime，point=05188b9404ea4b5d813d185ff6ad9cac。前一个目录 7 次请求被 DeepSeek 以 developer 角色不支持的 422 拒绝，无 usage/无工具执行；现显式声明 API 路由不支持 developer，两版原生离线契约测试通过。仍只从原 tick16 断点继续。
 
 小镇第 17 时刻已完成，56 请求，已持久化 point 0139c32c4f7a47989fa73d0a3f745584（commit103、pending为空）。脚本额外登记与自动登记碰撞已改为复用现有 NativeCheckpoints；两版原生验证再次通过。当前续跑仍用 town-resume-y7_z7dk1/runtime，下一时刻 18，不从 16 再恢复。
+
+知识模块独立分支：documents.tasks、knowledge.tools、knowledge.collection 及 catalog 公开操作/Schema/原向导与 Wiki vendor 已迁移为新 Module/access。原始输入不可变、交付修订/作者、证据版本/回执、真实 CSV 原件保留/类型、只读保护及断线后不能直接读取真实记录，新增 4 项均通过；与原 catalog 7 项联合 11 项通过（5.174 秒），API=0。不是完整六阶段应用验收，也不宣称集合节点 DataNode 装配完成。B010 等待用户确认原文归档与 Wiki 目录关系；继续独立协作/制作 Agent/前端迁移。最近单次全量仍为 420 项（190.718 秒）。小镇续跑现已完成 tick18，执行 tick19，不能重启或重跑已完成波次。

@@ -28,8 +28,8 @@ class KnowledgeCatalogModule(Module):
         engine.owner_nodes = thaw(self.state.get("owners", {}))
         return engine
 
-    async def execute(self, operation, **parameters):
-        return next(iter((await self._operate(operation, parameters)).values()))
+    async def execute(self, action, **parameters):
+        return next(iter((await self._operate(action, parameters)).values()))
 
     async def catalog(self, **parameters):
         return await self.execute("catalog", **parameters)

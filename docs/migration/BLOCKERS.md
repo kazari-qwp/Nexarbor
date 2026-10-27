@@ -93,3 +93,8 @@
 状态：提案已准备，等用户确认是否允许迁移适配层事件；跳过该分支，继续独立工作。原 decentralized_group/runtime.py 的 request/pre_step 按真实模型请求累计限额；现有 native/host.cjs 只有本地 entry.steps 计数，不转交模块，prepare 又不是每请求一次。不能用 prepare 次数或一次 turn 完成后的统计冒充逐请求预算。
 
 最小提案在 build/cooperative-request-hook-proposal.md：将现有 agent/request 事件转交 executor_request，再按 binding.request_hooks 调用 cooperation.member.request。core 与 Agent 定义不动，但涉及适配层/执行器，超出本阶段用户“只做模块级修改”的范围；未批准前不应用。依赖项：精确请求预算、最终 CSV 协作的完整原策略验收；不影响命令日志、消息、五天小镇、资料库及前端的独立迁移。
+
+
+## B010：RAG 原文集合与 Wiki 目录要求
+
+2026-10-28 已异步询问，等待选择；跳过集合最终装配及依赖验收，继续独立模块和协作/前端。实际历史 knowledge.catalog/store.py 的 _entry 仅给 Wiki 返回 wiki_link；search/index 同时支持 RAG 原文和 Wiki 页面，RAG 命中原文，Wiki 是另存的整理页。D018 明确要求 RAG 作为 Wiki 目录返回 Wiki 链接。待决定原文单独归档后 RAG 仅索引 Wiki，还是保留原文 RAG 并另设 Wiki 目录。不能默默拿先前另一存储引擎替换，也不能把旧普通集合服务节点冒称已实现 DataNode 继承。
