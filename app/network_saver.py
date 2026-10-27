@@ -18,7 +18,7 @@ from domain.core import NodeInfo
 
 class NetworkSaver:
     def __init__(self) -> None:
-        # 数据节点类型接受 info、path 和 save_data，负责装配自己的访问器与保存器。
+        # 数据节点接收 info、path、save_data 及自身 parameters，负责装配访问器和保存器。
         self.node_types: dict[str, type[DataNode]] = {"markdown": MarkdownNode}
         self.aggregation_types: dict[str, type[Aggregation]] = {
             "sum": SumAggregation,
@@ -68,7 +68,7 @@ class NetworkSaver:
                 data_path = Path(data["path"])
                 if not data_path.is_absolute():
                     data_path = path.parent / data_path
-                node = self.node_types[kind](info, data_path, save_data=data["save_data"])
+                node = self.node_types[kind](info, data_path, save_data=data["save_data"], **data.get("parameters", {}))
             node.bias = record.get("bias", 0)
             aggregation = record.get("aggregation", "sum")
             if aggregation not in self.aggregation_types:
@@ -108,6 +108,9 @@ class NetworkSaver:
             # 只记录路径，不调用数据保存方法，也不读写源文件内容。
             reference = str(source)
         record["data"] = {"type": kind, "path": reference, "save_data": node.save_data}
+        parameters = getattr(node, "parameters", {})
+        if parameters:
+            record["data"]["parameters"] = parameters
         return record
 
     def _encode_aggregation(self, aggregation: Aggregation) -> str:

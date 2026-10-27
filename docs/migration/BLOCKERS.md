@@ -55,7 +55,7 @@
 
 ## B005：内存数据节点与 Saver 强制文件路径冲突
 
-状态：待用户讨论；尚未修改 Saver 或实现伪造路径的 ValueSaver。
+状态：用户已确认改为真实文件存储，见 D007；ValueNode 的文件实现与 7 项行为测试已通过，B005 解除。
 
 证据：
 
@@ -64,6 +64,6 @@
 - 新 domain/core/saver.py 把 path: Path 定义为每个 Saver 必须实现的抽象属性；DataNode 又要求一定提供 Saver。
 - 当前 app/network_saver.py 也统一按源文件路径编码数据，不过此应用层保存实现已经获准替换为原持久化编排。
 
-建议讨论：通用 Saver 只保留保存行为，把源文件 path 下移到 MarkdownSaver 等具体文件保存器；ValueNode 仍继承 DataNode，内存 JSON 按原协议直接写入网络配置。不能让 path 返回假文件、抛未实现异常冒充实现，或把 ValueNode 改成强制磁盘存储。
+此前建议下移 path 的方案不实施。按用户最新决定，ValueNode 改为真实 JSON 文件存储，Saver 接口不变；这是用户授权的存储语义变化，不再要求保持旧内存/内联形式。
 
-内存数据没有“仅保留外部文件引用”的恢复方式；应在具体保存协议中明确该类型与 save_data=False 的关系，避免悄悄丢值。用户确认通用协议调整后再落地。
+现已有真实源文件，False 保存路径引用、True 复制文件均已验证。旧内联值的应用模板和配置仍待转换为独立 JSON 资源。

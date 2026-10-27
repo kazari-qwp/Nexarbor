@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-27",
+  "decision": "D007: ValueNode 改为文件存储；通用 Saver 不改",
+  "command": ".venv/Scripts/python.exe -B -X utf8 -m unittest discover -s tests -q",
+  "python_tests_passed": 158,
+  "value_tests": 7,
+  "csv_sqlite_tests": 10,
+  "data_methods_parity": [
+    {
+      "type": "csv",
+      "source": "extensions/storage/capabilities/csv/python/datanet/components/nodes/csv_node/csv_node.py",
+      "target": "projects/knowledge_archive/nodes/csv.py",
+      "methods_ast_equal_after_result_type_rename": [
+        "write_many",
+        "write",
+        "get_schema",
+        "_read_records",
+        "_result",
+        "_read_key",
+        "_read_filter"
+      ]
+    },
+    {
+      "type": "sqlite",
+      "source": "extensions/storage/capabilities/sqlite/python/datanet/components/nodes/sqlite_node/sqlite_node.py",
+      "target": "projects/knowledge_archive/nodes/sqlite.py",
+      "methods_ast_equal_after_result_type_rename": [
+        "write_many",
+        "_read_filter",
+        "write",
+        "get_schema",
+        "_read_key"
+      ]
+    }
+  ],
+  "limits": [
+    "尚未迁移完整应用模板/数据模块/前端数据预览",
+    "LlamaIndexNode/CollectionNode 尚待迁移",
+    "三应用最终验收尚未完成"
+  ]
+}

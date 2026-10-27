@@ -51,3 +51,11 @@
 前端来源预览改为显示文件地址，access 接口和 core 不作修改。preview/assemble 均只返回 patch，不消费事件；原 AgentInputs 状态对象已原样移入 Agent 模块，实际投递和 DSH 会话恢复仍由后续执行适配器迁移。
 
 验证：12 项上下文行为测试 + 4 项原输入状态/组合测试；全部 131 项 Python 测试通过；迁移的 UI 脚本语法检查通过。AgentInputs 与原实现 AST 一致。
+
+## D007：ValueNode 改为真实文件存储（2026-10-27）
+
+用户针对 B005 明确答复“改成文件存储即可”。因此不调整通用 Saver：ValueNode 继承 DataNode，ValueDataer 实时读写 JSON 文件，ValueSaver 提供真实 path 并直接复制源文件。数值/文本/列表/对象等仍是单个 JSON 值，固定键 value、insert 冲突、查询状态等规则保留，JSON 中的文件路径字符串不会被解引用。
+
+save_data=False 保存实际源文件路径；True 复制源 JSON 文件。旧内联 parameters.value 在项目数据迁移时写入真实 JSON 资源后改成文件路径，不能只改节点外观。业务节点位于 projects/knowledge_archive/nodes，采用可直接作为 Python 包导入的目录名。
+
+状态：ValueNode 与 7 项文件/保存/跨节点测试已实现并通过；旧应用模板/配置转换随完整项目迁移接入。core 未改。
