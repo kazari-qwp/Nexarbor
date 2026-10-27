@@ -1,4 +1,4 @@
-import {linkRecord} from '../../shared/graph/links.js';
+import {linkRecord,edgeMetadata} from '../../shared/graph/links.js';
 import {singleOwnedNode,ownershipRoots} from '../../shared/graph/ownership.js';
 import {useEffect,useRef,useState} from 'react';
 import {copySubnet,pasteSubnet,selectionKey,historyBookmark} from './subnets.js';
@@ -63,8 +63,8 @@ export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpen
   lastCopy.current=null;const entries=[],oldIds=new Set(before.network.nodes.map(n=>n.node_id));
   for(const n of after.network.nodes){
    if(!oldIds.has(n.node_id))entries.push({kind:'node',id:n.node_id,label:n.name,snapshot:copySubnet(after,[n.node_id],'external',layout)});
-   const previous=before.network.nodes.find(o=>o.node_id===n.node_id)?.connections.interfaces.length??0;
-   n.connections.interfaces.slice(previous).forEach((link,i)=>entries.push({kind:'edge',id:n.node_id+'|'+(previous+i),label:n.name+' → '+(after.network.nodes.find(t=>t.node_id===link.target_node_id)?.name??link.target_node_id),source:n.node_id,target:link.target_node_id,metadata:clone(link.metadata)}));
+   const previous=before.network.nodes.find(o=>o.node_id===n.node_id)?.links.length??0;
+   n.links.slice(previous).forEach((link,i)=>entries.push({kind:'edge',id:n.node_id+'|'+(previous+i),label:n.name+' → '+(after.network.nodes.find(t=>t.node_id===link.target_id)?.name??link.target_id),source:n.node_id,target:link.target_id,metadata:edgeMetadata(link)}));
   }
   record(entries);
  };

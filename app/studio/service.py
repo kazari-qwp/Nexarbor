@@ -52,15 +52,16 @@ def sources(folder):
 def digest(files):return sha256(json.dumps(files,sort_keys=True,ensure_ascii=False).encode()).hexdigest()
 
 class Studio:
-    def __init__(self,backend,library=None,*,agent_run=None,instantiate=None,ports=None,port_contracts=None,project_directory=None):
+    def __init__(self,backend,library=None,*,agent_run=None,instantiate=None,ports=None,port_contracts=None,project_directory=None,catalog_changed=None):
         self.backend=backend;self.root=backend.directory/'studio';self.root.mkdir(exist_ok=True)
         self.work=self.root/'work';self.work.mkdir(exist_ok=True)
         self.agent_run=agent_run;self.instantiate=instantiate;self.ports=ports or {};self.port_contracts=port_contracts or {}
         self.project_directory=Path(project_directory).resolve() if project_directory is not None else None
+        self.catalog_changed=catalog_changed
         self.standard_releases={}
         for name,folder in (library or {}).items():
             folder=Path(folder).resolve();spec=manifest(folder);files=sources(folder);defaults=read_json(folder/'example.json',{})
-            self.standard_releases[name]=dict(id=name,version=spec['version'],folder=str(folder),digest=digest(files),manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin='project' if self.project_directory else 'standard')
+            self.standard_releases[name]=dict(id=name,version=spec['version'],folder=str(folder),digest=digest(files),manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin='project' if self.project_directory is not None and folder.is_relative_to(self.project_directory) else 'standard')
         self.removed=set(read_json(self.root/'removed-modules.json',[]))
         self.library=self.select_releases(read_json(self.root/'library.json',{}))
         self.jobs={};self.processes={};self.pool=ThreadPoolExecutor(max_workers=2);self.lock=threading.RLock();self.running=False;self.closed=False
@@ -73,6 +74,7 @@ class Studio:
 
     def _load_releases(self):
         self.modules=ProjectModules(self.backend,{name:self.root/release['folder'] for name,release in self.library.items()},agent_run=self.agent_run,instantiate=self.instantiate)
+        if self.catalog_changed is not None:self.catalog_changed(self.library)
 
     def select_releases(self,releases):
         selected={**self.standard_releases,**{name:release for name,release in releases.items() if release.get('origin')!='project'}}
@@ -448,7 +450,7 @@ class Studio:
     def state(self,p=None):
         snapshot=self.backend.snapshot();network=deepcopy(snapshot['network']);network['properties']=deepcopy(snapshot.get('node_properties',{}))
         names={node['node_id']:node['name'] for node in network['nodes']}
-        return dict(moduleProblems={},mode='组件开发 · Harness后端',live=dict(document=dict(network=network,files=snapshot['files']),signals=deepcopy(snapshot.get('signals',{})),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),job=self.run_state,studio=True)
+        return dict(moduleProblems={},mode='组件开发 · Harness后端',live=dict(document=dict(network=network,files=snapshot['files']),signals=deepcopy(snapshot.get('signals',{})),port_definitions=deepcopy(snapshot.get('port_definitions',{})),port_contracts=deepcopy(snapshot.get('port_contracts',{})),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),job=self.run_state,studio=True)
 
     def observe(self,p):
         folder=self.folder(p['id']);source=p.get('source','candidate');scoped=getattr(self.backend,'network_administrator',None)
@@ -565,7 +567,7 @@ class Studio:
         old=backend.snapshot();bindings=p.get('agent_bindings',old['agents'])
         if not isinstance(bindings,dict) or any(not isinstance(v,dict) or (v.get('session_id') is not None and not isinstance(v['session_id'],str)) for v in bindings.values()):raise ValueError('Agent 上下文绑定无效')
         agents={node['node_id'] for node in document['network']['nodes'] if node['type']=='agent'}
-        candidate={**old,'network':document['network'],'files':document['files'],'agents':{id:deepcopy(value) for id,value in bindings.items() if id in agents},'node_properties':document['network'].get('properties',{}),'document_resources':list(document['files']),'signals':deepcopy(p.get('signals',old.get('signals',{})))}
+        candidate={**old,'network':document['network'],'files':document['files'],'agents':{id:deepcopy(value) for id,value in bindings.items() if id in agents},'node_properties':document['network'].get('properties',{}),'document_resources':list(document['files']),'signals':deepcopy(p.get('signals',old.get('signals',{}))),'port_definitions':deepcopy(p.get('port_definitions',old.get('port_definitions',{}))),'port_contracts':deepcopy(p.get('port_contracts',old.get('port_contracts',{})))}
         try:backend.restore(candidate)
         except BaseException:backend.restore(old);raise
         if self.graph_changed is not None:self.graph_changed()
@@ -573,3 +575,16 @@ class Studio:
         draft=read_json(self.root/'draft.json',{'version':0});draft.update(document=document,layout=p.get('layout',{}),applied=True)
         write_json(self.root/'draft.json',draft)
         return dict(valid=True,document=document,draft=draft,commit=backend.store.head,warnings=[])
+
+
+    def fork(self,p):
+        from .releases import fork
+        return fork(self,p)
+
+    def release_delete_info(self,p):
+        from .releases import delete_info
+        return delete_info(self,p)
+
+    def delete_release(self,p):
+        from .releases import delete
+        return delete(self,p)

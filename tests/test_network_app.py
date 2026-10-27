@@ -25,6 +25,11 @@ class NetworkAppTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.path = self.directory / "network.json"
 
+    def test_explicit_unknown_node_type_is_not_silently_loaded_as_plain_node(self):
+        self.path.write_text(json.dumps({'nodes':[{'node_id':'unknown','name':'Unknown','type':'unregistered'}]}),encoding='utf-8')
+        with self.assertRaisesRegex(ValueError,'未知的节点类型'):
+            NetworkSaver().load(self.path)
+
     def make_network(self):
         first = Node(NodeInfo('first', '第一个节点', '说明'))
         second = Node(NodeInfo('second', '第二个节点'))

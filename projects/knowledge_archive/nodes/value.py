@@ -91,6 +91,7 @@ class ValueSaver(Saver):
 
 
 class ValueNode(DataNode):
+    node_type = 'value'
     def __init__(self, info: NodeInfo, path: str | Path, *, save_data: bool = True):
         data = ValueData(Path(path))
         super().__init__(info, dataer=ValueDataer(data, info.node_id), saver=ValueSaver(data), save_data=save_data)

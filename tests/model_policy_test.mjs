@@ -18,3 +18,17 @@ test('allowed selection can be audited without exposing credentials',async()=>{
  await assert.rejects(models.runtime(null,'network'),error=>error===marker);
  assert.deepEqual(events,[{scope:'network',connection:'harness-default',model:'deepseek-flash',stage:'selection'}]);
 });
+
+
+test('official DeepSeek API routes declare native reasoning and conversation capabilities',async()=>{
+ const models=new ModelConnections({project:{read:async()=>({})},protect:async value=>value});
+ models.read=async()=>({id:'fixture',revision:1,protocol:'openai-completions',base_url:'https://api.deepseek.com/v1',secret:'local-key'});
+ const profile=await models.runtime({connection:'fixture',model:'deepseek-flash',reasoning_effort:'low',max_tokens:16000,context_window:600000},'network');
+ assert.equal(profile.model.reasoningEfforts.low,'low');
+ assert.equal(profile.model.compat.supportsDeveloperRole,false);
+ assert.equal(profile.model.compat.requiresReasoningContentOnAssistantMessages,true);
+ assert.equal(profile.model.maxTokens,16000);assert.equal(profile.model.contextWindow,600000);
+ models.read=async()=>({id:'fixture',revision:1,protocol:'openai-completions',base_url:'http://localhost:8000/v1',secret:'local-key'});
+ const other=await models.runtime({connection:'fixture',model:'deepseek-flash'},'network');
+ assert.equal(other.model.compat,undefined,'a model name alone cannot impose another provider protocol');
+});

@@ -21,7 +21,7 @@ function Thumbnail({book}){
  const positions=nodes.map((n,i)=>book.snapshot.positions?.[n.node_id]??{x:i%4*100,y:Math.floor(i/4)*100});
  const xs=positions.map(p=>p.x),ys=positions.map(p=>p.y),minX=Math.min(...xs),minY=Math.min(...ys),width=Math.max(...xs)-minX,height=Math.max(...ys)-minY,scale=Math.min(70/Math.max(width,1),32/Math.max(height,1));
  const point=i=>({x:(positions[i].x-minX-width/2)*scale+45,y:(positions[i].y-minY-height/2)*scale+26});
- return <svg viewBox="0 0 90 52" aria-hidden="true">{nodes.flatMap((n,i)=>n.connections.interfaces.flatMap((l,j)=>{const index=nodes.findIndex(n=>n.node_id===l.target_node_id);if(index<0)return [];const a=point(i),b=point(index);return <path key={i+'-'+j} d={`M ${a.x} ${a.y} H ${(a.x+b.x)/2} V ${b.y} H ${b.x}`}/>;}))}{nodes.map((n,i)=><circle key={n.node_id} cx={point(i).x} cy={point(i).y} r="3.5"/>)}</svg>;
+ return <svg viewBox="0 0 90 52" aria-hidden="true">{nodes.flatMap((n,i)=>n.links.flatMap((l,j)=>{const index=nodes.findIndex(n=>n.node_id===l.target_id);if(index<0)return [];const a=point(i),b=point(index);return <path key={i+'-'+j} d={`M ${a.x} ${a.y} H ${(a.x+b.x)/2} V ${b.y} H ${b.x}`}/>;}))}{nodes.map((n,i)=><circle key={n.node_id} cx={point(i).x} cy={point(i).y} r="3.5"/>)}</svg>;
 }
 function historyPreview(entry,books){
  try{return historyBookmark(entry,books);}catch{return {mode:'external',snapshot:{nodes:entry.kind==='node'?[{node_id:entry.id}]:[]}};}

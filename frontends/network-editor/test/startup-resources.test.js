@@ -3,7 +3,7 @@ import {storedNetworks} from '../../../adapt/harness/framework/stored-networks.j
 import {editorLibrary} from '../../../adapt/harness/framework/editor-library.js';
 import {editorNodes} from '../../../adapt/harness/framework/editor-nodes.js';
 const root=path.resolve('build/startup-resource-tests');
-async function setup(){await fs.mkdir(root,{recursive:true});const directory=await fs.mkdtemp(path.join(root,'run-')),store=storedNetworks(directory),snapshot=structuredClone(editorNodes()[0].snapshot);snapshot.nodes[0].modules={'example.module':{config:{},state:{},access:{strength:0,channels:[]}}};const document={network:{version:8,nodes:snapshot.nodes,signals:{},delegations:[]},files:{'large.txt':'独立数据'.repeat(100000)}};const saved=await store.save({storageKind:'network',document,editor:{name:'按需完整网络'}});return {directory,store,saved,document};}
+async function setup(){await fs.mkdir(root,{recursive:true});const directory=await fs.mkdtemp(path.join(root,'run-')),store=storedNetworks(directory),snapshot=structuredClone(editorNodes()[0].snapshot);snapshot.nodes[0].tables.modules=[{module_id:'example.module',config:{},state:{},strength:0,channels:[]}];const document={network:{nodes:snapshot.nodes,signals:{},delegations:[]},files:{'large.txt':'独立数据'.repeat(100000)}};const saved=await store.save({storageKind:'network',document,editor:{name:'按需完整网络'}});return {directory,store,saved,document};}
 
 test('directory index excludes payload; hydration keeps full data and validates changed source',async()=>{
  const {directory,store,saved,document}=await setup(),library=editorLibrary(directory);

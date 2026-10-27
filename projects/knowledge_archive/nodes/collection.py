@@ -113,6 +113,7 @@ class CollectionSaver(DirectorySaver):
 
 
 class CollectionNode(DataNode):
+    node_type = 'knowledge_collection'
     def __init__(self, info: NodeInfo, path: str | Path, storage="wiki", schema=None, embedding=None, collection_id=None, *, save_data: bool = True):
         data = DirectoryData(Path(path))
         dataer = CollectionDataer(info.node_id, info.name, data.path, storage, schema, embedding, collection_id)

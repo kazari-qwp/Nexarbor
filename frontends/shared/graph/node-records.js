@@ -9,4 +9,9 @@ export function removeModule(node,id){node.tables.modules=node.tables.modules.fi
 export const nodeSkills=node=>node.execution?.skills??[];
 export function setSkills(node,skills){node.execution??={executor:'harness'};node.execution.skills=skills;}
 export const offeredPorts=(node,properties={})=>properties[node.node_id]?.offered_ports??[];
-export function setPorts(node,properties,offers){properties[node.node_id]??={};properties[node.node_id].offered_ports=offers;}
+export function setPorts(node,properties,offers){
+ properties[node.node_id]??={};properties[node.node_id].offered_ports=offers;
+ const selected=new Set(offers.map(item=>item.ref));
+ const prune=group=>{if(!group?.members)return;group.members=group.members.filter(item=>!item.host_ref||selected.has(item.host_ref));for(const item of group.members)prune(item);};
+ prune(node.tables?.tools);for(const module of node.tables?.modules??[])prune(module.tools);
+}

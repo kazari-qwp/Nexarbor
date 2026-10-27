@@ -8,6 +8,11 @@ import {randomUUID,createHash} from 'node:crypto';
 import {harnessCredentials} from '../framework/harness-installation.js';
 
 const protocols=['openai-completions','openai-responses','anthropic-messages'];
+function apiCapabilities(connection,model){
+ if(connection.protocol!=='openai-completions'||new URL(connection.base_url).origin!=='https://api.deepseek.com'||!['deepseek-flash','deepseek-v4-pro'].includes(model))return {};
+ return {reasoningEfforts:{off:'none',low:'low',high:'high',max:'max'},compat:{supportsDeveloperRole:false,thinkingFormat:'deepseek',supportsReasoningEffort:true,requiresReasoningContentOnAssistantMessages:true,maxTokensField:'max_tokens'}};
+}
+
 const text=(value,label,max=300)=>{if(typeof value!=='string'||!value.trim()||value.length>max)throw Error(label+'无效');return value.trim();};
 export function selection(value){
  if(value==null)return null;
@@ -59,7 +64,7 @@ export class ModelConnections{
   }
   const connection=await this.read(chosen.connection),api_key=connection.secret?await this.protect(connection.secret,true):undefined;
   const signature=createHash('sha256').update(JSON.stringify({chosen,revision:connection.revision})).digest('hex');
-  return {kind:'api-key',id:connection.id,signature,protocol:connection.protocol,base_url:connection.base_url,api_key,model:{...model,provider:'nexarbor-'+connection.id+'-'+signature.slice(0,12)}};
+  return {kind:'api-key',id:connection.id,signature,protocol:connection.protocol,base_url:connection.base_url,api_key,model:{...model,...apiCapabilities(connection,chosen.model),provider:'nexarbor-'+connection.id+'-'+signature.slice(0,12)}};
  }
  async discover(p){
   const connection=await this.read(p.id),key=connection.secret?await this.protect(connection.secret,true):undefined;

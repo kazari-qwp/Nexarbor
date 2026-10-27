@@ -90,6 +90,7 @@ class NetworkSaver:
             data = record.get("data")
             is_agent = record.get("type") == "agent"
             if data is None:
+                if record.get("type","node") not in ("node","agent","pulse"):raise ValueError("未知的节点类型："+str(record.get("type")))
                 node = PulseNode(info, **record.get("parameters", {})) if record.get("type") == "pulse" else AgentNode(info) if is_agent else Node(info)
             else:
                 kind = data["type"]

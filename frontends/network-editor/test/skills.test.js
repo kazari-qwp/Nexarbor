@@ -1,18 +1,19 @@
+import {moduleTable,nodeSkills,offeredPorts} from '../../shared/graph/node-records.js';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import path from 'node:path';
 import {resource,attachResources,resourceRelations,matchesType,assetHistory,resources} from '../src/resources.js';
 import {historyBookmark} from '../src/subnets.js';
 import {editorLibrary} from '../../../adapt/harness/framework/editor-library.js';
 const defaults={config:{value:1},state:{count:0},access:{strength:1,channels:['records']}};
 const catalog={modules:{base:{label:'基础',defaults},feature:{label:'功能',requires:['base'],defaults}},tools:[{ref:'module:feature/read',module:'feature',requires:['feature'],name:'读取'},{ref:'host:read',name:'宿主读取'}],skills:{basic:{name:'基本',requires:['base'],tools:[],skills:[],local:true},advanced:{name:'高级',requires:['feature'],tools:['module:feature/read','host:read'],skills:['basic'],local:true}}};
-const doc={network:{nodes:[{node_id:'a',type:'agent',modules:{base:{config:{value:9},state:{count:12},access:{strength:2,channels:['custom']}}},offered_tools:[]},{node_id:'b',type:'agent',modules:{},offered_tools:[]},{node_id:'n',type:'node',modules:{},offered_tools:[]}]},files:{}};
+const doc={network:{nodes:[{node_id:'a',type:'agent',tables:{modules:[{module_id:'base',config:{value:9},state:{count:12},strength:2,channels:['custom']}]},links:[]},{node_id:'b',type:'agent',tables:{modules:[]},links:[]},{node_id:'n',type:'node',tables:{modules:[]},links:[]}]},files:{}};
 test('recursive Skill assembly preserves existing components, deduplicates, stays local and rejects incomplete cycles atomically',()=>{
  const value=resource(catalog,'skill','advanced'),next=attachResources(doc,'a',[value.asset,value.asset],catalog),a=next.network.nodes[0];
- assert.deepEqual(a.skills,['basic','advanced']);assert.deepEqual(Object.keys(a.modules).sort(),['base','feature']);assert.deepEqual(a.modules.base,doc.network.nodes[0].modules.base);assert.equal(a.offered_tools.length,1);assert.equal(a.offered_tools[0].ref,'host:read');assert.equal(next.network.nodes[1].skills,undefined);assert.equal(doc.network.nodes[0].skills,undefined);
+ assert.deepEqual(nodeSkills(a),['basic','advanced']);assert.deepEqual(Object.keys(moduleTable(a)).sort(),['base','feature']);assert.deepEqual(moduleTable(a).base,moduleTable(doc.network.nodes[0]).base);assert.equal(offeredPorts(a,next.network.properties).length,1);assert.equal(offeredPorts(a,next.network.properties)[0].ref,'host:read');assert.equal(next.network.nodes[1].execution?.skills,undefined);assert.equal(doc.network.nodes[0].execution?.skills,undefined);
  assert.deepEqual(resourceRelations(value,catalog),{modules:['feature'],tools:['module:feature/read','host:read'],skills:['basic']});
  assert.equal(matchesType(historyBookmark(assetHistory(value)),'skill'),true);assert.equal(resources(catalog,'skill').length,2);
  assert.throws(()=>attachResources(doc,'n',[value.asset],catalog),/Agent/);
- const bad=structuredClone(catalog);bad.skills.basic.skills=['advanced'];assert.throws(()=>attachResources(doc,'b',[value.asset],bad),/成环/);assert.deepEqual(doc.network.nodes[1].modules,{});
- delete bad.skills.basic.skills;bad.skills.advanced.tools=['missing'];assert.throws(()=>attachResources(doc,'b',[value.asset],bad),/缺少依赖/);assert.equal(doc.network.nodes[1].skills,undefined);
+ const bad=structuredClone(catalog);bad.skills.basic.skills=['advanced'];assert.throws(()=>attachResources(doc,'b',[value.asset],bad),/成环/);assert.deepEqual(moduleTable(doc.network.nodes[1]),{});
+ delete bad.skills.basic.skills;bad.skills.advanced.tools=['missing'];assert.throws(()=>attachResources(doc,'b',[value.asset],bad),/缺少依赖/);assert.equal(doc.network.nodes[1].execution?.skills,undefined);
 });
 test('Skills use persistent bookmarks, MRU history and virtual folders with archive/restore',async()=>{
  const folder=await fs.mkdtemp(path.resolve('build/skills-library-')),library=editorLibrary(folder,{catalog:async()=>catalog}),change=p=>library('editor.library.update',p);

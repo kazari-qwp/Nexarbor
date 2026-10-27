@@ -10,11 +10,20 @@ METHODS={
     'validate':False,'job':False,'cancel':False,'publish':True,'mount':True,
     'unmount':True,'pulse':True,'reconcile':True,'state':False,'draft':False,
     'apply':True,'graph_validate':False,'runtime_settings':False,
+    'fork':False,'release_delete_info':False,'delete_release':True,
 }
 
 def register(transport):
+    from .preset_repetition import expand_snapshot
+    transport.routes['preset_expand']=lambda p:expand_snapshot(p['snapshot'],p.get('count'),{name:release['manifest'] for name,release in transport.backend.studio.library.items()})
     from .skill_resources import parse_skill
     transport.routes['skill_parse']=parse_skill
+    from .data_preview import preview
+    from .data_clear import clear_live
+    from .data_templates import templates
+    transport.routes['data_templates']=lambda p:templates(transport.backend,transport.backend.studio.library)
+    transport.routes['data_preview']=lambda p:preview(transport.backend,p)
+    transport.routes['data_clear']=lambda p:transport.runtime.run(clear_live(transport.backend,p),timeout=86460)
     def route(name,mutation,p):
         def invoke():
             value=getattr(transport.backend.studio,name)(p)

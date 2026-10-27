@@ -210,6 +210,7 @@ class LlamaIndexSaver(DirectorySaver):
 
 
 class LlamaIndexNode(DataNode):
+    node_type = 'llamaindex'
     def __init__(self, info: NodeInfo, path: str | Path, *, embed_model=None, embedding_config=None, save_data: bool = True):
         data = DirectoryData(Path(path))
         dataer = LlamaIndexDataer(info.node_id, info.name, data.path, embed_model=embed_model, embedding_config=embedding_config)

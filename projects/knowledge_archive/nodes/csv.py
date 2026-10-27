@@ -134,6 +134,7 @@ class CsvSaver(FileSaver):
 
 
 class CsvNode(DataNode):
+    node_type = 'csv'
     def __init__(self, info: NodeInfo, path: str | Path, key_column: str, dtype: dict | None = None, *, save_data: bool = True):
         data = FileData(Path(path))
         super().__init__(info, dataer=CsvDataer(data, info.node_id, key_column, dtype), saver=CsvSaver(data), save_data=save_data)

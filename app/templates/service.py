@@ -92,7 +92,7 @@ class TemplateService:
                 schemas = self.host.module_schemas[module['module_id']]
                 for field in ('config','state'):
                     if field in module:module[field] = remap(module[field],schemas.get(field+'_schema',{}),ids)
-            self.host.remap_factory_tools(node, old_id)
+            self.host.remap_factory_tools(node, old_id,document['network'].get('properties',{}).get(old_id,{}))
         properties = {}
         for node_id, value in document['network'].get('properties',{}).items():
             value = deepcopy(value)
@@ -133,6 +133,7 @@ class TemplateService:
                     for attachment in item['attachments']:
                         source = next(node for node in combined['nodes'] if node['node_id']==attachment['source'])
                         source['links'].append(self.host.link_record(ids[attachment['target']],attachment['metadata']))
+                    self.host.register_properties(properties)
                     candidate = backend.saver.build(combined,backend.directory)
                     for node_id in ids.values():
                         node = candidate.get(node_id);node._resolve = None

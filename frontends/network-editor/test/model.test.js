@@ -1,18 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {linkRecord} from '../../shared/graph/links.js';
 import {connectionChannels,edgesOf,filterGraph,layoutNodes,removeNode,stackVisible} from '../src/model.js';
-const document={network:{nodes:[{node_id:'root',name:'Root',type:'agent',modules:{},connections:{interfaces:[{target_node_id:'b',metadata:{channels:[]}}]}},{node_id:'b',name:'Clock',type:'text_file',modules:{},connections:{interfaces:[{target_node_id:'root',metadata:{channels:['tick']}}]}}]}};
+const document={network:{nodes:[{node_id:'root',name:'Root',type:'agent',tables:{modules:[]},links:[linkRecord('b',{channels:[]})]},{node_id:'b',name:'Clock',type:'markdown',data:{path:'b.md',directory:false,save_data:true},tables:{modules:[]},links:[linkRecord('root',{channels:['tick']})]}]}};
 test('filters never invent reach or mutate actual graph',()=>{
  const nodes=layoutNodes(document),edges=edgesOf(document);assert.equal(edges.length,2);
  assert.equal(filterGraph(nodes,edges,{channels:['tick']}).edges.length,1);
  assert.equal(filterGraph(nodes,edges,{kinds:['文本']}).nodes[0].id,'b');
  const local={actor:'root',paths:{catalog:[]}};
  assert.equal(filterGraph(nodes,edges,{local}).nodes.length,1);
- assert.equal(document.network.nodes[0].connections.interfaces.length,1);
+ assert.equal(document.network.nodes[0].links.length,1);
 });
 test('any node including root can be deleted, including the last one',()=>{
- const next=removeNode(document,'b');assert.equal(next.network.nodes.length,1);assert.equal(next.network.nodes[0].connections.interfaces.length,0);
- const rootless=removeNode(document,'root');assert.equal(rootless.network.nodes.length,1);assert.equal(rootless.network.nodes[0].connections.interfaces.length,0);assert.equal(removeNode(rootless,'b').network.nodes.length,0);assert.equal(document.network.nodes.length,2);
+ const next=removeNode(document,'b');assert.equal(next.network.nodes.length,1);assert.equal(next.network.nodes[0].links.length,0);
+ const rootless=removeNode(document,'root');assert.equal(rootless.network.nodes.length,1);assert.equal(rootless.network.nodes[0].links.length,0);assert.equal(removeNode(rootless,'b').network.nodes.length,0);assert.equal(document.network.nodes.length,2);
 });
 test('visibility switches distinguish all, none and ordinary connections',()=>{
  const nodes=[...layoutNodes(document),{id:'isolated',data:{kind:'节点',node:{name:'Isolated'}}}],edges=edgesOf(document);
@@ -25,7 +26,7 @@ test('visibility switches distinguish all, none and ordinary connections',()=>{
  assert.equal(ordinary.edges.length,1);assert.equal(ordinary.edges[0].target,'b');
  assert.equal(ordinary.nodes.length,2);
  assert.equal(filterGraph(nodes,edges,{kinds:['Agent','节点'],channels}).nodes.some(n=>n.id==='b'),false);
- assert.deepEqual(document.network.nodes[0].connections.interfaces[0].metadata.channels,[]);
+ assert.deepEqual(document.network.nodes[0].links[0].channels,[]);
 });
 
 test('new nodes and re-enabled filters rise above existing nodes and edges',()=>{

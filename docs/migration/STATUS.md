@@ -252,3 +252,30 @@ WorkspaceFiles与只读DSH log-host已迁入。上下文游标放在agents执行
 编辑器资源装配、模块配置、链接、Markdown路径、工具提供metadata和execution.skills已改直接操作新记录；复制放置等待真实异步工具名重映射，不再把复制结果送去补装依赖。保留已有组件状态/工具表/频道与强度；新记录专项3项通过，原模型选择约束2项通过，Vite构建通过。Skill解析与ModelConnections原实现已迁入。该版本仍为前端迁移中间态：原前端整套测试目前95项30通过65失败（build/frontend-original-suite.log），大多仍用旧记录、旧路径/同步paste，也包括未迁宿主或不兼容分支；不能用新3项宣称完整前端已通过。原桌面入口和startStudio Host尚未接通当前Python服务，尚不能交付正常桌面启动。
 
 修正此前“studio_view无调用”判断：原main.jsx实际调用api('view')，原host转发studio_view；前端本地视角需要继续迁移，不能当无用接口删掉。旧路径详情、亚节点/借用出边、节点默认模块强度没有对应新核心概念，按用户要求先记录跳过相关分支，不改core、不恢复family权限；详见B011。独立数据预览/清空、项目宿主、其余前端和最终应用模块继续迁移。最近单次全量仍是451项213.826秒，之后只跑上述专项，不能把数字相加。
+
+
+## 2026-10-28 通用工作台、数据入口与原桌面启动
+
+通用 WorkbenchProject 已在 Backend 冷恢复前登记当前数据节点、v4模块及宿主工具工厂；实际原 desktop/main.cjs 启动该 Python 服务，读取 project/v2。HostTools 使用真实 CallableTool，模板端口直接交给原 TemplateService；端口声明及契约随检查点恢复，复制按真实表重映射工具名，不重装依赖。项目模块库变更同步实际模板目录。原模型连接、外部文本、HTTP编辑服务及原超时表接入；官方 DeepSeek API 明确登记原生 reasoning/消息协议能力，其他服务商不套用该配置。模型3项本地测试通过。
+
+应用2五类 DataNode 现在各有实际 node_type，避免都序列化为 node。data.local/data.knowledge 的真实文件/SQLite/Wiki工具、只读及冷重开3项通过。操作员数据预览和清空按原接口迁移，使用隔离真实 Dataer 和原节点事务；包括CSV表头、SQLite结构、Wiki定义保留、正文及.bak的失败回滚。与原存储回归联合31项3.642秒通过，后来模板专项6项2.144秒通过。通用工作台/项目Git/RPC/数据联合14项13.559秒通过（build/studio-operator-combined-regression.log）；均API0。这些专项不等于新一轮全量。
+
+实际HTTP宿主验证 build/studio-http-host-iofhb_to/verification.json：小镇52节点、21模块（19原案例+2数据模块）、4数据模板，实际Git分支/咨询快照/数据读取通过。原桌面入口截图及结果 build/desktop-current-71pznyi6/verification.json：52节点、属性与右键咨询窗口，pageerror为空；两条HTTP400已定位为B011待迁studio_view，不宣称无错误或完整前端通过。没有使用Computer Use。首次付费咨询验收的两个本地阻断尝试为UNSUPPORTED_REASONING_EFFORT，无HTTP模型请求/usage；验收脚本还修正了读取原UI sessionStorage令牌的方式。
+
+当前正在运行 scripts/verify_desktop_consultation.py --live（build/desktop-consultation-0_gfr25r）；已通过真实API调用view_network、inspect_nodes/edges/modules，结束后再审计回答、usage和截图，未结束前不能宣布验收完成。五天小镇不重跑。原前端整套95项仍30通过65失败，需要继续迁移旧夹具和独立宿主分支；最终应用1六模块WIP、资料库B010、六份演示均未完成。最近单次Python全量仍451项213.826秒。冻结core无本轮编辑，用户data_node.py修改继续保持不暂存。
+
+
+原桌面真实API咨询现已完成：build/desktop-consultation-0_gfr25r；52节点、205连线，12次模型响应，17次实际网络观察工具调用；最终回答核对角色、地点、模块、经济、时间/存档与四路上下文，明确是初始快照而非已运行结果。原生usage输入未缓存27161、缓存读取184448、输出8202、总219811；模型55.988秒，含桌面启动68.165秒。未找到同场景旧API基线，不宣称同比。关客户端后重新打开同一真实项目、右键小砾，历史回答保留；另存答案起止截图并目视核对，重开不调用API。证据evidence/2026-10-28-desktop-town-consultation.json。原stage截图显示对话开头而非答案，已补town-introduction-start/end.png；不重复付费运行。仍有B011两条视角HTTP400，完整前端仍未通过。
+
+原发布库fork/delete与重复预设RPC也已迁入，当前表/锁、项目实际登记目录、运行/草稿删除保护、标准模块保护和失败文件回滚；真实制作验证→发布→副本→删除联合11项11.297秒通过（build/studio-release-rpc-regression.log），API0。现在运行新的单次完整Python回归，未结束前仍以前一451项为全量基线。
+
+
+## 2026-10-28 当前单次全量与真实书签客户端
+
+当前单次完整Python回归466项通过、239.252秒（build/workbench-current-full-regression-final.log）。此前465项那轮有2失败1错误，均来自加载器拒绝省略type的旧约定，已恢复缺省node、显式未知类型仍拒绝；下一轮466中的唯一错误为新增夹具缺少name，补齐后13项专项通过，再执行本次466完整通过。没有改断言去放宽业务行为。
+
+原前端复制/资源22项、画布/数据7项、配置历史/网络预设9项、单节点预设4项、Skills/懒加载4项分别通过。这些是迁移原夹具到links/tables/data/元数据及异步paste，保留原业务断言；不把这些专项简单相加冒充全部前端已绿。原completeModules复制后补依赖已按用户决定移除；显式安装仍递归装配依赖，并保留现有配置/状态。
+
+原bookmark-views.browser.mjs已真实客户端通过：build/bookmark-views-e2e-1793139781029/verification.json。包含3:1书签历史区、缩略图/文字切换、节点/边/网络/纯边历史拖入、取消无头连线、撤销重做、删除及草稿保存、侧栏自动展开/折叠与关闭重开、布局/运行区域，截图5张已目视核对02-text-view.png。模型调用0。真实渲染发现的bookmarks.jsx缩略图、use-bookmarks.js新增边历史、main.jsx连线属性/删除残留connections.interfaces已改为真实links。原脚本菜单定位“自定义快捷键”也落后于实际源客户端，改为源菜单“外部文本编辑器与快捷键”；未更改产品菜单。B011本地视角及其他前端分支仍未全部验收。
+
+接下来继续实际最终应用1的管理员与分组模块，再做原hone CSV任务；当前六目录WIP尚未激活。B010知识集合仍只跳过有依赖的装配，其他分支持续推进。用户data_node.py改动保留，不暂存。

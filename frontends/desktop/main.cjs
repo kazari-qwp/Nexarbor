@@ -44,7 +44,7 @@ async function projectFailed(error){
 function projectRoot(){
  for(const start of [process.env.NEXARBOR_ROOT,__dirname].filter(Boolean)){
   let directory=path.resolve(start);
-  for(let i=0;i<9;i++){if(fs.existsSync(path.join(directory,'adapters/harness/studio/host.mjs')))return directory;const parent=path.dirname(directory);if(parent===directory)break;directory=parent;}
+  for(let i=0;i<9;i++){if(fs.existsSync(path.join(directory,'adapt/harness/studio/host.mjs')))return directory;const parent=path.dirname(directory);if(parent===directory)break;directory=parent;}
  }
  throw Error('找不到工作台后端。请完整解压运行包；源码开发可设置 NEXARBOR_ROOT 指向仓库目录。');
 }
@@ -55,16 +55,16 @@ async function startWorkspace(spec,startupWarnings=spec.startupWarnings??[]){
   if(studio&&path.resolve(studio.directory)===path.resolve(spec.directory)){await activate(studio.url,studio,spec);return;}
   const connection=await activeConnection(path.join(spec.directory,'editor-connection.json'));
   if(connection){await activate(connection,null,spec);return;}
-  const root=projectRoot(),{startStudio}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href);
+  const root=projectRoot(),{startStudio}=await import(pathToFileURL(path.join(root,'adapt/harness/studio/host.mjs')).href);
   next=await startStudio({...spec,startupWarnings,projectDirectory:workspaceHome,onOpenProject:()=>projectAction('open'),onCreateProject:()=>projectAction('new'),onOpenText:openExternalText,onChooseText:chooseText,onRevealFile:file=>{shell.showItemInFolder(file);return {revealed:true};},onOpenNetwork:openStoredNetwork,onImportNetwork:bundle=>enqueueStart(()=>startImportedNetwork(bundle)),onProgress:progress});next.launchSpec=spec;record('backendReady');await activate(next.url,next,spec);
  }catch(error){
   if(next&&next!==studio)await next.close().catch(()=>{});
   if(error.message.includes('runtime.lock'))for(let attempt=0;attempt<6;attempt++){const connection=await activeConnection(path.join(spec.directory,'editor-connection.json'));if(connection){await activate(connection,null,spec);return;}await new Promise(resolve=>setTimeout(resolve,400));}
   // 运行缓存坏了也先尝试项目中独立保存的网络；旧目录完整保留。
   try{
-   const root=projectRoot(),{readProjectBundle}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/project.mjs')).href),bundle=await readProjectBundle(workspaceHome);
+   const root=projectRoot(),{readProjectBundle}=await import(pathToFileURL(path.join(root,'adapt/harness/studio/project.mjs')).href),bundle=await readProjectBundle(workspaceHome);
    if(bundle){
-    const {startStudio}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href),recovery={...spec,directory:path.join(workspaceHome,'.nexarbor/runs','recovery-'+require('node:crypto').randomUUID()),initialNetwork:undefined,startupWarnings:[...startupWarnings,'原运行记录无法载入，已打开项目中保存的网络。原数据目录完整保留。原因：'+briefReason(error)]};
+    const {startStudio}=await import(pathToFileURL(path.join(root,'adapt/harness/studio/host.mjs')).href),recovery={...spec,directory:path.join(workspaceHome,'.nexarbor/runs','recovery-'+require('node:crypto').randomUUID()),initialNetwork:undefined,startupWarnings:[...startupWarnings,'原运行记录无法载入，已打开项目中保存的网络。原数据目录完整保留。原因：'+briefReason(error)]};
     next=await startStudio({...recovery,projectDirectory:workspaceHome,onOpenProject:()=>projectAction('open'),onCreateProject:()=>projectAction('new'),onOpenText:openExternalText,onChooseText:chooseText,onRevealFile:file=>{shell.showItemInFolder(file);return {revealed:true};},onOpenNetwork:openStoredNetwork,onImportNetwork:bundle=>enqueueStart(()=>startImportedNetwork(bundle)),onProgress:progress});next.launchSpec=recovery;await activate(next.url,next,recovery);return;
    }
   }catch(recoveryError){if(next&&next!==studio)await next.close().catch(()=>{});error=recoveryError;}
@@ -78,7 +78,7 @@ async function startDevelopment(profile,{useWorkspace=false}={}){
  if(useWorkspace&&!profile&&!flag('--network')){
   let saved;
   try{saved=await desktopSession.read();}catch(error){
-   const {readProjectBundle}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/project.mjs')).href);if(!await readProjectBundle(workspaceHome))throw error;
+   const {readProjectBundle}=await import(pathToFileURL(path.join(root,'adapt/harness/studio/project.mjs')).href);if(!await readProjectBundle(workspaceHome))throw error;
    const damaged=path.join(workspaceHome,'desktop-session.json');await fs.promises.rename(damaged,damaged+'.unreadable-'+require('node:crypto').randomUUID()+'.json');startupWarnings.push('上次打开位置的记录损坏，已从项目网络恢复；原记录已保留。');saved={};
   }
   if(saved.last){await startWorkspace(saved.last);return;}
@@ -103,10 +103,10 @@ async function startImportedNetwork(bundle){
  let next;
  try{
   progress('正在导入网络和 Agent 上下文…');
-  const root=projectRoot(),{startStudio}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/host.mjs')).href),spec={directory:path.join(workspaceHome,'.nexarbor/runs','import-'+require('node:crypto').randomUUID()),components:bundle.runtime?.components??[],templates:bundle.runtime?.templates??[]};
+  const root=projectRoot(),{startStudio}=await import(pathToFileURL(path.join(root,'adapt/harness/studio/host.mjs')).href),spec={directory:path.join(workspaceHome,'.nexarbor/runs','import-'+require('node:crypto').randomUUID()),components:bundle.runtime?.components??[],templates:bundle.runtime?.templates??[]};
   const document=bundle.format==='nexarbor-network/v1'?bundle.document:bundle;
   if(!Array.isArray(document?.network?.nodes))throw Error('网络文件缺少节点列表');
-  const {editorNode}=await import(pathToFileURL(path.join(root,'adapters/harness/framework/editor-nodes.js')).href);await fs.promises.mkdir(spec.directory,{recursive:true});
+  const {editorNode}=await import(pathToFileURL(path.join(root,'adapt/harness/framework/editor-nodes.js')).href);await fs.promises.mkdir(spec.directory,{recursive:true});
   // 固定模板先登记现有节点身份；业务配置与上下文在校验更新时一起装配。
   const bootstrap=path.join(spec.directory,'import-bootstrap.json');await fs.promises.writeFile(bootstrap,JSON.stringify({network:{version:8,nodes:document.network.nodes.map(n=>editorNode('node',n.node_id,n.name)),signals:{},delegations:[]},files:{}}));
   next=await startStudio({...spec,projectDirectory:workspaceHome,onOpenProject:()=>projectAction('open'),onCreateProject:()=>projectAction('new'),onOpenText:openExternalText,onChooseText:chooseText,onRevealFile:file=>{shell.showItemInFolder(file);return {revealed:true};},initialNetwork:bootstrap,onOpenNetwork:openStoredNetwork,onImportNetwork:value=>enqueueStart(()=>startImportedNetwork(value)),onProgress:progress});await next.request('workspace.import.local',{bundle});next.launchSpec=spec;await activate(next.url,next,spec);
@@ -121,7 +121,7 @@ async function createProject(){
  if(result.canceled||!result.filePath)return {canceled:true};
  const directory=path.resolve(result.filePath);
  try{const files=await fs.promises.readdir(directory);if(files.length)throw Error('请选择一个新文件夹或空文件夹，避免混入已有文件。');}catch(error){if(error.code!=='ENOENT')throw error;}
- const root=projectRoot(),{Project}=await import(pathToFileURL(path.join(root,'adapters/harness/studio/project.mjs')).href),project=new Project(directory,path.join(directory,'.nexarbor/runs/main'),()=>{throw Error('新建项目不需要加载资源库');});
+ const root=projectRoot(),{Project}=await import(pathToFileURL(path.join(root,'adapt/harness/studio/project.mjs')).href),project=new Project(directory,path.join(directory,'.nexarbor/runs/main'),()=>{throw Error('新建项目不需要加载资源库');});
  await project.initialize();await project.commitPaths(['nexarbor.json','.gitignore','打开项目.cmd','modules','tools','node_presets','network_presets','networks'],'初始化项目');
  await showLoading();await switchProject(directory);return {created:true,path:directory};
 }
@@ -146,7 +146,7 @@ ipcMain.handle('nexarbor-harness',async(event,action,executable)=>{
   await openHarnessSettings();return {opened:true};
  }
  if(event.sender!==harnessWindow?.webContents||sender!==page)throw Error('Harness 设置窗口不可用');
- const root=projectRoot(),settings=await import(pathToFileURL(path.join(root,'adapters/harness/framework/harness-installation.js')).href);
+ const root=projectRoot(),settings=await import(pathToFileURL(path.join(root,'adapt/harness/framework/harness-installation.js')).href);
  if(action==='get'){const saved=await settings.harnessSettings(),executable=await settings.harnessExecutable();let status;try{status=await settings.inspectHarnessExecutable(executable);}catch(error){status={compatible:false,error:error.message};}return {saved:saved.executable??'',executable,environment:!!process.env.DATANET_HARNESS_EXE,status};}
  if(action==='save')return settings.saveHarnessExecutable(executable);
  if(action==='browse'){const selected=await dialog.showOpenDialog(harnessWindow,{title:'选择 DeepSeek Harness.exe',properties:['openFile'],filters:[{name:'可执行文件',extensions:['exe']}]});return selected.canceled?{canceled:true}:{executable:selected.filePaths[0]};}

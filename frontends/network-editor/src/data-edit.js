@@ -11,8 +11,8 @@ export function mergeDataEdit(document,value){
  const next=structuredClone(document),target=next.network?.nodes??next.nodes;target[target.findIndex(n=>n.node_id===node.node_id)]=structuredClone(node);Object.assign(next.files,structuredClone(files));return next;
 }
 
-export const isDataNode=node=>!!node?.data;
-const dataBinding=node=>JSON.stringify([node.type,node.data,Object.fromEntries(['table_name','key_column'].filter(key=>node.parameters?.[key]!==undefined).map(key=>[key,node.parameters[key]]))]);
+export const isDataNode=node=>node?.type!=='agent'&&!!node?.data||!!node&&!!moduleTable(node)['knowledge.collection'];
+const dataBinding=node=>JSON.stringify([node.type,node.data?.type,node.data?.path,node.data?.directory??false,node.data?.parameters?.table_name,node.data?.parameters?.key_column]);
 export function mergeClearedData(document,value){
  const {beforeNode,node,files,roots=[]}=value,next=structuredClone(document),nodes=next.network?.nodes??next.nodes,current=nodes.find(n=>n.node_id===beforeNode.node_id);
  if(!current||dataBinding(current)!==dataBinding(beforeNode))throw Error('真实数据已清空，但草稿的存储位置已改变，请刷新查看');

@@ -1,7 +1,7 @@
 import React from 'react';
 import {ChannelList} from './channel-list.jsx';
 import {Plus,X,ChevronDown} from 'lucide-react';
-export function ValueEditor({value,onChange,label,depth=0}){
+export function ValueEditor({value={},onChange,label,depth=0}){
   const type=value===null?'null':Array.isArray(value)?'array':typeof value;
   const make=t=>({string:'',number:0,boolean:false,object:{},array:[],null:null,reference:{$ref:'/event/payload/'}}[t]);
   return <div className={'value-field depth-'+depth}>

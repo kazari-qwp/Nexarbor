@@ -167,6 +167,7 @@ class SqliteSaver(FileSaver):
 
 
 class SqliteNode(DataNode):
+    node_type = 'sqlite'
     def __init__(self, info: NodeInfo, path: str | Path, table_name: str, key_column: str, *, save_data: bool = True):
         data = FileData(Path(path))
         super().__init__(info, dataer=SqliteDataer(data, info.node_id, table_name, key_column), saver=SqliteSaver(data), save_data=save_data)

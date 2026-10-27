@@ -49,7 +49,8 @@ class ModuleTables:
             if not function and item.name not in self.tool_types:
                 raise ValueError("尚未登记的工具实现：" + item.name)
             return dict(tool=item.name, description=item.description, parameters=deepcopy(item.parameters),
-                        modules=[dependency.module_id for dependency in item.modules], **function)
+                        modules=[dependency.module_id for dependency in item.modules], **function,
+                        **({"host_ref":item._host_ref} if hasattr(item,"_host_ref") else {}))
 
         for module, record in zip(modules, records):
             record["tools"] = encode_group(module.tools)

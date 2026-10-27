@@ -37,7 +37,7 @@ class StudioRpc(unittest.TestCase):
                 self.assertNotEqual(revision['branch_module'],'example.counter')
                 self.assertEqual(json.loads(revision['files']['module.json'])['id'],revision['branch_module'])
                 self.assertIn('reference/咨询记录.json',revision['references'])
-                original=rpc('studio_state',{})['live']['document'];changed=deepcopy(original);changed['network']['nodes'][0]['name']='新名称'
+                original=rpc('studio_state',{})['live']['document'];expanded=rpc('preset_expand',{'snapshot':dict(nodes=original['network']['nodes'],files=original['files'],repeat_unit=['counter']), 'count':2});self.assertEqual(len(expanded['nodes']),2);self.assertEqual(expanded['nodes'][1]['node_id'],'counter~unit-2');changed=deepcopy(original);changed['network']['nodes'][0]['name']='新名称'
                 with self.assertRaisesRegex(ValueError,'reload'):rpc('studio_apply',{'document':changed,'base_commit':-1})
                 applied=rpc('studio_apply',{'document':changed,'base_commit':backend.store.head})
                 self.assertEqual(applied['commit'],backend.store.head)

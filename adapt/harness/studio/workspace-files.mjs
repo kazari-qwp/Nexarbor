@@ -45,10 +45,10 @@ export class WorkspaceFiles{
   const document=clone(p.dirty?p.document:state.live.document),ids=new Set(document.network.nodes.filter(n=>n.type==='agent').map(n=>n.node_id));
   agents=Object.fromEntries(Object.entries(agents).filter(([id])=>ids.has(id)));contexts=Object.fromEntries(Object.entries(contexts).filter(([id])=>ids.has(id)));
   for(const [id,cursor] of Object.entries(contexts))agents[id].context_cursor=cursor;
-  const result=await this.draft({...p,document,dirty:!!p.dirty,base_commit:p.base_commit===capturedBase||!p.dirty?state.live.commit:p.base_commit},{document,agents,contexts,signals:clone(imported?previous.signals??{}:state.live.signals??{}),savedAt:new Date().toISOString(),...(imported?{}:{importToken:undefined})});
+  const result=await this.draft({...p,document,dirty:!!p.dirty,base_commit:p.base_commit===capturedBase||!p.dirty?state.live.commit:p.base_commit},{document,agents,contexts,signals:clone(imported?previous.signals??{}:state.live.signals??{}),port_definitions:clone(imported?previous.port_definitions??{}:state.live.port_definitions??{}),port_contracts:clone(imported?previous.port_contracts??{}:state.live.port_contracts??{}),savedAt:new Date().toISOString(),...(imported?{}:{importToken:undefined})});
   if(!portable)return {...result,live_commit:state.live.commit,contextCount:Object.keys(contexts).length};
   const prefixes=Object.keys(contexts).length?await this.logs.request('export',{contexts}):{};
-  return {format:'nexarbor-network/v1',document:result.document,layout:result.layout,view:result.view,agents,contexts:prefixes,signals:result.signals,runtime:this.runtime,createdAt:result.savedAt};
+  return {format:'nexarbor-network/v1',document:result.document,layout:result.layout,view:result.view,agents,contexts:prefixes,signals:result.signals,port_definitions:result.port_definitions,port_contracts:result.port_contracts,runtime:this.runtime,createdAt:result.savedAt};
  }
  async import(p){
   const bundle=p.bundle,portable=bundle?.format==='nexarbor-network/v1';
@@ -62,7 +62,7 @@ export class WorkspaceFiles{
   const contexts=Object.keys(prefixes).length?await this.logs.request('import',{contexts:prefixes}):{};
   for(const [id,cursor] of Object.entries(contexts))Object.assign(agents[id],{session_id:cursor.session_id,context_cursor:cursor});
   const state=await this.rpc('studio_state'),importToken=randomUUID();
-  return {...await this.draft({document,layout:portable?bundle.layout??{}:{},view:portable?bundle.view??{}:{},dirty:true,base_commit:state.live.commit},{importToken,agents,contexts,signals:clone(bundle.signals??{})}),validation:check};
+  return {...await this.draft({document,layout:portable?bundle.layout??{}:{},view:portable?bundle.view??{}:{},dirty:true,base_commit:state.live.commit},{importToken,agents,contexts,signals:clone(bundle.signals??{}),port_definitions:clone(bundle.port_definitions??{}),port_contracts:clone(bundle.port_contracts??{})}),validation:check};
  }
  async apply(p){
   const state=await this.rpc('studio_state');if(p.base_commit!==state.live.commit)throw Error('网络已经变化，请刷新后再校验并更新');
@@ -80,7 +80,7 @@ export class WorkspaceFiles{
   }
   const allowed=new Set(p.document.network.nodes.filter(n=>n.type==='agent').map(n=>n.node_id));agents=Object.fromEntries(Object.entries(agents).filter(([id])=>allowed.has(id)));contexts=Object.fromEntries(Object.entries(contexts).filter(([id])=>allowed.has(id)));
   const document=clone(p.document);for(const [id,cursor] of Object.entries(contexts))agents[id].context_cursor=cursor;
-  const result=await this.rpc('studio_apply',{...p,document,base_commit,agent_bindings:agents,...(imported?{signals:saved.signals??{}}:{})});
+  const result=await this.rpc('studio_apply',{...p,document,base_commit,agent_bindings:agents,...(imported?{signals:saved.signals??{},port_definitions:saved.port_definitions??{},port_contracts:saved.port_contracts??{}}:{})});
   if(result.valid){await atomic(this.file,{version:1,document:result.document,layout:p.layout??{},view:p.view??saved?.view??{},base_commit:result.commit,dirty:false,agents,contexts,updatedAt:new Date().toISOString()});result.contextBranches=Object.keys(contexts).length;}
   return result;
  }

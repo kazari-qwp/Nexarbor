@@ -15,7 +15,11 @@ def main():
     sys.stdout.reconfigure(encoding='utf-8')
     project = None
     studio = os.environ.get('NEXARBOR_STUDIO') == '1'
-    if os.environ.get('NEXARBOR_APPLICATION') == 'npc_town':
+    if os.environ.get('NEXARBOR_APPLICATION') == 'workbench':
+        from app.studio.project import WorkbenchProject
+        project=WorkbenchProject(sys.argv[1],os.environ['NEXARBOR_PROJECT_DIRECTORY'])
+        backend=project.backend
+    elif os.environ.get('NEXARBOR_APPLICATION') == 'npc_town':
         from projects.npc_town.runtime import TownProject
         project = TownProject(sys.argv[1],os.environ.get('NEXARBOR_PROJECT_DIRECTORY'),studio=studio)
         backend = project.backend
@@ -60,6 +64,10 @@ def main():
         transport.routes['pulse_run'] = pulse_run
         transport.routes['module_call'] = lambda parameters:backend.perform('module_call',lambda:transport.runtime.run(local(parameters),timeout=86460))
         transport.routes['template_instantiate'] = lambda parameters:backend.perform('template_instantiate',lambda:transport.runtime.run(project.templates.instantiate(**parameters)))
+        if hasattr(backend,'studio'):
+            from app.studio.project_rpc import register
+            register(transport,project)
+
     transport.run(sys.stdin)
 
 

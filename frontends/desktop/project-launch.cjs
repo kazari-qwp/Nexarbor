@@ -2,7 +2,7 @@ const fs=require('node:fs/promises'),path=require('node:path');
 async function requireProject(directory){
  const file=path.join(directory,'nexarbor.json');let value;
  try{value=JSON.parse(await fs.readFile(file,'utf8'));}catch(error){if(error.code==='ENOENT')throw Error('找不到项目文件 nexarbor.json');if(error instanceof SyntaxError)throw Error('项目文件 nexarbor.json 格式损坏');throw error;}
- if(value?.format!=='nexarbor-project/v1'||!value.resources||typeof value.resources!=='object'||!value.networks||typeof value.networks!=='object')throw Error('项目文件 nexarbor.json 格式不正确');
+ if(value?.format!=='nexarbor-project/v2'||!value.resources||typeof value.resources!=='object'||!value.networks||typeof value.networks!=='object')throw Error('项目文件 nexarbor.json 格式不正确');
  return value;
 }
 function briefReason(error){

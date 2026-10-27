@@ -1,6 +1,7 @@
+import {edgeMetadata} from '../../shared/graph/links.js';
 import {_electron,expect} from '@playwright/test';
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 import {copySubnet} from '../src/subnets.js';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/bookmark-views-e2e-'+Date.now());
 let host=await startStudio({directory}),client,page;const errors=[];
@@ -20,7 +21,7 @@ try{
  const one=copySubnet(document,['a'],'internal',layout),line=copySubnet(document,[],'internal',layout,['a|0']),network=copySubnet(document,['a','b'],'internal',layout);
  const books=[{id:'one',name:'单点名称',mode:'internal',snapshot:one},{id:'line',name:'单边名称',mode:'external',snapshot:line},{id:'network',name:'网络名称',mode:'internal',snapshot:network}].map((b,i)=>({...b,createdAt:i,category:'default'}));
  await api('editor.library.update',{action:'bookmark.patch',changes:books.map(b=>({id:b.id,expected:null,value:b}))});
- await api('editor.library.update',{action:'history.push',entries:[{kind:'node',id:'a',label:'节点 a',snapshot:one},{kind:'edge',id:'a|0',label:'历史边',source:'a',target:'b',metadata:document.network.nodes.find(n=>n.node_id==='a').connections.interfaces[0].metadata},{kind:'bookmark',id:'removed-network',label:'已删除书签的网络',mode:'internal',snapshot:network},{kind:'bookmark',id:'removed-line',label:'已删除书签的纯边',mode:'internal',snapshot:line}]});
+ await api('editor.library.update',{action:'history.push',entries:[{kind:'node',id:'a',label:'节点 a',snapshot:one},{kind:'edge',id:'a|0',label:'历史边',source:'a',target:'b',metadata:edgeMetadata(document.network.nodes.find(n=>n.node_id==='a').links[0])},{kind:'bookmark',id:'removed-network',label:'已删除书签的网络',mode:'internal',snapshot:network},{kind:'bookmark',id:'removed-line',label:'已删除书签的纯边',mode:'internal',snapshot:line}]});
  const aliases={'a':'节点 a','a|0':'历史边','removed-network':'已删除书签的网络','removed-line':'已删除书签的纯边'};historyIds=Object.fromEntries(Object.entries(aliases).map(([id,label])=>[id,null]));for(const [id,label] of Object.entries(aliases))historyIds[id]=(await library()).history.find(e=>e.label===label).id;
  await launch();await expect(page.locator('.bookmark-dock')).toHaveClass(/thumbnail-view/);
  const bookmarks=page.getByRole('region',{name:'书签区'}); // section 通过 aria-label 暴露为区域。
@@ -40,7 +41,7 @@ try{
  await page.getByRole('button',{name:'展开右侧栏',exact:true}).click();await expect(page.getByRole('button',{name:'折叠右侧栏',exact:true})).toBeVisible();await node('a').click();await expect(node('a')).toHaveClass(/selected/);await page.locator('.react-flow__pane').dispatchEvent('click');await expect(page.getByRole('button',{name:'展开右侧栏',exact:true})).toBeVisible();
  await page.screenshot({path:path.join(directory,'01-thumbnail-ribbon.png')});
  const top=await page.locator('.topbar-actions').boundingBox();const heading=await page.locator('.topbar-heading').boundingBox();expect(top.x).toBeLessThan(heading.x+heading.width+25);expect(Math.abs(top.y-heading.y)).toBeLessThan(10);expect((await page.getByRole('button',{name:'网络文档',exact:true}).boundingBox()).height).toBeLessThan(35);await expect(page.locator('.topbar .canvas-toolbar')).toHaveCount(1);await expect(page.locator('.canvas-panel>.canvas-toolbar')).toHaveCount(0);
- await client.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(i=>i.label==='设置').submenu.items.find(i=>i.label==='自定义快捷键').click());await expect(page.getByRole('dialog',{name:'客户端设置',exact:true})).toBeVisible();await page.getByRole('button',{name:'关闭客户端设置',exact:true}).click();
+ await client.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(i=>i.label==='设置').submenu.items.find(i=>i.label==='外部文本编辑器与快捷键').click());await expect(page.getByRole('dialog',{name:'客户端设置',exact:true})).toBeVisible();await page.getByRole('button',{name:'关闭客户端设置',exact:true}).click();
  await history('node','a').dragTo(canvas(),{targetPosition:{x:130,y:90}});await expect(page.locator('.react-flow__node')).toHaveCount(4);await page.keyboard.press('Control+z');await expect(page.locator('.react-flow__node')).toHaveCount(3);
  await history('edge','a|0').dragTo(node('root'));await expect(page.locator('.react-flow__edge')).toHaveCount(2);await page.keyboard.press('Control+z');await expect(page.locator('.react-flow__edge')).toHaveCount(1);
  await history('bookmark','removed-network').dragTo(canvas(),{targetPosition:{x:170,y:90}});await expect(page.locator('.react-flow__node')).toHaveCount(5);await page.keyboard.press('Control+z');await expect(page.locator('.react-flow__node')).toHaveCount(3);
@@ -61,4 +62,4 @@ try{
  await page.getByRole('button',{name:'展开左侧栏',exact:true}).click();await expect(page.getByRole('button',{name:'折叠左侧栏',exact:true})).toBeVisible();await page.getByRole('button',{name:'展开右侧栏',exact:true}).click();await expect(page.getByRole('button',{name:'折叠右侧栏',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'切换为缩略图视图',exact:true}).click();await expect(page.locator('.bookmark-dock')).toHaveClass(/thumbnail-view/);expect(errors).toEqual([]);
  await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify({passed:true,ratio:'3:1',compactImageOnly:true,tooltipNameOnly:true,historyDrags:['node','edge','network','pure-edge'],textToggle:true,viewPersists:true,singleRowToolbar:true,settingsHoverMenu:true,rootRemains:true,leftSidebarPersists:true,rightSidebarAutomatic:true,runLeftTwoRows:true,canvasFullHeight:true,undoRedo:true,modelCalls:0,errors},null,2));console.log('PASS 缩略图、历史拖入、左侧两行运行区及完整画布：'+directory);
-}catch(error){if(page)await page.screenshot({path:path.join(directory,'failure.png')}).catch(()=>{});throw error;}finally{if(client)await client.close();await host.close();}
+}catch(error){await fs.writeFile(path.join(directory,'failure.json'),JSON.stringify({error:error.message,errors},null,2));console.log(JSON.stringify({errors}));if(page)await page.screenshot({path:path.join(directory,'failure.png')}).catch(()=>{});throw error;}finally{if(client)await client.close();await host.close();}

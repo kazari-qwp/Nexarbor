@@ -105,3 +105,8 @@
 状态：按用户“问题先跳过、不因此停工”暂跳过这些UI分支及依赖测试；继续其余前端/数据/制作宿主与最终应用模块。尚未新增提问，不等待答复。
 
 来源：frontends/network-editor/src/main.jsx、subnodes.jsx、module-access.jsx与原studio/service.py:view。新核心无Subnode、共享出边/借用父权限、节点module_strength或遍历path/remaining输出；用户D008明确不保留无连线family调用，核心冻结。原main.jsx仍调用api('view')，所以此前“该诊断接口无调用”的检索结论不完整，不能据此删除本地视角。不得复制旧walk算法到新业务路径、增加隐式权限、伪造路径，或改core来绕开。源UI仍保留待迁代码，尚未宣布客户端可运行；完整前端验收时必须逐项处置这些差异。
+
+
+## B012：旧普通文本工具写入的 .bak 语义
+
+状态：按最新“问题先跳过”暂不接入该写入分支，继续结构化数据和其他前端工作。原 TextFileNode 的 data.local.write 会原子写入并保留 .bak，冻结 MarkdownDataer 为直接修改真实文件；不能默默改变旧写入语义或在核心增加备份协议。现有 MarkdownNode 自有修改/追加仍沿已确认核心设计；操作员预览支持读取/清空，data.local 的当前适用类型仅为 value/csv/sqlite/knowledge_collection。Markdown旧写入预览明确返回未迁移错误，不伪称成功。完整模块写入和失败回滚所有权需在原资源快照边界审计后处理；此项不阻塞4个结构化数据模板。
