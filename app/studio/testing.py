@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 from jsonschema import Draft202012Validator
 from adapt.harness.executor import NativeExecutor
 from app.runtime.backend import Backend
@@ -39,7 +40,7 @@ class Visit:
         return (await value if inspect.isawaitable(value) else value,)
 
 class ModuleHarness:
-    def __init__(self,module_directory,*,library=None):
+    def __init__(self,module_directory,*,library=None,_runtime_directory=None,_initial_document=None,_configure_saver=None):
         source=Path(module_directory).resolve() if module_directory is not None else None
         self.spec=json.loads((source/'module.json').read_text(encoding='utf-8')) if source else {}
         self.module_id=self.spec.get('id')
@@ -49,9 +50,21 @@ class ModuleHarness:
         if dependencies is not None and dependencies.exists():
             for manifest in dependencies.rglob('module.json'):
                 item=json.loads(manifest.read_text(encoding='utf-8'));self.library.setdefault(item['id'],manifest.parent)
-        self.temporary=TemporaryDirectory(prefix='studio-behavior-',dir=ROOT/'build');self.folder=Path(self.temporary.name);self._active_agents=set();self.agent_callback=None;self.port_contracts=environment_contracts();self.providers={};self.definitions={};self.last_agent_views={};self._closed=False
-        self.backend=Backend(self.folder,network=Network(),saver=NetworkSaver(read_text=self._read_text));self.modules=ProjectModules(self.backend,self.library,agent_run=self.run_agent)
-        self._configure_runtime()
+        self.temporary=TemporaryDirectory(prefix='studio-behavior-',dir=ROOT/'build') if _runtime_directory is None else None
+        self.folder=Path(self.temporary.name) if self.temporary is not None else Path(_runtime_directory).resolve()
+        self.folder.mkdir(parents=True,exist_ok=True)
+        self._active_agents=set();self.agent_callback=None;self.port_contracts=environment_contracts();self.providers={};self.definitions={};self.last_agent_views={};self._closed=False
+        saver=NetworkSaver(read_text=self._read_text)
+        self.modules=ProjectModules(SimpleNamespace(directory=self.folder,saver=saver),self.library,agent_run=self.run_agent)
+        try:
+            if _configure_saver is not None:_configure_saver(saver)
+            self.backend=Backend(self.folder,network=Network(),saver=saver,initial_document=_initial_document)
+            self.modules.backend=self.backend
+            self._configure_runtime()
+        except BaseException:
+            if hasattr(self,'backend'):self.backend.close()
+            if self.temporary is not None:self.temporary.cleanup()
+            raise
 
     @property
     def network(self):return self.backend.network
@@ -107,7 +120,10 @@ class ModuleHarness:
     def _read_text(self,path,roots=()):return ports.read_text(self.folder,dict(path=path,roots=roots))
 
     def register_readonly_ports(self):
-        async def execute(actor,name,p):return self._read_text(p['path'],p.get('roots',())) if name=='read_text' else await ports.execute(self.backend,actor,name,p)
+        async def execute(actor,name,p):
+            if name=='read_text':return self._read_text(p['path'],p.get('roots',()))
+            if name!='checkpoint' and self.agent_callback is None:raise PermissionError('测试环境禁用模型和外部副作用')
+            return await ports.execute(self.backend,actor,name,p)
         self.register_tools('runtime',[ports.TEXT_READ,ports.DEFINITIONS[1]],execute)
 
     def make_port(self,node,ref):
@@ -171,4 +187,5 @@ class ModuleHarness:
         if self._closed:return
         self._closed=True
         if self.backend.signals._active:await asyncio.gather(*(self.backend.signals.cancel(key) for key in tuple(self.backend.signals._active)))
-        self.backend.close();self.temporary.cleanup()
+        self.backend.close()
+        if self.temporary is not None:self.temporary.cleanup()

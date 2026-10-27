@@ -101,3 +101,17 @@ class Candidate(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(.05);job=self.studio.job({'job':job['id']})
         self.assertEqual(job['status'],'passed',job['log']);self.assertIn('测试数量：1',job['log'])
         release=self.studio.publish({'id':id});self.assertEqual(release['kind'],'network');self.assertEqual(len(release['document']['network']['nodes']),1)
+
+    async def test_context_assembly_keeps_configured_channels_and_strength(self):
+        library={key:Path(release['folder']) for key,release in self.studio.library.items()};library['context.assembler']=ROOT/'modules/context_assembler'
+        self.studio=Studio(self.backend,library);self.addCleanup(self.studio.close)
+        channel='context.assembler.context'
+        result=self.edit([{'op':'node.create','id':'agent','kind':'agent'},{'op':'node.create','id':'relay'},{'op':'node.create','id':'document','kind':'markdown'},{'op':'text.write','path':'data/document.md','text':'跨两层的真实资料'},{'op':'module.mount','node':'agent','module':'context.assembler','config':{},'access':{'strength':4,'channels':[channel]}},{'op':'edge.add','source':'agent','target':'relay','channels':[channel]},{'op':'edge.add','source':'relay','target':'document','channels':[channel]}])
+        document=validate_network(result['document'],self.backend,self.studio.library)
+        module=document['network']['nodes'][0]['tables']['modules'][0]
+        self.assertEqual(module['strength'],4);self.assertEqual(module['channels'],[channel])
+        fixture=self.root/'context';fixture.mkdir();(fixture/'initial.json').write_text(json.dumps({'version':1,'agents':{},**document}),encoding='utf-8')
+        (fixture/'setup.json').write_text(json.dumps({'modules':{key:str(item['folder']) for key,item in self.studio.library.items()}}),encoding='utf-8')
+        h=NetworkHarness(fixture);self.addAsyncCleanup(h.close)
+        packet=await h.network.get('agent').modules.get('context.assembler').assemble()
+        self.assertEqual(packet['patch']['context'][0]['text'],'跨两层的真实资料')

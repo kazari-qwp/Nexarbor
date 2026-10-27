@@ -403,3 +403,7 @@ class Studio:
         self.removed.discard(name);write_json(self.root/'removed-modules.json',sorted(self.removed))
         self.persist_library()
         return self.library[name]
+
+    def environment(self,p):
+        from .environment import operate
+        return operate(self,p)

@@ -7,7 +7,6 @@ from pathlib import Path
 from app.projects.project import Project
 from app.projects.host_tools import host_tool_name
 from app.templates.service import TemplateService,DEFINITION
-from domain.core import CallableTool
 from .testing import ModuleHarness
 
 class NetworkHarness(ModuleHarness):
@@ -15,33 +14,39 @@ class NetworkHarness(ModuleHarness):
     remap_factory_tools=Project.remap_factory_tools
     link_record=staticmethod(Project.link_record)
 
-    def __init__(self,fixture=None,*,network_file=None):
+    def __init__(self,fixture=None,*,network_file=None,_persistent=False):
         source=Path(fixture or os.environ['NEXARBOR_TEST_ENVIRONMENT']).resolve()
         setup=json.loads((source/'setup.json').read_text(encoding='utf-8'))
         if network_file is not None:
             source=Path(setup['views'][network_file]).resolve()
             setup=json.loads((source/'setup.json').read_text(encoding='utf-8'))
         library={key:(source/value).resolve() for key,value in setup['modules'].items()}
-        super().__init__(None,library=library)
-        for label in ('node_types','agent_node_types'):
-            for kind,reference in setup.get(label,{}).items():
-                module,name=reference.split(':',1);getattr(self.backend.saver,label)[kind]=getattr(import_module(module),name)
+        document=json.loads((source/'initial.json').read_text(encoding='utf-8'))
+        runtime=source/'runtime' if _persistent else None
+        if runtime is not None and (runtime/'checkpoints.sqlite3').exists():
+            from app.persistence.checkpoints import Checkpoints
+            store=Checkpoints(runtime)
+            try:document=store.latest() or document
+            finally:store.close()
+        def configure(saver):
+            for label in ('node_types','agent_node_types'):
+                for kind,reference in setup.get(label,{}).items():
+                    module,name=reference.split(':',1);getattr(saver,label)[kind]=getattr(import_module(module),name)
+            self.port_contracts=deepcopy(setup.get('port_contracts',{}))
+            self.definitions=deepcopy(setup.get('port_definitions',{}))
+            self.definitions['templates:instantiate']=DEFINITION
+            for node,metadata in document.get('node_properties',{}).items():
+                for offer in metadata.get('offered_ports',[]):
+                    ref=offer['ref'];name=host_tool_name(node,ref)
+                    saver.tables.tool_types[name]=lambda current,record,ref=ref:self.make_port(current.info.node_id,ref)
+        super().__init__(None,library=library,_runtime_directory=runtime,_initial_document={'version':1,'agents':{},**document},_configure_saver=configure)
         self.module_schemas=self.modules.manifests
         self.tool_specs={key:item.get('agent_tools',[]) for key,item in self.module_schemas.items()}
-        document=json.loads((source/'initial.json').read_text(encoding='utf-8'))
-        self.port_contracts=deepcopy(setup.get('port_contracts',{}))
-        self.definitions=deepcopy(setup.get('port_definitions',{}))
-        self.definitions['templates:instantiate']=DEFINITION
-        for node,metadata in document.get('node_properties',{}).items():
-            for offer in metadata.get('offered_ports',[]):
-                ref=offer['ref'];name=host_tool_name(node,ref)
-                self.backend.saver.tables.tool_types[name]=lambda current,record,node=node,ref=ref:self._port(node,ref)
-        try:
-            self.backend.restore({'version':1,'agents':{},**document})
-            self._configure_runtime()
-            self._configure_templates()
+        try:self._configure_templates()
         except BaseException:
-            self.backend.close();self.temporary.cleanup();raise
+            self.backend.close()
+            if self.temporary is not None:self.temporary.cleanup()
+            raise
 
     def _port(self,node,ref):return self.make_port(node,ref)
 

@@ -223,3 +223,8 @@ B009 已提出适配层原请求事件的最小方案，批准前只跳过精确
 发现根目录 context_assembler 清单已有 ui.html 但文件尚未迁；已迁原页面，仅把旧路由路径展示改为新 Markdown 文件地址，并同步内置案例。全部19模块清单校验通过。未改 core/ 中任何文件。
 
 后续继续：test_environment 需复用真实持久 Backend 连续操作，默认 NetworkHarness 仍每用例独立克隆；准备将夹具初始化注册放到 Backend 冷恢复之前，并供交互测试进程复用。Advisors/MakerManager、预设磁盘/粘贴、管理员完整接线和真实前端仍待迁；实际最终应用1六模块WIP不激活。不能因B010未答复停工。
+
+
+制作测试环境第三检查点：ModuleHarness/NetworkHarness 已改为先登记真实模块、节点及工具工厂再打开 Backend；作者用例默认独立克隆，交互测试进程显式复用同一 runtime/checkpoints.sqlite3。原 reset/mount/call/signal/inspect/snapshot、源码指纹、结果分页和超时边界已迁移；测试副本禁用真实模型及外部副作用，不用字典替代运行时。新增真实多进程专项6.803秒通过，状态2→5持续、源码变化必须reset、旧目录保留、正式图不变。联合18项17.334秒通过（build/studio-persistent-combined-regression.log）；上下文/检查点原有22项1.979秒通过（build/studio-context-persistence-regression.log）。付费0。仍未更新单次全量435的基线数字。
+
+保存表工厂现在把明确的 channels/strength/channel_mode 交给 ContextAssembler 原构造器，防止新草稿装配丢掉设置；新增两层真实 Markdown 资料收集通过。通用检查点端口沿用原 TownModules 的 await wait_prepared 再 save，未改 core。下一步继续磁盘预设、复制粘贴与历史/书签资料、MakerManager/Advisors 和管理员RPC。应用1最终模块WIP保留；知识B010仍待选择但不阻塞其他工作。

@@ -95,3 +95,23 @@ class CurrentGraph(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(job['status'],'passed',job['log']);self.assertIn('测试数量：1',job['log'])
         self.assertEqual(file.read_text(encoding='utf-8'),'正式资料')
         self.assertIsNone(reader.modules.get('example.counter'))
+
+    def test_interactive_environment_reopens_same_runtime_and_requires_reset_after_source_change(self):
+        from domain.core import Node,NodeInfo
+        self.backend.network.add(Node(NodeInfo('subject','实际当前节点')))
+        work=self.studio.create({'kind':'module'});id=work['id']
+        reset=self.studio.environment({'id':id,'action':'reset','source':'current'})
+        self.assertTrue(reset['ok'],reset)
+        mounted=self.studio.environment({'id':id,'action':'mount','node':'subject'})
+        self.assertTrue(mounted['ok'],mounted)
+        first=self.studio.environment({'id':id,'action':'call','actor':'subject','node':'subject','operation':'increment','arguments':{'amount':2}})
+        second=self.studio.environment({'id':id,'action':'call','actor':'subject','node':'subject','operation':'increment','arguments':{'amount':3}})
+        self.assertEqual(first['result']['data'],2);self.assertEqual(second['result']['data'],5)
+        self.assertEqual(first['directory'],second['directory'])
+        self.assertTrue((Path(first['directory'])/'runtime/checkpoints.sqlite3').is_file())
+        page=self.studio.environment({'id':id,'action':'inspect','section':'result'})
+        self.assertIn('"data": 5',page['text']);self.assertIsNone(self.backend.network.get('subject').modules.get('example.counter'))
+        self.studio.maker_tool({'id':id,'tool':'write_file','arguments':{'path':'README.md','content':'新的要求'}})
+        with self.assertRaisesRegex(ValueError,'reset'):self.studio.environment({'id':id,'action':'inspect'})
+        fresh=self.studio.environment({'id':id,'action':'reset','source':'current'})
+        self.assertTrue(fresh['ok'],fresh);self.assertNotEqual(fresh['directory'],reset['directory']);self.assertTrue(Path(reset['directory']).is_dir())

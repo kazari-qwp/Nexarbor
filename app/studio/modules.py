@@ -36,7 +36,9 @@ class ProjectModules:
                     emit=lambda node,**p:emit_module_signal(self.backend.signals,node,**p),
                     checkpoint=self.checkpoint,agent_run=self.run_agent,instantiate=self.create_nodes)
 
-    async def checkpoint(self,**p):return self.backend.save(**p)
+    async def checkpoint(self,**p):
+        await self.backend.node_locks.wait_prepared()
+        return self.backend.save(**p)
     async def run_agent(self,actor,message='',**p):
         if self.agent_run is None:raise RuntimeError('此宿主未启用真实模型执行')
         return await self.agent_run(actor,message,**p)

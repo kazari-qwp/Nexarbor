@@ -12,7 +12,8 @@ class ModuleTables:
         self.module_types = {
             "tool_discovery": lambda record: ToolDiscoveryModule(record["channels"], record["strength"],
                                                                channel_mode=record["channel_mode"]),
-            "context.assembler": lambda record: ContextAssemblerModule(record.get("config"), read_text=read_text),
+            "context.assembler": lambda record: ContextAssemblerModule(record.get("config"), read_text=read_text,
+                **{field:record[field] for field in ("channels", "strength", "channel_mode") if field in record}),
         }
         self.tool_types = {name: (lambda node, record, name=name: next(tool for tool in node.tools if tool.name == name))
                            for name in ("memory_query", "memory_modify", "memory_append")}
