@@ -23,6 +23,7 @@ class Node:
         self.info = info
         self.bias = bias
         self.aggregation = SumAggregation() if aggregation is None else aggregation
+        self._access_guard = None
         self._resolve = None
         self._channel_names = None
         self._links = Links()
@@ -54,7 +55,11 @@ class Node:
         return self._links
 
     def install(self, item: Module | CallableTool | Tools) -> None:
+        if self._access_guard is not None:
+            self._access_guard.lifecycle(self.info.node_id)
         self._installer.install(item)
 
     def remove(self, item: Module | str | CallableTool | Tools) -> bool:
+        if self._access_guard is not None:
+            self._access_guard.lifecycle(self.info.node_id)
         return self._installer.remove(item)

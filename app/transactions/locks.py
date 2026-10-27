@@ -1,0 +1,575 @@
+"""Exclusive node transactions and shared admission for trusted core operations.
+
+The short coordinator mutex is never held across an await. A transaction owns a
+before-image while callbacks continue on other nodes; checkpoints overlay that
+image until the entire group commits. Ownership belongs to a live call tree.
+"""
+import asyncio
+from contextlib import asynccontextmanager, contextmanager
+from contextvars import ContextVar
+from copy import deepcopy
+from dataclasses import dataclass, field
+from threading import Condition,RLock,current_thread
+import time
+
+_owner = ContextVar('node_access_owner', default=None)
+_transaction = ContextVar('node_transaction', default=None)
+_access_stack = ContextVar('node_access_stack', default=())
+
+
+def require_transaction_node(node_id):
+    group = _transaction.get()
+    if group and group.phase == 'active' and node_id not in group.nodes:
+        raise PermissionError('Mutable component state must belong to the locked node group')
+
+
+class NodeBusyError(RuntimeError):
+    """A synchronous event-loop caller must use an asynchronous access port."""
+
+
+class NodeLockDeadlockError(RuntimeError):
+    """A call tree must abort instead of waiting on a dependency cycle."""
+
+
+@dataclass(eq=False)
+class _Owner:
+    live: bool = True
+
+
+@dataclass(eq=False)
+class _Group:
+    owner: object
+    nodes: tuple
+    executor: object = None
+    images: dict = field(default_factory=dict)
+    entries: dict = field(default_factory=dict)
+    records: dict = field(default_factory=dict)
+    contexts: dict = field(default_factory=dict)
+    phase: str = 'preparing'
+    rollback_only: bool = False
+    depth: int = 1
+
+
+class NodeLocks:
+    def __init__(self, network, snapshots, *, contexts=None, commit=None):
+        self.network, self.snapshots = network, snapshots
+        self.contexts, self.commit = contexts, commit
+        self.failed = False
+        network._access_guard = self
+        for node in network:
+            node._access_guard = self
+        self.condition = Condition(RLock())
+        self.exclusive, self.active = {}, {}
+        self.waiters, self.tickets = set(), {}
+        self.dependencies, self.leases, self.suspended = {}, {}, {}
+
+
+    @contextmanager
+    def export_owner(self, actor):
+        """Trusted adapter bridge; never a component parameter or graph grant."""
+        from uuid import uuid4
+        owner,token=self._identity();ticket=uuid4().hex
+        from app.runtime.signal_work import current_work
+        with self.condition:self.tickets[ticket]=(owner,actor,self.current,_access_stack.get(),current_work.get())
+        try:yield ticket
+        finally:
+            with self.condition:self.tickets.pop(ticket,None)
+            if token is not None:owner.live=False;_owner.reset(token)
+
+    @contextmanager
+    def import_owner(self, ticket, actor):
+        if ticket is None:
+            yield;return
+        with self.condition:
+            record=self.tickets.get(ticket)
+            if not record or record[1]!=actor or not record[0].live:
+                raise PermissionError('Executor node access ticket has expired')
+            owner,_,group,stack,work=record
+            if group is not None and group.phase!='active':raise PermissionError('Executor transaction has ended')
+        from app.runtime.signal_work import current_work
+        work_token=current_work.set(work)
+        token=_owner.set(owner);transaction_token=_transaction.set(group);stack_token=_access_stack.set(stack)
+        try:yield
+        finally:_access_stack.reset(stack_token);_transaction.reset(transaction_token);_owner.reset(token);current_work.reset(work_token)
+
+    @property
+    def current(self):
+        group = _transaction.get()
+        return group if group and group.phase == 'active' else None
+
+    def _check(self):
+        if self.failed:
+            raise RuntimeError('Core state is unavailable; restart before further operations')
+
+
+    def _notify(self):
+        self.condition.notify_all()
+        for loop, future in tuple(self.waiters):
+            if not loop.is_closed():
+                loop.call_soon_threadsafe(self._wake, future)
+
+    @staticmethod
+    def _wake(future):
+        if not future.done(): future.set_result(None)
+
+    def _blocked(self, nodes, owner):
+        return any(n in self.exclusive and self.exclusive[n] is not self.current for n in nodes)
+
+    def _drained(self, nodes, owner):
+        ancestors=set(_access_stack.get())
+        return not self._blocked(nodes, owner) and not any(
+            any(lease not in ancestors for lease in self.leases.get(n,{})) for n in nodes)
+
+    @staticmethod
+    def _executor():
+        try:return asyncio.current_task()
+        except RuntimeError:return current_thread()
+
+    def _waiting_executor(self):
+        # Awaited access tasks and adapter callbacks are descendants of the
+        # transaction holder. Their waits therefore block that whole group.
+        group=self.current
+        return group.executor if group else self._executor()
+
+    def _dependencies(self, nodes, drain, ancestors, waiting_group):
+        blocked=set()
+        for node in nodes:
+            group=self.exclusive.get(node)
+            if group and group is not waiting_group:blocked.add(group.executor)
+            if drain:blocked.update(executor for lease,(_,executor) in self.leases.get(node,{}).items() if lease not in ancestors)
+        return blocked
+
+    def _detect_cycle(self, owner):
+        graph={}
+        for who,nodes,drain,ancestors,waiting_group in self.dependencies.values():
+            graph.setdefault(who,set()).update(self._dependencies(nodes,drain,ancestors,waiting_group))
+        def visit(who,seen):
+            if who is owner:return True
+            if who in seen:return False
+            return any(visit(other,seen|{who}) for other in graph.get(who,set()))
+        if any(visit(other,set()) for other in graph.get(owner,set())):
+            raise NodeLockDeadlockError('Node lock dependency cycle; retry the whole operation')
+
+    async def _wait(self, predicate, deadline, *, owner=None, nodes=(), drain=False):
+        loop = asyncio.get_running_loop()
+        while True:
+            with self.condition:
+                self._check()
+                if predicate(): return
+                left = deadline - time.monotonic()
+                if left <= 0: raise TimeoutError('Node lock deadline exceeded')
+                future = loop.create_future(); waiter = (loop, future)
+                if owner is not None:
+                    identity=self._waiting_executor()
+                    self.dependencies[future]=(identity,nodes,drain,set(_access_stack.get()),self.current)
+                    try:self._detect_cycle(identity)
+                    except BaseException:
+                        self.dependencies.pop(future,None);raise
+                self.waiters.add(waiter)
+            try: await asyncio.wait_for(future, left)
+            finally:
+                with self.condition:
+                    self.waiters.discard(waiter)
+                    self.dependencies.pop(future,None)
+
+    def _identity(self):
+        current = _owner.get()
+        if current is not None and current.live: return current, None
+        current = _Owner()
+        return current, _owner.set(current)
+
+    def _leave(self, nodes, owner, token, lease, stack_token):
+        with self.condition:
+            for n in nodes:
+                self._drop_lease(n,lease,owner)
+            self.suspended.pop(lease,None)
+            self._notify()
+        _access_stack.reset(stack_token)
+        if token is not None:
+            owner.live = False; _owner.reset(token)
+
+    def _drop_lease(self,node,lease,owner):
+        leases=self.leases.get(node,{})
+        if lease not in leases:return
+        leases.pop(lease)
+        if not leases:self.leases.pop(node,None)
+        counts=self.active[node];counts[owner]-=1
+        if not counts[owner]:counts.pop(owner)
+        if not counts:self.active.pop(node,None)
+
+    @asynccontextmanager
+    async def suspend_access(self,timeout=180):
+        """可信宿主等待外部计算时让出访问；返回前重新排队，不能让出显式事务。"""
+        if self.current:raise RuntimeError('Release node transactions before waiting for external execution')
+        stack=_access_stack.get();records=[]
+        with self.condition:
+            for lease in stack:
+                record=self.suspended.get(lease)
+                if record is None:
+                    entries=[(node,*leases[lease]) for node,leases in self.leases.items() if lease in leases]
+                    if not entries:continue
+                    record=dict(entries=entries,count=0);self.suspended[lease]=record
+                    for node,owner,_ in entries:self._drop_lease(node,lease,owner)
+                record['count']+=1;records.append((lease,record))
+            self._notify()
+        token=_access_stack.set(())
+        try:yield
+        finally:
+            # 返回业务代码前重新进入；失败核心只清理，不覆盖最初错误。
+            def restore(admit):
+                with self.condition:
+                    for lease,record in records:
+                        if self.suspended.get(lease) is not record:continue
+                        record['count']-=1
+                        if record['count']:continue
+                        self.suspended.pop(lease)
+                        if admit:
+                            for node,owner,executor in record['entries']:
+                                if self.network.get(node) is None:continue
+                                counts=self.active.setdefault(node,{});counts[owner]=counts.get(owner,0)+1
+                                self.leases.setdefault(node,{})[lease]=(owner,executor)
+                    self._notify()
+            try:
+                if self.failed:restore(False)
+                else:
+                    deadline=time.monotonic()+timeout
+                    try:
+                        while True:
+                            targets=tuple({n for _,record in records for n,_,_ in record['entries'] if self.network.get(n) is not None})
+                            await self._wait(lambda:not self._blocked(targets,None),deadline)
+                            with self.condition:
+                                if self._blocked(targets,None):continue
+                                restore(True);break
+                    except BaseException:
+                        restore(False);self.failed=True;raise
+            finally:_access_stack.reset(token)
+
+    def _admit(self, nodes, owner, mutable):
+        self._check()
+        group = self.current
+        if group and mutable and not set(nodes) <= set(group.nodes):
+            raise PermissionError('Transactional execution can modify only locked nodes')
+        for n in nodes:
+            if self.network.get(n) is None: raise KeyError(n)
+        lease=object()
+        for n in nodes:
+            counts = self.active.setdefault(n, {})
+            counts[owner] = counts.get(owner, 0) + 1
+            self.leases.setdefault(n,{})[lease]=(owner,self._executor())
+        return lease,_access_stack.set((*_access_stack.get(),lease))
+
+    @asynccontextmanager
+    async def access(self, nodes, *, mutable=True, timeout=180):
+        nodes = tuple(dict.fromkeys(nodes)); owner, token = self._identity()
+        admitted = False; deadline = time.monotonic() + timeout
+        try:
+            while True:
+                await self._wait(lambda: not self._blocked(nodes, owner), deadline,owner=owner,nodes=nodes)
+                with self.condition:
+                    if self._blocked(nodes, owner): continue
+                    lease,stack_token=self._admit(nodes, owner, mutable); admitted = True; break
+            yield
+        finally:
+            if admitted: self._leave(nodes, owner, token,lease,stack_token)
+            elif token is not None:
+                owner.live = False; _owner.reset(token)
+
+    @contextmanager
+    def access_sync(self, nodes, *, mutable=True, timeout=180):
+        nodes = tuple(dict.fromkeys(nodes)); owner, token = self._identity()
+        admitted = False; deadline = time.monotonic() + timeout
+        try:
+            with self.condition:
+                while self._blocked(nodes, owner):
+                    try: asyncio.get_running_loop()
+                    except RuntimeError: pass
+                    else: raise NodeBusyError('Use async node access while another transaction owns this node')
+                    left = deadline - time.monotonic()
+                    if left <= 0: raise TimeoutError('Node lock deadline exceeded')
+                    waiting=object();identity=self._waiting_executor()
+                    self.dependencies[waiting]=(identity,nodes,False,set(_access_stack.get()),self.current)
+                    try:self._detect_cycle(identity);self.condition.wait(left)
+                    finally:self.dependencies.pop(waiting,None)
+                    self._check()
+                lease,stack_token=self._admit(nodes, owner, mutable); admitted = True
+            yield
+        finally:
+            if admitted: self._leave(nodes, owner, token,lease,stack_token)
+            elif token is not None:
+                owner.live = False; _owner.reset(token)
+
+    async def mutate(self, nodes, action, *, validate=None, timeout=30):
+        """宿主生命周期提交：排空目标调用后，同步执行，不允许跨 await 持有协调锁。
+
+        回滚由拥有具体资源的宿主服务负责；仅由宿主生命周期服务调用。
+        """
+        import inspect
+        if self.current: raise RuntimeError('生命周期提交不能嵌套在节点事务内')
+        if type(timeout) not in (int,float) or not 0 < timeout <= 300: raise ValueError('提交等待时限为0至300秒')
+        if not nodes or any(not isinstance(n,str) for n in nodes): raise ValueError('提交需要明确节点范围')
+        nodes=tuple(sorted(set(nodes)));owner,token=self._identity()
+        try:
+            deadline=time.monotonic()+timeout
+            while True:
+                await self._wait(lambda:self._prepared() and self._drained(nodes,owner),deadline,owner=owner,nodes=nodes,drain=True)
+                with self.condition:
+                    if not self._prepared() or not self._drained(nodes,owner):continue
+                    self._check()
+                    if any(self.network.get(n) is None for n in nodes):raise ValueError('提交目标已不存在')
+                    if validate:validate()
+                    value=action()
+                    if inspect.isawaitable(value):
+                        if inspect.iscoroutine(value):value.close()
+                        raise TypeError('生命周期提交回调必须同步完成')
+                    return value
+        finally:
+            if token is not None:owner.live=False;_owner.reset(token)
+
+    def transaction(self, nodes, *, timeout=30, validate=None, finish=None):
+        if not nodes or any(not isinstance(node, str) or not node for node in nodes):
+            raise ValueError('Lock a nonempty list of node IDs')
+        if type(timeout) not in (int, float) or not 0 < timeout <= 300:
+            raise ValueError('Lock timeout must be between 0 and 300 seconds')
+        return NodeLockScope(self, tuple(sorted(set(nodes))), validate or self._check, timeout, finish)
+
+
+    def _capture(self, group):
+        group.images = self.snapshots.capture(group.nodes)
+        if self.snapshots.document is not None:
+            from app.persistence.node_records import capture_records
+            from app.persistence.resource_data import encode_bytes
+            document = self.snapshots.document()
+            group.entries = {entry['node_id']: deepcopy(entry) for entry in document['network']['nodes'] if entry['node_id'] in group.nodes}
+            files = {node: [path.relative_to(self.snapshots.directory).as_posix() for path in image['files']]
+                     for node, image in group.images.items()}
+            group.records = capture_records(document, group.nodes, files)
+            for node, image in group.images.items():
+                group.records[node]["files"] = {path.relative_to(self.snapshots.directory).as_posix(): encode_bytes(content)
+                                                 for path, content in image["files"].items()}
+
+
+    def records(self, committing=None):
+        result={}
+        for group in set(self.exclusive.values()):
+            if group is not committing:result.update(group.records)
+        return result
+
+    def _prepared(self):
+        return not any(g.phase=='capturing_contexts' for g in set(self.exclusive.values()))
+
+    async def wait_prepared(self):
+        await self._wait(self._prepared,time.monotonic()+180)
+
+    def wait_prepared_sync(self):
+        with self.condition:
+            while not self._prepared():
+                try:asyncio.get_running_loop()
+                except RuntimeError:pass
+                else:raise NodeBusyError('Await node_locks.wait_prepared() before synchronous checkpointing')
+                self.condition.wait();self._check()
+
+    def context_status(self):
+        with self.condition:
+            contexts={}
+            for group in set(self.exclusive.values()):contexts.update(deepcopy(group.contexts))
+            return dict(node_locks_preparing=not self._prepared(),locked_contexts=contexts)
+
+    def committed_bindings(self):
+        agents = dict(self.snapshots.execution)
+        for group in set(self.exclusive.values()):
+            for node, image in group.images.items():
+                if image['execution'] is None:
+                    agents.pop(node, None)
+                else:
+                    agents[node] = image['execution']
+        return {node: value['session_id'] for node, value in agents.items() if value.get('session_id')}
+
+
+    def validate_contexts(self, contexts):
+        status=self.context_status()
+        if status['node_locks_preparing']:raise RuntimeError('Network changed during node cursor preparation')
+        for node,cursor in status['locked_contexts'].items():
+            if contexts.get(node)!=cursor:raise RuntimeError('Network changed during locked executor cursor capture')
+
+    def _restore(self, group):
+        self.snapshots.restore(group.images)
+
+
+    def overrides(self, committing=None):
+        entries, images = {}, {}
+        for group in set(self.exclusive.values()):
+            if group is committing: continue
+            entries.update(group.entries); images.update(group.images)
+        return entries, images
+
+
+    def require_mutable(self, node_id):
+        group = self.current
+        if group and node_id not in group.nodes:
+            raise PermissionError('Mutation requires this node in the current lock group')
+
+    def lifecycle(self, node_id=None):
+        if self.exclusive and (node_id is None or node_id in self.exclusive):
+            raise RuntimeError('Node/module lifecycle changes are unavailable during a node transaction')
+
+
+    async def capture_contexts(self, nodes):
+        if self.contexts is None:
+            return {}
+        bindings = {node: self.snapshots.execution[node]['session_id'] for node in nodes
+                    if self.snapshots.execution.get(node, {}).get('session_id')}
+        return await self.contexts.capture(bindings) if bindings else {}
+
+    async def restore_contexts(self, cursors):
+        restored = await self.contexts.restore(cursors)
+        for node, cursor in restored.get('contexts', restored).items():
+            self.snapshots.set_execution_cursor(node, cursor)
+
+
+class NodeLockScope:
+    def __init__(self, locks, nodes, validate, timeout, finish):
+        self.locks, self.nodes, self.validate = locks, nodes, validate
+        self.timeout, self.finish = timeout, finish
+        self.group = None; self.token = None; self.owner_token = None; self.closed = False; self.park = None
+
+    def __await__(self):return self.__aenter__().__await__()
+
+    async def commit(self):
+        if self.group is None:raise RuntimeError('Acquire the node lock before committing')
+        return await self.__aexit__(None,None,None)
+
+    async def rollback(self):
+        if self.group is None:raise RuntimeError('Acquire the node lock before rolling back')
+        return await self.__aexit__(RuntimeError,RuntimeError('Explicit node rollback'),None)
+
+    async def __aenter__(self):
+        if self.group is not None or self.closed: raise RuntimeError('Node lock scope cannot be reused')
+        locks = self.locks; owner, self.owner_token = locks._identity()
+        self.owner = owner
+        try:
+            with locks.condition:
+                self.validate(); parent = locks.current
+                if parent:
+                    if not set(self.nodes) <= set(parent.nodes):
+                        raise RuntimeError('Nested node locks may reenter, but cannot expand the locked group')
+                    parent.depth += 1; self.group = parent
+                    return self
+            # 只在明确申请事务时让出祖先访问占用；排队不能互相挡住升级。
+            self.park = locks.suspend_access(timeout=self.timeout)
+            await self.park.__aenter__()
+            deadline = time.monotonic() + self.timeout
+            while True:
+                await locks._wait(lambda: locks._prepared() and locks._drained(self.nodes, owner), deadline,owner=owner,nodes=self.nodes,drain=True)
+                with locks.condition:
+                    if not locks._prepared() or not locks._drained(self.nodes, owner): continue
+                    self.validate()
+                    group = _Group(owner, self.nodes,executor=locks._executor())
+                    for n in self.nodes: locks.exclusive[n] = group
+                    try: locks._capture(group)
+                    except BaseException:
+                        for n in self.nodes: del locks.exclusive[n]
+                        locks._notify(); raise
+                    group.phase = 'capturing_contexts'; self.group = group
+                    break
+            try:
+                contexts = await asyncio.wait_for(locks.capture_contexts(group.nodes), self.timeout)
+                with locks.condition:
+                    group.contexts=deepcopy(contexts)
+                    for node,cursor in contexts.items():
+                        locks.snapshots.set_context(group.images[node], cursor)
+                        if node in group.entries:group.entries[node]['context_cursor']=deepcopy(cursor)
+                        if node in group.records:
+                            group.records[node]['node']['context_cursor']=deepcopy(cursor)
+                            group.records[node]['agent']=deepcopy(group.images[node]['execution'])
+                        locks.snapshots.set_execution_cursor(node, cursor)
+                    group.phase='active';locks._notify()
+                # Publish the before-image (including the fresh log cursor)
+                # durably before any transactional business code is admitted.
+                await self._commit(before=True)
+                self.token=_transaction.set(group)
+                return self
+            except BaseException:
+                with locks.condition:
+                    group.phase='closed'
+                    for node in group.nodes:locks.exclusive.pop(node,None)
+                    locks._notify()
+                self.group=None;raise
+        except BaseException:
+            try:
+                if self.park is not None:await self.park.__aexit__(None,None,None)
+            finally:
+                if self.owner_token is not None:
+                    owner.live = False; _owner.reset(self.owner_token)
+            raise
+
+    async def __aexit__(self, kind, error, traceback):
+        if self.closed: return False
+        if self.group is None:raise RuntimeError('Node lock was not acquired')
+        locks, group = self.locks, self.group
+        failure = error;restored=False
+        try:
+            if self.finish:
+                try: await self.finish(error is not None)
+                except BaseException as exc: failure = exc
+            with locks.condition:
+                if failure is not None: group.rollback_only = True
+                group.depth -= 1
+                if self.token is None: return False
+                if group.depth:
+                    group.rollback_only = True
+                    raise RuntimeError('Nested lock scopes must finish before their parent')
+            if group.rollback_only:
+                with locks.condition:locks._restore(group)
+                await self._restore_contexts()
+                restored=True
+            else:
+                contexts = await locks.capture_contexts(group.nodes)
+                with locks.condition:
+                    for node, cursor in contexts.items():locks.snapshots.set_execution_cursor(node, cursor)
+                locks.snapshots.validate(group.nodes)
+                await self._commit()
+            if group.rollback_only and failure is None:raise RuntimeError('Nested node transaction was rolled back')
+            if failure is not None and error is None: raise failure
+        except BaseException:
+            if self.token is not None and not restored:
+                if group.rollback_only:
+                    locks.failed=True
+                else:
+                    group.rollback_only=True
+                    try:
+                        with locks.condition:locks._restore(group)
+                        await self._restore_contexts()
+                    except BaseException:locks.failed=True
+            raise
+        finally:
+            self.closed = True
+            if self.token is not None:
+                with locks.condition:
+                    group.phase = 'closed'
+                    for n in group.nodes: locks.exclusive.pop(n, None)
+                    _transaction.reset(self.token); locks._notify()
+            try:
+                # 先释放独占组，再重新进入原回调；不要持有本组等另一组。
+                if self.park is not None:await self.park.__aexit__(None,None,None)
+            finally:
+                if self.owner_token is not None:
+                    self.owner.live = False; _owner.reset(self.owner_token)
+        return False
+
+    async def _restore_contexts(self):
+        if self.group.contexts:
+            try:
+                await self.locks.restore_contexts(self.group.contexts)
+                await self._commit()
+            except BaseException:
+                self.locks.failed=True
+                raise
+
+    async def _commit(self, *, before=False):
+        if self.locks.commit is None:return
+        while True:
+            await self.locks.wait_prepared()
+            with self.locks.condition:
+                if not self.locks._prepared():continue
+                self.locks.commit(None if before else self.group)
+                return

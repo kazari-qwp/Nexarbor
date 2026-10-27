@@ -154,6 +154,19 @@ class NativeExecutorTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(request['model_signature'], 'sig')
         self.assertEqual(self.executor.states['actor']['session_id'], 'continued')
 
+    async def test_replaced_actor_does_not_commit_an_old_run_result(self):
+        executor = self.executor
+        replacement = AgentNode(NodeInfo('actor', 'Replacement'))
+        class Transport:
+            def host(inner, method, parameters):
+                executor.network._nodes.pop('actor')
+                executor.network.add(replacement)
+                return dict(status='completed', session_id='stale-session', output='stale')
+        executor.transport = Transport()
+        with self.assertRaisesRegex(RuntimeError, 'replaced'):
+            await executor.run('actor')
+        self.assertNotIn('session_id', executor.states['actor'])
+
     async def test_cancel_is_forwarded_to_native_host(self):
         entered, release = Event(), Event()
         calls = []

@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-27",
+  "decision": "D001 implementation",
+  "all_python_tests": 219,
+  "lock_tests": 23,
+  "native_lock_tests": 4,
+  "resource_rollback_tests": 5,
+  "focused_tests_after_record_overlay": 23,
+  "preserved_coordination_methods": [
+    "_blocked",
+    "_drained",
+    "_executor",
+    "_waiting_executor",
+    "_dependencies",
+    "_detect_cycle",
+    "_wait",
+    "_identity",
+    "_leave",
+    "_drop_lease",
+    "access",
+    "access_sync",
+    "records",
+    "_prepared",
+    "wait_prepared",
+    "wait_prepared_sync",
+    "context_status",
+    "validate_contexts",
+    "overrides",
+    "require_mutable",
+    "lifecycle"
+  ],
+  "node_records_ast_equal": true,
+  "signal_work_ast_equal": true,
+  "real_vector_rollback": {
+    "passed": true,
+    "real_embeddings": true,
+    "paid_api_calls": 0,
+    "rag_revision_restored": true,
+    "rag_cache_invalidated": true,
+    "raw_cache_invalidated": true,
+    "transient_vector_removed": true,
+    "elapsed_seconds": 6.598
+  },
+  "real_worker_rollback": {
+    "passed": true,
+    "real_embeddings": true,
+    "paid_api_calls": 0,
+    "scientific_imports_only_in_worker": true,
+    "transaction_rollback_restored": true,
+    "worker": {
+      "ready": true,
+      "pid": 36452,
+      "loaded_on_main_thread": true,
+      "torch_imported": true
+    }
+  },
+  "implemented": [
+    "wait on reached node before aggregation/bias/body",
+    "read outgoing links under node admission",
+    "BFS and same-layer concurrency with layer barrier",
+    "deny filter resolves after node unlock",
+    "group rollback preserving callback/container identity",
+    "CSV/SQLite/Value/Markdown/collection/vector resources",
+    "execution bindings and Agent inputs/runner state",
+    "model wait suspends admission",
+    "native owner tickets and cursor capture/restore messages",
+    "before-image record overlays including resource bytes"
+  ],
+  "pending": [
+    "full production snapshot encoder/store integration",
+    "original three node-lock crash tests against new full host",
+    "signal runtime and all application modules",
+    "full RPC/frontend/project/maker migration",
+    "three application acceptance"
+  ]
+}

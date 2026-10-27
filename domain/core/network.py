@@ -9,6 +9,7 @@ from .channel_filters import declared_channels
 class Network:
     def __init__(self, nodes: Iterable[Node] = ()) -> None:
         self._nodes: dict[str, Node] = {}
+        self._access_guard = None
         for node in nodes:
             self.add(node)
 
@@ -22,6 +23,7 @@ class Network:
         if node._resolve is not None and node._resolve != self.get:
             raise ValueError("同一个节点不能同时属于两个网络")
         self._nodes[node_id] = node
+        node._access_guard = self._access_guard
         node._resolve = self.get
         node._channel_names = self.channel_names
 

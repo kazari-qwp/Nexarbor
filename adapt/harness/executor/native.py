@@ -3,15 +3,17 @@
 import asyncio
 from dataclasses import asdict, is_dataclass
 from inspect import isawaitable
+from contextlib import nullcontext
 
 from app.runtime.context_packets import apply_context_packet
 from domain.core import Tools, access
 
 
 class NativeExecutor:
-    def __init__(self, network, transport, *, bindings=None, states=None):
+    def __init__(self, network, transport, *, bindings=None, states=None, locks=None):
         self.network = network
         self.transport = transport
+        self.locks = locks
         self.bindings = {} if bindings is None else bindings
         self.states = {} if states is None else states
         self._available = {}
@@ -29,7 +31,16 @@ class NativeExecutor:
 
         agent.runner = run
 
+    def _scope(self, actor, *, asynchronous):
+        if self.locks is None:
+            return nullcontext()
+        return self.locks.access([actor]) if asynchronous else self.locks.access_sync([actor])
+
     async def run(self, actor, message="", *, tools=None, **options):
+        async with self._scope(actor, asynchronous=True):
+            return await self._run_owned(actor, message, tools=tools, **options)
+
+    async def _run_owned(self, actor, message="", *, tools=None, **options):
         agent, binding = self.binding(actor)
         self._available[actor] = Tools(agent.available_tools().values()) if tools is None else tools
         state = self.states.setdefault(actor, {})
@@ -41,7 +52,13 @@ class NativeExecutor:
             model=binding.get("model"), model_signature=state.get("model_signature"),
         )
         try:
-            result = await asyncio.to_thread(self.transport.host, "agent-run", request)
+            async with self.locks.suspend_access() if self.locks is not None else nullcontext():
+                with self.locks.export_owner(actor) if self.locks is not None else nullcontext() as ticket:
+                    if ticket is not None:
+                        request["node_access_ticket"] = ticket
+                    result = await asyncio.to_thread(self.transport.host, "agent-run", request)
+            if self.network.get(actor) is not agent:
+                raise RuntimeError("Agent node was replaced during execution")
             if result.get("status") != "completed":
                 raise RuntimeError(result.get("error") or "Agent did not complete")
             state.update(session_id=result["session_id"], executor="harness")
@@ -70,6 +87,10 @@ class NativeExecutor:
         return definitions
 
     async def prepare(self, parameters):
+        async with self._scope(parameters["actor"], asynchronous=True):
+            return await self._prepare_owned(parameters)
+
+    async def _prepare_owned(self, parameters):
         self._check_session(parameters)
         actor = parameters["actor"]
         agent, binding = self.binding(actor)
@@ -84,7 +105,7 @@ class NativeExecutor:
         for source in agent.inputs.snapshot():
             if source.startswith("prepare:") and source not in active:
                 agent.update_inputs(source, system_prompt="", context=[], tail=[])
-        definitions = self.definitions(actor)
+        definitions = await asyncio.to_thread(self.definitions, actor)
         sources = agent.inputs.snapshot()
         history = state["tool_history"]
         current = {definition["name"] for definition in definitions}
@@ -118,6 +139,10 @@ class NativeExecutor:
         return (await call(Preparation()))[target]
 
     async def invoke(self, parameters):
+        async with self._scope(parameters["actor"], asynchronous=True):
+            return await self._invoke_owned(parameters)
+
+    async def _invoke_owned(self, parameters):
         self._check_session(parameters)
         actor, name = parameters["actor"], parameters["name"]
         tool = self._tools[actor].get(name)
@@ -129,6 +154,10 @@ class NativeExecutor:
         return asdict(result) if is_dataclass(result) else result
 
     def ack(self, parameters):
+        with self._scope(parameters["actor"], asynchronous=False):
+            return self._ack_owned(parameters)
+
+    def _ack_owned(self, parameters):
         self._check_session(parameters)
         agent, _ = self.binding(parameters["actor"])
         for event in parameters.get("events", []):
@@ -136,6 +165,10 @@ class NativeExecutor:
         return {"ok": True}
 
     def bind(self, parameters):
+        with self._scope(parameters["actor"], asynchronous=False):
+            return self._bind_owned(parameters)
+
+    def _bind_owned(self, parameters):
         self.binding(parameters["actor"])
         state = self.states.setdefault(parameters["actor"], {})
         state.update(session_id=parameters["session_id"], executor="harness", model_signature=parameters.get("model_signature"))
@@ -144,6 +177,10 @@ class NativeExecutor:
         return {"ok": True}
 
     def prune(self, parameters):
+        with self._scope(parameters["actor"], asynchronous=False):
+            return self._prune_owned(parameters)
+
+    def _prune_owned(self, parameters):
         self._check_session(parameters)
         actor = parameters["actor"]
         retained = set(parameters.get("referenced", [])) | {definition["name"] for definition in self.definitions(actor)}
@@ -152,3 +189,9 @@ class NativeExecutor:
             if name not in retained:
                 history.pop(name)
         return list(history)
+
+    async def capture(self, bindings):
+        return await asyncio.to_thread(self.transport.host, "agent-context-capture", dict(bindings=bindings))
+
+    async def restore(self, cursors):
+        return await asyncio.to_thread(self.transport.host, "agent-context-restore", dict(contexts=cursors, transactional=True))
