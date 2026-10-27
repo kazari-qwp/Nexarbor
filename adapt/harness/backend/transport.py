@@ -4,6 +4,7 @@ from adapt.communication.jsonrpc import JsonRpcTransport
 from adapt.harness.executor import NativeExecutor
 from app.persistence.recovery import acknowledge_executors, required_contexts, restore_bundle
 from app.runtime.async_runtime import AsyncRuntime
+from domain.core import CallableTool, Tools
 
 
 class Transport(JsonRpcTransport):
@@ -20,6 +21,13 @@ class Transport(JsonRpcTransport):
         backend.graph_observer = self.attach_agents
         self.attach_agents()
         self.routes = {}
+
+    def encode_value(self, item):
+        if isinstance(item, Tools):
+            return list(item)
+        if isinstance(item, CallableTool):
+            return dict(name=item.name, description=item.description, parameters=item.parameters)
+        return super().encode_value(item)
 
     def attach_agents(self):
         backend = self.backend

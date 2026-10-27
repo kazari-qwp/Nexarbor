@@ -26,12 +26,13 @@ class JsonRpcTransport:
         """Application hook; transport does not interpret domain exceptions."""
         return str(error) or type(error).__name__
 
+    def encode_value(self, item):
+        if is_dataclass(item):
+            return asdict(item)
+        raise TypeError(type(item).__name__)
+
     def write(self, value):
-        def encode(item):
-            if is_dataclass(item):
-                return asdict(item)
-            raise TypeError(type(item).__name__)
-        line = json.dumps(value, default=encode, ensure_ascii=False, allow_nan=False)
+        line = json.dumps(value, default=self.encode_value, ensure_ascii=False, allow_nan=False)
         with self.output_lock:
             self.output.write(line + '\n')
             self.output.flush()

@@ -1,0 +1,178 @@
+{
+  "type": "node",
+  "node_id": "workspace",
+  "name": "项目工作区",
+  "description": "",
+  "tables": {
+    "modules": [],
+    "tools": {
+      "group": 0,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "tool": "ext_cd8a30ca12595eab213f8cb7",
+          "description": "workspace · Execute a PowerShell command (`pwsh -Command`) and return its stdout/stderr. Each call runs in a fresh pwsh process; pass `workdir` instead of using `cd`. Paths use native Windows form (`C:\\...`); read environment variables with `$env:NAME`. Managed `$env:DSH_*` variables expose current harness environment facts. Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. On Windows a force-killed command settles as `[exit code: 1]` without a signal marker — treat it as an interruption, not a command failure. Provide `description` before `command` in the arguments. Before any delete or move, verify that the resolved absolute target path is the intended one; never run it against a computed path you have not checked. Do not assign to automatic variables such as `$HOME`; variable names are case-insensitive, so `$home` is the same read-only variable. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Clear, concise description of what this command does in active voice, 5-10 words (shown in the UI). Examples: \"ls\" → \"List files in current directory\"; \"git status\" → \"Show working tree status\"; \"Get-Process\" → \"List running processes\"."
+              },
+              "command": {
+                "type": "string",
+                "description": "The PowerShell command to execute."
+              },
+              "timeoutMs": {
+                "type": "number",
+                "description": "Timeout in milliseconds. The executor applies its configured default and cap; on expiry the command moves to the background as a job instead of being killed."
+              },
+              "workdir": {
+                "type": "string",
+                "description": "Working directory for this command. Defaults to the session workspace; a relative path is resolved against it."
+              },
+              "run_in_background": {
+                "type": "boolean",
+                "description": "Run in the background and return a job id immediately (collect with job_output, stop with job_kill). No timeout applies."
+              }
+            },
+            "required": [
+              "description",
+              "command"
+            ]
+          },
+          "modules": []
+        },
+        {
+          "tool": "ext_5fed94dfabad80980f130e73",
+          "description": "workspace · Read a UTF-8 text file and return line-numbered content.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string",
+                "description": "Path to read, resolved by the filesystem backend."
+              },
+              "offset": {
+                "type": "number",
+                "description": "1-based first line to return. Defaults to 1."
+              },
+              "limit": {
+                "type": "number",
+                "description": "Maximum number of lines to return. Defaults to 2000."
+              }
+            },
+            "required": [
+              "file_path"
+            ]
+          },
+          "modules": []
+        },
+        {
+          "tool": "ext_c51ff45bf8a73316cf5c2f50",
+          "description": "workspace · Create or fully replace a UTF-8 text file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string",
+                "description": "Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments."
+              },
+              "content": {
+                "type": "string",
+                "description": "Full UTF-8 text content to write."
+              }
+            },
+            "required": [
+              "file_path",
+              "content"
+            ]
+          },
+          "modules": []
+        },
+        {
+          "tool": "ext_0bb05a47ebf5d887fbd82c67",
+          "description": "workspace · Edit an existing UTF-8 text file by replacing literal text.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string",
+                "description": "Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments."
+              },
+              "old_string": {
+                "type": "string",
+                "description": "Literal text to replace."
+              },
+              "new_string": {
+                "type": "string",
+                "description": "Literal replacement text. Use an empty string to delete the match."
+              },
+              "replace_all": {
+                "type": "boolean",
+                "description": "Replace all matches. Defaults to false; when false, old_string must appear exactly once."
+              }
+            },
+            "required": [
+              "file_path",
+              "old_string",
+              "new_string"
+            ]
+          },
+          "modules": []
+        },
+        {
+          "tool": "ext_b528ba0d29a2d538c07762b2",
+          "description": "workspace · Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Glob pattern to match file paths against (e.g. \"**/*.ts\", \"src/**/*.test.js\"). A pattern with no \"/\" matches the basename at any depth, so \"*\" and \"*.ts\" both search the whole tree; include a separator to anchor the depth."
+              },
+              "path": {
+                "type": "string",
+                "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          },
+          "modules": []
+        },
+        {
+          "tool": "ext_cec80ec419bce47dba5016ea",
+          "description": "workspace · Search file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Regular expression to search for (ripgrep syntax)."
+              },
+              "path": {
+                "type": "string",
+                "description": "File or directory to search. Defaults to the session workspace; a relative path resolves against it."
+              },
+              "include": {
+                "type": "string",
+                "description": "One glob filter for which files to search (e.g. \"*.ts\", \"*.{js,jsx}\"). Not a list; negation is not supported."
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          },
+          "modules": []
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": []
+}

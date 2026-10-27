@@ -15,6 +15,8 @@ try{
  assert.equal(result.value.exitCode,0);
  assert.ok(result.value.stdout.text.includes('official-runner-ok'));
  const evidence={passed:true,version:status.version,compatible:status.compatible,tool_count:tools.length,official_runner:true,official_contracts:true,paid_api_calls:0};
+ await fs.writeFile(path.join(directory,'catalog.json'),JSON.stringify(tools,null,2));
+ await fs.writeFile(path.join(directory,'contracts.json'),JSON.stringify(contracts,null,2));
  await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify(evidence,null,2));
  console.log(JSON.stringify({...evidence,directory}));
 }finally{await runner.close();}

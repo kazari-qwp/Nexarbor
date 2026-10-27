@@ -1,0 +1,89 @@
+{
+  "type": "markdown",
+  "node_id": "notes",
+  "name": "公共笔记",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "notes.text",
+        "description": "",
+        "channels": [
+          "notes"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "title": "公共笔记",
+          "max_chars": 20000,
+          "separator": "\n\n"
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": [
+            {
+              "tool": "mod_1623338c1c3bf0a2aef11928",
+              "description": "notes · 追加笔记 · 把一段文字按配置的分隔符追加到便笺末尾；可带幂等键避免重试时重复追加，超出正文上限时不写入。",
+              "parameters": {
+                "type": "object",
+                "title": "追加笔记",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "title": "追加内容",
+                    "description": "要追加到便笺末尾的内容，1 到 8000 个字符。",
+                    "minLength": 1,
+                    "maxLength": 8000
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "幂等键",
+                    "description": "可选。同一便笺上相同键与相同内容只追加一次；相同键配不同内容会被拒绝。",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "notes.text"
+            },
+            {
+              "tool": "mod_318d06cc4f2e737997eb7d0e",
+              "description": "notes · 读取笔记 · 读取便笺的标题、正文、版本和最后更新时间。",
+              "parameters": {
+                "type": "object",
+                "title": "读取笔记",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "notes.text"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 1,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [],
+  "data": {
+    "type": "markdown",
+    "path": "data/notes.md",
+    "save_data": true,
+    "directory": false
+  }
+}

@@ -1,0 +1,627 @@
+{
+  "type": "node",
+  "node_id": "collab",
+  "name": "执行协作组",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "messages.box",
+        "description": "",
+        "channels": [
+          "chat",
+          "records",
+          "collaboration"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "read_policy": "reachable",
+          "send_cost": 0,
+          "max_messages": 300,
+          "require_agent": true,
+          "notify_activity": false
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": [
+            {
+              "tool": "mod_2e6b8d409c6873e4f9657b04",
+              "description": "collab · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "title": "消息正文",
+                    "description": "要发送的非空消息正文，最长 4000 个字符。",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "topic": {
+                    "type": "string",
+                    "title": "话题",
+                    "description": "可选的话题或公告栏目，省略时为空字符串。",
+                    "default": ""
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "去重键",
+                    "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "messages.box"
+            },
+            {
+              "tool": "mod_cf79be31fcef8b8727a6ad74",
+              "description": "collab · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "title": "读取条数",
+                    "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "default": 20
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "messages.box"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "git.integrator.rev_2863bbe53e.rev_c376775a7e",
+        "description": "",
+        "channels": [
+          "collaboration",
+          "workspace"
+        ],
+        "strength": 3,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "repository": "workspace/repository",
+          "base_branch": "main",
+          "integration_branch": "nexarbor/integration",
+          "candidate_ref_prefix": "refs/nexarbor/candidates/",
+          "members": [],
+          "terminal_ref": "ext_5a191f3f0c0fd6984eb382bc",
+          "terminal_channels": [
+            "workspace"
+          ],
+          "command_timeout_ms": 60000,
+          "busy_lease_seconds": 900,
+          "member_channel": [
+            "collaboration"
+          ],
+          "member_branch_prefix": "member/"
+        },
+        "state": {},
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "module_id": "collab.board.rev_9191e2380f.rev_96569f0263",
+        "description": "",
+        "channels": [
+          "collaboration",
+          "collaboration.work"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "member_channel": [
+            "collaboration"
+          ],
+          "max_tasks": 100,
+          "max_shared": 500,
+          "channel_modes": {},
+          "integrator_module": "git.integrator.rev_2863bbe53e.rev_c376775a7e",
+          "integrator_channel": [
+            "collaboration"
+          ],
+          "activity_timeout_seconds": 86400
+        },
+        "state": {},
+        "tools": {
+          "group": 2,
+          "members": [
+            {
+              "tool": "mod_5949fdafa0e8d781cc4235c6",
+              "description": "collab · 查看协作板 · 查看当前协作轮次、任务认领与完成情况、成员和共享摘要。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "include_closed": {
+                    "type": "boolean",
+                    "title": "包含已结束轮次",
+                    "description": "为假时，已结束轮次不再返回任务与共享明细；默认保留，便于结束后的进度复盘。",
+                    "default": true
+                  }
+                }
+              },
+              "modules": [],
+              "factory_module": "collab.board.rev_9191e2380f.rev_96569f0263"
+            },
+            {
+              "tool": "mod_f8e05cd22786bb427534ed86",
+              "description": "collab · 认领任务路径 · 以当前成员身份认领任务的若干路径；与其他成员已认领路径重叠时会被拒绝。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "task": {
+                    "type": "string",
+                    "title": "任务 ID",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "paths": {
+                    "type": "array",
+                    "title": "认领路径",
+                    "description": "至少一项；与同任务其他有效成员的认领路径前缀相同或相等即冲突。",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    }
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "幂等键",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "task",
+                  "paths"
+                ]
+              },
+              "modules": [],
+              "factory_module": "collab.board.rev_9191e2380f.rev_96569f0263"
+            },
+            {
+              "tool": "mod_3ad9e18bff629c810502bc6d",
+              "description": "collab · 补充认领路径 · 给自己已认领的任务补充更多路径，同样检查冲突。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "task": {
+                    "type": "string",
+                    "title": "任务 ID",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "paths": {
+                    "type": "array",
+                    "title": "补充路径",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 200
+                    }
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "幂等键",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "task",
+                  "paths"
+                ]
+              },
+              "modules": [],
+              "factory_module": "collab.board.rev_9191e2380f.rev_96569f0263"
+            },
+            {
+              "tool": "mod_907a7859e9617368f7b240d1",
+              "description": "collab · 释放认领 · 释放当前成员对某个未完成任务的认领，路径重新可被他人认领。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "task": {
+                    "type": "string",
+                    "title": "任务 ID",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "member": {
+                    "type": "string",
+                    "title": "成员 ID",
+                    "description": "仅控制方代释放时填写；填写后必须经 collab.admin 频道调用。",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "reason": {
+                    "type": "string",
+                    "title": "释放原因",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                },
+                "required": [
+                  "task"
+                ]
+              },
+              "modules": [],
+              "factory_module": "collab.board.rev_9191e2380f.rev_96569f0263"
+            },
+            {
+              "tool": "mod_96e52f7e095e352b30ad21b5",
+              "description": "collab · 完成任务 · 记录当前成员所认领任务的提交哈希与修改摘要，并把任务标记为完成。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "task": {
+                    "type": "string",
+                    "title": "任务 ID",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "commit": {
+                    "type": "string",
+                    "title": "提交哈希",
+                    "description": "7 到 64 位十六进制提交标识；本模块只记录，不校验 Git 仓库。",
+                    "pattern": "^[0-9a-fA-F]{7,64}$"
+                  },
+                  "summary": {
+                    "type": "string",
+                    "title": "修改摘要",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "幂等键",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "task",
+                  "commit",
+                  "summary"
+                ]
+              },
+              "modules": [],
+              "factory_module": "collab.board.rev_9191e2380f.rev_96569f0263"
+            },
+            {
+              "tool": "mod_2456fced25d9661d95477a87",
+              "description": "collab · 共享发现 · 把工作中发现的重要信息共享给协作板。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "title": "发现摘要",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "task": {
+                    "type": "string",
+                    "title": "相关任务",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "幂等键",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "text"
+                ]
+              },
+              "modules": [],
+              "factory_module": "collab.board.rev_9191e2380f.rev_96569f0263"
+            },
+            {
+              "tool": "mod_ab44d6b28ec62c82e9aed1bc",
+              "description": "collab · 共享失败摘要 · 共享失败原因、已尝试的修改和后续需要注意的限制。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "title": "失败与修改摘要",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "task": {
+                    "type": "string",
+                    "title": "相关任务",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "幂等键",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "text"
+                ]
+              },
+              "modules": [],
+              "factory_module": "collab.board.rev_9191e2380f.rev_96569f0263"
+            },
+            {
+              "tool": "mod_18538a98dab2e0c8c0cffdbb",
+              "description": "collab · 退出协作 · 退出本轮协作；自己的未完成认领会被释放，其他成员可重新认领。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "member": {
+                    "type": "string",
+                    "title": "成员 ID",
+                    "description": "仅控制方代操作时填写；填写后必须经 collab.admin 频道调用。",
+                    "minLength": 1,
+                    "maxLength": 100
+                  },
+                  "reason": {
+                    "type": "string",
+                    "title": "退出原因",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  }
+                }
+              },
+              "modules": [],
+              "factory_module": "collab.board.rev_9191e2380f.rev_96569f0263"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "collab.participant",
+        "description": "",
+        "channels": [
+          "collaboration"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [
+          "git.integrator.rev_2863bbe53e.rev_c376775a7e"
+        ],
+        "config": {
+          "integrator_module": "git.integrator.rev_2863bbe53e.rev_c376775a7e"
+        },
+        "state": {},
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "tool": "mod_180cd435565be8af0a3577c2",
+              "description": "collab · 提交成果 · 以自己的身份把完成的分支提交交给整合器。",
+              "parameters": {
+                "type": "object",
+                "title": "成员提交",
+                "properties": {
+                  "commit": {
+                    "type": "string",
+                    "title": "提交哈希",
+                    "pattern": "^[0-9a-fA-F]{7,64}$"
+                  },
+                  "branch": {
+                    "type": "string",
+                    "title": "成员分支",
+                    "minLength": 1
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "请求键",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "commit"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "collab.participant"
+            },
+            {
+              "tool": "mod_0bab1868b2efa07ba88f9c25",
+              "description": "collab · 认可候选 · 以自己的身份认可当前或指定候选；调用者身份由请求链决定。",
+              "parameters": {
+                "type": "object",
+                "title": "认可候选",
+                "properties": {
+                  "candidate_id": {
+                    "type": "string",
+                    "title": "候选编号",
+                    "pattern": "^cand-[0-9a-f]{16}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "title": "认可说明",
+                    "maxLength": 500
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "collab.participant"
+            },
+            {
+              "tool": "mod_3cbad08bdf8a8abb291003ae",
+              "description": "collab · 否决候选 · 以自己的身份否决当前或指定候选，并说明理由。",
+              "parameters": {
+                "type": "object",
+                "title": "否决候选",
+                "properties": {
+                  "candidate_id": {
+                    "type": "string",
+                    "title": "候选编号",
+                    "pattern": "^cand-[0-9a-f]{16}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "title": "否决理由",
+                    "maxLength": 500
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "collab.participant"
+            },
+            {
+              "tool": "mod_cf341f9f4c59be57b9e76134",
+              "description": "collab · 查看整合状态 · 查看实际工作仓库、本人分支、成员提交与当前候选；成员身份由真实调用者绑定。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "collab.participant"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 4,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "tool": "ext_5a191f3f0c0fd6984eb382bc",
+          "description": "collab · Execute a PowerShell command (`pwsh -Command`) and return its stdout/stderr. Each call runs in a fresh pwsh process; pass `workdir` instead of using `cd`. Paths use native Windows form (`C:\\...`); read environment variables with `$env:NAME`. Managed `$env:DSH_*` variables expose current harness environment facts. Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. On Windows a force-killed command settles as `[exit code: 1]` without a signal marker — treat it as an interruption, not a command failure. Provide `description` before `command` in the arguments. Before any delete or move, verify that the resolved absolute target path is the intended one; never run it against a computed path you have not checked. Do not assign to automatic variables such as `$HOME`; variable names are case-insensitive, so `$home` is the same read-only variable. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Clear, concise description of what this command does in active voice, 5-10 words (shown in the UI). Examples: \"ls\" → \"List files in current directory\"; \"git status\" → \"Show working tree status\"; \"Get-Process\" → \"List running processes\"."
+              },
+              "command": {
+                "type": "string",
+                "description": "The PowerShell command to execute."
+              },
+              "timeoutMs": {
+                "type": "number",
+                "description": "Timeout in milliseconds. The executor applies its configured default and cap; on expiry the command moves to the background as a job instead of being killed."
+              },
+              "workdir": {
+                "type": "string",
+                "description": "Working directory for this command. Defaults to the session workspace; a relative path is resolved against it."
+              },
+              "run_in_background": {
+                "type": "boolean",
+                "description": "Run in the background and return a job id immediately (collect with job_output, stop with job_kill). No timeout applies."
+              }
+            },
+            "required": [
+              "description",
+              "command"
+            ]
+          },
+          "modules": []
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "executor-1",
+      "channels": [
+        "collaboration",
+        "collaboration.work",
+        "collaboration.review"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "executor-2",
+      "channels": [
+        "collaboration",
+        "collaboration.work",
+        "collaboration.review"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "executor-3",
+      "channels": [
+        "collaboration",
+        "collaboration.work",
+        "collaboration.review"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "executor-4",
+      "channels": [
+        "collaboration",
+        "collaboration.work",
+        "collaboration.review"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ]
+}

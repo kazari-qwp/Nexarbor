@@ -1,0 +1,319 @@
+{
+  "type": "agent",
+  "node_id": "root",
+  "name": "根 Agent · 项目入口",
+  "description": "用户目标入口：讨论 → 执行 → Git 整合与验收。",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "app.coordinator.entry",
+        "description": "",
+        "channels": [
+          "app",
+          "discussion",
+          "collaboration",
+          "collaboration.review"
+        ],
+        "strength": 3,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "discussion_node": "discussion",
+          "board_node": "collab",
+          "integrator_node": "collab",
+          "review_channel": [
+            "collaboration.review"
+          ],
+          "accept_channel": [
+            "collaboration"
+          ],
+          "board_module": "collab.board.rev_9191e2380f.rev_96569f0263",
+          "discussion_module": "discussion.session.rev_697d80a33d",
+          "integrator_module": "git.integrator.rev_2863bbe53e.rev_c376775a7e",
+          "activity_timeout_seconds": 86400
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": [
+            {
+              "tool": "mod_a40e9f924269a752f0c5ac7d",
+              "description": "root · 启动任务 · 启动一次编排任务：让讨论会话开始讨论，并记录为当前运行。",
+              "parameters": {
+                "type": "object",
+                "title": "启动参数",
+                "properties": {
+                  "task": {
+                    "type": "string",
+                    "title": "任务",
+                    "description": "本次要讨论和执行的完整任务描述。",
+                    "minLength": 1,
+                    "maxLength": 2000
+                  },
+                  "rounds": {
+                    "type": "integer",
+                    "title": "讨论轮数",
+                    "description": "可选；传给讨论会话的最大轮数。",
+                    "minimum": 1,
+                    "maximum": 50
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "启动键",
+                    "description": "可选；运行进行中时用相同键重试会返回原运行而不是再启动一次。",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "task"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "app.coordinator.entry"
+            },
+            {
+              "tool": "mod_fa46104c96264fb9837353ed",
+              "description": "root · 交接执行 · 读取讨论成果并把任务交给协作板执行，运行进入执行阶段。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "app.coordinator.entry"
+            },
+            {
+              "tool": "mod_514e99d8284260afd231d7b0",
+              "description": "root · 整合成果 · 让整合器生成候选，并沿验收频道广播验收信号。",
+              "parameters": {
+                "type": "object",
+                "title": "整合参数",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "title": "重开理由",
+                    "description": "可选；验收阶段发现候选被否决时，作为重开验收的理由传给整合器；缺省为“成员否决后重开验收”。",
+                    "maxLength": 500
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "app.coordinator.entry"
+            },
+            {
+              "tool": "mod_854138575fd1eb6ce263cd86",
+              "description": "root · 发布成果 · 全员认可后发布当前候选，运行标记为完成。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "app.coordinator.entry"
+            },
+            {
+              "tool": "mod_3013e2274b48ec16e3f84c59",
+              "description": "root · 查看状态 · 查看讨论、协作板与整合器状态及最近错误，不读取历史运行。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "app.coordinator.entry"
+            },
+            {
+              "tool": "mod_a60e4258a0a08e2ddeeba4fa",
+              "description": "root · 停止任务 · 按当前阶段停止讨论会话或关闭协作板，运行保留为已停止。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "title": "停止原因",
+                    "maxLength": 500
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "app.coordinator.entry"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "context.assembler",
+        "description": "上下文组装器",
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "strength": 4,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "channels": [
+            "context.assembler"
+          ],
+          "system_prompt_channels": [
+            "context.assembler.system_prompt"
+          ],
+          "context_channels": [
+            "context.assembler.context"
+          ],
+          "inputs_channels": [
+            "context.assembler.inputs"
+          ],
+          "tail_channels": [
+            "context.assembler.tail"
+          ],
+          "sources": [
+            {
+              "id": "entry-role",
+              "kind": "system_prompt",
+              "type": "text",
+              "text": "你是项目根入口，负责将用户目标交给讨论组，再交给执行组，以真实状态跟进整合与验收。通过编排工具调用两个小组，不直接连接或指挥组内成员。"
+            }
+          ]
+        },
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 2,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 3,
+          "members": [
+            {
+              "tool": "memory_query",
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_modify",
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "old_text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "new_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_append",
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "bias": 0,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "discussion",
+      "channels": [
+        "discussion"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "collab",
+      "channels": [
+        "collaboration",
+        "collaboration.review"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "agent": {
+    "inputs": {}
+  },
+  "data": {
+    "type": "markdown",
+    "path": "data/root.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": {
+    "executor": "harness",
+    "strength": 2,
+    "channels": [
+      "app",
+      "context.assembler"
+    ],
+    "prepare": [
+      {
+        "module": "context.assembler",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      }
+    ],
+    "max_steps": 100000,
+    "timeout_seconds": 86400
+  }
+}

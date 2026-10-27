@@ -1,0 +1,473 @@
+{
+  "type": "node",
+  "node_id": "discussion",
+  "name": "讨论组",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "messages.box",
+        "description": "",
+        "channels": [
+          "chat",
+          "records",
+          "discussion"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "read_policy": "reachable",
+          "send_cost": 0,
+          "max_messages": 200,
+          "require_agent": true,
+          "notify_activity": false
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": [
+            {
+              "tool": "mod_41e1b007b5badf07e663525a",
+              "description": "discussion · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "title": "消息正文",
+                    "description": "要发送的非空消息正文，最长 4000 个字符。",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "topic": {
+                    "type": "string",
+                    "title": "话题",
+                    "description": "可选的话题或公告栏目，省略时为空字符串。",
+                    "default": ""
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "去重键",
+                    "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "messages.box"
+            },
+            {
+              "tool": "mod_3899224832e13c82a12bec45",
+              "description": "discussion · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "title": "读取条数",
+                    "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "default": 20
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "messages.box"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "context.assembler",
+        "description": "上下文组装器",
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "strength": 4,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "channels": [
+            "context.assembler"
+          ],
+          "system_prompt_channels": [
+            "context.assembler.system_prompt"
+          ],
+          "context_channels": [
+            "context.assembler.context"
+          ],
+          "inputs_channels": [
+            "context.assembler.inputs"
+          ],
+          "tail_channels": [
+            "context.assembler.tail"
+          ]
+        },
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "module_id": "discussion.session.rev_697d80a33d",
+        "description": "",
+        "channels": [
+          "discussion",
+          "discussion.round",
+          "discussion.decision",
+          "discussion.record"
+        ],
+        "strength": 3,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "rounds": 2,
+          "max_speech_chars": 4000,
+          "max_speeches": 500,
+          "max_runs": 20,
+          "member_channel": [
+            "discussion"
+          ],
+          "channel_modes": {},
+          "activity_timeout_seconds": 86400
+        },
+        "state": {},
+        "tools": {
+          "group": 2,
+          "members": [
+            {
+              "tool": "mod_520ead1c9b14d293e0a93213",
+              "description": "discussion · 讨论发言 · 在当前讨论的当前轮次发言；调用者必须是状态为 active 的参与者。 返回 accepted_round 为本条发言所属轮次，round/phase 为操作后会话状态。",
+              "parameters": {
+                "type": "object",
+                "title": "成员发言",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "title": "发言正文",
+                    "description": "完整发言正文，至少 1 个字符；运行时再按 max_speech_chars 检查上限。",
+                    "minLength": 1,
+                    "maxLength": 8000
+                  },
+                  "round": {
+                    "type": "integer",
+                    "title": "轮次",
+                    "description": "可选；省略时按调用时的当前轮处理，显式填写时必须与当前轮一致。",
+                    "minimum": 1,
+                    "maximum": 20
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "去重键",
+                    "description": "可选；同一运行、成员、轮次内的相同键与相同正文只记录一次。",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "discussion.session.rev_697d80a33d"
+            },
+            {
+              "tool": "mod_256caaf6173b70c3bd69a9b3",
+              "description": "discussion · 读取讨论 · 读取当前运行、参与者、最近完整发言、决策、草稿与成果。",
+              "parameters": {
+                "type": "object",
+                "title": "读取讨论",
+                "properties": {
+                  "round": {
+                    "type": "integer",
+                    "title": "只看轮次",
+                    "description": "可选；只返回指定轮次的发言。",
+                    "minimum": 1,
+                    "maximum": 20
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "title": "读取发言条数",
+                    "description": "返回最近多少条完整发言，范围 1 到 200，默认 20。",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "default": 20
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "discussion.session.rev_697d80a33d"
+            },
+            {
+              "tool": "mod_d7c1b08ca62466fec0861871",
+              "description": "discussion · 提交决策 · Leader 在 deciding 阶段提交决策和任务清单。",
+              "parameters": {
+                "type": "object",
+                "title": "Leader 决策",
+                "properties": {
+                  "decision": {
+                    "type": "string",
+                    "title": "决策正文",
+                    "description": "Leader 的最终决策，1 到 4000 个字符。",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "tasks": {
+                    "type": "array",
+                    "title": "任务清单",
+                    "description": "可为零项；每项包含标题、路径和可选说明。",
+                    "default": [],
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "title": {
+                          "type": "string",
+                          "title": "任务标题",
+                          "minLength": 1,
+                          "maxLength": 120
+                        },
+                        "paths": {
+                          "type": "array",
+                          "title": "相关路径",
+                          "items": {
+                            "type": "string"
+                          },
+                          "default": []
+                        },
+                        "detail": {
+                          "type": "string",
+                          "title": "任务说明",
+                          "minLength": 1,
+                          "maxLength": 2000
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "paths"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "去重键",
+                    "description": "可选；相同键与相同决策只处理一次。",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "decision"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "discussion.session.rev_697d80a33d"
+            },
+            {
+              "tool": "mod_c2c8f9238bc325a68bd62ce3",
+              "description": "discussion · 写讨论草稿 · Recorder 在 drafting 阶段按章节撰写或覆盖草稿。",
+              "parameters": {
+                "type": "object",
+                "title": "Recorder 草稿",
+                "properties": {
+                  "section": {
+                    "type": "string",
+                    "title": "章节名",
+                    "description": "草稿章节名，1 到 200 个字符；同名章节会被覆盖。",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "text": {
+                    "type": "string",
+                    "title": "章节正文",
+                    "description": "章节正文，1 到 8000 个字符。",
+                    "minLength": 1,
+                    "maxLength": 8000
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "去重键",
+                    "description": "可选；相同键与相同章节内容只处理一次。",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "section",
+                  "text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "discussion.session.rev_697d80a33d"
+            },
+            {
+              "tool": "mod_93fcef7608bd362ce319630a",
+              "description": "discussion · 生成讨论成果 · Recorder 在已有决策和草稿后生成 Markdown 最终成果。",
+              "parameters": {
+                "type": "object",
+                "title": "生成最终成果",
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "title": "成果标题",
+                    "description": "可选；省略时使用“讨论成果：任务简述”。",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "discussion.session.rev_697d80a33d"
+            },
+            {
+              "tool": "mod_d2916e37a391adb6de3bb206",
+              "description": "discussion · 退出讨论 · 退出当前讨论；本人之后的轮次不再等待其发言，退出会记录在参与者与事件中。",
+              "parameters": {
+                "type": "object",
+                "title": "成员退出",
+                "properties": {
+                  "member": {
+                    "type": "string",
+                    "title": "退出成员",
+                    "description": "可选；省略时让调用者本人退出。代其他成员退出只允许控制方经 discussion.control 频道调用。"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "title": "退出原因",
+                    "description": "可选的说明，只用于调用方记录。"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "discussion.session.rev_697d80a33d"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 3,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "leader",
+      "channels": [
+        "discussion",
+        "discussion.round",
+        "discussion.decision"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "recorder",
+      "channels": [
+        "discussion",
+        "discussion.round",
+        "discussion.record"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "member-1",
+      "channels": [
+        "discussion",
+        "discussion.round"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "member-1~unit-2",
+      "channels": [
+        "discussion",
+        "discussion.round"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "member-1~unit-3",
+      "channels": [
+        "discussion",
+        "discussion.round"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "notes",
+      "channels": [
+        "context.assembler.context",
+        "context.assembler.tail"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "materials",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ]
+}

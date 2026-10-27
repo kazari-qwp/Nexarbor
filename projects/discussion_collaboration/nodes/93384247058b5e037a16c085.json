@@ -1,0 +1,323 @@
+{
+  "type": "agent",
+  "node_id": "recorder",
+  "name": "记录员",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "records.store",
+        "description": "",
+        "channels": [
+          "records"
+        ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "initial": {
+            "ap": 10
+          },
+          "references": [],
+          "minimum": {
+            "ap": 0
+          }
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "agents.activity",
+        "description": "",
+        "channels": [
+          "tick",
+          "activity",
+          "records",
+          "self",
+          "runtime.agent",
+          "discussion.round",
+          "discussion",
+          "discussion.record"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "signal_channels": [
+            "discussion.round",
+            "discussion.record"
+          ],
+          "budget_field": "ap",
+          "budget": 10,
+          "prompt": "讨论信号已到达。请用工具读取发言与公共笔记：普通轮次调用 speak 发表观点；收到起草信号后调用 draft 写章节，完成后调用 finish 形成最终成果。 任务中的文件路径可通过本节点的只读文件工具按需查看；先读入口说明，再查相关需求与接口，不一次性重复注入全部资料。",
+          "enabled": true
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "module_id": "tool_discovery",
+        "description": "串联工具发现",
+        "channels": [
+          "discussion",
+          "notes",
+          "workspace"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "module_id": "discussion.seat",
+        "description": "",
+        "channels": [
+          "discussion"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "role": "recorder",
+          "name": "记录员"
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 3,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 4,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 5,
+          "members": [
+            {
+              "tool": "memory_query",
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_modify",
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "old_text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "new_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_append",
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            }
+          ]
+        },
+        {
+          "tool": "ext_443484b3d16a1f7a626c2d70",
+          "description": "recorder · 运行当前调用节点自己的 Agent；不能在节点事务中等待模型。",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "modules": []
+        },
+        {
+          "tool": "ext_ccaa50e7997fbd89b746799e",
+          "description": "recorder · Read a UTF-8 text file and return line-numbered content.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string",
+                "description": "Path to read, resolved by the filesystem backend."
+              },
+              "offset": {
+                "type": "number",
+                "description": "1-based first line to return. Defaults to 1."
+              },
+              "limit": {
+                "type": "number",
+                "description": "Maximum number of lines to return. Defaults to 2000."
+              }
+            },
+            "required": [
+              "file_path"
+            ]
+          },
+          "modules": []
+        },
+        {
+          "tool": "ext_9553b764b7966526a880510d",
+          "description": "recorder · Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Glob pattern to match file paths against (e.g. \"**/*.ts\", \"src/**/*.test.js\"). A pattern with no \"/\" matches the basename at any depth, so \"*\" and \"*.ts\" both search the whole tree; include a separator to anchor the depth."
+              },
+              "path": {
+                "type": "string",
+                "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          },
+          "modules": []
+        },
+        {
+          "tool": "ext_43dc67f0e5d78cced9d04cdf",
+          "description": "recorder · Search file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Regular expression to search for (ripgrep syntax)."
+              },
+              "path": {
+                "type": "string",
+                "description": "File or directory to search. Defaults to the session workspace; a relative path resolves against it."
+              },
+              "include": {
+                "type": "string",
+                "description": "One glob filter for which files to search (e.g. \"*.ts\", \"*.{js,jsx}\"). Not a list; negation is not supported."
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          },
+          "modules": []
+        }
+      ]
+    }
+  },
+  "bias": 0,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "discussion",
+      "channels": [
+        "discussion",
+        "context.assembler"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "notes",
+      "channels": [
+        "notes"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "agent": {
+    "inputs": {}
+  },
+  "data": {
+    "type": "markdown",
+    "path": "data/recorder.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": {
+    "executor": "harness",
+    "strength": 2,
+    "channels": [
+      "self",
+      "records",
+      "discussion",
+      "notes",
+      "context.assembler",
+      "runtime.agent",
+      "discussion.record",
+      "workspace"
+    ],
+    "prepare": [
+      {
+        "node": "discussion",
+        "module": "context.assembler",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      }
+    ],
+    "max_steps": 100000,
+    "timeout_seconds": 86400
+  }
+}

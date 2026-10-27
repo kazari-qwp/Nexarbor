@@ -1,0 +1,216 @@
+{
+  "type": "agent",
+  "node_id": "executor-1",
+  "name": "执行成员甲",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "records.store",
+        "description": "",
+        "channels": [
+          "records"
+        ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "initial": {
+            "ap": 20
+          },
+          "references": [],
+          "minimum": {
+            "ap": 0
+          }
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "agents.activity",
+        "description": "",
+        "channels": [
+          "tick",
+          "activity",
+          "records",
+          "self",
+          "runtime.agent",
+          "collaboration.work",
+          "collaboration.review"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "signal_channels": [
+            "collaboration.work",
+            "collaboration.review"
+          ],
+          "budget_field": "ap",
+          "budget": 20,
+          "prompt": "协作信号已到达。请读取协作板任务与候选状态：自主认领任务与路径，用独立 worktree 完成、测试并提交；收到验收信号后检查同一候选，调用 approve 或 veto。",
+          "enabled": true
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "module_id": "tool_discovery",
+        "description": "串联工具发现",
+        "channels": [
+          "collaboration",
+          "workspace"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 3,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 4,
+          "members": [
+            {
+              "tool": "memory_query",
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_modify",
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "old_text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "new_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_append",
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            }
+          ]
+        },
+        {
+          "tool": "ext_460513e3e81a6624dddd8642",
+          "description": "executor-1 · 运行当前调用节点自己的 Agent；不能在节点事务中等待模型。",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "modules": []
+        }
+      ]
+    }
+  },
+  "bias": 0,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "collab",
+      "channels": [
+        "collaboration"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "workspace",
+      "channels": [
+        "workspace"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "agent": {
+    "inputs": {}
+  },
+  "data": {
+    "type": "markdown",
+    "path": "data/executor-1.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": {
+    "executor": "harness",
+    "strength": 2,
+    "channels": [
+      "self",
+      "records",
+      "collaboration",
+      "app",
+      "workspace",
+      "runtime.agent"
+    ],
+    "max_steps": 100000,
+    "timeout_seconds": 86400
+  }
+}

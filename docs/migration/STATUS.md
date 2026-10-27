@@ -2,7 +2,7 @@
 
 更新时间：2026-10-27。
 
-当前最新验证：**386 项全量 Python 测试通过，另 3 项讨论应用差异专项通过**；真实小镇一天及保存重开通过。用户已接受性能差异并明确恢复迁移：继续讨论/协作、资料库、完整宿主/前端与制作 Agent 文档更新，后续验收仍监测 token 与时间。离线分析确认主要内容增量是模型推理，可见文字平均每次约 47→48 字符；不再继续做本次性能对照实验。
+当前最新验证：**397 项全量 Python 测试通过**；真实小镇一天及保存重开通过。用户已接受性能差异并明确恢复迁移：继续讨论/协作、资料库、完整宿主/前端与制作 Agent 文档更新，后续验收仍监测 token 与时间。离线分析确认主要内容增量是模型推理，可见文字平均每次约 47→48 字符；不再继续做本次性能对照实验。
 
 
 ## 已完成
@@ -109,3 +109,11 @@ Git 整合器与应用协调器已经迁移并验证；原 SDK 工具宿主已�
 - 原 OfficialToolsRunner 已迁入 adapt/harness/official；scripts/verify_native_official.py 验证配置所选及默认安装两版本各 10 个工具、返回契约和真实命令。兼容探测按实际插件依赖要求 workingDirectory，不把 app.asar 的虚拟包目录当普通目录检查。配置所选程序为 E:/dsh/Harness/DeepSeek Harness.exe；默认安装为 LOCALAPPDATA/Programs/DeepSeek Harness/DeepSeek Harness.exe。
 
 下一步：迁移实际 discussion-collaboration 项目配置与 12 份资源，装配 15 个节点、宿主工具和原生执行器。旧配置 terminal_ref=harness:pwsh 须转为本节点真正的 CallableTool.name；多节点公开同款 SDK 工具可沿用原 ext_ + sha256(node_id + NUL + ref)[:24] 作为工具本身的名称，直接引用调用，不恢复旧 alias/catalog。接通后按原应用流程验收并监控真实 token/耗时。随后仍有资料库 catalog/tasks、完整 Studio/前端、资源/复制服务和制作 Agent 文档。
+
+
+## 实际讨论项目装配 WIP
+
+15 节点、10 Agent、31 个宿主工具和 12 份原文档已转换并能实际装载/冷重开。共用配置加载器已提取到 app/projects，原小镇 6 项模板/项目测试仍通过。生产 RPC 下 discover 声明预览、真实官方终端、便笺追加、Markdown 上下文和冷重开通过（无模型请求），原生模型桥再次通过。5 项运行端口边界测试通过。完整回归 397 项通过（154.638 秒），原生桥/实际项目 RPC 已通过；真实模型验收入口已准备，尚未运行。用户核心默认值编辑仍保留。下一步与原脚本差异说明见 DISCUSSION_ACCEPTANCE.md；真实模型讨论验收尚未运行。
+
+
+实际讨论项目阶段：scripts/migrate_discussion_project.py 已转换完整 15 节点、12 文档和 31 宿主工具；应用层共用 Project 加载器、HostTools 工厂及原 runtime_ports 已接入。模块和工具恢复仍直接重建已有表，不检查依赖或重复判断可达性。只在 RPC 展示边界编码 Tools 的工具声明，核心对象及 discover() 不变；发现器 module.json 删除旧 collect/invoke/routes 声明，改为 discover。生产宿主可选择 discussion_collaboration。全量 397 项通过；付费 API 调用仍为 0。已准备 scripts/verify_native_discussion.py 和 native_discussion_acceptance.mjs；当前下一步是在确认代码检查后执行真实 API 验收，按 DISCUSSION_ACCEPTANCE.md 记录每阶段 usage/时间，遇到实际核心冲突停下讨论。
