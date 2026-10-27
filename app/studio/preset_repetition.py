@@ -75,7 +75,8 @@ def expand_snapshot(snapshot,count=None,definitions=None):
                 name=mount['module_id']
                 definition=definitions.get(name)
                 if definition:
-                    for field in ('config','state'):mount[field]=_references(mount[field],definition[field+'_schema'],ids)
+                    for field in ('config','state'):
+                        if field in mount:mount[field]=_references(mount[field],definition[field+'_schema'],ids)
             node['links']=[{**e,'target_id':ids.get(e['target_id'],e['target_id'])} for e in node.get('links',[])]
             remap_tools(node,original['node_id'],definitions,source.get('properties',{}).get(original['node_id'],{}))
             output.append(node);p=unit_points[i];positions[node['node_id']]={'x':right+((index-1)%columns)*width+p['x']-left,'y':top+((index-1)//columns)*height+p['y']-up}

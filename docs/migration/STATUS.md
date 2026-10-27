@@ -297,3 +297,8 @@ network.administrator已迁入独立模块文件夹，复用原制作Agent工作
 管理员/Studio/小组联合36项48.278秒通过（build/admin-studio-groups-combined-fixed.log）；随后单次全量484项250.000秒通过（build/admin-current-full-regression.log），API0。实际原生Root执行器→工具发现→管理员→MakerManager→真实DSH→工作副本→局部提交也通过，7次本地HTTP模型夹具响应、3真实节点、付费0，build/native-admin-current-8_uzbkpn/verification.json；此原生专项早于最后的host_ref及只读工具表检查修复，之后相关组合回归及上述全量已绿。未宣称原hone应用已经通过。
 
 一次性转换器scripts/migrate_final_demo.py正在转换原项目演示中的真实两节点初始应用、讨论/执行两个原预设及公开hone输入，不使用旧运行时。已发现并修复转换时未在序列化前绑定稳定工具名的问题，独立build副本两节点加载成功，两个原预设分别8/3基础节点校验通过（重复数3/4）。交付目录第一版仍须刷新并补正式预检；真实根/管理员组网→两轮讨论→四人Git协作→18项历史判分尚未运行。用户data_node.py默认值变更保持不暂存。B010/B011/B012继续只跳过相关依赖，不停止其他迁移。
+
+
+应用一初始项目现已刷新为可加载的project/v2，并复制原workspace/task公开输入，正文旧机器路径改为workspace/task。原讨论预设8基础节点、重复3→10节点5成员；原执行预设3基础节点、重复4→6节点4成员。发现原重复展开器假设每模块都有state，已仅在app层跳过不存在的可选字段，core未改。2项实际冷加载/根工具与上下文/两预设全展开恢复专项1.506秒通过（build/final-demo-project-preflight.log）；原startStudio宿主预检通过（build/final-hone-c7v1petp），API0。
+
+原hone固定请求及原12库+6CLI判分器已放tests/evaluation/hone，判分器仅在Agent项目之外使用，未复制旧hone业务实现。真实旧基线从node-object-hone-03原生前缀统计：989.601秒，336普通+21制作响应，未缓存输入747109、缓存19349760、输出333080、总20429949；证据evidence/2026-10-28-hone-original-baseline.json。相同公开任务/人数，核心、D017及推理设置不同，只报实际对照，不单变量归因。下一步启动已授权付费原任务并持续监控。
