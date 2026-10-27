@@ -1,0 +1,91 @@
+{
+  "date": "2026-10-27",
+  "python_tests": {
+    "command": "E:/miniconda3/python.exe -B -X utf8 -m unittest discover -s tests -q",
+    "passed": 141
+  },
+  "native_runtime": {
+    "paid_api_calls": 0,
+    "fixtures": [
+      {
+        "name": "native_session_restore_test.cjs",
+        "passed": true,
+        "exit_code": 0,
+        "stdout": "PASS native compressed persistence: close/reopen, two opaque events retained, no derived messages, immutable input, strict other-event handling\n",
+        "stderr": ""
+      },
+      {
+        "name": "native_loop_restore_test.cjs",
+        "passed": true,
+        "exit_code": 0,
+        "stdout": "PASS native AgentLoop: late persistence, real request tail, close/resume, continued turn, second cold read\n",
+        "stderr": "(node:20148) ExperimentalWarning: VM Modules is an experimental feature and might change at any time\n(Use `DeepSeek Harness --trace-warnings ...` to show where the warning was created)\n"
+      },
+      {
+        "name": "native_node_lock_positions.cjs",
+        "passed": true,
+        "exit_code": 0,
+        "stdout": "{\"directory\":\"E:\\\\项目_手动重构\\\\build\\\\node-lock-native-1793073562422\",\"passed\":true,\"paid_api_calls\":0,\"mock_requests\":3,\"before\":11,\"uncommitted\":12,\"restored\":15,\"forked\":true,\"unchanged_live_turn_preserved\":true,\"original_log_preserved\":true,\"advanced_transactional_head_preserved\":true,\"transactional_agent_not_cancelled\":true}\n",
+        "stderr": "(node:14324) ExperimentalWarning: VM Modules is an experimental feature and might change at any time\n(Use `DeepSeek Harness --trace-warnings ...` to show where the warning was created)\n"
+      }
+    ]
+  },
+  "source_parity": [
+    {
+      "source": "python/datanet/core/state_journal.py",
+      "target": "app/persistence/state_journal.py",
+      "ast_equal": true
+    },
+    {
+      "source": "python/datanet/core/state_store.py",
+      "target": "app/persistence/state_store.py",
+      "ast_equal": true
+    },
+    {
+      "source": "python/datanet/core/checkpoints.py",
+      "target": "app/persistence/checkpoints.py",
+      "ast_equal": true
+    },
+    {
+      "source": "adapters/harness/runtime/agent-loop/entry.js",
+      "target": "adapt/harness/runtime/agent-loop/entry.js",
+      "sha256": "ca6917e850fa2a93eb6bfd9c33e4810c7698054b510379c0f1e85d62433fe9da",
+      "bytes_equal": true
+    },
+    {
+      "source": "adapters/harness/runtime/agent-loop/LICENSE",
+      "target": "adapt/harness/runtime/agent-loop/LICENSE",
+      "sha256": "e5b182b2fccc24c632788ed1e86a45e7a927d801bdf11c1b6b2a831854678826",
+      "bytes_equal": true
+    },
+    {
+      "source": "adapters/harness/runtime/agent-loop/package.json",
+      "target": "adapt/harness/runtime/agent-loop/package.json",
+      "sha256": "29944f9f46b828cb057b10905ce49b0b8c1690bf91d1355705950ca3684fd2c7",
+      "bytes_equal": true
+    },
+    {
+      "source": "adapters/harness/runtime/agent-loop/README.md",
+      "target": "adapt/harness/runtime/agent-loop/README.md",
+      "sha256": "78711b6154805ca961f2c82f02ec5c048c4024c9547b51daf93d9c6ab2b8de55",
+      "bytes_equal": true
+    },
+    {
+      "source": "adapters/harness/runtime/agent-loop/lib/index.js",
+      "target": "adapt/harness/runtime/agent-loop/lib/index.js",
+      "sha256": "bfbbd7116998a7090ea3f8805f94950507392bd7fc823b0ee79b4c3c13eb5655",
+      "bytes_equal": true
+    },
+    {
+      "source": "adapters/harness/runtime/agent-loop/lib/invariant.js",
+      "target": "adapt/harness/runtime/agent-loop/lib/invariant.js",
+      "sha256": "3e4acad4bdec68371a2aaec053d59a571d915d370b8aa4df072df0a2ab586a93",
+      "bytes_equal": true
+    }
+  ],
+  "limits": [
+    "三应用真实 API/保存重开验收尚未完成",
+    "节点锁服务、原 Backend 恢复/执行适配器尚待迁移",
+    "原存储测试中依赖 Backend 的断言未声称通过"
+  ]
+}

@@ -28,3 +28,7 @@
 ## 状态
 
 类型与文件已定位；具体方法、存储结构及旧断言需逐文件审查后迁移。遇到 DataNode/Dataer/Saver 协议不兼容，按用户要求先讨论，不能私自改 core 或编造占位实现。
+
+## 当前具体兼容点：B005
+
+ValueNode 只持有内存 JSON 值，原 codec 直接写 parameters.value；通用 Saver 的抽象 path 要求与它冲突。已停止该节点的实现并记录 B005，等待讨论是否将文件源路径下移到文件保存器。不能通过虚构文件路径、强制创建 backing file 或不继承 DataNode 来绕过。

@@ -52,3 +52,18 @@
 - 当前 domain/core/access.py 的 _layers 只保留 (Node, remaining)，方法只能获得 Node，没有真实路径。
 
 原拟议的 with_path 方案已被用户否决，不实施。现有 @access 顺序用于收集文件地址，来源预览同步显示文件地址。四路 patch、来源身份和串联规则已迁移，不恢复 ctx，不在业务模块另行寻路。
+
+## B005：内存数据节点与 Saver 强制文件路径冲突
+
+状态：待用户讨论；尚未修改 Saver 或实现伪造路径的 ValueSaver。
+
+证据：
+
+- 原 extensions/storage/capabilities/value/python/datanet/components/nodes/value_node/value_node.py 的 _value 是 deepcopy 后的内存值，文件路径字符串也只是普通值，不读取文件。
+- 同目录 codec.py 的 encode 直接将 node._value 写入 parameters.value，不创建源数据文件。
+- 新 domain/core/saver.py 把 path: Path 定义为每个 Saver 必须实现的抽象属性；DataNode 又要求一定提供 Saver。
+- 当前 app/network_saver.py 也统一按源文件路径编码数据，不过此应用层保存实现已经获准替换为原持久化编排。
+
+建议讨论：通用 Saver 只保留保存行为，把源文件 path 下移到 MarkdownSaver 等具体文件保存器；ValueNode 仍继承 DataNode，内存 JSON 按原协议直接写入网络配置。不能让 path 返回假文件、抛未实现异常冒充实现，或把 ValueNode 改成强制磁盘存储。
+
+内存数据没有“仅保留外部文件引用”的恢复方式；应在具体保存协议中明确该类型与 save_data=False 的关系，避免悄悄丢值。用户确认通用协议调整后再落地。
