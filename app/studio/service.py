@@ -332,7 +332,7 @@ class Studio:
                 worker='app.studio.worker'
                 if kind=='network':
                     from .network_work import check_work
-                    result=check_work(snapshot,self.backend,self.library,workspace=p['id'])
+                    result=check_work(snapshot,self.backend,self.library,workspace=p['id'],port_definitions=self.ports)
                     job['warnings']=result.get('warnings',[])
                     worker='app.studio.network_worker'
                 from .environment import prepare
@@ -383,7 +383,7 @@ class Studio:
             return dict(kind='component-presets',workspace=p['id'],**check(folder,self.library))
         if metadata.get('kind')=='network':
             from .network_work import check_work
-            result=check_work(folder,self.backend,self.library)
+            result=check_work(folder,self.backend,self.library,port_definitions=self.ports)
             return dict(kind='network',id=p['id'],document=result['document'],runtime=result['runtime'],outputs=result['outputs'],name=p.get('name') or metadata['label'],display_folder=metadata.get('display_folder'),digest=fingerprint)
         spec=json.loads(files['module.json']);name=spec['id']
         if metadata.get('immutable_revision'):

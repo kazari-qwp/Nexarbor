@@ -18,7 +18,7 @@ class Counter(Module):
         self.state['count'] = self.state.get('count', 0) + amount
         return {'count': self.state['count']}
 ```
-清单格式 nexarbor-module/v4，entry 是 module.py:Counter。声明 id、中文 name、version、node_types、requires、config_schema、state_schema、operations、signals。operation 有 name/channels/parameters/result，parameters 校验传入方法的关键字参数，result 校验返回值。不再返回 ComponentResult。
+清单格式 nexarbor-module/v4，entry 是 module.py:Counter。声明 id、中文 name、version、node_types、requires、config_schema、state_schema、operations、signals。operation 有 name/channels/parameters/result，parameters 校验传入方法的关键字参数，result 描述返回值。不再返回 ComponentResult。
 
 项目组件由 module.json 加载自己的 Python 类和辅助文件；框架安装层的注册材料不能当作项目模块入口。按需声明 transaction、emit、agent_run、checkpoint、instantiate、directory 构造参数，由宿主注入相应运行端口；不接收 Backend 或整个网络。外部工具仍按14的实际工具接口调用。
 

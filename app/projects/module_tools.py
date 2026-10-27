@@ -11,7 +11,7 @@ def install_tools(module,file):
     specs=definition.get('agent_tools',[])
     for spec in specs:
         operation=operations[spec['operation']]
-        module.tools._add(CallableTool(spec['id'],getattr(module,spec['operation']),operation.get('description',definition.get('description','')),deepcopy(operation['parameters'])))
+        module.tools._add(CallableTool(spec['id'],getattr(module,spec['operation']),spec.get('description',operation.get('description',definition.get('description',''))),deepcopy(operation['parameters'])))
     return specs
 
 def bind_tools(module,node,specs):

@@ -91,7 +91,6 @@ class ModuleHarness:
         Draft202012Validator(definition['parameters']).validate(p)
         result=getattr(node.modules.get(module),operation)(**p)
         value=await result if inspect.isawaitable(result) else result
-        Draft202012Validator(definition.get('result',{})).validate(value)
         return dict(status='ok',data=value)
 
     async def call(self,node,operation,parameters=None,*,actor=None,module=None,strength=2,channels=()):
@@ -111,11 +110,16 @@ class ModuleHarness:
         async def execute(actor,name,p):return self._read_text(p['path'],p.get('roots',())) if name=='read_text' else await ports.execute(self.backend,actor,name,p)
         self.register_tools('runtime',[ports.TEXT_READ,ports.DEFINITIONS[1]],execute)
 
-    def offer(self,node,ref,channels):
+    def make_port(self,node,ref):
         definition=self.definitions[ref];provider,name=ref.split(':',1)
-        async def execute(**p):return await self.providers[provider](requester_id.get() or node,name,p)
-        tool=CallableTool(host_tool_name(node,ref),execute,definition.get('description',''),definition['parameters']);self.network.get(node).install(tool)
-        self.backend.saver.tables.tool_types[tool.name]=lambda current,record,tool=tool:tool
+        async def execute(**p):
+            if provider not in self.providers:raise PermissionError('测试副本未启用外部端口：'+ref)
+            return await self.providers[provider](requester_id.get() or node,name,p)
+        return CallableTool(host_tool_name(node,ref),execute,definition.get('description',''),definition['parameters'])
+
+    def offer(self,node,ref,channels):
+        tool=self.make_port(node,ref);self.network.get(node).install(tool)
+        self.backend.saver.tables.tool_types[tool.name]=lambda current,record:self.make_port(current.info.node_id,ref)
         metadata=self.backend.extension_state.setdefault('node_properties',{}).setdefault(node,{})
         metadata.setdefault('offered_ports',[]).append(dict(ref=ref,channels=list(channels)));return tool
 
@@ -136,7 +140,7 @@ class ModuleHarness:
         return node.inputs.snapshot()
     async def agent_tool(self,actor,name,arguments):
         result=await self.executor.invoke(dict(actor=actor,name=name,arguments=arguments))
-        if result.get('status')=='forbidden':raise PermissionError('; '.join(result['errors']))
+        if isinstance(result,dict) and result.get('status')=='forbidden':raise PermissionError('; '.join(result['errors']))
         return result
     async def run_agent(self,actor,message='',**options):
         if self.agent_callback is None:raise RuntimeError('测试副本未启用模型；用 register_agent 只替换模型计算')

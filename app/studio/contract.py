@@ -26,7 +26,7 @@ SCHEMA = {'type':'object', 'additionalProperties':False,
     'properties':{'entry':{'type':'string','minLength':1},'title':{'type':'string','minLength':1},
                   'height':{'type':'integer','minimum':160,'maximum':900},'preview_operation':{'type':'string','minLength':1}}},
  'operations':{'type':'array','items':{'type':'object','additionalProperties':False,
-   'required':['name','channels','parameters','result'], 'properties':{
+   'required':['name','parameters','result'], 'properties':{
     'description':{'type':'string'}, 'name':{'type':'string','minLength':1}, 'channels':{'oneOf':[{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}},{'type':'object','additionalProperties':False,'required':['config'],'properties':{'config':{'type':'string','minLength':1}}}]},
     'parameters':{'type':'object'}, 'result':{'type':'object'}}}},
  'signals':{'oneOf':[{'type':'array','uniqueItems':True,'items':{'type':'string','minLength':1}},

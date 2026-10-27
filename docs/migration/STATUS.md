@@ -216,3 +216,10 @@ B009 已提出适配层原请求事件的最小方案，批准前只跳过精确
 新 v4 ProjectModules 与 ModuleHarness/NetworkHarness 直接使用真实核心、独立信号运行器、NativeExecutor及检查点；7项专项通过。工作副本的原文件工具、只读资料、分页、编辑冲突、Git基线、独立验证进程、不可变发布已迁移；4项专项5.538秒通过，包括实际写组件测试→运行→发布→挂载→保存重开和真实当前图隔离测试。制作模板改用 Module 类；没有以旧核心执行任何制作产物。较早全量435项197.735秒通过，其后工作副本新增4项尚未计入新的单次全量。
 
 尚未迁完：网络草稿批量命令/预设/重复组装、test_environment连续操作进程、Advisors/MakerManager完整RPC及运行中管理员范围、实际右键咨询/前端；当前 app/studio/service.py 仅已迁移部分接口，不能宣称两个制作Agent全部可用。继续这些独立分支，不等待知识问题。实际最终应用1六个模块仍为WIP，未改项目装配，不能拿旧17节点夹具替代根/管理员/hone验收。用户 domain/core/data_node.py 修改保留且不暂存。
+
+
+制作网络第二检查点：新节点骨架、原 edit_network 短命令、v4 执行配置边界、网络/附加产物及模板校验已迁入 app/adapt；新装配由真实 Installer 生成工具表，完整序列化表直接恢复，不按更新的 manifest 重查依赖。原可重复单元算法迁到 app/studio/preset_repetition.py，改用统一 DataNode 路径和 links/tables，保留计数、共享入边、typed引用及独立数据复制，并重映射稳定工具名。5项网络专项3.765秒通过，随后与组件、夹具联合16项10.189秒通过（build/studio-network-combined-regression.log）；包含真实网络作者验证进程→候选调用→保存重开→发布。API0。全量仍为较早435项197.735秒，不把专项加成新全量。
+
+发现根目录 context_assembler 清单已有 ui.html 但文件尚未迁；已迁原页面，仅把旧路由路径展示改为新 Markdown 文件地址，并同步内置案例。全部19模块清单校验通过。未改 core/ 中任何文件。
+
+后续继续：test_environment 需复用真实持久 Backend 连续操作，默认 NetworkHarness 仍每用例独立克隆；准备将夹具初始化注册放到 Backend 冷恢复之前，并供交互测试进程复用。Advisors/MakerManager、预设磁盘/粘贴、管理员完整接线和真实前端仍待迁；实际最终应用1六模块WIP不激活。不能因B010未答复停工。

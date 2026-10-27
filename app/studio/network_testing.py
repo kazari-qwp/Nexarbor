@@ -43,13 +43,7 @@ class NetworkHarness(ModuleHarness):
         except BaseException:
             self.backend.close();self.temporary.cleanup();raise
 
-    def _port(self,node,ref):
-        definition=self.definitions[ref];provider,name=ref.split(':',1)
-        async def execute(**arguments):
-            from app.runtime.requester import requester_id
-            if provider not in self.providers:raise PermissionError('测试副本未启用外部端口：'+ref)
-            return await self.providers[provider](requester_id.get() or node,name,arguments)
-        return CallableTool(host_tool_name(node,ref),execute,definition.get('description',''),definition['parameters'])
+    def _port(self,node,ref):return self.make_port(node,ref)
 
     def _configure_templates(self):
         self.templates=TemplateService(self,self.backend.extension_state.get('runtime',{}).get('templates',[]))

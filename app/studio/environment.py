@@ -37,8 +37,12 @@ def prepare(studio,p,*,folder=None,activate=True):
     work=folder or studio.folder(p['id']);metadata=read_json(studio.folder(p['id'])/'workspace.json',{})
     if p.get('source','current')=='candidate':
         from .network_work import validate_network
-        document=validate_network(read_json(work/p.get('network_file','network.json'),{}),studio.backend,studio.library)
-        document.update(runtime=read_json(work/'runtime.json',{'templates':[]}))
+        document=validate_network(read_json(work/p.get('network_file','network.json'),{}),studio.backend,studio.library,port_definitions=studio.ports)
+        from .preset_repetition import expand_snapshot
+        network=document['network']
+        expanded=expand_snapshot({**network,'files':document['files']},definitions={name:release['manifest'] for name,release in studio.library.items()})
+        document=dict(network={key:value for key,value in expanded.items() if key not in ('files','positions')},files=expanded['files'])
+        document.update(runtime=read_json(work/'runtime.json',{'templates':[]}),node_properties=document['network'].get('properties',{}))
     else:
         scoped=getattr(studio.backend,'network_administrator',None)
         document=scoped.source(p['id']) if scoped and scoped.has(p['id']) else studio.backend.snapshot()
