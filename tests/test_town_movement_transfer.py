@@ -40,15 +40,15 @@ class TownMovementTransferTests(unittest.IsolatedAsyncioTestCase):
         self.a.install(self.ar);self.b.install(self.br)
         for source,target in [('a','home'),('home','a'),('b','home'),('home','b')]:self.location(source,target)
         self.road1=self.edge('home','park','road');self.road2=self.edge('park','home','road')
-        self.move=MovementHereModule(self.backend.node_locks.transaction,channels=CHANNELS,strength=5)
+        self.move=MovementHereModule(self.transaction,channels=CHANNELS,strength=5)
         self.park.install(self.move)
-        self.transfer=RecordsTransferModule(self.backend.node_locks.transaction,channels=CHANNELS,strength=5)
+        self.transfer=RecordsTransferModule(self.transaction,channels=CHANNELS,strength=5)
         self.a.install(self.transfer)
         self.saver.tables.module_types.update({
             'place.info':lambda spec:PlaceInfoModule(),
             'records.store':lambda spec:RecordsStoreModule(),
-            'movement.here':lambda spec:MovementHereModule(self.backend.node_locks.transaction),
-            'records.transfer':lambda spec:RecordsTransferModule(self.backend.node_locks.transaction),
+            'movement.here':lambda spec:MovementHereModule(self.transaction),
+            'records.transfer':lambda spec:RecordsTransferModule(self.transaction),
         })
 
     def edge(self,source,target,relation):
@@ -56,6 +56,9 @@ class TownMovementTransferTests(unittest.IsolatedAsyncioTestCase):
         self.net.get(source).links.add(edge);return edge
 
     def location(self,source,target):return self.edge(source,target,'location')
+
+    def transaction(self, nodes, **options):
+        return self.backend.node_locks.transaction(nodes, **options)
 
     async def values(self):return (await self.ar.read())['values'],(await self.br.read())['values']
 
