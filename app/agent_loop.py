@@ -3,7 +3,7 @@
 from collections.abc import Callable
 import json
 
-from domain.tool import Tools
+from domain.core import Tools
 
 
 SYSTEM_PROMPT = (

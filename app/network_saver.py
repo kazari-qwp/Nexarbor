@@ -5,15 +5,15 @@ import json
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
-from domain.aggregation import (
+from domain.core import (
     Aggregation, AverageAggregation, MaxAggregation, MinAggregation, SumAggregation,
 )
-from domain.data_node import DataNode
-from domain.link import Link, Multiplier
-from domain.markdownNode import MarkdownNode
-from domain.network import Network
-from domain.node import Node
-from domain.node_info import NodeInfo
+from domain.core import DataNode
+from domain.core import Link, Multiplier
+from domain.core import MarkdownNode
+from domain.core import Network
+from domain.core import Node
+from domain.core import NodeInfo
 
 
 class NetworkSaver:

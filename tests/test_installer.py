@@ -2,9 +2,9 @@
 
 import unittest
 
-from domain.installer import DependencyError, Installer
-from domain.module import Module, Modules
-from domain.tool import CallableTool, Tools
+from domain.core import DependencyError, Installer
+from domain.core import Module, Modules
+from domain.core import CallableTool, Tools
 
 
 def tool(name, *modules):

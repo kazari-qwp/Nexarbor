@@ -8,16 +8,16 @@ import json
 from pathlib import Path
 
 from app.agent_loop import MinimalAgentLoop
-from app.deepseek_chat import DeepSeekChat
-from domain.access import access
-from domain.agent_module import AgentModule
-from domain.link import Link
-from domain.markdownNode import MarkdownNode
-from domain.module import Module
-from domain.network import Network
-from domain.node_info import NodeInfo
-from domain.tool import CallableTool
-from domain.tool_discovery_module import ToolDiscoveryModule
+from adapt.models.deepseek import DeepSeekChat
+from domain.core import access
+from modules.agent import AgentModule
+from domain.core import Link
+from domain.core import MarkdownNode
+from domain.core import Module
+from domain.core import Network
+from domain.core import NodeInfo
+from domain.core import CallableTool
+from modules.tool_discovery import ToolDiscoveryModule
 
 
 ROOT = Path(__file__).resolve().parent

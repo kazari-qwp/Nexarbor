@@ -7,7 +7,7 @@ from pathlib import Path
 from threading import Event, RLock
 from typing import Any
 
-from domain.network import Network
+from domain.core import Network
 from .network_saver import NetworkSaver
 
 

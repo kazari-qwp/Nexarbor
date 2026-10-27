@@ -3,16 +3,16 @@
 import asyncio
 import unittest
 
-from domain.access import access
-from domain.aggregation import (
+from domain.core import access
+from domain.core import (
     Aggregation, AverageAggregation, MaxAggregation, MinAggregation, SumAggregation,
 )
-from domain.link import DEFAULT_CHANNEL, Link, Multiplier
-from domain.module import Module
-from domain.network import Network
-from domain.node import Node
-from domain.node_info import NodeInfo
-from domain.tool import CallableTool
+from domain.core import DEFAULT_CHANNEL, Link, Multiplier
+from domain.core import Module
+from domain.core import Network
+from domain.core import Node
+from domain.core import NodeInfo
+from domain.core import CallableTool
 
 
 def node(node_id, aggregation=None):

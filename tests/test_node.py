@@ -2,11 +2,11 @@
 
 import unittest
 
-from domain.installer import DependencyError
-from domain.module import Module
-from domain.node import Node
-from domain.node_info import NodeInfo
-from domain.tool import CallableTool
+from domain.core import DependencyError
+from domain.core import Module
+from domain.core import Node
+from domain.core import NodeInfo
+from domain.core import CallableTool
 
 
 class NodeTests(unittest.TestCase):

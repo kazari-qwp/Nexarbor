@@ -16,12 +16,12 @@ import json
 from pathlib import Path
 
 from app.network_saver import NetworkSaver
-from domain.access import access
-from domain.link import Link
-from domain.markdownNode import MarkdownNode
-from domain.module import Module
-from domain.network import Network
-from domain.node_info import NodeInfo
+from domain.core import access
+from domain.core import Link
+from domain.core import MarkdownNode
+from domain.core import Module
+from domain.core import Network
+from domain.core import NodeInfo
 
 
 DIRECTORY = Path(__file__).resolve().parent / 'demo_data' / 'markdown_access'

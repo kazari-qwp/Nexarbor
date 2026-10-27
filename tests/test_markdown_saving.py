@@ -7,11 +7,11 @@ from unittest.mock import patch
 import unittest
 
 from app.network_saver import NetworkSaver
-from domain.link import Link
-from domain.markdownNode import MarkdownNode
-from domain.network import Network
-from domain.node import Node
-from domain.node_info import NodeInfo
+from domain.core import Link
+from domain.core import MarkdownNode
+from domain.core import Network
+from domain.core import Node
+from domain.core import NodeInfo
 
 
 class MarkdownSavingTests(unittest.TestCase):

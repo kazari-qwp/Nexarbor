@@ -4,9 +4,9 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable
 from functools import partial
 
-from .access import access
-from .module import Module
-from .tool import CallableTool, Tools
+from domain.core import access
+from domain.core import Module
+from domain.core import CallableTool, Tools
 
 
 class MemoryStrategy(ABC):

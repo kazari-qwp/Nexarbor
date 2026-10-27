@@ -2,13 +2,13 @@
 
 from collections.abc import Callable
 
-from .access import access
-from .markdownNode import MarkdownNode
+from domain.core import access
+from domain.core import MarkdownNode
 from .memory_strategy import EmptyMemoryStrategy, MarkdownMemoryStrategy
-from .module import Module
-from .node import Node
-from .tool import Tools
-from .tool_discovery_module import ToolDiscoveryModule
+from domain.core import Module
+from domain.core import Node
+from domain.core import Tools
+from .tool_discovery import ToolDiscoveryModule
 
 
 class AgentModule(Module):

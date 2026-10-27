@@ -6,13 +6,13 @@ from tempfile import TemporaryDirectory
 from threading import Event, Thread
 import unittest
 
-from domain.aggregation import AverageAggregation, MaxAggregation, MinAggregation, SumAggregation
+from domain.core import AverageAggregation, MaxAggregation, MinAggregation, SumAggregation
 from app.network_runner import NetworkRunner
 from app.network_saver import NetworkSaver
-from domain.link import DEFAULT_CHANNEL, Link, Multiplier
-from domain.network import Network
-from domain.node import Node
-from domain.node_info import NodeInfo
+from domain.core import DEFAULT_CHANNEL, Link, Multiplier
+from domain.core import Network
+from domain.core import Node
+from domain.core import NodeInfo
 
 
 class NetworkAppTests(unittest.TestCase):

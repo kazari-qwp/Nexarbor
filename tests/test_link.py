@@ -2,9 +2,9 @@
 
 import unittest
 
-from domain.link import DEFAULT_CHANNEL, Link, Links, Multiplier
-from domain.node import Node
-from domain.node_info import NodeInfo
+from domain.core import DEFAULT_CHANNEL, Link, Links, Multiplier
+from domain.core import Node
+from domain.core import NodeInfo
 
 
 class LinkTests(unittest.TestCase):

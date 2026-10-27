@@ -4,14 +4,14 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 
-from domain.data_node import DataNode
-from domain.link import Link
-from domain.markdown_data import MarkdownData
-from domain.markdownNode import MarkdownDataer, MarkdownNode, MarkdownSaver
-from domain.module import Module
-from domain.node import Node
-from domain.node_info import NodeInfo
-from domain.tool import CallableTool
+from domain.core import DataNode
+from domain.core import Link
+from domain.core import MarkdownData
+from domain.core import MarkdownDataer, MarkdownNode, MarkdownSaver
+from domain.core import Module
+from domain.core import Node
+from domain.core import NodeInfo
+from domain.core import CallableTool
 
 
 class DataNodeTests(unittest.TestCase):

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from .access import access
-from .module import Module
-from .node import Node
-from .tool import Tools
+from domain.core import access
+from domain.core import Module
+from domain.core import Node
+from domain.core import Tools
 
 
 class ToolDiscoveryModule(Module):

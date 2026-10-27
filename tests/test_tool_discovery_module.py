@@ -3,12 +3,12 @@
 import unittest
 from unittest.mock import patch
 
-from domain.link import Link
-from domain.network import Network
-from domain.node import Node
-from domain.node_info import NodeInfo
-from domain.tool import CallableTool, Tools
-from domain.tool_discovery_module import ToolDiscoveryModule
+from domain.core import Link
+from domain.core import Network
+from domain.core import Node
+from domain.core import NodeInfo
+from domain.core import CallableTool, Tools
+from modules.tool_discovery import ToolDiscoveryModule
 
 
 def make_network(ids):

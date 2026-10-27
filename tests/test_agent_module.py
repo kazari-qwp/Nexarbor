@@ -5,15 +5,15 @@ from tempfile import TemporaryDirectory
 from unittest.mock import patch
 import unittest
 
-from domain.agent_module import AgentModule
-from domain.data_node import DataNode
-from domain.installer import DependencyError
-from domain.markdownNode import MarkdownNode
-from domain.memory_strategy import EmptyMemoryStrategy, MarkdownMemoryStrategy
-from domain.network import Network
-from domain.node import Node
-from domain.node_info import NodeInfo
-from domain.tool import CallableTool
+from modules.agent import AgentModule
+from domain.core import DataNode
+from domain.core import DependencyError
+from domain.core import MarkdownNode
+from modules.memory_strategy import EmptyMemoryStrategy, MarkdownMemoryStrategy
+from domain.core import Network
+from domain.core import Node
+from domain.core import NodeInfo
+from domain.core import CallableTool
 
 
 class AgentModuleTests(unittest.TestCase):
@@ -137,7 +137,7 @@ class AgentModuleTests(unittest.TestCase):
                 self.assertEqual(list(agent.available_tools()[node.info.node_id]), [action])
 
     def test_agent_memory_tools_only_operate_on_the_local_node(self):
-        from domain.link import Link
+        from domain.core import Link
 
         other_path = self.directory / 'other.md'
         other_path.write_text('远端记忆', encoding='utf-8')
