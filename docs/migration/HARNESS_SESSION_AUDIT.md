@@ -36,3 +36,5 @@
 恢复资源补充：首次恢复目录缺少 DSH attachments/v1 的一个 45788 字节对象，原生执行器在请求前拒绝，API 请求 0；该失败目录原样保留。prepare.py 现在一并复制附件库，并逐文件 SHA-256 核对。重新恢复后的当前目录以本页更新路径为准。
 
 API 路由补充：恢复后 7 次请求被上游以 HTTP 422 拒绝（DeepSeek 不接受 developer 角色），无 usage、无模型工具执行。low 声明使通用 OpenAI 路由原有自动检测不再适用，现显式 supportsDeveloperRole=false，让官方适配器转换为 system。离线夹具新增角色断言，两版 SDK 再次通过。该失败尝试单独保留，不并入成功波次统计。
+
+第 17 时刻续跑已完整完成（56 请求），手动从脚本直接登记检查点与宿主自动登记的乐观锁发生并发；关闭时原协调器已发布提交 103、point 0139c32c4f7a47989fa73d0a3f745584，pending 为空。改为经 agent-checkpoint 调用现有 NativeCheckpoints.checkpoint，复用其串行及竞态处理，不另写状态机制。两版 SDK 回归通过。原目录原地从第 18 时刻续跑，驱动读取原完成 ledger 并核对 tick，不能重跑第 17。

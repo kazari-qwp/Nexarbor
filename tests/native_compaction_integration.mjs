@@ -64,6 +64,7 @@ try{
  const read=await native.request('agent-read',{...bindings.pressure,actor:'pressure'});
  assert.ok(JSON.stringify(read.messages).includes('DSH_FIXTURE_CHECKPOINT'));
  assert.ok(JSON.stringify(read.messages).length<1200000,'Derived messages use the replacement surface');
+ const point=await native.request('agent-checkpoint',{kind:'full'});assert.equal(point.kind,'full');assert.ok(point.contexts.pressure);
  const pressureSession=bindings.pressure.session_id;
  await native.close();start();
  const reopened=await native.request('agent-read',{...bindings.pressure,actor:'pressure'});

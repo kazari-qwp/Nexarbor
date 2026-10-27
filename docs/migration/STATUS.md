@@ -194,3 +194,5 @@ B009 已提出适配层原请求事件的最小方案，批准前只跳过精确
 当前续跑目录更新为 build/town-resume-000c16ss/runtime，恢复点 a61415979f7549cdbc3d5a2adbc908d7。第一次恢复因未复制一个 DSH 附件对象而在请求前停止，付费请求 0；现已补复制整个附件库并逐文件哈希核对。旧失败目录保留，不续用其中的未完成第 17 时刻。
 
 续跑当前目录更新：build/town-resume-y7_z7dk1/runtime，point=05188b9404ea4b5d813d185ff6ad9cac。前一个目录 7 次请求被 DeepSeek 以 developer 角色不支持的 422 拒绝，无 usage/无工具执行；现显式声明 API 路由不支持 developer，两版原生离线契约测试通过。仍只从原 tick16 断点继续。
+
+小镇第 17 时刻已完成，56 请求，已持久化 point 0139c32c4f7a47989fa73d0a3f745584（commit103、pending为空）。脚本额外登记与自动登记碰撞已改为复用现有 NativeCheckpoints；两版原生验证再次通过。当前续跑仍用 town-resume-y7_z7dk1/runtime，下一时刻 18，不从 16 再恢复。

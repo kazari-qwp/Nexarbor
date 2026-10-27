@@ -53,11 +53,15 @@ const evidence={mode:'town',directory,started:new Date().toISOString(),cycles:[]
 let resume=null,priorCalls=[],previousCalls=[];
 try{resume=JSON.parse(await fs.readFile(path.join(directory,'resume-source.json'),'utf8'));}catch(error){if(error.code!=='ENOENT')throw error;}
 if(resume){
- const previous=JSON.parse(await fs.readFile(path.join(resume.directory,'verification.json'),'utf8'));
- evidence.cycles=previous.cycles.filter(c=>c.cycle<=resume.completed_tick&&c.report.status==='completed');
- assert.equal(evidence.cycles.length,resume.completed_tick);evidence.days=previous.days.filter(d=>d.day*5<=resume.completed_tick);
- previousCalls=previous.api_calls;priorCalls=previousCalls.filter(c=>c.cycle<=resume.completed_tick);
- evidence.resume=resume;evidence.previous_attempt={requests:previous.requests,error:previous.error,completed_tick:resume.completed_tick,abandoned_usage:null};
+ let previous=JSON.parse(await fs.readFile(path.join(resume.directory,'verification.json'),'utf8'));
+ try{const progress=JSON.parse(await fs.readFile(path.join(directory,'verification.json'),'utf8'));if(progress.resume?.directory===resume.directory&&progress.cycles.at(-1)?.report.status==='completed')previous=progress;}catch(error){if(error.code!=='ENOENT')throw error;}
+ evidence.cycles=previous.cycles.filter(c=>c.report.status==='completed');
+ const completedTick=evidence.cycles.at(-1)?.cycle??0;assert.equal(evidence.cycles.length,completedTick);
+ evidence.days=previous.days.filter(d=>d.day*5<=completedTick);
+ previousCalls=[...(previous.prior_api_calls??[]),...previous.api_calls];priorCalls=previousCalls.filter(c=>c.cycle<=completedTick);
+ evidence.resume=resume;evidence.resume_start_tick=completedTick;
+ evidence.previous_attempt={requests:previous.requests_all_attempts??previous.requests+(previous.previous_attempt?.requests??0),error:previous.error,completed_tick:completedTick};
+ evidence.abandoned_attempts=previous.abandoned_attempts??[{directory:resume.directory,usage:previous.previous_attempt?.abandoned_usage??null}];
  evidence.prior_api_calls=priorCalls;
 }
 const save=async()=>fs.writeFile(path.join(directory,'verification.json'),JSON.stringify(evidence,null,2));
@@ -76,8 +80,8 @@ try{
  const pulse=initial.network.nodes.find(node=>node.type==='pulse');assert.ok(pulse);
  const clock=moduleState(initial,'clock.counter')[0];assert.ok(clock);const startTick=clock.module.state.tick??0;
  const actors=initial.network.nodes.filter(node=>node.type==='agent').map(node=>node.node_id);assert.equal(actors.length,7);evidence.actors=actors;evidence.initial_nodes=initial.network.nodes.length;
- assert.equal(startTick,resume?.completed_tick??0);assert.ok(startTick<ticks);
- if(resume)evidence.previous_attempt.abandoned_usage=usage(previousCalls.filter(c=>c.cycle>startTick));
+ assert.equal(startTick,evidence.resume_start_tick??0);assert.ok(startTick<ticks);
+ if(resume&&evidence.abandoned_attempts[0].usage===null)evidence.abandoned_attempts[0].usage=usage(previousCalls.filter(c=>c.cycle>startTick));
  for(let cycle=startTick+1;cycle<=ticks;cycle++){
   currentCycle=cycle;const cycleStarted=Date.now(),firstRequest=calls.length;
   console.log(JSON.stringify({stage:'cycle_start',cycle}));
@@ -88,9 +92,7 @@ try{
   await save();
   console.log(JSON.stringify({stage:'cycle_end',cycle,status:report.status,deliveries:report.reports?.[0]?.deliveries.map(d=>({node:d.node_id,status:d.status,error:d.error}))}));
   assert.equal(report.status,'completed',JSON.stringify(report));
-  const info=await bridge.call('persistence_info');
-  const contexts=await native.request('agent-context-capture',{bindings:info.bindings,requireIdle:true});
-  const point=await bridge.call('persistence_checkpoint',{contexts,bindings:info.bindings,expected_commit:info.commit_id,kind:'full'});
+  let point;for(let attempt=0;attempt<10&&!point;attempt++)point=await native.request('agent-checkpoint',{kind:'full'});assert.ok(point,'No consistent native checkpoint after completed pulse');
   evidence.cycles.at(-1).checkpoint=point.id;await save();
  }
  let state=await bridge.call('state');const finalClock=moduleState(state,'clock.counter')[0].module.state;
@@ -108,7 +110,7 @@ try{
  evidence.continued={actor,status:continued.status,session_id:continued.session_id,output:continued.output};
  for(const id of actors){const chat=await bridge.call('executor_read',{actor:id});await fs.writeFile(path.join(directory,'transcript-'+id+'.json'),JSON.stringify(chat,null,2));}
  await fs.writeFile(path.join(directory,'final-state.json'),JSON.stringify(await bridge.call('state'),null,2));
- evidence.observed_usage=usage([...priorCalls,...calls]);evidence.all_attempts_usage=usage([...previousCalls,...calls]);evidence.requests_with_usage=calls.filter(c=>c.usage).length;
+ evidence.observed_usage=usage([...priorCalls,...calls]);evidence.all_attempts_usage=usage([...priorCalls,...calls,...(evidence.abandoned_attempts??[]).map(a=>({usage:a.usage}))]);evidence.requests_with_usage=calls.filter(c=>c.usage).length;
  evidence.reopened=true;evidence.same_sessions=true;evidence.passed=true;evidence.requests=requests;evidence.requests_all_attempts=requests+(evidence.previous_attempt?.requests??0);evidence.finished=new Date().toISOString();await save();
  console.log(JSON.stringify({passed:true,directory,completed_cycles:ticks,final_tick:finalClock.tick,requests,reopened:true}));
 }catch(error){evidence.passed=false;evidence.requests=requests;evidence.error=redact(error);await save();console.error(evidence.error);process.exitCode=1;}
