@@ -11,7 +11,13 @@ TOP={'README.md','PROJECT_OVERVIEW.md','package.json','requirements-runtime.txt'
 PRIVATE={'.git','__pycache__','node_modules','native-logs','maker-logs','.venv','.venv-runtime','runs','models','desktop-profile'}
 
 def command(args,**options):subprocess.run([str(value) for value in args],cwd=options.pop('cwd',ROOT),check=True,**options)
-def copy(source,target):target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
+def filesystem_path(value):
+    path=Path(value).resolve()
+    return Path('\\\\?\\'+str(path)) if os.name=='nt' and not str(path).startswith('\\\\?\\') else path
+
+def copy(source,target):
+    source,target=filesystem_path(source),filesystem_path(target)
+    target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target)
 
 def build_python(target):
     base=Path(sys.base_prefix);home=target/'runtime/python';home.mkdir(parents=True)
@@ -36,7 +42,7 @@ def build_python(target):
             relative=Path(str(item))
             if relative.is_absolute() or '..' in relative.parts or any(part in ('tests','test','__pycache__') for part in relative.parts) or relative.suffix in ('.pyc','.pyo'):continue
             source=Path(distribution.locate_file(item))
-            if source.is_file():copy(source,home/'Lib/site-packages'/relative)
+            if filesystem_path(source).is_file():copy(source,home/'Lib/site-packages'/relative)
         for definition in distribution.requires or []:
             requirement=Requirement(definition)
             if not requirement.marker or requirement.marker.evaluate({'extra':''}):dependency(requirement.name)
@@ -44,7 +50,7 @@ def build_python(target):
         if line.strip() and not line.lstrip().startswith('#'):dependency(Requirement(line).name)
     dependency('pip')
     (home/'runtime-packages.json').write_text(json.dumps(installed,indent=2)+'\n',encoding='utf-8')
-    environment={key:value for key,value in os.environ.items() if key not in ('PYTHONHOME','PYTHONPATH')}
+    environment={key:value for key,value in os.environ.items() if key not in ('PYTHONHOME','PYTHONPATH')};system=Path(os.environ.get('SystemRoot','C:/Windows'));environment['PATH']=os.pathsep.join(map(str,[system/'System32',system,system/'System32/WindowsPowerShell/v1.0']))
     command([home/'python.exe','-B','-I','-c','import ssl,sqlite3,bz2,lzma,ctypes,jsonschema,filelock,yaml,pandas,numpy,PIL,fsspec,requests,llama_index.core,packaging; from PIL import Image; Image.new("RGB",(2,2)); print("Portable Python imports passed")'],env=environment)
     return installed
 
@@ -58,9 +64,9 @@ def allowed(name):
 def archive(target,base):
     destination=base/(target.name+'.zip');count=0
     with zipfile.ZipFile(destination,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as output:
-        for file in sorted(target.rglob('*')):
+        for file in sorted(filesystem_path(target).rglob('*')):
             if not file.is_file():continue
-            relative=file.relative_to(target)
+            relative=file.relative_to(filesystem_path(target))
             if '__pycache__' in relative.parts or file.suffix in ('.pyc','.pyo'):continue
             if any(part in ('.git','.credentials.yaml','native-logs','maker-logs') for part in relative.parts) or file.name.startswith('.env') or file.suffix=='.log':raise ValueError('Forbidden release entry: '+str(relative))
             output.write(file,Path(target.name)/relative);count+=1
@@ -86,9 +92,9 @@ def main():
         shutil.copytree(desktop,target,ignore=shutil.ignore_patterns('test','tests','user-data','*.log'))
         names=subprocess.check_output(['git','ls-files','--cached','--others','--exclude-standard','-z'],cwd=ROOT).decode('utf-8').split('\0')
         for name in names:
-            if name and allowed(name) and (ROOT/name).is_file():copy(ROOT/name,target/name)
+            if name and allowed(name) and filesystem_path(ROOT/name).is_file():copy(ROOT/name,target/name)
         shutil.copytree(ROOT/'build/network-editor',target/'build/network-editor')
-        shutil.copytree(ROOT/'node_modules/zod',target/'node_modules/zod',ignore=shutil.ignore_patterns('test','tests','*.map'))
+        shutil.copytree(filesystem_path(ROOT/'node_modules/zod'),filesystem_path(target/'node_modules/zod'),ignore=shutil.ignore_patterns('test','tests','*.map'))
         packages=build_python(target)
         commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip();dirty=subprocess.check_output(['git','diff','--name-only','HEAD'],cwd=ROOT,text=True,encoding='utf-8').splitlines()
         dirty=[name for name in dirty if allowed(name)]
