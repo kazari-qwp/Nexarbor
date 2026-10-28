@@ -33,25 +33,29 @@ def build_python(target):
     for name in ('libssl-3-x64.dll','libcrypto-3-x64.dll','sqlite3.dll','libbz2.dll','liblzma.dll','libffi-8.dll','ffi-7.dll','ffi-8.dll','ffi.dll','zlib.dll'):
         source=base/'Library/bin'/name
         if source.exists():copy(source,home/name)
-    installed={}
-    def dependency(name):
+    installed={};visited=set()
+    def dependency(name,extras=()):
         distribution=metadata.distribution(name);identity=distribution.metadata['Name'].lower().replace('_','-')
-        if identity in installed:return
+        key=(identity,tuple(sorted(extras)))
+        if key in visited:return
+        visited.add(key)
+        items=[] if identity in installed else distribution.files or []
         installed[identity]=distribution.version
-        for item in distribution.files or []:
+        for item in items:
             relative=Path(str(item))
             if relative.is_absolute() or '..' in relative.parts or any(part in ('tests','test','__pycache__') for part in relative.parts) or relative.suffix in ('.pyc','.pyo'):continue
             source=Path(distribution.locate_file(item))
             if filesystem_path(source).is_file():copy(source,home/'Lib/site-packages'/relative)
         for definition in distribution.requires or []:
             requirement=Requirement(definition)
-            if not requirement.marker or requirement.marker.evaluate({'extra':''}):dependency(requirement.name)
+            if not requirement.marker or any(requirement.marker.evaluate({'extra':extra}) for extra in ('',*extras)):dependency(requirement.name,requirement.extras)
     for line in (ROOT/'requirements-runtime.txt').read_text(encoding='utf-8').splitlines():
-        if line.strip() and not line.lstrip().startswith('#'):dependency(Requirement(line).name)
+        if line.strip() and not line.lstrip().startswith('#'):
+            requirement=Requirement(line);dependency(requirement.name,requirement.extras)
     dependency('pip')
     (home/'runtime-packages.json').write_text(json.dumps(installed,indent=2)+'\n',encoding='utf-8')
     environment={key:value for key,value in os.environ.items() if key not in ('PYTHONHOME','PYTHONPATH')};system=Path(os.environ.get('SystemRoot','C:/Windows'));environment['PATH']=os.pathsep.join(map(str,[system/'System32',system,system/'System32/WindowsPowerShell/v1.0']))
-    command([home/'python.exe','-B','-I','-c','import ssl,sqlite3,bz2,lzma,ctypes,jsonschema,filelock,yaml,pandas,numpy,PIL,fsspec,requests,llama_index.core,packaging; from PIL import Image; Image.new("RGB",(2,2)); print("Portable Python imports passed")'],env=environment)
+    command([home/'python.exe','-B','-I','-X','utf8','-c','import ssl,sqlite3,bz2,lzma,ctypes,jsonschema,filelock,yaml,pandas,numpy,PIL,fsspec,requests,llama_index.core,packaging; from PIL import Image; Image.new("RGB",(2,2)); print("Portable Python imports passed")'],env=environment)
     return installed
 
 def allowed(name):
