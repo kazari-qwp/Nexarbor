@@ -1,8 +1,9 @@
 """Check checksum/CRC, extract long paths and verify the isolated bundled Python."""
 from pathlib import Path
-import hashlib,json,os,shutil,subprocess,tempfile,zipfile
+import argparse,hashlib,json,os,shutil,subprocess,tempfile,zipfile
 from package_release import ROOT,filesystem_path
-base=ROOT/'build/release';archive=base/'Nexarbor-0.9.2-win-x64.zip'
+parser=argparse.ArgumentParser();parser.add_argument('--release-dir',type=Path,default=ROOT/'build/release');args=parser.parse_args()
+base=args.release_dir.resolve();archive=base/'Nexarbor-0.9.2-win-x64.zip'
 expected=(base/'SHA256SUMS.txt').read_text(encoding='utf-8').split()[0]
 with archive.open('rb') as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()
 assert actual==expected
