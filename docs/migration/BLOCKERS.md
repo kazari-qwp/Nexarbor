@@ -110,3 +110,10 @@
 ## B012：旧普通文本工具写入的 .bak 语义
 
 状态：按最新“问题先跳过”暂不接入该写入分支，继续结构化数据和其他前端工作。原 TextFileNode 的 data.local.write 会原子写入并保留 .bak，冻结 MarkdownDataer 为直接修改真实文件；不能默默改变旧写入语义或在核心增加备份协议。现有 MarkdownNode 自有修改/追加仍沿已确认核心设计；操作员预览支持读取/清空，data.local 的当前适用类型仅为 value/csv/sqlite/knowledge_collection。Markdown旧写入预览明确返回未迁移错误，不伪称成功。完整模块写入和失败回滚所有权需在原资源快照边界审计后处理；此项不阻塞4个结构化数据模板。
+
+
+## B013：缺失或损坏模块时保留可读网络的恢复分支
+
+状态：尚未迁移，按用户指示先跳过该分支及依赖验收，继续独立工作；此项尚未提出新核心接口要求。
+
+原 NodeModules.allow_missing 保留配置/状态并隔离不可用模块及其依赖，健康节点继续运行。当前 Project 在构建服务前读取所有 module.json；丢失/损坏源码会阻断启动，Studio.state 的 moduleProblems 尚为空。原 local-resources、missing-modules 和 project-fallback 的对应断言未通过，不能当成仅旧夹具问题，也不能用替身成功结果或改core绕开。正常由客户端删除模块的清单引用现已在原删除回滚边界同步清理，真实冷重开通过；这不等于外部移走源码后的容错恢复已完成。

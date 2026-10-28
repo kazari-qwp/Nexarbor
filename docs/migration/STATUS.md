@@ -332,3 +332,19 @@ Project加载未应用草稿保存的项目时，缺少完整工具表的显式�
 隔离项目实际汇合方式验收 build/aggregation-e2e-1793148278898 通过：sum/max/min/average各自应用到后端，Commit后冷重开恢复max，未接触用户既有项目。该场景10条view HTTP400原样记入证据，属于B011，不能称全客户端无API错误。四场景付费0；资源/依赖截图已目视核对。
 
 原场景图工具真实原生图片夹具已通过 build/frontend-scene-current.log：Python场所/地图工具→原生模型收到图片→Commit→Git克隆→上下文导入→消息图片预览恢复，模型为本地替身，付费0。以上五项证据合并 evidence/2026-10-28-resource-navigation-client.json。最近完整Python仍490项238.851秒、完整前端仍110项93通过17失败，后续专项不混算。
+
+
+## 2026-10-28 归档、Skill与项目入口
+
+原真实客户端完整归档场景通过 build/resource-archive-e2e-1793149008781：当前目录Ctrl+A、Ctrl多选/批量拖放单步撤销、剪切粘贴/递归归并、非空目录拒删、原生设置菜单、归档恢复、官方工具/运行节点引用保护、实际删除独立项目模块、工作副本/共享源码/不可变发布缓存保留及冷重开。截图已目视核对。实际修复归档页与撤销历史的旧modules/skills/offered_tools引用；正常删除时在同一回滚边界移除项目清单资源引用，避免已删除模块导致冷启动失败。原发布删除专项2项2.543秒通过，新增清单写入后重载失败的回滚断言。
+
+Skill真实桌面导入/说明读取/依赖装配/去重/书签和历史筛选/依赖导航/移除后保留依赖通过 build/skills-ui-zV9hZY。通用表单数组添加/排序/删除、SVG图标及点击尺寸通过 build/schema-actions-1793149021087。原测试使用的signal_channels现在由原ChannelList专用编辑，改以实际clock.counter.labels验证通用数组，不改产品Schema。项目首页新建/取消/打开中文目录、Git初始化、制作菜单与客户端设置通过 build/project-start-1793149108144；原测试的旧制作设置栏在原当前客户端也已不存在，按实际对话/模型页签核对。所有本轮专项付费0；证据evidence/2026-10-28-archive-skills-client.json。
+
+外部移走/损坏模块后的可读恢复未实现，单列B013继续跳过，不以正常删除通过冒称该分支通过。
+
+
+本轮归档修改后的单次完整Python490项249.390秒通过（build/archive-module-full-regression.log）。单次完整编辑器本地110项96通过14失败、39.177秒（build/frontend-after-archive-full.log），桌面入口5项0.160秒全部通过（build/desktop-after-archive-full.log）。完整保留失败分支，不将客户端专项合并成全量。
+
+保存并发真实客户端通过 build/workspace-save-races-1793149114450：延迟真实Commit/更新请求，响应期间继续编辑仍保留，下一次更新可应用。已并入evidence/2026-10-28-archive-skills-client.json。
+
+真实旧客户端已只读启动并核对画布、书签/历史、属性、设置和归档：build/original-client-reference-1793149333729，3张实际截图，pageerror/API错误为空，付费0；所有运行资料在新项目build，旧项目代码/静态资源未修改。原概览已目视核对；旧默认节点强度、亚节点入口及局部视角对应B011，不声称已经还原。对照记录evidence/2026-10-28-original-client-reference.json。

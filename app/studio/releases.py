@@ -1,4 +1,5 @@
 """原发布库的修改副本与受控删除，路径只来自宿主登记。"""
+import json
 from pathlib import Path
 import shutil
 from uuid import uuid4
@@ -53,14 +54,22 @@ def delete(studio,p):
         info=delete_info(studio,p)
         if not info['canDelete']:raise ValueError(info['reason'])
         target=Path(info['path']);root=target.parent;temporary=(root/('.deleting-'+uuid4().hex)).resolve()
+        manifest_file=studio.project_directory/'nexarbor.json' if studio.library[name].get('origin')=='project' else None
+        manifest_before=manifest_file.read_text(encoding='utf-8') if manifest_file is not None else None
+        manifest=json.loads(manifest_before) if manifest_before is not None else None
+        if manifest is not None:
+            manifest['resources']['modules'].pop(name,None)
+            manifest['resources']['tools']={ref:entry for ref,entry in manifest['resources'].get('tools',{}).items() if entry.get('module')!=name}
         if not target.is_relative_to(root) or not temporary.is_relative_to(root):raise ValueError('删除目标越出工作区')
         target.rename(temporary);old=studio.library.copy();removed=studio.removed.copy()
         try:
             studio.library.pop(name);studio.removed.add(name)
             write_json(studio.root/'removed-modules.json',sorted(studio.removed));write_json(studio.root/'library.json',studio.library)
+            if manifest is not None:write_json(manifest_file,manifest)
             studio._load_releases()
         except BaseException:
             studio.library=old;studio.removed=removed
+            if manifest_file is not None:manifest_file.write_text(manifest_before,encoding='utf-8')
             write_json(studio.root/'removed-modules.json',sorted(removed));write_json(studio.root/'library.json',old);temporary.rename(target);studio._load_releases();raise
         studio.backend.saver.tables.module_types.pop(name,None)
         # 两个绝对路径已核实位于当前项目模块或工作区发布目录中。

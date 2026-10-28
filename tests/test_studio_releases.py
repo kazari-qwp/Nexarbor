@@ -29,16 +29,26 @@ class StudioReleases(unittest.IsolatedAsyncioTestCase):
                 write_json(studio.root/'draft.json',dict(applied=False,document=document))
                 self.assertIn('待应用草稿',studio.release_delete_info({'module':'example.counter'})['reason'])
                 write_json(studio.root/'draft.json',dict(applied=True))
-                failed=False
+                manifest_before=(root/'nexarbor.json').read_text(encoding='utf-8');failed=False
                 def fail_once(path,value):
                     nonlocal failed
                     if path.name=='library.json' and not failed:failed=True;raise OSError('injected metadata failure')
                     return write_json(path,value)
                 with patch('app.studio.service.write_json',side_effect=fail_once):
                     with self.assertRaisesRegex(OSError,'injected'):studio.delete_release({'module':'example.counter','confirm':'example.counter'})
-                self.assertEqual((folder/'module.py').read_text(encoding='utf-8'),files['module.py']);self.assertIn('example.counter',studio.library)
+                self.assertEqual((folder/'module.py').read_text(encoding='utf-8'),files['module.py']);self.assertIn('example.counter',studio.library);self.assertEqual((root/'nexarbor.json').read_text(encoding='utf-8'),manifest_before)
+                original_load=studio._load_releases;load_count=0
+                def fail_reload_once():
+                    nonlocal load_count
+                    load_count+=1
+                    if load_count==1:raise RuntimeError('injected reload failure after manifest write')
+                    return original_load()
+                with patch.object(studio,'_load_releases',side_effect=fail_reload_once):
+                    with self.assertRaisesRegex(RuntimeError,'injected reload'):studio.delete_release({'module':'example.counter','confirm':'example.counter'})
+                self.assertTrue(folder.exists());self.assertEqual((root/'nexarbor.json').read_text(encoding='utf-8'),manifest_before)
                 result=studio.delete_release({'module':'example.counter','confirm':'example.counter'})
                 self.assertGreater(result['filesDeleted'],0);self.assertFalse(folder.exists());self.assertNotIn('example.counter',studio.library)
+                self.assertNotIn('example.counter',json.loads((root/'nexarbor.json').read_text(encoding='utf-8'))['resources']['modules'])
                 self.assertTrue(studio.folder(fork['id']).is_dir(),'independent work copy must remain')
                 studio.project_modules({});self.assertNotIn('example.counter',studio.library)
             finally:studio.close();backend.close()
