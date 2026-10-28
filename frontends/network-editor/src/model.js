@@ -1,6 +1,7 @@
+import {copyJson} from '../../shared/json-copy.js';
 import {edgeMetadata} from '../../shared/graph/links.js';
 import {nodeDimensions} from './graph-appearance.js';
-export const clone=value=>structuredClone(value);
+export const clone=value=>copyJson(value);
 export function edgesOf(document){
  return document.network.nodes.flatMap(node=>(node.links??[]).map((link,index)=>({id:`${node.node_id}|${index}`,source:node.node_id,target:link.target_id,index,metadata:edgeMetadata(link)})));
 }
@@ -56,7 +57,7 @@ export function filterGraph(nodes,edges,{query='',kinds=null,channels=null,local
   const restrictedChannels=channels!==null&&(!channels.length||!connectionChannels(edges).every(c=>channels.includes(c)));
   const channelNodes=restrictedChannels?new Set(selectedEdges.filter(e=>!e.ownership).flatMap(e=>[e.source,e.target])):null;
   if(channelNodes)for(const node of nodes)if(node.data.host&&channelNodes.has(node.id))channelNodes.add(node.data.host.node_id);
-  const visible=nodes.filter(n=>(kinds===null||kinds.includes(n.data.kind))&&(!query||`${n.id} ${n.data.node.name}`.toLowerCase().includes(query.toLowerCase()))&&(!reached||reached.has(n.data.host?.node_id??n.id))&&(!channelNodes||channelNodes.has(n.id)));
+  const visible=nodes.filter(n=>(kinds===null||kinds.includes(n.data.kind))&&(!query||`${n.id} ${n.data.node.name} ${n.data.host?.node_id??''} ${n.data.host?.name??''}`.toLowerCase().includes(query.toLowerCase()))&&(!reached||reached.has(n.data.host?.node_id??n.id))&&(!channelNodes||channelNodes.has(n.id)));
   const ids=new Set(visible.map(n=>n.id));return {nodes:visible,edges:selectedEdges.filter(e=>ids.has(e.source)&&ids.has(e.target))};
 }
 

@@ -106,6 +106,8 @@ try{
   if(!completed.has(6))await phase(6,{readonly:true});
   if(!completed.has(7))await phase(7);
   if(!completed.has(8))await phase(8);
+  if(process.argv.includes('--repair-closeout')&&!completed.has(9))await phase(9);
+  if(process.argv.includes('--finalize-sources')&&!completed.has(10))await phase(10);
   await host.request('workspace.commit',{message:'保存资料库原六阶段和两次收尾实测成果'});report.status='awaiting-independent-acceptance';
  }
 }catch(error){if(!stopReason)report.status='failed';report.errors.push(error.stack);process.exitCode=1;}

@@ -1,0 +1,890 @@
+{
+  "type": "agent",
+  "node_id": "root",
+  "name": "资料管理员",
+  "description": "可手动对话的资料管理员，负责归档、检索、更新与版本恢复。",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "knowledge.tools",
+        "description": "",
+        "channels": [
+          "knowledge",
+          "self"
+        ],
+        "strength": 6,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {},
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": [
+            {
+              "tool": "mod_8244dcb3c5386217dc605537",
+              "description": "root · kb_catalog · 查找知识集合及其用途、字段和存储类型。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_catalog"
+            },
+            {
+              "tool": "mod_e14d9ee548bb99df768fd6bc",
+              "description": "root · kb_create_node · 创建知识数据集合，自动配置存储和连接。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "storage": {
+                    "type": "string",
+                    "enum": [
+                      "csv",
+                      "sqlite",
+                      "wiki"
+                    ]
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "schema": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string",
+                      "enum": [
+                        "string",
+                        "integer",
+                        "number",
+                        "boolean",
+                        "object",
+                        "array"
+                      ]
+                    }
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "name",
+                  "storage"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_create_node"
+            },
+            {
+              "tool": "mod_862ba45a5106b566b1e4c11e",
+              "description": "root · kb_store · 向指定集合保存资料，或提交已读取的待归档资料。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "collection": {
+                    "type": "string"
+                  },
+                  "content": {},
+                  "key": {
+                    "type": "string"
+                  },
+                  "metadata": {
+                    "type": "object"
+                  },
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "intake_id": {
+                    "type": "string"
+                  },
+                  "indices": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  }
+                },
+                "required": [
+                  "collection"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_store"
+            },
+            {
+              "tool": "mod_4f980a8bdf47332419a7e893",
+              "description": "root · kb_fetch · 读取知识页或原文，按需展开章节与关联链接。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "version": {
+                    "type": "integer"
+                  },
+                  "view": {
+                    "enum": [
+                      "full",
+                      "outline",
+                      "section",
+                      "window",
+                      "links"
+                    ]
+                  },
+                  "section_id": {
+                    "type": "string"
+                  },
+                  "start_line": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "end_line": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "max_chars": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 32000
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_fetch"
+            },
+            {
+              "tool": "mod_7c23f6ba66146a67a405366f",
+              "description": "root · kb_search · 检索知识入口，返回片段、来源和按需展开的读取参数。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  },
+                  "collection": {
+                    "type": "string"
+                  },
+                  "filters": {
+                    "type": "object"
+                  },
+                  "semantic": {
+                    "type": "boolean"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_search"
+            },
+            {
+              "tool": "mod_f5137c49fe84e2fb74357af7",
+              "description": "root · kb_update · 更新一条知识记录，保留历史版本。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "content": {},
+                  "expected_version": {
+                    "type": "integer"
+                  },
+                  "metadata": {
+                    "type": "object"
+                  },
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "id",
+                  "content",
+                  "expected_version"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_update"
+            },
+            {
+              "tool": "mod_4cbc4ae2ad8f723760d31fda",
+              "description": "root · kb_delete · 删除当前知识记录，保留历史以便追溯。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "expected_version": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "id",
+                  "expected_version"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_delete"
+            },
+            {
+              "tool": "mod_ef29d6a45f87f13f8eb8fd35",
+              "description": "root · kb_export · 导出集合记录，或生成可浏览的Wiki站点。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "collection": {
+                    "type": "string"
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "json",
+                      "csv",
+                      "wiki"
+                    ]
+                  }
+                },
+                "required": [
+                  "collection"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_export"
+            },
+            {
+              "tool": "mod_c030a59485ab0e5c84d40355",
+              "description": "root · kb_intake · 查看入库资料；省略id列出待办。已存原件可associate关联记录；非资料可dismiss说明原因。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10000
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "read",
+                      "associate",
+                      "dismiss"
+                    ],
+                    "description": "默认read；已保存的同一原件可associate关联record_id，非资料的任务指令可dismiss并填写reason。"
+                  },
+                  "record_id": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_intake"
+            },
+            {
+              "tool": "mod_2e9687285f41a0552a91c1c0",
+              "description": "root · kb_index · 更新 Wiki 或文档集合的语义索引。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "collection": {
+                    "type": "string"
+                  },
+                  "rebuild": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "collection"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_index"
+            },
+            {
+              "tool": "mod_b581b0eeee976ee398385231",
+              "description": "root · kb_query · 查询数据库集合，支持筛选、排序和分组统计。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "collection": {
+                    "type": "string"
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "filters": {
+                    "type": "object"
+                  },
+                  "group_by": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "aggregate": {
+                    "type": "object",
+                    "properties": {
+                      "function": {
+                        "type": "string",
+                        "enum": [
+                          "count",
+                          "sum",
+                          "avg",
+                          "min",
+                          "max"
+                        ]
+                      },
+                      "field": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "function"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "order_by": {
+                    "type": "string"
+                  },
+                  "descending": {
+                    "type": "boolean"
+                  },
+                  "limit": {
+                    "type": "integer"
+                  },
+                  "offset": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "collection"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_query"
+            },
+            {
+              "tool": "mod_1d73fcc536ef62eddec12570",
+              "description": "root · kb_wiki · 维护 Wiki 时读取操作指南、检索页面或检查链接与过期来源。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "guide",
+                      "search",
+                      "lint"
+                    ],
+                    "default": "guide"
+                  },
+                  "workflow": {
+                    "type": "string",
+                    "enum": [
+                      "ingest",
+                      "query",
+                      "lint"
+                    ]
+                  },
+                  "collection": {
+                    "type": "string"
+                  },
+                  "query": {
+                    "type": "string"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_wiki"
+            },
+            {
+              "tool": "mod_ac1502209a6b1061d46dfcfd",
+              "description": "root · kb_ingest · 接收资料或文件，优先复用已有归档位置。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "content": {},
+                  "file_path": {
+                    "type": "string"
+                  },
+                  "purpose": {
+                    "type": "string"
+                  },
+                  "collection": {
+                    "type": "string"
+                  },
+                  "intake_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_ingest"
+            },
+            {
+              "tool": "mod_9d3189c7c764d3ef29b50672",
+              "description": "root · kb_task · 建立知识库任务；可选择自动、只读或归档模式。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "content": {},
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "agent",
+                      "read",
+                      "write"
+                    ],
+                    "default": "agent"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "knowledge.tools",
+              "factory_key": "kb_task"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "documents.tasks",
+        "description": "",
+        "channels": [
+          "self",
+          "documents",
+          "knowledge"
+        ],
+        "strength": 6,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "input": "task/input",
+          "output": "task/output"
+        },
+        "state": {},
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "tool": "mod_f5978cdca9b353d114dfd3eb",
+              "description": "root · task_document_read · 读取原始任务或交付文档。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "task_id": {
+                    "type": "string"
+                  },
+                  "node_id": {
+                    "type": "string"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "documents.tasks",
+              "factory_key": "task_document_read"
+            },
+            {
+              "tool": "mod_a26372571d3c90305c9a77ea",
+              "description": "root · task_document_write · 更新自己的交付文档，记录结果与依据。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "task_id": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  },
+                  "sources": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "node_id": {
+                          "type": "string"
+                        },
+                        "version": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "locator": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "node_id"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "receipts": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "expected_revision": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "documents.tasks",
+              "factory_key": "task_document_write"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "context.assembler",
+        "description": "上下文组装器",
+        "channels": [
+          "context.assembler"
+        ],
+        "strength": 6,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "sources": [
+            {
+              "id": "knowledge-entry",
+              "kind": "system_prompt",
+              "type": "text",
+              "text": "你是知识库主 Agent，负责理解任务、检索资料、选择存储方式和维护知识。简单任务直接完成，完成后检查真实交付与引用。\n\n先保存原始任务；使用原文与读取引用，不反复转述资料。自己完成的任务也写入交付文档，附来源记录 ID、版本和位置；归档附实际存储回执。结论交给用户，详细依据保留在文档中。\n\n# 使用知识库\n\n收到任务后，用 kb_task 保存原始需求：mode=agent 自行判断，read 仅检索，write 归档。保存资料也可直接用 kb_ingest，支持内容或工作区内的 CSV、JSON、TXT、Markdown 文件；file_path 的相对路径以应用工作区为起点。已知集合时指定 collection，已有路由会直接复用；否则返回 intake_id，由你选择集合并提交。\n\n简单查询使用 kb_catalog、kb_search、kb_query、kb_fetch。导出记录使用 kb_export；Wiki 集合可选 format=wiki 生成可浏览的站点。\n\n原始任务和交付使用 task_document_read / task_document_write。sources 沿用 kb_fetch 的 evidence；receipts 只填写当前任务实际写入的回执。集合 ID 和记录 ID 是数据键，node_id 是该集合真实的数据节点；每个集合的节点独立连接到资料管理员。\n"
+            }
+          ]
+        },
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 3,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 4,
+          "members": [
+            {
+              "tool": "memory_query",
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_modify",
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "old_text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "new_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_append",
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            }
+          ]
+        },
+        {
+          "tool": "ext_80fbaa3457b102cb34ec5440",
+          "description": "root · Read a UTF-8 text file and return line-numbered content.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string",
+                "description": "Path to read, resolved by the filesystem backend."
+              },
+              "offset": {
+                "type": "number",
+                "description": "1-based first line to return. Defaults to 1."
+              },
+              "limit": {
+                "type": "number",
+                "description": "Maximum number of lines to return. Defaults to 2000."
+              }
+            },
+            "required": [
+              "file_path"
+            ]
+          },
+          "modules": [],
+          "host_ref": "harness:read"
+        },
+        {
+          "tool": "ext_94b7663dbf7296932a911462",
+          "description": "root · Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Glob pattern to match file paths against (e.g. \"**/*.ts\", \"src/**/*.test.js\"). A pattern with no \"/\" matches the basename at any depth, so \"*\" and \"*.ts\" both search the whole tree; include a separator to anchor the depth."
+              },
+              "path": {
+                "type": "string",
+                "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          },
+          "modules": [],
+          "host_ref": "harness:glob"
+        },
+        {
+          "tool": "ext_94673dbbc3228c9133e0699a",
+          "description": "root · Search file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Regular expression to search for (ripgrep syntax)."
+              },
+              "path": {
+                "type": "string",
+                "description": "File or directory to search. Defaults to the session workspace; a relative path resolves against it."
+              },
+              "include": {
+                "type": "string",
+                "description": "One glob filter for which files to search (e.g. \"*.ts\", \"*.{js,jsx}\"). Not a list; negation is not supported."
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          },
+          "modules": [],
+          "host_ref": "harness:grep"
+        }
+      ]
+    }
+  },
+  "bias": 0,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "knowledge",
+      "channels": [
+        "knowledge"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "task/input",
+      "channels": [
+        "documents"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "task/output",
+      "channels": [
+        "documents"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "agent": {
+    "inputs": {}
+  },
+  "data": {
+    "type": "markdown",
+    "path": "data/root.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": {
+    "executor": "harness",
+    "strength": 6,
+    "channels": [
+      "self",
+      "knowledge",
+      "documents",
+      "workspace",
+      "context.assembler"
+    ],
+    "prepare": [
+      {
+        "module": "context.assembler",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      },
+      {
+        "module": "knowledge.tools",
+        "operation": "prepare",
+        "arguments": {},
+        "channels": [
+          "self"
+        ]
+      }
+    ],
+    "max_steps": 10000,
+    "timeout_seconds": 86400
+  }
+}

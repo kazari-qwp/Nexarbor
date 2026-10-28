@@ -1,0 +1,3 @@
+// Reuse a delivered project's real component library in an otherwise empty UI fixture.
+import fs from 'node:fs/promises';import path from 'node:path';
+export async function copyProjectLibrary(source,directory){const manifest=JSON.parse(await fs.readFile(path.join(source,'nexarbor.json'),'utf8'));await fs.mkdir(directory,{recursive:true});for(const name of ['modules','tools','network_presets','node_presets','skills','host_tools.json']){try{await fs.cp(path.join(source,name),path.join(directory,name),{recursive:true});}catch(e){if(e.code!=='ENOENT')throw e;}}await fs.writeFile(path.join(directory,'nexarbor.json'),JSON.stringify({format:'nexarbor-project/v2',resources:manifest.resources,networks:{}}));}

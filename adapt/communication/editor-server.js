@@ -1,3 +1,4 @@
+import {packStateResources} from '../../frontends/shared/state-resources.js';
 // Optional loopback host for the separately built network editor.
 import http from 'node:http';
 import path from 'node:path';
@@ -47,7 +48,7 @@ export async function startEditorServer({web,directory,request,port=0}) {
         for await(const chunk of req){bytes+=chunk.length;if(bytes>256_000_000)return send(res,413,{error:'网络文件超过256MB'});chunks.push(chunk);}
         const {operation,params={}}=JSON.parse(Buffer.concat(chunks).toString('utf8'));
         const value=await request(operation,params);
-        return send(res,200,{value:operation==='module.frontend'?frontend(value):value});
+        return send(res,200,operation==='state'&&req.headers['x-nexarbor-resources']==='shared-v1'?packStateResources(value):{value:operation==='module.frontend'?frontend(value):value});
       }
       if(req.method!=='GET')return send(res,405,{error:'GET required'});
       const relative=decodeURIComponent(url.pathname==='/'?'index.html':url.pathname.slice(1));

@@ -27,7 +27,7 @@ class ModuleTables:
                 raise ValueError("尚未登记的模块：" + module.module_id)
             references[module.tools] = {"module": module.module_id}
             for tool in module.tools:
-                references[tool] = {"factory_module": module.module_id}
+                references[tool] = {"factory_module": module.module_id, "factory_key": getattr(tool,"_module_tool_id",tool.name)}
             records.append(dict(module_id=module.module_id, description=module.description,
                                 channels=list(module.channels), strength=module.strength, channel_mode=module.channel_mode,
                                 modules=getattr(module,"saved_dependencies",[dependency.module_id for dependency in module.modules]),
@@ -77,7 +77,7 @@ class ModuleTables:
                 from app.projects.module_tools import bind_tools
                 bind_tools(module,node,module._tool_specs)
             node.modules._add(module)
-        factory_tools = {key: {tool.name: tool for tool in module.tools} for key, module in modules.items()}
+        factory_tools = {key: {name: tool for tool in module.tools for name in (tool.name,getattr(tool,"_module_tool_id",tool.name))} for key, module in modules.items()}
         tools = {(None, name): tool for name, tool in initial_tools.items()}
         groups = {}
 
@@ -96,7 +96,7 @@ class ModuleTables:
             owner = item.get("factory_module")
             key = (owner, name)
             if key not in tools:
-                tools[key] = factory_tools[owner][name] if owner is not None else self.tool_types[name](node, item)
+                tools[key] = factory_tools[owner][item.get("factory_key",name)] if owner is not None else self.tool_types[name](node, item)
             tool = tools[key]
             tool.description, tool.parameters = item["description"], deepcopy(item["parameters"])
             tool.modules = tuple(modules[key] for key in item["modules"])

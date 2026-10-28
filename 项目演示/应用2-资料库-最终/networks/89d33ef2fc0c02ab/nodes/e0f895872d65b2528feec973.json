@@ -1,0 +1,127 @@
+{
+  "type": "knowledge_catalog",
+  "node_id": "knowledge",
+  "name": "入库与来源目录",
+  "description": "历史目录与版本索引；每个资料集合有自己的数据节点。",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "knowledge.catalog",
+        "description": "",
+        "channels": [
+          "knowledge",
+          "runtime.template"
+        ],
+        "strength": 6,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "directory": "workspace/knowledge",
+          "embedding": {
+            "batch_size": 32,
+            "device": "cpu",
+            "max_length": 512,
+            "model_path": "E:\\项目_手动重构\\build\\models\\bge-small-zh-v1.5"
+          }
+        },
+        "state": {
+          "owners": {
+            "89e07bd7029a4c6ea38d6d72499fece8": "instance-7dd2c7d3dfa2865a11fa-0",
+            "9504a4c109bc42b3b1d86ba4de6a0df3": "instance-2dbd3adbe8599b077019-0",
+            "f8a0b5474db14939b6746d1456c58273": "instance-f9677d7edffba63c8b4d-0"
+          }
+        },
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 1,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "tool": "ext_ac585b4942b1e5a68b081abf",
+          "description": "knowledge · 实例化宿主预登记的固定节点模板；参数不会授予其他网络权限。",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "arguments": {
+                "type": "object"
+              },
+              "key": {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              "template": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "template",
+              "key",
+              "arguments"
+            ],
+            "type": "object"
+          },
+          "modules": [],
+          "host_ref": "templates:instantiate"
+        }
+      ]
+    }
+  },
+  "bias": 0,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "instance-f9677d7edffba63c8b4d-0",
+      "channels": [
+        "knowledge.catalog.manage"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "instance-2dbd3adbe8599b077019-0",
+      "channels": [
+        "knowledge.catalog.manage"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "instance-7dd2c7d3dfa2865a11fa-0",
+      "channels": [
+        "knowledge.catalog.manage"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "data": {
+    "type": "knowledge_catalog",
+    "path": "workspace/knowledge/catalog",
+    "save_data": true,
+    "directory": true
+  },
+  "execution": null
+}

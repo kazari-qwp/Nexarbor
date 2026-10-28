@@ -37,7 +37,7 @@ const server=http.createServer(async(req,res)=>{
  }catch(error){res.writeHead(500);res.end(error.stack);}
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+server.address().port+'/v1',api_key:'local-fixture',signature:'maker-skills-local',model:{model:'deepseek-flash',maxTokens:16000,contextWindow:600000,compat:{supportsDeveloperRole:false,maxTokensField:'max_tokens'}}};
+const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+server.address().port+'/v1',api_key:'local-fixture',signature:'maker-skills-local',model:{model:'deepseek-flash',reasoningEfforts:{off:'none',low:'low',high:'high',max:'max'},maxTokens:16000,contextWindow:600000,compat:{supportsDeveloperRole:false,maxTokensField:'max_tokens'}}};
 const callback=async(method,args)=>{assert.equal(method,'maker-tool');const result=await observations.observe(args.task,args.tool,args.arguments);receipts.push({tool:args.tool,result});return result;};
 const start=()=>native=new NativeRunner(directory,callback,{noCredentials:true,modelResolver:async()=>profile,script:fileURLToPath(new URL('../adapt/harness/studio/makers/worker.cjs',import.meta.url))});
 try{

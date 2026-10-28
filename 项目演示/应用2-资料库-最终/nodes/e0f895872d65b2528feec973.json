@@ -1,0 +1,80 @@
+{
+  "type": "knowledge_catalog",
+  "node_id": "knowledge",
+  "name": "入库与来源目录",
+  "description": "历史目录与版本索引；每个资料集合有自己的数据节点。",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "knowledge.catalog",
+        "description": "",
+        "channels": [
+          "knowledge",
+          "runtime.template"
+        ],
+        "strength": 6,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "directory": "workspace/knowledge",
+          "embedding": {
+            "model_path": "E:\\项目_手动重构\\build\\models\\bge-small-zh-v1.5",
+            "device": "cpu",
+            "max_length": 512,
+            "batch_size": 32
+          }
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 1,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "tool": "ext_ac585b4942b1e5a68b081abf",
+          "description": "knowledge · 实例化宿主预登记的固定节点模板；参数不会授予其他网络权限。",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "template": {
+                "type": "string"
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 120
+              },
+              "arguments": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "template",
+              "key",
+              "arguments"
+            ],
+            "additionalProperties": false
+          },
+          "modules": [],
+          "host_ref": "templates:instantiate"
+        }
+      ]
+    }
+  },
+  "bias": 0,
+  "aggregation": "sum",
+  "links": [],
+  "data": {
+    "type": "knowledge_catalog",
+    "path": "workspace/knowledge/catalog",
+    "directory": true,
+    "save_data": true
+  }
+}

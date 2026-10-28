@@ -1,0 +1,261 @@
+{
+  "format": "nexarbor-project-network/v2",
+  "nodes": [
+    {
+      "file": "nodes/4813494d137e1631bba301d5.json"
+    },
+    {
+      "file": "nodes/e0f895872d65b2528feec973.json"
+    },
+    {
+      "file": "nodes/a13ddee6eaec85d34400b511.json"
+    },
+    {
+      "file": "nodes/d4818945cf62b9de0670f79d.json"
+    }
+  ],
+  "files": [
+    "data/root.md",
+    "data/task/input.md",
+    "data/task/output.md",
+    "workspace/SOURCES.json",
+    "workspace/imports/data/earthquakes-initial.json",
+    "workspace/imports/data/reference-catalog.csv",
+    "workspace/imports/documents/0001-sqlite-appropriate-uses.md",
+    "workspace/imports/documents/0002-sqlite-wal.md",
+    "workspace/imports/documents/0003-sqlite-isolation.md",
+    "workspace/imports/documents/0004-sqlite-foreign-keys.md",
+    "workspace/imports/documents/0005-sqlite-json.md",
+    "workspace/imports/documents/0006-sqlite-recursive-queries.md",
+    "workspace/imports/documents/0007-sqlite-upsert.md",
+    "workspace/imports/documents/0008-sqlite-quirks.md",
+    "workspace/imports/documents/0009-sqlite-release-3-44-0.md",
+    "workspace/imports/documents/0010-sqlite-release-3-45-0.md",
+    "workspace/imports/documents/0011-sqlite-release-3-46-0.md",
+    "workspace/imports/documents/0012-usgs-event-api.md",
+    "workspace/imports/documents/0013-usgs-csv-fields.md",
+    "workspace/imports/project-brief.md"
+  ],
+  "agents": {},
+  "signals": {},
+  "properties": {
+    "root": {
+      "management_parent_id": null,
+      "offered_ports": [
+        {
+          "ref": "harness:read",
+          "channels": [
+            "workspace"
+          ]
+        },
+        {
+          "ref": "harness:glob",
+          "channels": [
+            "workspace"
+          ]
+        },
+        {
+          "ref": "harness:grep",
+          "channels": [
+            "workspace"
+          ]
+        }
+      ]
+    },
+    "knowledge": {
+      "management_parent_id": null,
+      "offered_ports": [
+        {
+          "ref": "templates:instantiate",
+          "channels": [
+            "runtime.template"
+          ]
+        }
+      ]
+    },
+    "task/input": {
+      "management_parent_id": null,
+      "offered_ports": []
+    },
+    "task/output": {
+      "management_parent_id": null,
+      "offered_ports": []
+    }
+  },
+  "runtime": {
+    "templates": [
+      {
+        "id": "knowledge-collection",
+        "callers": [
+          "knowledge"
+        ],
+        "arguments_schema": {
+          "type": "object",
+          "properties": {
+            "label": {
+              "type": "string"
+            },
+            "collection": {
+              "type": "string"
+            },
+            "storage": {
+              "type": "string"
+            },
+            "schema": {
+              "type": "object"
+            },
+            "embedding": {
+              "type": [
+                "object",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "label",
+            "collection",
+            "storage"
+          ],
+          "additionalProperties": false
+        },
+        "bindings": [
+          {
+            "path": "/network/nodes/0/name",
+            "input": "label"
+          },
+          {
+            "path": "/network/nodes/0/tables/modules/0/config/collection",
+            "input": "collection"
+          },
+          {
+            "path": "/network/nodes/0/tables/modules/0/config/storage",
+            "input": "storage"
+          },
+          {
+            "path": "/network/nodes/0/data/parameters/storage",
+            "input": "storage"
+          },
+          {
+            "path": "/network/nodes/0/data/parameters/schema",
+            "input": "schema"
+          },
+          {
+            "path": "/network/nodes/0/data/parameters/embedding",
+            "input": "embedding"
+          },
+          {
+            "path": "/network/nodes/0/data/parameters/collection_id",
+            "input": "collection"
+          }
+        ],
+        "attachments": [
+          {
+            "source": "root",
+            "target": "collection",
+            "metadata": {
+              "threshold": 1,
+              "multiplier": 1,
+              "channels": [
+                "knowledge"
+              ],
+              "attributes": {}
+            }
+          },
+          {
+            "source": "knowledge",
+            "target": "collection",
+            "metadata": {
+              "threshold": 1,
+              "multiplier": 1,
+              "channels": [
+                "knowledge.catalog.manage"
+              ],
+              "attributes": {}
+            }
+          }
+        ],
+        "document": {
+          "network": {
+            "nodes": [
+              {
+                "type": "knowledge_collection",
+                "node_id": "collection",
+                "name": "新资料集合",
+                "description": "独立资料集合",
+                "tables": {
+                  "modules": [
+                    {
+                      "module_id": "knowledge.collection",
+                      "description": "",
+                      "channels": [
+                        "knowledge"
+                      ],
+                      "strength": 6,
+                      "channel_mode": "allow",
+                      "modules": [],
+                      "config": {
+                        "collection": "pending",
+                        "storage": "wiki"
+                      },
+                      "state": {},
+                      "tools": {
+                        "group": 0,
+                        "members": []
+                      }
+                    }
+                  ],
+                  "tools": {
+                    "group": 1,
+                    "members": [
+                      {
+                        "modules": true
+                      }
+                    ]
+                  }
+                },
+                "bias": 0,
+                "aggregation": "sum",
+                "links": [
+                  {
+                    "target_id": "knowledge",
+                    "channels": [
+                      "knowledge"
+                    ],
+                    "channel_mode": "allow",
+                    "threshold": 1,
+                    "processor": {
+                      "type": "multiplier",
+                      "factor": 1
+                    },
+                    "attributes": {}
+                  }
+                ],
+                "data": {
+                  "type": "knowledge_collection",
+                  "path": "data/collection",
+                  "directory": true,
+                  "save_data": true,
+                  "parameters": {
+                    "storage": "wiki",
+                    "schema": {},
+                    "embedding": null,
+                    "collection_id": "pending"
+                  }
+                }
+              }
+            ],
+            "properties": {
+              "collection": {
+                "management_parent_id": null,
+                "offered_ports": []
+              }
+            }
+          },
+          "files": {}
+        }
+      }
+    ]
+  },
+  "layout": {},
+  "view": {}
+}

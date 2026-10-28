@@ -17,6 +17,7 @@ const scene=doc=>projectModules(doc,catalog,{},layoutNodes(doc),edgesOf(doc));
 test('module subnodes are derived presentation and never change runtime records',()=>{
  const doc=fixture(),before=structuredClone(doc),view=scene(doc),card=view.nodes.find(n=>n.data.host);
  assert.equal(view.nodes.length,3);assert.equal(doc.network.nodes.length,2);assert.deepEqual(doc,before);
+ assert.ok(card.width<84&&card.height<84);
  assert.equal(card.id,moduleViewId('owner','context.assembler'));assert.equal(card.data.host.node_id,'owner');
  assert.equal(view.edges.find(e=>!e.ownership).source,card.id);assert.equal(doc.network.nodes[0].links[0].target_id,'document');
  assert.equal(view.edges.filter(e=>e.ownership).length,1);

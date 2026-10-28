@@ -6,14 +6,9 @@ import './subnodes.css';
 import {colors} from './model.js';
 
 export function NetworkNode({data,selected,readonly=false}){
- if(data.host)return <div className="network-node module-view" style={{'--module-height':data.viewHeight+'px'}}>
-  <div className="module-view-title"><Box size={14}/><strong>{data.node.name}</strong></div>
-  <small className="module-view-owner">{data.host.name} · {data.module_id}</small>
-  {data.channelGroups.map((group,index)=><div className="module-channel-group" key={group.label} title={group.channels.join('、')}>
-   <span>{group.label}</span><code>{group.mode==='deny'?'排除：':''}{group.channels.join(' / ')||'本节点'}</code>
-   {!readonly&&group.mode==='allow'&&group.channels.length>0&&<Handle id={group.label} type="source" position={Position.Right} style={{top:52+index*25+12}}/>}
-  </div>)}
-  {!readonly&&<Handle id="left" type="source" position={Position.Left}/>}
+ if(data.host)return <div className="network-node module-view" title={[data.host.name+' · '+data.module_id,...data.channelGroups.map(group=>group.label+'：'+(group.mode==='deny'?'排除 ':'')+(group.channels.join(' / ')||'本节点'))].join('\n')}>
+  <span className="node-name">{data.node.name}</span>
+  {!readonly&&[Position.Left,Position.Right,Position.Top,Position.Bottom].map(side=><Handle key={side} id={side} type="source" position={side}/>)}
  </div>;
  const problems=Object.entries(data.moduleProblems??{}),problemText=problems.map(([id,reason])=>id+'：'+reason).join('\n');
  const node=data.node,tools=data.toolCount??(node.offered_tools?.length??0),modules=(node.tables?.modules??[]).length;

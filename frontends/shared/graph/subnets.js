@@ -1,6 +1,7 @@
+import {copyJson} from '../json-copy.js';
 import {edgeMetadata,linkRecord} from './links.js';
 import {remapToolReferences} from './tool-references.js';
-const clone=value=>structuredClone(value);
+const clone=value=>copyJson(value);
 const normalizePath=value=>value.replaceAll('\\','/');
 const ownedPaths=node=>node.data?[node.data.path]:[];
 function requireData(nodes,files={}){

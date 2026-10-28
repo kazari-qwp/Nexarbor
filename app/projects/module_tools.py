@@ -17,5 +17,6 @@ def install_tools(module,file):
 def bind_tools(module,node,specs):
     source=sha256((node.info.node_id+'\0'+module.module_id).encode()).hexdigest()[:24]
     for tool,spec in zip(module.tools,specs):
+        tool._module_tool_id=spec['id']
         tool.name='mod_'+sha256((source+'\0'+spec['id']).encode()).hexdigest()[:24]
         tool.description=node.info.node_id+' · '+spec['name']+' · '+tool.description

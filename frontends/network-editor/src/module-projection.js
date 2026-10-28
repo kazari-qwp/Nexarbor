@@ -13,9 +13,9 @@ export function projectModules(document,catalog,layout,nodes,edges){
   for(const module of owner.tables?.modules??[]){
    const definition=catalog.modules?.[module.module_id];
    if(definition?.frontend?.display_as!=='subnode')continue;
-   const id=moduleViewId(owner.node_id,module.module_id),groups=moduleChannelGroups(module,definition),height=52+groups.length*25;
+   const id=moduleViewId(owner.node_id,module.module_id),groups=moduleChannelGroups(module,definition),height=28;
    const origin=base.get(owner.node_id)?.position??{x:0,y:0};
-   const node={id,type:'network',width:220,height,measured:{width:220,height},position:layout[id]??{x:origin.x+150,y:origin.y+index*(height+20)},selectable:false,deletable:false,
+   const node={id,type:'network',width:72,height,measured:{width:72,height},position:layout[id]??{x:origin.x+110,y:origin.y+index*(height+20)},selectable:false,deletable:false,
     data:{kind:'亚节点',host:owner,module_id:module.module_id,channelGroups:groups,viewHeight:height,
      node:{node_id:id,type:'module_view',name:definition.label??module.module_id,description:definition.description??'',tables:{modules:[]},links:[]}}};
    index++;cards.push(node);if(!byOwner.has(owner.node_id))byOwner.set(owner.node_id,[]);byOwner.get(owner.node_id).push(node);

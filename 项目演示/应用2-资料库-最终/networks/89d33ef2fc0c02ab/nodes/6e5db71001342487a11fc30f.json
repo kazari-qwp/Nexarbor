@@ -1,0 +1,84 @@
+{
+  "type": "knowledge_collection",
+  "node_id": "instance-2dbd3adbe8599b077019-0",
+  "name": "quake-events",
+  "description": "独立资料集合",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "knowledge.collection",
+        "description": "",
+        "channels": [
+          "knowledge"
+        ],
+        "strength": 6,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "collection": "9504a4c109bc42b3b1d86ba4de6a0df3",
+          "storage": "sqlite"
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 1,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": 0,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "knowledge",
+      "channels": [
+        "knowledge"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "data": {
+    "type": "knowledge_collection",
+    "path": "created/templates/instance-2dbd3adbe8599b077019/data/collection",
+    "save_data": true,
+    "directory": true,
+    "parameters": {
+      "storage": "sqlite",
+      "schema": {
+        "depth_km": "number",
+        "event_id": "string",
+        "latitude": "number",
+        "longitude": "number",
+        "magnitude": "number",
+        "magnitude_type": "string",
+        "network": "string",
+        "place": "string",
+        "review_status": "string",
+        "time_utc": "string",
+        "updated_utc": "string"
+      },
+      "embedding": {
+        "batch_size": 32,
+        "device": "cpu",
+        "max_length": 512,
+        "model_path": "E:\\项目_手动重构\\build\\models\\bge-small-zh-v1.5"
+      },
+      "collection_id": "9504a4c109bc42b3b1d86ba4de6a0df3"
+    }
+  },
+  "execution": null
+}

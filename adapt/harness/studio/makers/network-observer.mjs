@@ -1,3 +1,4 @@
+import {moduleChannelGroups} from '../../../../frontends/network-editor/src/module-projection.js';
 import {moduleTable,edgeMetadata,viewNodes} from './network-records.mjs';
 // Read-only projections of an explicit snapshot. This layer never discovers a live/global graph.
 import {createHash} from 'node:crypto';
@@ -25,7 +26,7 @@ export class NetworkObserver{
    const signature=hash([n.node_id,e]),count=occurrence.get(signature)??0;occurrence.set(signature,count+1);
    this.links.push({ref:this.index.edges[signature+':'+count],id:n.node_id+'|'+i,source:n.node_id,target:e.target_id,metadata:edgeMetadata(e)});
   }
-  this.children=new Map();for(const n of this.nodes)if(n.type==='subnode')this.children.set(n.parameters?.parent_id,[...(this.children.get(n.parameters?.parent_id)??[]),n]);
+
  }
  check(args){if(!args||typeof args!=='object'||Array.isArray(args))throw Error('查询参数必须是 JSON 对象');for(const key of ['nodes','edges','channels','types','modules','fields','exclude_nodes','exclude_types','exclude_modules','relations','exclude_relations','reset'])if(args[key]!==undefined&&(!Array.isArray(args[key])||args[key].some(v=>typeof v!=='string')))throw Error(key+' 必须是字符串列表');if(args.channel_mode&&!['allow','deny'].includes(args.channel_mode))throw Error('channel_mode 仅支持 allow 或 deny');if(args.direction&&!['both','in','out'].includes(args.direction))throw Error('direction 仅支持 both、in 或 out');if(args.snapshot&&args.snapshot!==this.id)throw Error('快照已变化；请用当前快照重新查询，不能混用图片和编号。');}
  node(ref){const found=this.byRef.get(ref)??this.byId.get(ref);if(!found)throw Error('找不到节点 '+ref+'；编号仅用于当前咨询的快照。');return found;}
@@ -34,7 +35,8 @@ export class NetworkObserver{
  base(){return {snapshot:this.id,...(this.snapshot.source?{source:this.snapshot.source}:{}),...(this.snapshot.project?{project:this.snapshot.project}:{}),...(this.snapshot.missing_modules?.length?{missing_modules:this.snapshot.missing_modules}:{})};}
  localTools(n){return [...new Set([...(n.offered_ports??[]).map(t=>t.ref),...names(moduleTable(n)).flatMap(id=>(this.snapshot.resources?.[id]?.release?.manifest?.agent_tools??[]).map(t=>'module:'+id+'/'+t.id))])];}
  passiveText(n){return n.type==='markdown'&&!n.execution&&!(n.offered_ports?.length)&&names(moduleTable(n)).every(id=>{const m=this.snapshot.resources?.[id]?.release?.manifest;return !!m&&!Object.keys(m.signals??{}).length&&!m.agent_tools?.length;});}
- summary(n){return {ref:this.ref(n.node_id),name:n.name,type:n.type,...(n.type==='subnode'?{parent:this.ref(n.parameters?.parent_id)}:{}),modules:names(moduleTable(n)).length,tools:this.localTools(n).length,...(this.children.has(n.node_id)?{subnodes:this.children.get(n.node_id).length}:{})};}
+ presentation(n){return Object.entries(moduleTable(n)).flatMap(([id,spec])=>{const manifest=this.snapshot.resources?.[id]?.release?.manifest;if(manifest?.frontend?.display_as!=='subnode')return [];return [{module_id:id,name:manifest.name??id,host:this.ref(n.node_id),host_name:n.name,channelGroups:moduleChannelGroups(spec,{...manifest,schema:manifest.config_schema})}];});}
+ summary(n){return {ref:this.ref(n.node_id),name:n.name,type:n.type,modules:names(moduleTable(n)).length,tools:this.localTools(n).length,...(this.presentation(n).length?{subnodes:this.presentation(n).length}:{})};}
  brief(value,fields){
   if(fields?.length){const missing=fields.filter(k=>!Object.hasOwn(value??{},k)),selected=Object.fromEntries(fields.filter(k=>Object.hasOwn(value??{},k)).map(k=>[k,value[k]]));value=missing.length?{selected,missing_fields:missing,available_fields:names(value).slice(0,32)}:selected;}
   if(Buffer.byteLength(JSON.stringify(value??null))<=6500)return copy(value);
@@ -43,12 +45,12 @@ export class NetworkObserver{
  inspectNodes(args){
   this.check(args);const section=args.section??'modules';if(!['summary','modules','tools','config','state','settings'].includes(section))throw Error('未知节点查询部分');
   return {...this.base(),nodes:this.refs(args.nodes).map(n=>{
-   const result={ref:this.ref(n.node_id),id:n.node_id,name:n.name,...(n.type==='subnode'?{parent:this.ref(n.parameters?.parent_id)}:{})};
-   if(section==='summary')return {...result,type:n.type,description:short(n.description),...(n.type==='markdown'?{file:n.data?.path}:{}),...(n.type==='pulse'?{signal_source:{channels:n.parameters?.channels??[],strength:n.parameters?.strength}}:{}),...(n.execution?{execution:{executor:n.execution.executor,channels:n.execution.channels,prepare:n.execution.prepare?.map(p=>({module:p.module,operation:p.operation,node:p.node}))}}:{}),...(n.type==='subnode'?{parent:this.ref(n.parameters?.parent_id)}:{}),subnodes:(this.children.get(n.node_id)??[]).map(c=>this.summary(c)),modules:names(moduleTable(n)),...(n.skills?.length?{skills:n.skills}:{}),offered_tools:(n.offered_ports??[]).map(t=>t.ref),local_tool_count:this.localTools(n).length};
+   const result={ref:this.ref(n.node_id),id:n.node_id,name:n.name};
+   if(section==='summary')return {...result,type:n.type,description:short(n.description),...(n.type==='markdown'?{file:n.data?.path}:{}),...(n.type==='pulse'?{signal_source:{channels:n.parameters?.channels??[],strength:n.parameters?.strength}}:{}),...(n.execution?{execution:{executor:n.execution.executor,channels:n.execution.channels,prepare:n.execution.prepare?.map(p=>({module:p.module,operation:p.operation,node:p.node}))}}:{}),subnodes:this.presentation(n),modules:names(moduleTable(n)),...(n.skills?.length?{skills:n.skills}:{}),offered_tools:(n.offered_ports??[]).map(t=>t.ref),local_tool_count:this.localTools(n).length};
    if(section==='settings')return {...result,settings:this.brief({parameters:n.parameters,data:n.data,execution:n.execution,skills:n.skills??[],bias:n.bias,aggregation:n.aggregation},args.fields)};
    const modules=Object.entries(moduleTable(n)).filter(([id])=>!args.modules?.length||args.modules.includes(id));
-   if(section==='tools')return {...result,offered_tools:n.offered_ports??[],module_tools:modules.flatMap(([id])=>(this.snapshot.resources?.[id]?.release?.manifest?.agent_tools??[]).map(t=>({ref:'module:'+id+'/'+t.id,name:t.name,operation:t.operation}))),subnodes:(this.children.get(n.node_id)??[]).map(c=>({ref:this.ref(c.node_id),name:c.name}))};
-   if(section==='modules')return {...result,modules:modules.map(([id,spec])=>({id,name:this.snapshot.resources?.[id]?.release?.manifest?.name??id,strength:spec.strength,channels:spec.access?.channels??[],...(spec.access?.channel_mode?{channel_mode:spec.access.channel_mode}:{})})),subnodes:(this.children.get(n.node_id)??[]).map(c=>({ref:this.ref(c.node_id),name:c.name,modules:names(moduleTable(c))}))};
+   if(section==='tools')return {...result,offered_tools:n.offered_ports??[],module_tools:modules.flatMap(([id])=>(this.snapshot.resources?.[id]?.release?.manifest?.agent_tools??[]).map(t=>({ref:'module:'+id+'/'+t.id,name:t.name,operation:t.operation}))),subnodes:this.presentation(n)};
+   if(section==='modules')return {...result,modules:modules.map(([id,spec])=>({id,name:this.snapshot.resources?.[id]?.release?.manifest?.name??id,strength:spec.strength,channels:spec.access?.channels??[],...(spec.access?.channel_mode?{channel_mode:spec.access.channel_mode}:{})})),subnodes:this.presentation(n)};
    return {...result,modules:Object.fromEntries(modules.map(([id,spec])=>[id,this.brief(spec[section],args.fields)]))};
   })};
  }
@@ -96,12 +98,11 @@ export class NetworkObserver{
   const seeds=explicit?new Set(explicit.map(n=>n.node_id)):null;let candidates=seeds?new Set(seeds):new Set(this.byId.keys());
   const depth=args.hops??(seeds?1:0);if(!Number.isInteger(depth)||depth<0||depth>3)throw Error('hops 范围为 0–3');
   const links=this.links.filter(e=>this.edgeMatches(e,args));
-  const expand=()=>{if(includeSubnodes){let previous=-1;while(previous!==candidates.size){previous=candidates.size;for(const n of this.nodes)if(n.type==='subnode'&&candidates.has(n.parameters?.parent_id))candidates.add(n.node_id);}}};
-  expand();if(seeds)for(let i=0;i<depth;i++){const previous=new Set(candidates);for(const e of links){if(args.direction!=='in'&&previous.has(e.source))candidates.add(e.target);if(args.direction!=='out'&&previous.has(e.target))candidates.add(e.source);}expand();}
+  if(seeds)for(let i=0;i<depth;i++){const previous=new Set(candidates);for(const e of links){if(args.direction!=='in'&&previous.has(e.source))candidates.add(e.target);if(args.direction!=='out'&&previous.has(e.target))candidates.add(e.source);}}
   const connected=args.channels?.length||args.relations?.length||args.exclude_relations?.length?new Set(links.flatMap(e=>[e.source,e.target])):null;
   const excluded=new Set((args.exclude_nodes??[]).map(r=>this.node(r).node_id));
   let filtered=this.nodes.filter(n=>candidates.has(n.node_id)&&(!connected||connected.has(n.node_id)||seeds?.has(n.node_id))
-   &&(includeSubnodes||n.type!=='subnode'||seeds?.has(n.node_id))&&(args.include_text===false?n.type!=='markdown':includeText||!this.passiveText(n)||seeds?.has(n.node_id))
+   &&(args.include_text===false?n.type!=='markdown':includeText||!this.passiveText(n)||seeds?.has(n.node_id))
    &&!excluded.has(n.node_id)&&!args.exclude_types?.includes(n.type)&&!names(moduleTable(n)).some(m=>args.exclude_modules?.includes(m))
    &&(!args.types?.length||args.types.includes(n.type))&&(!args.modules?.length||args.modules.some(m=>Object.hasOwn(moduleTable(n),m)))
    &&(!args.query||[n.name,n.node_id,...names(moduleTable(n))].join(' ').toLowerCase().includes(args.query.toLowerCase())));
@@ -116,7 +117,7 @@ export class NetworkObserver{
   const nodes=items.slice(0,args.image===false?items.length:24).map(n=>this.summary(n)),groups=[...grouped.values()].map(g=>({...g,channels:[...g.channels]}));
   const summary={...this.base(),counts:{total_nodes:this.nodes.length,total_edges:this.links.length,matched_nodes:total,shown_nodes:items.length,shown_edges:visible.length,boundary_edges:links.filter(e=>ids.has(e.source)!==ids.has(e.target)).length},page,pages,nodes,channels:[...channels].map(([name,count])=>({name,...count})),...(!seeds&&!targeted?{available_channels:[...new Set(this.links.flatMap(e=>e.metadata.channels??[]))],available_relations:[...new Set(this.links.map(e=>e.metadata?.attributes?.relation).filter(Boolean))]}:{}),filters:Object.fromEntries(Object.entries(args).filter(([k])=>viewFilterKeys.includes(k))),display:{subnodes:includeSubnodes,text:args.include_text===false?'hidden':includeText?'all':'active'},hint:total?'编号筛选后不变；图定位，inspect_edges 核对准确连接。':'没有匹配结果；可用 view+reset 清除筛选，或重新请求无筛选概览。'};
   if(items.length>nodes.length)summary.index_omitted=items.length-nodes.length;
-  return {summary,scene:{snapshot:this.id,title:args.query?'筛选：'+short(args.query,50):seeds?'局部网络':this.snapshot.target?.kind==='preset'?this.snapshot.preset?.name??'预设网络':'网络总览',page,pages,counts:summary.counts,showEdgeIds:!!args.show_edge_ids,showChannels:!!args.show_channels,nodes:items.map(n=>({ref:this.ref(n.node_id),id:n.node_id,name:n.name,type:n.type,tables:{modules:names(moduleTable(n)).map(module_id=>({module_id}))},offered_tools:this.localTools(n).map(ref=>({ref})),parameters:n.type==='subnode'?{parent_id:n.parameters?.parent_id}:{},selected:(this.snapshot.selection?.nodes??[]).includes(n.node_id),subnodes:(this.children.get(n.node_id)??[]).length})),edges:groups,ownership:items.filter(n=>n.type==='subnode'&&ids.has(n.parameters?.parent_id)).map(n=>({source:this.ref(n.parameters?.parent_id),target:this.ref(n.node_id)}))}};
+  return {summary,scene:{snapshot:this.id,title:args.query?'筛选：'+short(args.query,50):seeds?'局部网络':this.snapshot.target?.kind==='preset'?this.snapshot.preset?.name??'预设网络':'网络总览',page,pages,counts:summary.counts,showEdgeIds:!!args.show_edge_ids,showChannels:!!args.show_channels,nodes:items.map(n=>({ref:this.ref(n.node_id),id:n.node_id,name:n.name,type:n.type,tables:{modules:names(moduleTable(n)).map(module_id=>({module_id}))},offered_tools:this.localTools(n).map(ref=>({ref})),parameters:{},selected:(this.snapshot.selection?.nodes??[]).includes(n.node_id),subnodes:this.presentation(n).length})),edges:groups,ownership:[],module_views:includeSubnodes?items.flatMap(n=>this.presentation(n)):[]}};
  }
  async execute(name,args,render){
   if(name==='inspect_nodes')return this.inspectNodes(args);
@@ -147,7 +148,7 @@ export const observerTools=[
  tool('view_network','以图片和简短索引返回网络概览，可进一步筛选显示内容或查看局部详情。',{
   view:{...str,description:'基于上次返回的视图继续调整；省略则从默认视图开始。'},region:{...str,description:'如 R2：裁切原图区域，沿用原筛选与布局。'},reset:list(24,'清除指定筛选项，如 channels、nodes；数组筛选也可用 [] 清除。'),
   nodes:list(36,'N编号或真实ID，作为邻域中心。'),selected:{type:'boolean',description:'以用户选中部分为中心。'},hops:{type:'integer',minimum:0,maximum:3,description:'邻域步数；指定中心默认1，否则0。'},direction:{enum:['both','in','out'],description:'邻域沿双向、入边或出边扩展；仅影响显示，不计算运行可达性。'},
-  include_subnodes:{type:'boolean',description:'展开亚节点；默认折叠，按名称/类型/模块查找时自动展开。'},include_text:{type:'boolean',description:'true显示所有文本；false隐藏全部文本；省略默认只保留活动文本。'},
+  include_subnodes:{type:'boolean',description:'显示模块的名称小矩形，声明频道可由模块详情查看；默认折叠，卡片不增加运行节点或权限。'},include_text:{type:'boolean',description:'true显示所有文本；false隐藏全部文本；省略默认只保留活动文本。'},
   types:list(12,'保留类型：node、agent、markdown、pulse。'),exclude_types:list(12,'隐藏这些类型，如 agent。'),modules:list(12,'保留装有任一指定模块的节点。'),exclude_modules:list(12,'隐藏装有任一指定模块的节点。'),exclude_nodes:list(36,'隐藏指定N编号或真实ID。'),
   channels:list(24,'按边允许通过的频道筛选；遵循边本身的黑白名单。'),channel_mode:{enum:['allow','deny'],description:'allow保留匹配边；deny排除匹配边。'},relations:list(24,'保留边 attributes.relation 的指定值；可从总览 available_relations 发现。'),exclude_relations:list(24,'排除指定边关系。'),
   query:{...str,description:'节点名称、ID或模块ID的子串，不是正则表达式。'},show_edge_ids:{type:'boolean'},show_channels:{type:'boolean'},image:{type:'boolean',default:true,description:'false返回分页紧凑拓扑。'},edge_page:integer(10000),page:integer(10000),page_size:integer(36)}),

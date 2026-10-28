@@ -41,3 +41,9 @@ test('local view distinguishes channels without special channel names',()=>{
  const local={actor:'root',reachable:{catalog:[{id:'b'},{id:'c'}],private:[{id:'b'},{id:'c'}],public:[{id:'b'},{id:'c'}]}};
  assert.deepEqual(filterGraph(nodes,edges,{local}).edges.map(e=>e.id),['catalog','private','public']);
 });
+
+
+test('searching a host keeps its declared module cards in the canvas',()=>{
+ const host={node_id:'person',name:'小砾'},nodes=[{id:'person',data:{node:host,kind:'Agent'}},{id:'module-view:person:context',data:{node:{name:'上下文'},host,kind:'亚节点'}}];
+ assert.deepEqual(filterGraph(nodes,[],{query:'小砾'}).nodes.map(n=>n.id),['person','module-view:person:context']);
+});

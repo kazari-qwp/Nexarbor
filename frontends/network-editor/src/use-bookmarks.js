@@ -1,3 +1,4 @@
+import {copyJson} from '../../shared/json-copy.js';
 import {linkRecord,edgeMetadata} from '../../shared/graph/links.js';
 import {singleOwnedNode,ownershipRoots} from '../../shared/graph/ownership.js';
 import {useEffect,useRef,useState} from 'react';
@@ -5,7 +6,7 @@ import {copySubnet,pasteSubnet,selectionKey,historyBookmark} from './subnets.js'
 import {shortcuts} from './shortcuts.js';
 import {textPrompt} from './text-prompt.js';
 import {isAsset,resource,assetHistory} from './resources.js';
-const clone=value=>structuredClone(value);
+const clone=value=>copyJson(value);
 const empty={version:0,bookmarks:[],history:[],presets:[],categories:[{id:'default',name:'默认分类'}],settings:{},assets:{}};
 export function useBookmarks({api,context,onPaste,onEdgeTemplate,onLocate,onOpenAsset,onAssetAttach,note}){
  const [library,setLibrary]=useState(empty),[category,setCategory]=useState('default'),[focus,setFocus]=useState(null),[open,setOpen]=useState(true);

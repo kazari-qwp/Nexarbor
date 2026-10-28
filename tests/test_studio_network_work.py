@@ -128,6 +128,7 @@ class Candidate(unittest.IsolatedAsyncioTestCase):
         definitions={'runtime:checkpoint':ports.DEFINITIONS[1]}
         document=validate_network(draft,self.backend,self.studio.library,port_definitions=definitions)
         document['network']['nodes'][1]['execution']={'executor':'harness','strength':2,'channels':[]}
+        self.assertEqual(document['network']['nodes'][1]['tables']['modules'][0]['tools']['members'][0]['factory_key'],'increment')
         catalog={key:item['manifest'] for key,item in self.studio.library.items()}
         source=self.root/'copy-input.json';out=self.root/'copy-output.json';source.write_text(json.dumps({'document':document,'catalog':catalog}),encoding='utf-8')
         result=subprocess.run([r'C:\Program Files\nodejs\node.exe',str(ROOT/'tests/studio_copy_library_fixture.mjs'),str(source),str(out)],capture_output=True,text=True,encoding='utf-8')

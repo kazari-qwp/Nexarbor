@@ -10,7 +10,7 @@
 "frontend": {"entry": "ui.html", "title": "元数据", "height": 320}
 ```
 
-entry 必须是组件内存在的相对 .html 路径；title 为中文界面标题；height 是 160～900 的初始高度，可省略。提供自包含 HTML，CSS 和 JavaScript 写在页面内，不依赖 CDN、网络、宿主目录或其他相对资源。可以复用成熟实现，但须将需要的资源打包进页面。页面、清单、示例和测试随组件验证、发布；修改页面后重新验证。没有页面时省略 frontend。
+entry 必须是组件内存在的相对 .html 路径；title 为中文界面标题；height 是 160～900 的初始高度，可省略。提供自包含 HTML，CSS 和 JavaScript 写在页面内，不依赖 CDN、网络、宿主目录或其他相对资源。可以复用成熟实现，但须将需要的资源打包进页面。页面、清单、示例和测试随组件验证、发布；修改页面后重新验证。没有页面或卡片展示声明时省略 frontend。仅需要模块亚节点卡片时，可声明 frontend.display_as="subnode"，无需 entry；channel_groups 用 [{"label":"上下文","field":"context_channels"}] 从模块配置生成悬停提示的频道分组。卡片使用宿主节点的真实出边，不创建运行节点。
 
 清单顶层可选 `description`（描述）和 `preview`（书签／历史区的静态预览图）。`preview` 是自包含的 `data:image/...` 字符串，支持 PNG、JPEG、WebP、SVG，总长度不超过 350000 字符；例如 `"preview":"data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2060%2040'%3E%3Ccircle%20cx='30'%20cy='20'%20r='12'%20fill='%238bd9bf'/%3E%3C/svg%3E"`。位图使用 Base64，SVG 使用 URL 编码；不使用本地绝对路径或外部图片网址。它只是可选展示资料，不执行模块或页面代码；无图、图片失效时显示模块名称。清单跟随正常验证、发布流程，无需改变执行接口。
 

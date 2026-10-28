@@ -30,7 +30,7 @@ Agent execution 设 executor:'harness'、strength、channels、prepare、max_ste
 
 上下文准备的执行配置示例：
 ```json
-{"executor":"harness","strength":2,"channels":["self","context.assembler"],"prepare":[{"node":"context-node","module":"context.assembler","operation":"assemble","arguments":{},"channels":["context.assembler"]}],"max_steps":100000,"timeout_seconds":86400}
+{"executor":"harness","strength":2,"channels":["self","context.assembler"],"prepare":[{"node":"context-node","module":"context.assembler","operation":"assemble","arguments":{},"channels":["context.assembler"]}],"max_steps":10000,"timeout_seconds":86400}
 ```
 prepare 必须是数组，不能写 true 或单个对象；访问其他节点的准备模块需要明确频道连接，不再通过管理归属隐式调用。上下文来源见基础教程09。Agent 使用实际工具箱与 discover() 结果，不填写 tool_provider/tool_sources，也不再检查工具的旧操作频道。工具变化在后续准备时反映，历史声明不等于当前仍可调用。
 

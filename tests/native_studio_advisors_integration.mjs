@@ -43,7 +43,7 @@ const server=http.createServer(async(req,res)=>{
  }catch(error){res.writeHead(500);res.end(error.stack);}
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+server.address().port+'/v1',api_key:'local-fixture',signature:'advisors-local',model:{model:'deepseek-flash',maxTokens:16000,contextWindow:600000,compat:{supportsDeveloperRole:false,maxTokensField:'max_tokens'}}};
+const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+server.address().port+'/v1',api_key:'local-fixture',signature:'advisors-local',model:{model:'deepseek-flash',reasoningEfforts:{off:'none',low:'low',high:'high',max:'max'},maxTokens:16000,contextWindow:600000,compat:{supportsDeveloperRole:false,maxTokensField:'max_tokens'}}};
 const bridge=new Bridge(path.join(root,'.venv-runtime/Scripts/python.exe'),directory,['-B','-X','utf8','-m','adapt.harness.backend.server'],{NEXARBOR_STUDIO:'1',NEXARBOR_APPLICATION:'npc_town',NEXARBOR_PROJECT_DIRECTORY:projectDirectory},()=>{throw Error('unexpected business model/tool execution')});
 const rpc=(method,args={})=>bridge.call(method,args,86460000);
 const project=new Project(projectDirectory,directory,rpc);await project.initialize();

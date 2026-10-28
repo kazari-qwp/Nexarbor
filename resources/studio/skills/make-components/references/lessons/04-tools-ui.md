@@ -4,7 +4,7 @@
 ```json
 "agent_tools":[{"id":"inspect","name":"查看资料","description":"查看本地点公开资料。","operation":"read"}]
 ```
-operation 必须已声明，参数模式复用操作；沿当前网络执行，不增加权限。requires 是同节点直接依赖，框架递归装配、去重、复用已有配置状态。图标只数一层。不要往 offered_tools 重复保存模块工具。
+operation 必须已声明，参数模式复用操作；沿当前网络执行，不增加权限。requires 是同节点直接依赖，框架递归装配、去重、复用已有配置状态。图标只数一层。不要往 offered_ports 重复保存模块工具。
 
 工具制造模式至少有一个静态 agent_tools；动态收集器复用 tool_discovery.discover()，返回可迭代的 Tools，直接 for 或 list；实际工具通过 tool.invoke(**arguments) 执行。框架可能给工具分配内部别名；业务名称和来源用于说明，内部别名不适合当用户可读名称。旧会话中的工具声明不代表当前可用，停用通知只说明真实变更，不应把恢复历史声明当成再次停用。
 

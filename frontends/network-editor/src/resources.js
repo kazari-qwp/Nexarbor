@@ -1,8 +1,9 @@
+import {copyJson} from '../../shared/json-copy.js';
 import {moduleTable,nodeSkills,offeredPorts} from '../../shared/graph/node-records.js';
 import {assembleResources} from '../../shared/graph/resource-assembly.js';
 import {repeatMetadata} from '../../shared/graph/preset-parameters.js';
 import {singleOwnedNode,ownershipRoots} from '../../shared/graph/ownership.js';
-const clone=value=>structuredClone(value);
+const clone=value=>copyJson(value);
 export const isAsset=value=>!!value?.asset&&['tool','module','skill'].includes(value.asset.kind);
 export const resourceTitle=value=>`${value.name}：${value.description||'暂无描述'}`;
 export const resourceId=value=>value.asset?.id??value.resourceId;

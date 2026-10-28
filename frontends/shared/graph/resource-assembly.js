@@ -1,9 +1,10 @@
+import {copyJson} from '../json-copy.js';
 import {moduleTable,moduleAccess,setModule,nodeSkills,setSkills,offeredPorts,setPorts} from './node-records.js';
 // Pure, atomic resource assembly. Used by the editor and the transport host.
 export function assembleResources(document,nodeId,assets,catalog,{available=()=>true}={}){
- const next=structuredClone(document),node=next.network.nodes.find(n=>n.node_id===nodeId);
+ const next=copyJson(document),node=next.network.nodes.find(n=>n.node_id===nodeId);
  if(!node)throw Error('请把资源拖到节点上');
- const visiting=new Set(),done=new Set(),copy=structuredClone,properties=next.network.properties??={};
+ const visiting=new Set(),done=new Set(),copy=copyJson,properties=next.network.properties??={};
  const mount=(kind,id,spec,explicit=false)=>{
   const key=kind+':'+id;
   if(visiting.has(key))throw Error('资源依赖成环：'+key);

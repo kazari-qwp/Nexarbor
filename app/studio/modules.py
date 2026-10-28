@@ -99,6 +99,8 @@ class ProjectModules:
         module.signal_channels=tuple(module.config.get(signals['config'],())) if isinstance(signals,dict) else tuple(signals)
         # Modules may build tools themselves; otherwise agent_tools declares them.
         if not module.tools.members:module._tool_specs=install_tools(module,self.library[key]/'module.py')
+        for tool,spec in zip(module.tools,self.manifests[key].get('agent_tools',[])):
+            tool._module_tool_id=spec['id']
         return module
 
     def create(self,node,key,config=None,state=None,access=None,*,pending=None):

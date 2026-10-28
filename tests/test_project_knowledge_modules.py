@@ -73,6 +73,21 @@ class KnowledgeModuleTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(KeyError):await self.tools.kb_fetch(id=record['id'])
         self.assertEqual((await self.tools.kb_search())['total'],0)
 
+    async def test_intake_association_routes_action_and_preserves_record_version(self):
+        await self.docs.begin(content='archive',mode='write')
+        collection=await self.tools.kb_create_node(name='原件',storage='wiki')
+        record=await self.tools.kb_store(collection=collection['id'],content='# Source',key='source')
+        intake=await self.catalog.stage(content='# Source',purpose='original')
+        result=await self.tools.kb_intake(action='associate',id=intake['id'],record_id=record['id'])
+        self.assertEqual(result['status'],'completed')
+        self.assertEqual((await self.tools.kb_fetch(id=record['id']))['version'],1)
+        self.assertEqual((await self.tools.kb_intake(id=intake['id']))['status'],'completed')
+        self.assertEqual((await self.tools.kb_intake())['total'],0)
+        self.assertEqual(await self.tools.kb_intake(action='associate',id=intake['id'],record_id=record['id']),result)
+        rejected=await self.catalog.stage(content='not source material',purpose='instruction')
+        dismissed=await self.tools.kb_intake(action='dismiss',id=rejected['id'],reason='task instruction')
+        self.assertEqual(dismissed['status'],'dismissed')
+
     async def test_csv_intake_keeps_original_file_typed_data_and_task_receipts(self):
         collection=await self.tools.kb_create_node(name='表格',storage='csv',schema={'code':'string','n':'integer'})
         imports=self.directory/'workspace/imports';imports.mkdir(parents=True,exist_ok=True);original=imports/'rows.csv';original.write_text('code,n\n0001,7\n',encoding='utf-8')
