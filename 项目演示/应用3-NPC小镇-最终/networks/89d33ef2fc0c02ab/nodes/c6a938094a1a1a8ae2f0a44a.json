@@ -1,62 +1,30 @@
 {
-  "aggregation": "sum",
-  "bias": -1,
-  "description": "",
-  "execution": null,
-  "links": [
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "居民楼A",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "医院",
-      "threshold": 1
-    }
-  ],
-  "name": "民政局",
+  "type": "node",
   "node_id": "民政局",
+  "name": "民政局",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "民政局，婚姻登记需要双方本人到场并分别同意。",
           "visitors": [],
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "visitors": []
+        },
         "published": {
           "description": "民政局，婚姻登记需要双方本人到场并分别同意。",
           "location": null,
@@ -65,22 +33,24 @@
           "visit": 0,
           "visitors": []
         },
-        "state": {
-          "visitors": []
-        },
-        "strength": 0,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "movement.here",
+        "description": "",
         "channels": [
           "road",
           "location",
           "records",
           "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
         ],
         "config": {
           "before_hooks": [
@@ -93,6 +63,14 @@
               "module": "records.store",
               "operation": "apply",
               "target": "requester"
+            },
+            {
+              "arguments": {
+                "trigger": "arrive"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "destination"
             }
           ],
           "location_channels": [
@@ -101,34 +79,29 @@
           ],
           "timeout_seconds": 60
         },
-        "description": "",
-        "module_id": "movement.here",
-        "modules": [
-          "place.info"
-        ],
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 1,
           "members": [
             {
+              "tool": "mod_a8c6541ffe2e9b7b46cc8ed8",
               "description": "民政局 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
-              "factory_module": "movement.here",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "required": [],
                 "type": "object"
               },
-              "tool": "mod_a8c6541ffe2e9b7b46cc8ed8",
+              "modules": [],
+              "factory_module": "movement.here",
               "factory_key": "move_here"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "agreements.pair",
+        "description": "",
         "channels": [
           "agreements",
           "records",
@@ -138,6 +111,9 @@
           "tools",
           "location"
         ],
+        "strength": 3,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "address": "民政局",
           "rules": [
@@ -156,9 +132,6 @@
             }
           ]
         },
-        "description": "",
-        "module_id": "agreements.pair",
-        "modules": [],
         "state": {
           "agree_receipts": [
             {
@@ -209,26 +182,24 @@
           ],
           "sequence": 1
         },
-        "strength": 3,
         "tools": {
           "group": 2,
           "members": [
             {
+              "tool": "mod_b301b0846817f00481ecd28a",
               "description": "民政局 · 查看协议 · 查看本地点的协议规则和自己参与的协议。",
-              "factory_module": "agreements.pair",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_b301b0846817f00481ecd28a",
+              "modules": [],
+              "factory_module": "agreements.pair",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_b145413ac0b7a1cfe04153d4",
               "description": "民政局 · 同意协议 · 双方在场时，以自己的身份登记同意。双方分别同意后立即完成；离场使未完成的旧同意失效。",
-              "factory_module": "agreements.pair",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -259,15 +230,65 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_b145413ac0b7a1cfe04153d4",
+              "modules": [],
+              "factory_module": "agreements.pair",
               "factory_key": "agree"
             }
           ]
         }
+      },
+      {
+        "module_id": "records.store",
+        "description": "",
+        "channels": [],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {},
+        "state": {},
+        "tools": {
+          "group": 3,
+          "members": []
+        }
+      },
+      {
+        "module_id": "events.chance",
+        "description": "",
+        "channels": [
+          "events",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "events": [
+            {
+              "id": "stamp",
+              "limit": 1,
+              "probability": 1,
+              "rewards": {},
+              "text": "柜台有张字条：那枚公章坚持要和订书机结婚，工作人员还在劝。",
+              "triggers": [
+                "arrive"
+              ]
+            }
+          ]
+        },
+        "state": {
+          "counts": {}
+        },
+        "tools": {
+          "group": 4,
+          "members": []
+        }
       }
     ],
     "tools": {
-      "group": 3,
+      "group": 5,
       "members": [
         {
           "modules": true
@@ -275,5 +296,41 @@
       ]
     }
   },
-  "type": "node"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "居民楼A",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "医院",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    }
+  ],
+  "execution": null
 }

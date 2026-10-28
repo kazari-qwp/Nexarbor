@@ -1,39 +1,20 @@
 {
-  "aggregation": "sum",
-  "bias": -1,
-  "data": {
-    "directory": false,
-    "path": "data/世界时钟.md",
-    "save_data": true,
-    "type": "markdown"
-  },
-  "description": "",
-  "execution": null,
-  "links": [
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "tick"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "世界时间",
-      "threshold": 1
-    }
-  ],
-  "name": "世界时钟",
+  "type": "markdown",
   "node_id": "世界时钟",
+  "name": "世界时钟",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "clock.counter",
+        "description": "",
         "channels": [
           "tick",
           "time"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "checkpoint_every": 0,
           "initial_tick": 0,
@@ -48,14 +29,6 @@
             "tick"
           ],
           "write_text": false
-        },
-        "description": "",
-        "module_id": "clock.counter",
-        "modules": [],
-        "published": {
-          "day": 5,
-          "slot": "午夜",
-          "tick": 25
         },
         "state": {
           "seen": [
@@ -83,11 +56,20 @@
             "f93dcd7c4a7f4dedb45515e5f01e910a",
             "f205302959064b4eac1a541f060ba270",
             "8b4f230cf6a548e8a104e32d51eff73f",
-            "57404d95abc84cb5af994a41581b889a"
+            "57404d95abc84cb5af994a41581b889a",
+            "087f392f28334e5eb9bd89bbd6deedbc",
+            "63b8910ac80641f7a7841f1c24b9028d",
+            "cbbeb69d1af44120bc14940dfe504178",
+            "e8827128d9764050af8868c14db9d093",
+            "70ec1323118849bcaef02b2c508ab389"
           ],
-          "tick": 25
+          "tick": 30
         },
-        "strength": 0,
+        "published": {
+          "day": 6,
+          "slot": "午夜",
+          "tick": 30
+        },
         "tools": {
           "group": 0,
           "members": []
@@ -103,5 +85,28 @@
       ]
     }
   },
-  "type": "markdown"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "tick"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "data": {
+    "type": "markdown",
+    "path": "data/世界时钟.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": null
 }

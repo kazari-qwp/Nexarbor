@@ -1,106 +1,56 @@
 {
-  "aggregation": "sum",
-  "bias": -1,
-  "description": "",
-  "execution": null,
-  "links": [
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "商店",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "矿坑",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "location"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "location",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "老铁",
-      "threshold": 1
-    }
-  ],
-  "name": "铁匠铺",
+  "type": "node",
   "node_id": "铁匠铺",
+  "name": "铁匠铺",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "炉火通明的铁匠铺，能修好坏掉的镐子。",
           "visitors": [],
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "visitors": []
+        },
         "published": {
           "description": "炉火通明的铁匠铺，能修好坏掉的镐子。",
           "location": null,
           "name": "铁匠铺",
           "node_id": "铁匠铺",
           "visit": 0,
-          "visitors": [
-            "老铁"
-          ]
+          "visitors": []
         },
-        "state": {
-          "visitors": [
-            "老铁"
-          ]
-        },
-        "strength": 0,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "movement.here",
+        "description": "",
         "channels": [
           "road",
           "location",
           "records",
           "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
         ],
         "config": {
           "before_hooks": [
@@ -113,6 +63,14 @@
               "module": "records.store",
               "operation": "apply",
               "target": "requester"
+            },
+            {
+              "arguments": {
+                "trigger": "arrive"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "destination"
             }
           ],
           "location_channels": [
@@ -121,39 +79,37 @@
           ],
           "timeout_seconds": 60
         },
-        "description": "",
-        "module_id": "movement.here",
-        "modules": [
-          "place.info"
-        ],
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 1,
           "members": [
             {
+              "tool": "mod_6b6b0ce5262696e60d108477",
               "description": "铁匠铺 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
-              "factory_module": "movement.here",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "required": [],
                 "type": "object"
               },
-              "tool": "mod_6b6b0ce5262696e60d108477",
+              "modules": [],
+              "factory_module": "movement.here",
               "factory_key": "move_here"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "records.store",
+        "description": "",
         "channels": [
           "records",
           "road",
           "location"
         ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "initial": {
             "coins": 0,
@@ -163,9 +119,6 @@
           "minimum": {},
           "references": []
         },
-        "description": "",
-        "module_id": "records.store",
-        "modules": [],
         "state": {
           "receipts": [
             {
@@ -186,19 +139,24 @@
             "repairs": 1
           }
         },
-        "strength": 1,
         "tools": {
           "group": 2,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "service.actions",
+        "description": "",
         "channels": [
           "service",
           "records",
           "movement",
           "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
         ],
         "config": {
           "actions": [
@@ -228,13 +186,21 @@
             }
           ],
           "address": "铁匠铺",
+          "after_hooks": [
+            {
+              "actions": [
+                "repair"
+              ],
+              "arguments": {
+                "trigger": "repair"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "local"
+            }
+          ],
           "events": []
         },
-        "description": "",
-        "module_id": "service.actions",
-        "modules": [
-          "records.store"
-        ],
         "state": {
           "event_counts": {},
           "receipts": [
@@ -275,26 +241,24 @@
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 3,
           "members": [
             {
+              "tool": "mod_03568e2ca09bfeed612a201e",
               "description": "铁匠铺 · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_03568e2ca09bfeed612a201e",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_80697685dab949109a4146ef",
               "description": "铁匠铺 · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -324,15 +288,54 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_80697685dab949109a4146ef",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "perform"
             }
           ]
         }
+      },
+      {
+        "module_id": "events.chance",
+        "description": "",
+        "channels": [
+          "events",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "events": [
+            {
+              "id": "fire",
+              "limit": 2,
+              "probability": 1,
+              "rewards": {},
+              "text": "炉火里传出一个小声音，问能不能借把螺丝刀修太阳。",
+              "triggers": [
+                "repair",
+                "arrive"
+              ]
+            }
+          ]
+        },
+        "state": {
+          "counts": {
+            "fire": 2
+          }
+        },
+        "tools": {
+          "group": 4,
+          "members": []
+        }
       }
     ],
     "tools": {
-      "group": 4,
+      "group": 5,
       "members": [
         {
           "modules": true
@@ -340,5 +343,41 @@
       ]
     }
   },
-  "type": "node"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "商店",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "矿坑",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    }
+  ],
+  "execution": null
 }

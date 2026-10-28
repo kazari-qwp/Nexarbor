@@ -1,301 +1,21 @@
 {
-  "agent": {
-    "inputs": {
-      "module:place.info": {
-        "context": [],
-        "inputs": [],
-        "system_prompt": "",
-        "tail": [
-          "当前位置：酒馆\n酒馆：镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。"
-        ]
-      },
-      "prepare:小路:context.assembler:assemble": {
-        "context": [
-          {
-            "id": "node:成年常识",
-            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
-          },
-          {
-            "id": "node:流浪常识",
-            "text": "流浪汉常识：没钱也能走路和打听消息；矿坑、树林需要工具，商店和酒馆要金币。可以帮人跑腿，也可以向别人开口。"
-          }
-        ],
-        "inputs": [
-          {
-            "delivery": "followup",
-            "id": "node:小路开场白/once",
-            "status": "delivered",
-            "text": "你在居民楼B的院里醒来，兜里一个金币也没有。今天得想办法挣点钱，或者找份活干。"
-          }
-        ],
-        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫小路，二十九岁，是镇上的流浪汉。你身无分文，但熟悉每一条路，说话有点滑头，心里也有自己的主意。",
-        "tail": [
-          "当前时间：第5天 午夜（总 tick：25）"
-        ]
-      }
-    }
-  },
-  "aggregation": "sum",
-  "bias": -1,
-  "data": {
-    "directory": false,
-    "path": "data/小路.md",
-    "save_data": true,
-    "type": "markdown"
-  },
-  "description": "",
-  "execution": {
-    "channels": [
-      "self",
-      "records",
-      "location",
-      "road",
-      "movement",
-      "service",
-      "chat",
-      "agreements",
-      "runtime.agent",
-      "context.assembler",
-      "context.assembler.system_prompt",
-      "context.assembler.context",
-      "context.assembler.inputs",
-      "context.assembler.tail"
-    ],
-    "executor": "harness",
-    "max_steps": 10000,
-    "prepare": [
-      {
-        "arguments": {},
-        "channels": [
-          "self"
-        ],
-        "module": "places.query",
-        "node": "小路",
-        "operation": "publish"
-      },
-      {
-        "arguments": {},
-        "channels": [
-          "context.assembler"
-        ],
-        "module": "context.assembler",
-        "node": "小路",
-        "operation": "assemble"
-      }
-    ],
-    "strength": 2,
-    "timeout_seconds": 180
-  },
-  "links": [
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "tick"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "存档点",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "小砾",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "林",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "阿森",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "阿石",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "老铁",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "悦",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.system_prompt"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "奈镇世界规则",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.system_prompt"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "小路人格",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.inputs"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "小路开场白",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.tail"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "世界时间",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.context"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "成年常识",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.context"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "流浪常识",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "location"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "location",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "酒馆",
-      "threshold": 1
-    }
-  ],
-  "name": "小路",
+  "type": "agent",
   "node_id": "小路",
+  "name": "小路",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "records.store",
+        "description": "",
         "channels": [
           "records",
           "road",
           "location"
         ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "initial": {
             "adult": true,
@@ -328,9 +48,6 @@
             }
           ]
         },
-        "description": "",
-        "module_id": "records.store",
-        "modules": [],
         "state": {
           "receipts": [
             {
@@ -718,6 +435,108 @@
                 "role": "wanderer",
                 "saw": 1
               }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"小路\",\"xiaolu-d6m-rest\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 2,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 6,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer",
+                "saw": 1
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-1},\"expected\":{\"ap\":4,\"ore\":6},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小路:小路:give:xiaolu-d6n-ore-tolaotie:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 3,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 2,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 5,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer",
+                "saw": 1
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":2},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:老铁:老铁:give:pay-xiaolu-2coins-final:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 7,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 4,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 5,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer",
+                "saw": 1
+              }
             }
           ],
           "references": [
@@ -738,66 +557,71 @@
             "adult": true,
             "age": 29,
             "age_group": "adult",
-            "ap": 10,
+            "ap": 7,
+            "axe": 1,
             "can_gestate": false,
-            "coins": 2,
+            "coins": 4,
             "gender": "male",
             "is_parent": false,
+            "ore": 5,
             "pregnant": false,
             "profession": "流浪汉",
             "role": "wanderer",
-            "ore": 6,
-            "axe": 1,
             "saw": 1
           }
         },
-        "strength": 1,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "流浪汉小路",
           "location": "居民楼B",
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "location": "居民楼B",
+          "visit": 55
+        },
         "published": {
           "description": "流浪汉小路",
-          "location": "酒馆",
+          "location": "居民楼B",
           "name": "小路",
           "node_id": "小路",
-          "visit": 43,
+          "visit": 55,
           "visitors": []
         },
-        "state": {
-          "location": "酒馆",
-          "visit": 43
-        },
-        "strength": 0,
         "tools": {
           "group": 1,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "agents.activity",
+        "description": "",
         "channels": [
           "tick",
           "records",
           "self",
           "runtime.agent"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
         ],
         "config": {
           "budget": 10,
@@ -808,16 +632,6 @@
           "signal_channels": [
             "tick"
           ]
-        },
-        "description": "",
-        "module_id": "agents.activity",
-        "modules": [
-          "records.store"
-        ],
-        "published": {
-          "最近完成活动键": "57404d95abc84cb5af994a41581b889a",
-          "活动完成次数": 25,
-          "活动状态": "已完成"
         },
         "state": {
           "activities": [
@@ -995,31 +809,71 @@
               "pending": false,
               "runs": 1,
               "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "087f392f28334e5eb9bd89bbd6deedbc",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "63b8910ac80641f7a7841f1c24b9028d",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "cbbeb69d1af44120bc14940dfe504178",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "e8827128d9764050af8868c14db9d093",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "70ec1323118849bcaef02b2c508ab389",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
             }
           ],
-          "completed_total": 25
+          "completed_total": 30
         },
-        "strength": 0,
+        "published": {
+          "最近完成活动键": "70ec1323118849bcaef02b2c508ab389",
+          "活动完成次数": 30,
+          "活动状态": "已完成"
+        },
         "tools": {
           "group": 2,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "messages.box",
+        "description": "",
         "channels": [
           "chat",
           "records"
         ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "max_messages": 200,
           "read_policy": "self",
           "require_agent": true,
           "send_cost": 0
         },
-        "description": "",
-        "module_id": "messages.box",
-        "modules": [],
         "state": {
           "messages": [
             {
@@ -1315,6 +1169,41 @@
               "text": "小路，**两块矿这会儿当面递到你手上**，你点的五金我核过：一金是还账，四金是这两块矿，钱货两清，账划掉，你点一遍。\n\n你问的三句我记下了：阿森话少但说到做到、价钱抠得紧，我把数写死跟他做；镇上活钱在你、阿森、阿石、悦和我几家手里，柜台是死的；你替我盯柜台和修镐的活，一块矿提一金，说话算数。\n\n你那两块矿先压着，别急着贱卖，柜台一响我捎信给你。",
               "to": "小路",
               "topic": "两块矿到手"
+            },
+            {
+              "from": "阿森",
+              "id": "87763f50deb847779920850594458a98",
+              "text": "小路，你那四块矿我不收，一金脚力我也先免了——不是我小气，是我不想拿现钱换一堆换不出去的石头。你要真挣脚力钱，替小砾、悦、林跑腿比替我跑强，他们手上还有矿和木材要倒手。柜台哪天有活钱，你来报我，我按趟给你一金，那时候钱是真能挣着的。",
+              "to": "小路",
+              "topic": "矿不收，脚力钱先免"
+            },
+            {
+              "from": "悦",
+              "id": "9a9ae68e37bd44fdb0f9732f19e83c8a",
+              "text": "小路，跑信的价给你定下：**一桩一金，当日结，账我记**。信得送到人手里、话得带回准信，才算一桩。眼下头一桩就派你：去寻阿森，告诉他两件事——一，他欠我三金（昨天晌午那块矿，现钱现货）；二，他欠小砾十二金（四块矿，三金一块）。你跟他说：这两笔不结清，镇上收矿的买卖就做到他这儿为止。\n\n你手里六块矿想出，也别白等阿森：他要收就一起谈，我替你压着价，绝不让他按两块收你的货。送完信回来找我报一句，我当场点你一金。",
+              "to": "小路",
+              "topic": "跑信定价·派活"
+            },
+            {
+              "from": "老铁",
+              "id": "b2b3051c03c843428602c399a271bfd0",
+              "text": "小路，矿我收到了，成色不差，谢你信我。两块一块，我欠你两金——钱就在我兜里，可你人不在跟前，转不过去。我记着这笔账：你哪天路过铁匠铺，当面点给你，一个子儿不短。剩下的五块矿你压着，等我炉子有进项再收。",
+              "to": "小路",
+              "topic": "矿递你手上"
+            },
+            {
+              "from": "悦",
+              "id": "fbe3f753284b4b9e9eef52e129d5960e",
+              "text": "小路，话你送到了，人没找着不是你的错——**半桩也算数，一金我照付**，你哪天到楼门口或柜台前碰我，我当面点给你；这一金不是施舍，是你腿脚挣的。\n\n再派你一件事，跑成再加一金：**去找阿森，把他的话带回来**——他今日已把欠我的三金点清了，可还欠小砾十二金，这一笔才是大头。你告诉他：欠账不清，收矿的买卖就停；他要收货，先把十二金点了。\n\n顺便说个行情给你听：阿森说柜台的脾气是\"**谁买东西，柜台才有钱收谁的货**\"。你手里六块矿，别急着出手，等有人买工具那一阵，抢在前头。",
+              "to": "小路",
+              "topic": "半桩付一金·再派一件"
+            },
+            {
+              "from": "老铁",
+              "id": "40b2e8f7abe6439a8e4bdba5ea5126d5",
+              "text": "小路，两金当面点给你了，一个子儿不短，矿钱两清。往后你背来的矿，我照两块一块收，现钱结，不拖不欠。还有一件正事顺口问你：你在院角那堆矿车零件里翻的时候，见着断镐头没有？哪怕锈成一块铁疙瘩，也替我留着——镇上就缺一件坏铁，修成镐，悦那头就有营生，你也多一条背矿的活路。",
+              "to": "小路",
+              "topic": "矿钱两清"
             }
           ],
           "seen": [
@@ -1482,17 +1371,40 @@
               "fingerprint": "{\"text\":\"小路，**两块矿这会儿当面递到你手上**，你点的五金我核过：一金是还账，四金是这两块矿，钱货两清，账划掉，你点一遍。\\n\\n你问的三句我记下了：阿森话少但说到做到、价钱抠得紧，我把数写死跟他做；镇上活钱在你、阿森、阿石、悦和我几家手里，柜台是死的；你替我盯柜台和修镐的活，一块矿提一金，说话算数。\\n\\n你那两块矿先压着，别急着贱卖，柜台一响我捎信给你。\",\"topic\":\"两块矿到手\"}",
               "id": "79209400898b4bb1821c1fe8ea8d8b49",
               "key": "[\"小砾\",\"xiaolu-deliver-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，你那四块矿我不收，一金脚力我也先免了——不是我小气，是我不想拿现钱换一堆换不出去的石头。你要真挣脚力钱，替小砾、悦、林跑腿比替我跑强，他们手上还有矿和木材要倒手。柜台哪天有活钱，你来报我，我按趟给你一金，那时候钱是真能挣着的。\",\"topic\":\"矿不收，脚力钱先免\"}",
+              "id": "87763f50deb847779920850594458a98",
+              "key": "[\"阿森\",\"xiaolu-decline-d6\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，跑信的价给你定下：**一桩一金，当日结，账我记**。信得送到人手里、话得带回准信，才算一桩。眼下头一桩就派你：去寻阿森，告诉他两件事——一，他欠我三金（昨天晌午那块矿，现钱现货）；二，他欠小砾十二金（四块矿，三金一块）。你跟他说：这两笔不结清，镇上收矿的买卖就做到他这儿为止。\\n\\n你手里六块矿想出，也别白等阿森：他要收就一起谈，我替你压着价，绝不让他按两块收你的货。送完信回来找我报一句，我当场点你一金。\",\"topic\":\"跑信定价·派活\"}",
+              "id": "9a9ae68e37bd44fdb0f9732f19e83c8a",
+              "key": "[\"悦\",\"yue-xiaolu-price27\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，矿我收到了，成色不差，谢你信我。两块一块，我欠你两金——钱就在我兜里，可你人不在跟前，转不过去。我记着这笔账：你哪天路过铁匠铺，当面点给你，一个子儿不短。剩下的五块矿你压着，等我炉子有进项再收。\",\"topic\":\"矿递你手上\"}",
+              "id": "b2b3051c03c843428602c399a271bfd0",
+              "key": "[\"老铁\",\"xiaolu-debt-ack\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，话你送到了，人没找着不是你的错——**半桩也算数，一金我照付**，你哪天到楼门口或柜台前碰我，我当面点给你；这一金不是施舍，是你腿脚挣的。\\n\\n再派你一件事，跑成再加一金：**去找阿森，把他的话带回来**——他今日已把欠我的三金点清了，可还欠小砾十二金，这一笔才是大头。你告诉他：欠账不清，收矿的买卖就停；他要收货，先把十二金点了。\\n\\n顺便说个行情给你听：阿森说柜台的脾气是\\\"**谁买东西，柜台才有钱收谁的货**\\\"。你手里六块矿，别急着出手，等有人买工具那一阵，抢在前头。\",\"topic\":\"半桩付一金·再派一件\"}",
+              "id": "fbe3f753284b4b9e9eef52e129d5960e",
+              "key": "[\"悦\",\"yue-xiaolu-half-fee\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，两金当面点给你了，一个子儿不短，矿钱两清。往后你背来的矿，我照两块一块收，现钱结，不拖不欠。还有一件正事顺口问你：你在院角那堆矿车零件里翻的时候，见着断镐头没有？哪怕锈成一块铁疙瘩，也替我留着——镇上就缺一件坏铁，修成镐，悦那头就有营生，你也多一条背矿的活路。\",\"topic\":\"矿钱两清\"}",
+              "id": "40b2e8f7abe6439a8e4bdba5ea5126d5",
+              "key": "[\"老铁\",\"xiaolu-debt-paid\"]"
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 3,
           "members": [
             {
+              "tool": "mod_7bb05f1b0392a64b35c49ad2",
               "description": "小路 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
-              "factory_module": "messages.box",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1520,13 +1432,13 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_7bb05f1b0392a64b35c49ad2",
+              "modules": [],
+              "factory_module": "messages.box",
               "factory_key": "send"
             },
             {
+              "tool": "mod_4671d4e235dee9eef76b1322",
               "description": "小路 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
-              "factory_module": "messages.box",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1541,34 +1453,34 @@
                 },
                 "type": "object"
               },
-              "tool": "mod_4671d4e235dee9eef76b1322",
+              "modules": [],
+              "factory_module": "messages.box",
               "factory_key": "read"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "messages.relay",
+        "description": "",
         "channels": [
           "chat",
           "records",
           "self"
         ],
-        "config": {},
-        "description": "",
-        "module_id": "messages.relay",
+        "strength": 2,
+        "channel_mode": "allow",
         "modules": [
           "messages.box"
         ],
+        "config": {},
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 4,
           "members": [
             {
+              "tool": "send_to",
               "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
-              "factory_module": "messages.relay",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1604,14 +1516,16 @@
                 ],
                 "type": "object"
               },
-              "tool": "send_to",
+              "modules": [],
+              "factory_module": "messages.relay",
               "factory_key": "send_to"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "context.assembler",
+        "description": "上下文组装器",
         "channels": [
           "context.assembler",
           "context.assembler.system_prompt",
@@ -1619,6 +1533,9 @@
           "context.assembler.inputs",
           "context.assembler.tail"
         ],
+        "strength": 4,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "channels": [
             "context.assembler"
@@ -1636,26 +1553,23 @@
             "context.assembler.tail"
           ]
         },
-        "description": "上下文组装器",
-        "module_id": "context.assembler",
-        "modules": [],
-        "strength": 4,
         "tools": {
           "group": 5,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "agents.memory",
+        "description": "",
         "channels": [
           "self"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "max_memories": 100
         },
-        "description": "",
-        "module_id": "agents.memory",
-        "modules": [],
         "state": {
           "memories": [
             {
@@ -1664,14 +1578,12 @@
             }
           ]
         },
-        "strength": 0,
         "tools": {
           "group": 6,
           "members": [
             {
+              "tool": "remember",
               "description": "把一段个人经历或知识写入自己的私人记忆。",
-              "factory_module": "agents.memory",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1694,13 +1606,13 @@
                 ],
                 "type": "object"
               },
-              "tool": "remember",
+              "modules": [],
+              "factory_module": "agents.memory",
               "factory_key": "remember"
             },
             {
+              "tool": "recall",
               "description": "按关键词子串检索自己的私人记忆。",
-              "factory_module": "agents.memory",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1713,14 +1625,16 @@
                 },
                 "type": "object"
               },
-              "tool": "recall",
+              "modules": [],
+              "factory_module": "agents.memory",
               "factory_key": "recall"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "places.query",
+        "description": "",
         "channels": [
           "self",
           "records",
@@ -1728,6 +1642,12 @@
           "info",
           "location",
           "road"
+        ],
+        "strength": 12,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store",
+          "place.info"
         ],
         "config": {
           "map_title": "奈镇地图",
@@ -1742,39 +1662,31 @@
             "road"
           ]
         },
-        "description": "",
-        "module_id": "places.query",
-        "modules": [
-          "records.store",
-          "place.info"
-        ],
+        "state": {},
         "published": {
           "age_group": "adult",
           "gender": "male",
           "name": "小路",
           "profession": "流浪汉"
         },
-        "state": {},
-        "strength": 12,
         "tools": {
           "group": 7,
           "members": [
             {
+              "tool": "look",
               "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
-              "factory_module": "places.query",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "look",
+              "modules": [],
+              "factory_module": "places.query",
               "factory_key": "look"
             },
             {
+              "tool": "place",
               "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
-              "factory_module": "places.query",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1785,41 +1697,43 @@
                 },
                 "type": "object"
               },
-              "tool": "place",
+              "modules": [],
+              "factory_module": "places.query",
               "factory_key": "place"
             },
             {
+              "tool": "map",
               "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
-              "factory_module": "places.query",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "map",
+              "modules": [],
+              "factory_module": "places.query",
               "factory_key": "map"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "records.transfer",
+        "description": "",
         "channels": [
           "self",
           "chat",
           "location"
         ],
-        "config": {
-          "cost": 1,
-          "same_location": true
-        },
-        "description": "",
-        "module_id": "records.transfer",
+        "strength": 2,
+        "channel_mode": "allow",
         "modules": [
           "records.store",
           "place.info"
         ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
         "state": {
           "receipts": [
             {
@@ -1845,17 +1759,27 @@
                 "resource": "coins",
                 "to": "小砾"
               }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":1,\"recipient\":\"老铁\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小路:小路:give:xiaolu-d6n-ore-tolaotie",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "小路",
+                "quantity": 1,
+                "resource": "ore",
+                "to": "老铁"
+              }
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 8,
           "members": [
             {
+              "tool": "give",
               "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
-              "factory_module": "records.transfer",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1892,21 +1816,22 @@
                 ],
                 "type": "object"
               },
-              "tool": "give",
+              "modules": [],
+              "factory_module": "records.transfer",
               "factory_key": "give"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "tool_discovery",
+        "description": "串联工具发现",
         "channels": [
           "movement"
         ],
-        "description": "串联工具发现",
-        "module_id": "tool_discovery",
-        "modules": [],
         "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
         "tools": {
           "group": 9,
           "members": []
@@ -1923,8 +1848,8 @@
           "group": 11,
           "members": [
             {
+              "tool": "memory_query",
               "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1934,11 +1859,11 @@
                 },
                 "type": "object"
               },
-              "tool": "memory_query"
+              "modules": []
             },
             {
+              "tool": "memory_modify",
               "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1956,11 +1881,11 @@
                 ],
                 "type": "object"
               },
-              "tool": "memory_modify"
+              "modules": []
             },
             {
+              "tool": "memory_append",
               "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1973,12 +1898,311 @@
                 ],
                 "type": "object"
               },
-              "tool": "memory_append"
+              "modules": []
             }
           ]
+        },
+        {
+          "tool": "ext_a671531b12d58eba06e775be",
+          "description": "运行当前调用节点自己的 Agent；不能在节点事务中等待模型。",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "modules": [],
+          "host_ref": "runtime:agent_run"
         }
       ]
     }
   },
-  "type": "agent"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "存档点",
+      "channels": [
+        "tick"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "小砾",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "林",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "阿森",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "阿石",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "老铁",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "悦",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "奈镇世界规则",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "小路人格",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "小路开场白",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "成年常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "流浪常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "居民楼B",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    }
+  ],
+  "agent": {
+    "inputs": {
+      "module:place.info": {
+        "system_prompt": "",
+        "context": [],
+        "inputs": [],
+        "tail": [
+          "当前位置：居民楼B\n居民楼B：石墙小楼，住着小路、阿森、阿石和老铁；院里堆着木柴和矿车零件。"
+        ]
+      },
+      "prepare:小路:context.assembler:assemble": {
+        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫小路，二十九岁，是镇上的流浪汉。你身无分文，但熟悉每一条路，说话有点滑头，心里也有自己的主意。",
+        "context": [
+          {
+            "id": "node:成年常识",
+            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
+          },
+          {
+            "id": "node:流浪常识",
+            "text": "流浪汉常识：没钱也能走路和打听消息；矿坑、树林需要工具，商店和酒馆要金币。可以帮人跑腿，也可以向别人开口。"
+          }
+        ],
+        "inputs": [
+          {
+            "id": "node:小路开场白/once",
+            "text": "你在居民楼B的院里醒来，兜里一个金币也没有。今天得想办法挣点钱，或者找份活干。",
+            "delivery": "followup",
+            "status": "delivered"
+          }
+        ],
+        "tail": [
+          "当前时间：第6天 午夜（总 tick：30）"
+        ]
+      }
+    }
+  },
+  "data": {
+    "type": "markdown",
+    "path": "data/小路.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": {
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "executor": "harness",
+    "max_steps": 10000,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "self"
+        ],
+        "module": "places.query",
+        "node": "小路",
+        "operation": "publish"
+      },
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.assembler",
+        "node": "小路",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 2,
+    "timeout_seconds": 180
+  }
 }

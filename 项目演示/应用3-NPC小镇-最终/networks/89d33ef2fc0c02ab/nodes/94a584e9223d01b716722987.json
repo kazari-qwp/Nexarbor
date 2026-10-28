@@ -1,301 +1,21 @@
 {
-  "agent": {
-    "inputs": {
-      "module:place.info": {
-        "context": [],
-        "inputs": [],
-        "system_prompt": "",
-        "tail": [
-          "当前位置：树林\n树林：镇北的树林，用斧头能砍下木材。"
-        ]
-      },
-      "prepare:阿森:context.assembler:assemble": {
-        "context": [
-          {
-            "id": "node:成年常识",
-            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
-          },
-          {
-            "id": "node:伐木常识",
-            "text": "伐木工常识：树林用斧头砍柴，每次花六点行动值得到三根木材；木材可以卖给商店，每根两金币。"
-          }
-        ],
-        "inputs": [
-          {
-            "delivery": "followup",
-            "id": "node:阿森开场白/once",
-            "status": "delivered",
-            "text": "清早，你扛着斧头从居民楼B出来，想着今天砍几担木材卖给商店。"
-          }
-        ],
-        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫阿森，二十五岁，是镇上的伐木工。你力气大、性子直，喜欢树林里的安静，也不爱受人欺负。",
-        "tail": [
-          "当前时间：第5天 午夜（总 tick：25）"
-        ]
-      }
-    }
-  },
-  "aggregation": "sum",
-  "bias": -1,
-  "data": {
-    "directory": false,
-    "path": "data/阿森.md",
-    "save_data": true,
-    "type": "markdown"
-  },
-  "description": "",
-  "execution": {
-    "channels": [
-      "self",
-      "records",
-      "location",
-      "road",
-      "movement",
-      "service",
-      "chat",
-      "agreements",
-      "runtime.agent",
-      "context.assembler",
-      "context.assembler.system_prompt",
-      "context.assembler.context",
-      "context.assembler.inputs",
-      "context.assembler.tail"
-    ],
-    "executor": "harness",
-    "max_steps": 10000,
-    "prepare": [
-      {
-        "arguments": {},
-        "channels": [
-          "self"
-        ],
-        "module": "places.query",
-        "node": "阿森",
-        "operation": "publish"
-      },
-      {
-        "arguments": {},
-        "channels": [
-          "context.assembler"
-        ],
-        "module": "context.assembler",
-        "node": "阿森",
-        "operation": "assemble"
-      }
-    ],
-    "strength": 2,
-    "timeout_seconds": 180
-  },
-  "links": [
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "tick"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "存档点",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "小砾",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "林",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "小路",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "阿石",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "老铁",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "悦",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.system_prompt"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "奈镇世界规则",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.system_prompt"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "阿森人格",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.inputs"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "阿森开场白",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.tail"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "世界时间",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.context"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "成年常识",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.context"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "伐木常识",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "location"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "location",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "树林",
-      "threshold": 1
-    }
-  ],
-  "name": "阿森",
+  "type": "agent",
   "node_id": "阿森",
+  "name": "阿森",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "records.store",
+        "description": "",
         "channels": [
           "records",
           "road",
           "location"
         ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "initial": {
             "adult": true,
@@ -329,9 +49,6 @@
             }
           ]
         },
-        "description": "",
-        "module_id": "records.store",
-        "modules": [],
         "state": {
           "receipts": [
             {
@@ -898,6 +615,109 @@
                 "role": "woodcutter",
                 "wood": 27
               }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d6-morning-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 30
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d6-noon-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 33
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-3},\"expected\":{\"ap\":3,\"coins\":21},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿森:阿森:give:pay-yue-ore3-d6:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 2,
+                "axe": 2,
+                "can_gestate": false,
+                "coins": 18,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "saw": 1,
+                "wood": 27
+              }
             }
           ],
           "references": [
@@ -918,66 +738,72 @@
             "adult": true,
             "age": 25,
             "age_group": "adult",
-            "ap": 0,
-            "axe": 1,
+            "ap": 4,
+            "axe": 2,
             "can_gestate": false,
-            "coins": 19,
+            "coins": 18,
             "gender": "male",
             "is_parent": false,
+            "ore": 3,
             "pregnant": false,
             "profession": "伐木工",
             "role": "woodcutter",
-            "wood": 27,
-            "ore": 3
+            "saw": 1,
+            "wood": 27
           }
         },
-        "strength": 1,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "伐木工阿森",
           "location": "居民楼B",
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "location": "酒馆",
+          "visit": 42
+        },
         "published": {
           "description": "伐木工阿森",
-          "location": "树林",
+          "location": "酒馆",
           "name": "阿森",
           "node_id": "阿森",
-          "visit": 36,
+          "visit": 42,
           "visitors": []
         },
-        "state": {
-          "location": "树林",
-          "visit": 36
-        },
-        "strength": 0,
         "tools": {
           "group": 1,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "agents.activity",
+        "description": "",
         "channels": [
           "tick",
           "records",
           "self",
           "runtime.agent"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
         ],
         "config": {
           "budget": 10,
@@ -988,16 +814,6 @@
           "signal_channels": [
             "tick"
           ]
-        },
-        "description": "",
-        "module_id": "agents.activity",
-        "modules": [
-          "records.store"
-        ],
-        "published": {
-          "最近完成活动键": "57404d95abc84cb5af994a41581b889a",
-          "活动完成次数": 25,
-          "活动状态": "已完成"
         },
         "state": {
           "activities": [
@@ -1175,31 +991,71 @@
               "pending": false,
               "runs": 1,
               "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "087f392f28334e5eb9bd89bbd6deedbc",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "63b8910ac80641f7a7841f1c24b9028d",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "cbbeb69d1af44120bc14940dfe504178",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "e8827128d9764050af8868c14db9d093",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "70ec1323118849bcaef02b2c508ab389",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
             }
           ],
-          "completed_total": 25
+          "completed_total": 30
         },
-        "strength": 0,
+        "published": {
+          "最近完成活动键": "70ec1323118849bcaef02b2c508ab389",
+          "活动完成次数": 30,
+          "活动状态": "已完成"
+        },
         "tools": {
           "group": 2,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "messages.box",
+        "description": "",
         "channels": [
           "chat",
           "records"
         ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "max_messages": 200,
           "read_policy": "self",
           "require_agent": true,
           "send_cost": 0
         },
-        "description": "",
-        "module_id": "messages.box",
-        "modules": [],
         "state": {
           "messages": [
             {
@@ -1432,6 +1288,104 @@
               "text": "阿森，那单买卖今晚就落，别让它过夜：小砾手上八块矿，**三金一块、廿四金**，钱货当面清。我这就从酒馆往居民楼B去请你，你若在家就应一声；你若想少跑路，我再到酒馆把货和人凑齐。现钱不够八块也行，先吃五块，剩下的留着——镇上的矿只在你这一单上能换成现钱，你出价，我记账。",
               "to": "阿森",
               "topic": "请你来成交"
+            },
+            {
+              "from": "小路",
+              "id": "a0310c42fdec45e0aec624850af1809a",
+              "text": "阿森，我这就往居民楼B院里来，人马上到。手里**六块现成矿**，三金一块，一共十八金，你点头就当场过手，钱货两清。你不是想跟小砾搭伙？她还在酒馆等你，价咬死三金一块、留八块给你。你钱要够，先收我这六块，回头再去跟她把八块谈死——两笔都办，你矿就囤足了。",
+              "to": "阿森",
+              "topic": "六块矿当面出"
+            },
+            {
+              "from": "悦",
+              "id": "5db011c73e264e7da71037352caa7d78",
+              "text": "阿森，提醒一句，不是催债，是把账摆明白：昨天晌午在居民楼A院里，我**当面递你一块矿，说好三金现钱现货**，账我写在册子上——你那一头至今没点。\n\n我如今也不宽裕：七金现钱、六块矿，还替人寄卖着货。三金不多，可账一模糊，往后什么买卖都难做。\n\n你哪天在哪处，捎个话，我过去当面收；或者你把钱托小路带给我，让他做个见证。若你手头真紧，也实说一句，我不逼人，宽限几日写明白就成——但别不吭声。\n\n另外那块矿你要不要第二块，也说一句：三金一块，价还是柜台价。",
+              "to": "阿森",
+              "topic": "三金的账"
+            },
+            {
+              "from": "小路",
+              "id": "970ebfe4c763429eb0ad3334a018974e",
+              "text": "阿森，柜台又空了，我六块矿背过去换不出钱。我现在就往酒馆去，你要是也在，就当面把买卖做了：**六块矿、三金一块、十八金**，你点钱我点矿，一清二楚。你买我这六块，小砾那八块你回头再谈；钱不够就先要四块，十二金，剩下的我压着等你。",
+              "to": "阿森",
+              "topic": "酒馆当面交易"
+            },
+            {
+              "from": "阿石",
+              "id": "5097f23933684e4fb03e9d647a05f723",
+              "text": "阿森，听说你手上有廿五金、正三金一块收矿。我人在矿坑口，手里三十二块，**三金一块，你要多少我当面点你多少**，比小砾那边你不必两头跑——我就在坑口不动。你要八块，我给你八块，廿四金，一手矿一手钱。你要是钱紧，四块也行。等你一句话。",
+              "to": "阿森",
+              "topic": "矿坑口·三金一块"
+            },
+            {
+              "from": "林",
+              "id": "822dd66b7abd42e4859c7b285ca562a5",
+              "text": "阿森，你这话说得透亮，我认：**拿现钱押死货，是替人解套，不是替自己挣钱**。这单我不再劝你，是我先前算漏了这一层。\n\n往后咱们换个搭法：你木材三十根压着，柜台一响我先来报你；你若想换点本钱，我手里有矿、有腿脚，替你把木材卖给真要用的人——镇上要盖要修的地方我一个个去问，一桩一金脚力，卖不出去不要钱。你肯不肯让我试？",
+              "to": "阿森",
+              "topic": "你这话我认"
+            },
+            {
+              "from": "阿石",
+              "id": "532e78650a094ef9b9a9c77aff7e10d8",
+              "text": "阿森，我把话说到明处：**我人在矿坑一线，手里三十七块矿，三金一块等你**。你要八块，我八块当面点，廿四金；你要四块也成。小砾的八块你收不收我不管，我这边的矿是现成摆着的，你带钱来就成——我不拖、不抬价、不赊。你回一句准地方，我背过去也行。",
+              "to": "阿森",
+              "topic": "三金一块·等你来"
+            },
+            {
+              "from": "小砾",
+              "id": "bf2dc209ea4a44a18209d6d248b97253",
+              "text": "阿森，我下坑这两天出的货都在身上：**矿石十四块、黄金一块**。\n\n价摆明：**矿石三金一块**，黄金按柜台价十金，一块就给十金，不抬你的价。柜台这会儿还是\"资金不足\"，我不费那腿脚了，只认现钱。\n\n你要多少、什么时候要，回我一句：我人在镇上商店这一带，仓库就在身上，随叫随到。你若嫌多，五块十块也成，我不挑买家。\n\n你廿七根木材压着，我一直替你盯着柜台，一有活钱头一个报你——这话不作废。",
+              "to": "阿森",
+              "topic": "现钱收矿"
+            },
+            {
+              "from": "小路",
+              "id": "10fac3589f7e41999de26a6b77288cfd",
+              "text": "阿森，我替悦捎话，一句不改：一，你欠她**三金**（昨天晌午那块矿，现钱现货）；二，你欠小砾**十二金**（四块矿，三金一块）。悦的原话是——这两笔不结清，镇上收矿的买卖就做到你这儿为止。你回我一句准话，结还是不结、几时结，我原样带回去，不添油不加醋。你要是想谈我手里那几块矿，一并说。",
+              "to": "阿森",
+              "topic": "悦捎话·两笔账"
+            },
+            {
+              "from": "阿石",
+              "id": "35ecc7647d1f4c06a697f4cf36e357c4",
+              "text": "阿森，两句实在话一起带到。头一句是悦托我捎的：**你和她们那十五金的账不清，买卖就先停**——她原话，我照转。第二句是我自己的：矿坑口摆着三十九块矿，三金一块，你要现钱收就带钱来，当面点清；你钱要先拿去清账，我也不催，清了账再来找我。做买卖先做信，这道理你比我懂。",
+              "to": "阿森",
+              "topic": "捎话·账清再买卖"
+            },
+            {
+              "from": "林",
+              "id": "55bc020d3a65495e9651a3e0df12409d",
+              "text": "阿森，公事公办，我不跟你绕：你欠**悦三金、小砾十二金，共十五金**，两笔都记在账上。悦如今身子重了，不宜多跑路，这账我替她来讨。\n\n我不是逼你掏空钱袋：你要现钱紧，咱们可以拆开——先点三金给悦，剩下十二金你给个准日子，或者折成木材、折成矿，我替你找买家。你若一句\"不还\"，我就把账本摊在酒馆桌面上，让镇上人评一句公道。你回我个准话。",
+              "to": "阿森",
+              "topic": "催阿森的十五金"
+            },
+            {
+              "from": "小路",
+              "id": "086ab0601e49425b9723fb9ac9e3b977",
+              "text": "阿森，我半夜了还在找你。悦那话你收到没有？一句准话就成：你欠悦三金、欠小砾十二金，几时结、结不结？我明早就要回她话，你要是不回，我就照实说\"阿森没回话\"，这话传出去，往后镇上谁还敢跟你做买卖，你自己掂量。我要的只是你一句话，不难为你。",
+              "to": "阿森",
+              "topic": "只要一句准话"
+            },
+            {
+              "from": "悦",
+              "id": "76e0b462c1884f79976a7a8cd68c0b64",
+              "text": "阿森，三金点清了，账我划掉，往后好说话。你这人认账，我记你这一点。\n\n斧锯四金一件的价我不接，话说透你别多心：**我手里十金是全家的活钱**，我一个有身子的人，买第二件工具搁在楼里，不如留着买粮、留着急用。斧我已经有一把了。\n\n可你那条路子是对的，我替你把话补全：**你买工具，柜台进钱，柜台收你的木料——这盘要转，就得有人一轮一轮地买。** 你要真想让你那二十七根木料卖得动，别光等别人掏钱：**每卖掉几根，就再买一件工具**，柜台一有活钱，我的矿、你的木料、小砾的黄金（她有一块，值十金）都能出货。谁的货排在前头，就看谁先让柜台进水。\n\n我这边替你盯着：柜台一响，头一个递话给你。",
+              "to": "阿森",
+              "topic": "四金斧锯·不接·补一条路"
+            },
+            {
+              "from": "林",
+              "id": "7f0f0791b84b4b299eddd9468632d030",
+              "text": "阿森，你把柜台那道门道试出来了——**谁先花钱，柜台才收货**，这话比一单买卖值钱，我记你这份实在。\n\n斧锯四金一件是公道价，可我这轮掏不出现钱：一袋矿外加一个空钱袋。你容我一两天——等我哪笔现钱到手，头一件就买你那把斧，四金，不还价。你的东西先别贱卖给旁人；你缺现钱的时候也吆喝一声，我替你找买家，一桩一金脚力，卖不出去不要钱。\n\n至于你欠悦三金、小砾十二金，我不逼你今晚就掏；给个准日子，或者折成斧锯木料，我替你们撮合。人在镇上，账清了才好相见。",
+              "to": "阿森",
+              "topic": "买斧的事往后挪"
+            },
+            {
+              "from": "阿石",
+              "id": "796e981293b94631a2e20d45f4d11187",
+              "text": "阿森，咱俩都在酒馆，当面说最省事：我手里四十八块矿，**三金一块**。你要多少说个数，规矩是**先钱后货**——你把金转我账上，我当场点矿给你，一块不少。你别嫌我先钱，你我头回做大买卖，账清才长久；你欠小砾和悦那十五金先还了，剩下的钱买几块都成，四块、八块我都有货。你要点头，就把数说给我。",
+              "to": "阿森",
+              "topic": "酒馆当面：先钱后货"
             }
           ],
           "seen": [
@@ -1584,17 +1538,70 @@
               "fingerprint": "{\"text\":\"阿森，人就在一张桌上，我把话说直：你收矿三金一块，我手里正好有四块现成矿，**三金一块，共十二金，当场过手**，不用你等货、不用你压价。小砾让我捎话给你：她在酒馆等你，价咬死三金一块，她给你留了八块；你要先要我这四块，她那边照旧。两台买卖你一起办，我中间不掺假、不抬价。\",\"topic\":\"四块现成矿\"}",
               "id": "e35e7d56df324a5cb0bc383a52fd3c8d",
               "key": "[\"小路\",\"xiaolu-d5n-x98\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我这就往居民楼B院里来，人马上到。手里**六块现成矿**，三金一块，一共十八金，你点头就当场过手，钱货两清。你不是想跟小砾搭伙？她还在酒馆等你，价咬死三金一块、留八块给你。你钱要够，先收我这六块，回头再去跟她把八块谈死——两笔都办，你矿就囤足了。\",\"topic\":\"六块矿当面出\"}",
+              "id": "a0310c42fdec45e0aec624850af1809a",
+              "key": "[\"小路\",\"xiaolu-d6m-x100\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，提醒一句，不是催债，是把账摆明白：昨天晌午在居民楼A院里，我**当面递你一块矿，说好三金现钱现货**，账我写在册子上——你那一头至今没点。\\n\\n我如今也不宽裕：七金现钱、六块矿，还替人寄卖着货。三金不多，可账一模糊，往后什么买卖都难做。\\n\\n你哪天在哪处，捎个话，我过去当面收；或者你把钱托小路带给我，让他做个见证。若你手头真紧，也实说一句，我不逼人，宽限几日写明白就成——但别不吭声。\\n\\n另外那块矿你要不要第二块，也说一句：三金一块，价还是柜台价。\",\"topic\":\"三金的账\"}",
+              "id": "5db011c73e264e7da71037352caa7d78",
+              "key": "[\"悦\",\"yue-ason-debt-26\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，柜台又空了，我六块矿背过去换不出钱。我现在就往酒馆去，你要是也在，就当面把买卖做了：**六块矿、三金一块、十八金**，你点钱我点矿，一清二楚。你买我这六块，小砾那八块你回头再谈；钱不够就先要四块，十二金，剩下的我压着等你。\",\"topic\":\"酒馆当面交易\"}",
+              "id": "970ebfe4c763429eb0ad3334a018974e",
+              "key": "[\"小路\",\"xiaolu-d6m-x101\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，听说你手上有廿五金、正三金一块收矿。我人在矿坑口，手里三十二块，**三金一块，你要多少我当面点你多少**，比小砾那边你不必两头跑——我就在坑口不动。你要八块，我给你八块，廿四金，一手矿一手钱。你要是钱紧，四块也行。等你一句话。\",\"topic\":\"矿坑口·三金一块\"}",
+              "id": "5097f23933684e4fb03e9d647a05f723",
+              "key": "[\"阿石\",\"d6-asen-ore-offer-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我把话说到明处：**我人在矿坑一线，手里三十七块矿，三金一块等你**。你要八块，我八块当面点，廿四金；你要四块也成。小砾的八块你收不收我不管，我这边的矿是现成摆着的，你带钱来就成——我不拖、不抬价、不赊。你回一句准地方，我背过去也行。\",\"topic\":\"三金一块·等你来\"}",
+              "id": "532e78650a094ef9b9a9c77aff7e10d8",
+              "key": "[\"阿石\",\"d6-asen-urgent-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我下坑这两天出的货都在身上：**矿石十四块、黄金一块**。\\n\\n价摆明：**矿石三金一块**，黄金按柜台价十金，一块就给十金，不抬你的价。柜台这会儿还是\\\"资金不足\\\"，我不费那腿脚了，只认现钱。\\n\\n你要多少、什么时候要，回我一句：我人在镇上商店这一带，仓库就在身上，随叫随到。你若嫌多，五块十块也成，我不挑买家。\\n\\n你廿七根木材压着，我一直替你盯着柜台，一有活钱头一个报你——这话不作废。\",\"topic\":\"现钱收矿\"}",
+              "id": "bf2dc209ea4a44a18209d6d248b97253",
+              "key": "[\"小砾\",\"asen-d6-offer\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我替悦捎话，一句不改：一，你欠她**三金**（昨天晌午那块矿，现钱现货）；二，你欠小砾**十二金**（四块矿，三金一块）。悦的原话是——这两笔不结清，镇上收矿的买卖就做到你这儿为止。你回我一句准话，结还是不结、几时结，我原样带回去，不添油不加醋。你要是想谈我手里那几块矿，一并说。\",\"topic\":\"悦捎话·两笔账\"}",
+              "id": "10fac3589f7e41999de26a6b77288cfd",
+              "key": "[\"小路\",\"xiaolu-d6e-x106\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，两句实在话一起带到。头一句是悦托我捎的：**你和她们那十五金的账不清，买卖就先停**——她原话，我照转。第二句是我自己的：矿坑口摆着三十九块矿，三金一块，你要现钱收就带钱来，当面点清；你钱要先拿去清账，我也不催，清了账再来找我。做买卖先做信，这道理你比我懂。\",\"topic\":\"捎话·账清再买卖\"}",
+              "id": "35ecc7647d1f4c06a697f4cf36e357c4",
+              "key": "[\"阿石\",\"d6-asen-relay-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我半夜了还在找你。悦那话你收到没有？一句准话就成：你欠悦三金、欠小砾十二金，几时结、结不结？我明早就要回她话，你要是不回，我就照实说\\\"阿森没回话\\\"，这话传出去，往后镇上谁还敢跟你做买卖，你自己掂量。我要的只是你一句话，不难为你。\",\"topic\":\"只要一句准话\"}",
+              "id": "086ab0601e49425b9723fb9ac9e3b977",
+              "key": "[\"小路\",\"xiaolu-d6n-x110\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，三金点清了，账我划掉，往后好说话。你这人认账，我记你这一点。\\n\\n斧锯四金一件的价我不接，话说透你别多心：**我手里十金是全家的活钱**，我一个有身子的人，买第二件工具搁在楼里，不如留着买粮、留着急用。斧我已经有一把了。\\n\\n可你那条路子是对的，我替你把话补全：**你买工具，柜台进钱，柜台收你的木料——这盘要转，就得有人一轮一轮地买。** 你要真想让你那二十七根木料卖得动，别光等别人掏钱：**每卖掉几根，就再买一件工具**，柜台一有活钱，我的矿、你的木料、小砾的黄金（她有一块，值十金）都能出货。谁的货排在前头，就看谁先让柜台进水。\\n\\n我这边替你盯着：柜台一响，头一个递话给你。\",\"topic\":\"四金斧锯·不接·补一条路\"}",
+              "id": "76e0b462c1884f79976a7a8cd68c0b64",
+              "key": "[\"悦\",\"yue-ason-tool-decline\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，咱俩都在酒馆，当面说最省事：我手里四十八块矿，**三金一块**。你要多少说个数，规矩是**先钱后货**——你把金转我账上，我当场点矿给你，一块不少。你别嫌我先钱，你我头回做大买卖，账清才长久；你欠小砾和悦那十五金先还了，剩下的钱买几块都成，四块、八块我都有货。你要点头，就把数说给我。\",\"topic\":\"酒馆当面：先钱后货\"}",
+              "id": "796e981293b94631a2e20d45f4d11187",
+              "key": "[\"阿石\",\"d6-asen-tavern-deal\"]"
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 3,
           "members": [
             {
+              "tool": "mod_71e6e62c96a5ee0ef14d0e43",
               "description": "阿森 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
-              "factory_module": "messages.box",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1622,13 +1629,13 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_71e6e62c96a5ee0ef14d0e43",
+              "modules": [],
+              "factory_module": "messages.box",
               "factory_key": "send"
             },
             {
+              "tool": "mod_51acb25bbd9968e819fe7644",
               "description": "阿森 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
-              "factory_module": "messages.box",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1643,34 +1650,34 @@
                 },
                 "type": "object"
               },
-              "tool": "mod_51acb25bbd9968e819fe7644",
+              "modules": [],
+              "factory_module": "messages.box",
               "factory_key": "read"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "messages.relay",
+        "description": "",
         "channels": [
           "chat",
           "records",
           "self"
         ],
-        "config": {},
-        "description": "",
-        "module_id": "messages.relay",
+        "strength": 2,
+        "channel_mode": "allow",
         "modules": [
           "messages.box"
         ],
+        "config": {},
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 4,
           "members": [
             {
+              "tool": "send_to",
               "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
-              "factory_module": "messages.relay",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1706,14 +1713,16 @@
                 ],
                 "type": "object"
               },
-              "tool": "send_to",
+              "modules": [],
+              "factory_module": "messages.relay",
               "factory_key": "send_to"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "context.assembler",
+        "description": "上下文组装器",
         "channels": [
           "context.assembler",
           "context.assembler.system_prompt",
@@ -1721,6 +1730,9 @@
           "context.assembler.inputs",
           "context.assembler.tail"
         ],
+        "strength": 4,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "channels": [
             "context.assembler"
@@ -1738,26 +1750,23 @@
             "context.assembler.tail"
           ]
         },
-        "description": "上下文组装器",
-        "module_id": "context.assembler",
-        "modules": [],
-        "strength": 4,
         "tools": {
           "group": 5,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "agents.memory",
+        "description": "",
         "channels": [
           "self"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "max_memories": 100
         },
-        "description": "",
-        "module_id": "agents.memory",
-        "modules": [],
         "state": {
           "memories": [
             {
@@ -1766,14 +1775,12 @@
             }
           ]
         },
-        "strength": 0,
         "tools": {
           "group": 6,
           "members": [
             {
+              "tool": "remember",
               "description": "把一段个人经历或知识写入自己的私人记忆。",
-              "factory_module": "agents.memory",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1796,13 +1803,13 @@
                 ],
                 "type": "object"
               },
-              "tool": "remember",
+              "modules": [],
+              "factory_module": "agents.memory",
               "factory_key": "remember"
             },
             {
+              "tool": "recall",
               "description": "按关键词子串检索自己的私人记忆。",
-              "factory_module": "agents.memory",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1815,14 +1822,16 @@
                 },
                 "type": "object"
               },
-              "tool": "recall",
+              "modules": [],
+              "factory_module": "agents.memory",
               "factory_key": "recall"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "places.query",
+        "description": "",
         "channels": [
           "self",
           "records",
@@ -1830,6 +1839,12 @@
           "info",
           "location",
           "road"
+        ],
+        "strength": 12,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store",
+          "place.info"
         ],
         "config": {
           "map_title": "奈镇地图",
@@ -1844,39 +1859,31 @@
             "road"
           ]
         },
-        "description": "",
-        "module_id": "places.query",
-        "modules": [
-          "records.store",
-          "place.info"
-        ],
+        "state": {},
         "published": {
           "age_group": "adult",
           "gender": "male",
           "name": "阿森",
           "profession": "伐木工"
         },
-        "state": {},
-        "strength": 12,
         "tools": {
           "group": 7,
           "members": [
             {
+              "tool": "look",
               "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
-              "factory_module": "places.query",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "look",
+              "modules": [],
+              "factory_module": "places.query",
               "factory_key": "look"
             },
             {
+              "tool": "place",
               "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
-              "factory_module": "places.query",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1887,41 +1894,43 @@
                 },
                 "type": "object"
               },
-              "tool": "place",
+              "modules": [],
+              "factory_module": "places.query",
               "factory_key": "place"
             },
             {
+              "tool": "map",
               "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
-              "factory_module": "places.query",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "map",
+              "modules": [],
+              "factory_module": "places.query",
               "factory_key": "map"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "records.transfer",
+        "description": "",
         "channels": [
           "self",
           "chat",
           "location"
         ],
-        "config": {
-          "cost": 1,
-          "same_location": true
-        },
-        "description": "",
-        "module_id": "records.transfer",
+        "strength": 2,
+        "channel_mode": "allow",
         "modules": [
           "records.store",
           "place.info"
         ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
         "state": {
           "receipts": [
             {
@@ -1947,17 +1956,27 @@
                 "resource": "ore",
                 "to": "小砾"
               }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":3,\"recipient\":\"悦\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:阿森:阿森:give:pay-yue-ore3-d6",
+              "result": {
+                "ap": 2,
+                "duplicate": false,
+                "from": "阿森",
+                "quantity": 3,
+                "resource": "coins",
+                "to": "悦"
+              }
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 8,
           "members": [
             {
+              "tool": "give",
               "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
-              "factory_module": "records.transfer",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1994,21 +2013,22 @@
                 ],
                 "type": "object"
               },
-              "tool": "give",
+              "modules": [],
+              "factory_module": "records.transfer",
               "factory_key": "give"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "tool_discovery",
+        "description": "串联工具发现",
         "channels": [
           "movement"
         ],
-        "description": "串联工具发现",
-        "module_id": "tool_discovery",
-        "modules": [],
         "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
         "tools": {
           "group": 9,
           "members": []
@@ -2025,8 +2045,8 @@
           "group": 11,
           "members": [
             {
+              "tool": "memory_query",
               "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2036,11 +2056,11 @@
                 },
                 "type": "object"
               },
-              "tool": "memory_query"
+              "modules": []
             },
             {
+              "tool": "memory_modify",
               "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2058,11 +2078,11 @@
                 ],
                 "type": "object"
               },
-              "tool": "memory_modify"
+              "modules": []
             },
             {
+              "tool": "memory_append",
               "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2075,12 +2095,311 @@
                 ],
                 "type": "object"
               },
-              "tool": "memory_append"
+              "modules": []
             }
           ]
+        },
+        {
+          "tool": "ext_71bfeb42df3e0c52c5148877",
+          "description": "运行当前调用节点自己的 Agent；不能在节点事务中等待模型。",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "modules": [],
+          "host_ref": "runtime:agent_run"
         }
       ]
     }
   },
-  "type": "agent"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "存档点",
+      "channels": [
+        "tick"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "小砾",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "林",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "小路",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "阿石",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "老铁",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "悦",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "奈镇世界规则",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "阿森人格",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "阿森开场白",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "成年常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "伐木常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "酒馆",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    }
+  ],
+  "agent": {
+    "inputs": {
+      "module:place.info": {
+        "system_prompt": "",
+        "context": [],
+        "inputs": [],
+        "tail": [
+          "当前位置：酒馆\n酒馆：镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。"
+        ]
+      },
+      "prepare:阿森:context.assembler:assemble": {
+        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫阿森，二十五岁，是镇上的伐木工。你力气大、性子直，喜欢树林里的安静，也不爱受人欺负。",
+        "context": [
+          {
+            "id": "node:成年常识",
+            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
+          },
+          {
+            "id": "node:伐木常识",
+            "text": "伐木工常识：树林用斧头砍柴，每次花六点行动值得到三根木材；木材可以卖给商店，每根两金币。"
+          }
+        ],
+        "inputs": [
+          {
+            "id": "node:阿森开场白/once",
+            "text": "清早，你扛着斧头从居民楼B出来，想着今天砍几担木材卖给商店。",
+            "delivery": "followup",
+            "status": "delivered"
+          }
+        ],
+        "tail": [
+          "当前时间：第6天 午夜（总 tick：30）"
+        ]
+      }
+    }
+  },
+  "data": {
+    "type": "markdown",
+    "path": "data/阿森.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": {
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "executor": "harness",
+    "max_steps": 10000,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "self"
+        ],
+        "module": "places.query",
+        "node": "阿森",
+        "operation": "publish"
+      },
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.assembler",
+        "node": "阿森",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 2,
+    "timeout_seconds": 180
+  }
 }

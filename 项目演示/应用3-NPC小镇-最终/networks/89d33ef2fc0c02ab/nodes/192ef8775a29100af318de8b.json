@@ -1,62 +1,30 @@
 {
-  "aggregation": "sum",
-  "bias": -1,
-  "description": "",
-  "execution": null,
-  "links": [
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "铁匠铺",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "树林",
-      "threshold": 1
-    }
-  ],
-  "name": "矿坑",
+  "type": "node",
   "node_id": "矿坑",
+  "name": "矿坑",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "镇外的矿坑，岩壁里有矿石，也能碰运气挖到黄金。",
           "visitors": [],
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "visitors": []
+        },
         "published": {
           "description": "镇外的矿坑，岩壁里有矿石，也能碰运气挖到黄金。",
           "location": null,
@@ -65,22 +33,24 @@
           "visit": 0,
           "visitors": []
         },
-        "state": {
-          "visitors": []
-        },
-        "strength": 0,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "movement.here",
+        "description": "",
         "channels": [
           "road",
           "location",
           "records",
           "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
         ],
         "config": {
           "before_hooks": [
@@ -93,6 +63,14 @@
               "module": "records.store",
               "operation": "apply",
               "target": "requester"
+            },
+            {
+              "arguments": {
+                "trigger": "arrive"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "destination"
             }
           ],
           "location_channels": [
@@ -101,47 +79,42 @@
           ],
           "timeout_seconds": 60
         },
-        "description": "",
-        "module_id": "movement.here",
-        "modules": [
-          "place.info"
-        ],
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 1,
           "members": [
             {
+              "tool": "mod_c287b98ad43f72abb83c0cd9",
               "description": "矿坑 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
-              "factory_module": "movement.here",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "required": [],
                 "type": "object"
               },
-              "tool": "mod_c287b98ad43f72abb83c0cd9",
+              "modules": [],
+              "factory_module": "movement.here",
               "factory_key": "move_here"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "records.store",
+        "description": "",
         "channels": [
           "records",
           "road",
           "location"
         ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "initial": {},
           "minimum": {},
           "references": []
         },
-        "description": "",
-        "module_id": "records.store",
-        "modules": [],
         "state": {
           "receipts": [
             {
@@ -605,24 +578,161 @@
               "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-e\",\"local\"]",
               "references": [],
               "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6n-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6n-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6n-3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6n-4\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6n-5\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-mine-d\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-mine-e\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6a-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6a-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6a-3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6a-4\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d6a-5\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-pm-mine-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-pm-mine-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-eve-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-eve-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-eve-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-eve-mine-d\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d6-eve-mine-e\",\"local\"]",
+              "references": [],
+              "values": {}
             }
           ],
           "references": [],
           "values": {}
         },
-        "strength": 1,
         "tools": {
           "group": 2,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "service.actions",
+        "description": "",
         "channels": [
           "service",
           "records",
           "movement",
           "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
         ],
         "config": {
           "actions": [
@@ -640,13 +750,21 @@
             }
           ],
           "address": "矿坑",
+          "after_hooks": [
+            {
+              "actions": [
+                "mine"
+              ],
+              "arguments": {
+                "trigger": "mine"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "local"
+            }
+          ],
           "events": []
         },
-        "description": "",
-        "module_id": "service.actions",
-        "modules": [
-          "records.store"
-        ],
         "state": {
           "event_counts": {},
           "receipts": [
@@ -3274,29 +3392,1108 @@
                   "role": "miner"
                 }
               }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6n-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [
+                        "你挖到一小块金灿灿的东西，黄金+1。"
+                      ],
+                      "rewards": {
+                        "gold": 1
+                      }
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 5,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6n-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "gold": 1,
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 6,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6n-3",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "gold": 1,
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 7,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6n-4",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "gold": 1,
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 8,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6n-5",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "gold": 1,
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 9,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 33,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 34,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 35,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-mine-d",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 36,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-mine-e",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 37,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6a-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "gold": 1,
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 10,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6a-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "gold": 1,
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 11,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6a-3",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "gold": 1,
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 12,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6a-4",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "gold": 1,
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 13,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d6a-5",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 65,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "gold": 1,
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 14,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-pm-mine-1",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 38,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-pm-mine-2",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 39,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-eve-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 40,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-eve-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 41,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-eve-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 42,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-eve-mine-d",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 43,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d6-eve-mine-e",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "duck_smith": 2,
+                        "gold": 1
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 17,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 44,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 3,
           "members": [
             {
+              "tool": "mod_d8bc161ea7e4a435bfb56cab",
               "description": "矿坑 · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_d8bc161ea7e4a435bfb56cab",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_4518b4705531f6a9d966295c",
               "description": "矿坑 · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -3326,15 +4523,67 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_4518b4705531f6a9d966295c",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "perform"
             }
           ]
         }
+      },
+      {
+        "module_id": "events.chance",
+        "description": "",
+        "channels": [
+          "events",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "events": [
+            {
+              "id": "gold",
+              "limit": 1,
+              "probability": 1,
+              "rewards": {
+                "gold": 1
+              },
+              "text": "你挖到一小块金灿灿的东西，黄金+1。",
+              "triggers": [
+                "mine"
+              ]
+            },
+            {
+              "id": "duck_smith",
+              "limit": 2,
+              "probability": 1,
+              "rewards": {},
+              "text": "一块矿石上竟写着：铁匠其实是三只鸭子叠起来假扮的。你也不知道该不该信。",
+              "triggers": [
+                "mine",
+                "arrive"
+              ]
+            }
+          ]
+        },
+        "state": {
+          "counts": {
+            "duck_smith": 2,
+            "gold": 1
+          }
+        },
+        "tools": {
+          "group": 4,
+          "members": []
+        }
       }
     ],
     "tools": {
-      "group": 4,
+      "group": 5,
       "members": [
         {
           "modules": true
@@ -3342,5 +4591,41 @@
       ]
     }
   },
-  "type": "node"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "铁匠铺",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "树林",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    }
+  ],
+  "execution": null
 }

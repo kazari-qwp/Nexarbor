@@ -1,0 +1,7 @@
+# 第六天概率事件续跑
+
+来源为原configs/npc_town_v3/network.json，events.json保留10项原事件、触发入口、奖励、次数上限及原概率。本次仅把概率改为1，便于在最后5时刻观察触发；不改原采集、移动、资源和家庭业务。events.chance通过原移动before_hooks和服务after_hooks接入；依赖records.store由现有安装器装配。
+
+client.mjs prepare从已交付25时刻项目建立独立续跑项目，确认业务文件、信号与7个历史仍在；密钥只经既有DPAPI连接保存于build的独立models目录。run使用Playwright控制真实Electron，点击运行5时刻，只读轮询不启动脉冲，记录唯一run HTTP请求及返回、实际DSH usage、事件计数、截图和冷恢复。没有使用Computer Use或模型替身。
+
+运行需要进程环境中的DEEPSEEK_API_KEY，可选DEEPSEEK_BASE_URL/DEEPSEEK_MODEL；不要把密钥写入项目或提交。所有临时产物在目标项目build内。准备和付费运行分开，未通过预检时不得启动模型。最终交付和统计见docs/migration/TOWN_SIXTH_DAY_RESULT.md。

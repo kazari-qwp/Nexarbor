@@ -1,126 +1,33 @@
 {
-  "aggregation": "sum",
-  "bias": -1,
-  "description": "",
-  "execution": null,
-  "links": [
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "居民楼A",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "居民楼B",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "商店",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "location"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "location",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "小路",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "location"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "location",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "林",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "location"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "location",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "小砾",
-      "threshold": 1
-    }
-  ],
-  "name": "酒馆",
+  "type": "node",
   "node_id": "酒馆",
+  "name": "酒馆",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。",
           "visitors": [],
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "visitors": [
+            "阿森",
+            "阿石"
+          ]
+        },
         "published": {
           "description": "镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。",
           "location": null,
@@ -128,31 +35,28 @@
           "node_id": "酒馆",
           "visit": 0,
           "visitors": [
-            "小砾",
-            "小路",
-            "林"
+            "阿森",
+            "阿石"
           ]
         },
-        "state": {
-          "visitors": [
-            "小砾",
-            "小路",
-            "林"
-          ]
-        },
-        "strength": 0,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "movement.here",
+        "description": "",
         "channels": [
           "road",
           "location",
           "records",
           "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
         ],
         "config": {
           "before_hooks": [
@@ -165,6 +69,14 @@
               "module": "records.store",
               "operation": "apply",
               "target": "requester"
+            },
+            {
+              "arguments": {
+                "trigger": "arrive"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "destination"
             }
           ],
           "location_channels": [
@@ -173,39 +85,37 @@
           ],
           "timeout_seconds": 60
         },
-        "description": "",
-        "module_id": "movement.here",
-        "modules": [
-          "place.info"
-        ],
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 1,
           "members": [
             {
+              "tool": "mod_b2b22de3c9a2c8199be12b60",
               "description": "酒馆 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
-              "factory_module": "movement.here",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "required": [],
                 "type": "object"
               },
-              "tool": "mod_b2b22de3c9a2c8199be12b60",
+              "modules": [],
+              "factory_module": "movement.here",
               "factory_key": "move_here"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "records.store",
+        "description": "",
         "channels": [
           "records",
           "road",
           "location"
         ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "initial": {
             "coins": 0,
@@ -214,9 +124,6 @@
           "minimum": {},
           "references": []
         },
-        "description": "",
-        "module_id": "records.store",
-        "modules": [],
         "state": {
           "receipts": [
             {
@@ -334,19 +241,24 @@
             "drinks": 8
           }
         },
-        "strength": 1,
         "tools": {
           "group": 2,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "service.actions",
+        "description": "",
         "channels": [
           "service",
           "records",
           "movement",
           "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
         ],
         "config": {
           "actions": [
@@ -369,13 +281,21 @@
             }
           ],
           "address": "酒馆",
+          "after_hooks": [
+            {
+              "actions": [
+                "drink"
+              ],
+              "arguments": {
+                "trigger": "drink"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "local"
+            }
+          ],
           "events": []
         },
-        "description": "",
-        "module_id": "service.actions",
-        "modules": [
-          "records.store"
-        ],
         "state": {
           "event_counts": {},
           "receipts": [
@@ -763,26 +683,24 @@
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 3,
           "members": [
             {
+              "tool": "mod_3d4a7fa6d7b59398225f12ee",
               "description": "酒馆 · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_3d4a7fa6d7b59398225f12ee",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_a5cf53f1d4cc616500bded2b",
               "description": "酒馆 · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -812,15 +730,54 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_a5cf53f1d4cc616500bded2b",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "perform"
             }
           ]
         }
+      },
+      {
+        "module_id": "events.chance",
+        "description": "",
+        "channels": [
+          "events",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "events": [
+            {
+              "id": "pumpkin",
+              "limit": 3,
+              "probability": 1,
+              "rewards": {},
+              "text": "你听到离谱传闻：南瓜镇长准备让猫轮流值夜班，工资是会唱歌的鱼。",
+              "triggers": [
+                "drink",
+                "arrive"
+              ]
+            }
+          ]
+        },
+        "state": {
+          "counts": {
+            "pumpkin": 3
+          }
+        },
+        "tools": {
+          "group": 4,
+          "members": []
+        }
       }
     ],
     "tools": {
-      "group": 4,
+      "group": 5,
       "members": [
         {
           "modules": true
@@ -828,5 +785,89 @@
       ]
     }
   },
-  "type": "node"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "居民楼A",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "居民楼B",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "商店",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "阿森",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    },
+    {
+      "target_id": "阿石",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    }
+  ],
+  "execution": null
 }

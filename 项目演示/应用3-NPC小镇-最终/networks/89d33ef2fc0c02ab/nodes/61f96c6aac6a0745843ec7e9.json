@@ -1,118 +1,60 @@
 {
-  "aggregation": "sum",
-  "bias": -1,
-  "description": "",
-  "execution": null,
-  "links": [
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "居民楼A",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "居民楼B",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "酒馆",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "铁匠铺",
-      "threshold": 1
-    }
-  ],
-  "name": "商店",
+  "type": "node",
   "node_id": "商店",
+  "name": "商店",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "杂货商店，货架上摆着锯和斧，柜台收矿石、木材和黄金。",
           "visitors": [],
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "visitors": [
+            "小砾"
+          ]
+        },
         "published": {
           "description": "杂货商店，货架上摆着锯和斧，柜台收矿石、木材和黄金。",
           "location": null,
           "name": "商店",
           "node_id": "商店",
           "visit": 0,
-          "visitors": []
+          "visitors": [
+            "小砾"
+          ]
         },
-        "state": {
-          "visitors": []
-        },
-        "strength": 0,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "movement.here",
+        "description": "",
         "channels": [
           "road",
           "location",
           "records",
           "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
         ],
         "config": {
           "before_hooks": [
@@ -125,6 +67,14 @@
               "module": "records.store",
               "operation": "apply",
               "target": "requester"
+            },
+            {
+              "arguments": {
+                "trigger": "arrive"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "destination"
             }
           ],
           "location_channels": [
@@ -133,39 +83,37 @@
           ],
           "timeout_seconds": 60
         },
-        "description": "",
-        "module_id": "movement.here",
-        "modules": [
-          "place.info"
-        ],
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 1,
           "members": [
             {
+              "tool": "mod_a9955f2f2c1949074abd1a12",
               "description": "商店 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
-              "factory_module": "movement.here",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "required": [],
                 "type": "object"
               },
-              "tool": "mod_a9955f2f2c1949074abd1a12",
+              "modules": [],
+              "factory_module": "movement.here",
               "factory_key": "move_here"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "records.store",
+        "description": "",
         "channels": [
           "records",
           "road",
           "location"
         ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "initial": {
             "axe": 5,
@@ -178,35 +126,38 @@
           "minimum": {},
           "references": []
         },
-        "description": "",
-        "module_id": "records.store",
-        "modules": [],
         "state": {
           "receipts": [],
           "references": [],
           "values": {
-            "axe": 3,
-            "coins": 2,
+            "axe": 2,
+            "coins": 0,
             "gold": 0,
             "ore": 13,
-            "saw": 4,
-            "wood": 12
+            "saw": 3,
+            "wood": 18
           }
         },
-        "strength": 1,
         "tools": {
           "group": 2,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "shop.market",
+        "description": "",
         "channels": [
           "service",
           "road",
           "records",
           "movement",
           "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store",
+          "place.info"
         ],
         "config": {
           "cost": 1,
@@ -244,12 +195,6 @@
             }
           ]
         },
-        "description": "",
-        "module_id": "shop.market",
-        "modules": [
-          "records.store",
-          "place.info"
-        ],
         "state": {
           "receipts": [
             {
@@ -383,29 +328,82 @@
                 "total": 3
               },
               "signature": "[\"sell\", \"ore\", 1]"
+            },
+            {
+              "key": "阿森\u001fsell-d6-pm-wood1",
+              "result": {
+                "duplicate": false,
+                "item": "wood",
+                "operation": "sell",
+                "quantity": 1,
+                "total": 2
+              },
+              "signature": "[\"sell\", \"wood\", 1]"
+            },
+            {
+              "key": "阿森\u001fbuy-axe-d6-eve",
+              "result": {
+                "duplicate": false,
+                "item": "axe",
+                "operation": "buy",
+                "quantity": 1,
+                "total": 5
+              },
+              "signature": "[\"buy\", \"axe\", 1]"
+            },
+            {
+              "key": "阿森\u001fsell-d6-eve-wood2b",
+              "result": {
+                "duplicate": false,
+                "item": "wood",
+                "operation": "sell",
+                "quantity": 2,
+                "total": 4
+              },
+              "signature": "[\"sell\", \"wood\", 2]"
+            },
+            {
+              "key": "阿森\u001fbuy-saw-d6-eve",
+              "result": {
+                "duplicate": false,
+                "item": "saw",
+                "operation": "buy",
+                "quantity": 1,
+                "total": 5
+              },
+              "signature": "[\"buy\", \"saw\", 1]"
+            },
+            {
+              "key": "阿森\u001fsell-d6-eve-wood3",
+              "result": {
+                "duplicate": false,
+                "item": "wood",
+                "operation": "sell",
+                "quantity": 3,
+                "total": 6
+              },
+              "signature": "[\"sell\", \"wood\", 3]"
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 3,
           "members": [
             {
+              "tool": "mod_db998f8bc0a23a8e7ed03524",
               "description": "商店 · 查看价目表 · 查看商品售价、回收价和当前库存。",
-              "factory_module": "shop.market",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_db998f8bc0a23a8e7ed03524",
+              "modules": [],
+              "factory_module": "shop.market",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_9ab30edf05d099f5eb08367b",
               "description": "商店 · 购买商品 · 按售价购买指定商品和数量，须本人在商店。",
-              "factory_module": "shop.market",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -430,13 +428,13 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_9ab30edf05d099f5eb08367b",
+              "modules": [],
+              "factory_module": "shop.market",
               "factory_key": "buy"
             },
             {
+              "tool": "mod_817e8caa287db4d41e09ce66",
               "description": "商店 · 出售商品 · 按回收价出售指定商品和数量，须本人在商店。",
-              "factory_module": "shop.market",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -461,15 +459,56 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_817e8caa287db4d41e09ce66",
+              "modules": [],
+              "factory_module": "shop.market",
               "factory_key": "sell"
             }
           ]
         }
+      },
+      {
+        "module_id": "events.chance",
+        "description": "",
+        "channels": [
+          "events",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "events": [
+            {
+              "id": "singing",
+              "limit": 2,
+              "probability": 1,
+              "rewards": {},
+              "text": "货架上的一根胡萝卜突然唱起账单，店里的人说是打折闹的。",
+              "triggers": [
+                "buy_pickaxe",
+                "buy_axe",
+                "sell_ore",
+                "arrive"
+              ]
+            }
+          ]
+        },
+        "state": {
+          "counts": {
+            "singing": 2
+          }
+        },
+        "tools": {
+          "group": 4,
+          "members": []
+        }
       }
     ],
     "tools": {
-      "group": 4,
+      "group": 5,
       "members": [
         {
           "modules": true
@@ -477,5 +516,89 @@
       ]
     }
   },
-  "type": "node"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "居民楼A",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "居民楼B",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "酒馆",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "铁匠铺",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "小砾",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    }
+  ],
+  "execution": null
 }

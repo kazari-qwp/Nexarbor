@@ -1,318 +1,21 @@
 {
-  "agent": {
-    "inputs": {
-      "module:place.info": {
-        "context": [],
-        "inputs": [],
-        "system_prompt": "",
-        "tail": [
-          "当前位置：居民楼A\n居民楼A：两层木屋，住着小砾、林和悦；门廊挂着住户名牌。"
-        ]
-      },
-      "prepare:悦:context.assembler:assemble": {
-        "context": [
-          {
-            "id": "node:成年常识",
-            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
-          },
-          {
-            "id": "node:可怀孕常识",
-            "text": "可怀孕者常识：如果你和伴侣在居民楼共同同意家庭计划，你会记录怀孕起始时刻；满十个时段后，由你本人到医院办理生产。"
-          },
-          {
-            "id": "node:居民常识",
-            "text": "居民常识：酒馆可以喝一杯恢复行动值，商店买卖锯、斧、矿石、木材和黄金；修镐去铁匠铺，采矿石去矿坑，砍木材去树林。"
-          }
-        ],
-        "inputs": [
-          {
-            "delivery": "followup",
-            "id": "node:悦开场白/once",
-            "status": "delivered",
-            "text": "阳光照进居民楼A。你整理好屋子，想去酒馆或者商店看看今天有什么新鲜事。"
-          }
-        ],
-        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫悦，二十四岁，是镇上的居民。你细心、爱聊天，记得住每个人的喜好，也愿意把日子过得有条有理。",
-        "tail": [
-          "当前时间：第5天 午夜（总 tick：25）"
-        ]
-      }
-    }
-  },
-  "aggregation": "sum",
-  "bias": -1,
-  "data": {
-    "directory": false,
-    "path": "data/悦.md",
-    "save_data": true,
-    "type": "markdown"
-  },
-  "description": "",
-  "execution": {
-    "channels": [
-      "self",
-      "records",
-      "location",
-      "road",
-      "movement",
-      "service",
-      "chat",
-      "agreements",
-      "runtime.agent",
-      "context.assembler",
-      "context.assembler.system_prompt",
-      "context.assembler.context",
-      "context.assembler.inputs",
-      "context.assembler.tail"
-    ],
-    "executor": "harness",
-    "max_steps": 10000,
-    "prepare": [
-      {
-        "arguments": {},
-        "channels": [
-          "self"
-        ],
-        "module": "places.query",
-        "node": "悦",
-        "operation": "publish"
-      },
-      {
-        "arguments": {},
-        "channels": [
-          "context.assembler"
-        ],
-        "module": "context.assembler",
-        "node": "悦",
-        "operation": "assemble"
-      }
-    ],
-    "strength": 2,
-    "timeout_seconds": 180
-  },
-  "links": [
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "tick"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "存档点",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "小砾",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "林",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "小路",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "阿森",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "阿石",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "social"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "chat"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "老铁",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.system_prompt"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "奈镇世界规则",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.system_prompt"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "悦人格",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.inputs"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "悦开场白",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.tail"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "世界时间",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.context"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "成年常识",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.context"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "可怀孕常识",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "context.assembler.context"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "居民常识",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "location"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "location",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "居民楼A",
-      "threshold": 1
-    }
-  ],
-  "name": "悦",
+  "type": "agent",
   "node_id": "悦",
+  "name": "悦",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "records.store",
+        "description": "",
         "channels": [
           "records",
           "road",
           "location"
         ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "initial": {
             "adult": true,
@@ -345,9 +48,6 @@
             }
           ]
         },
-        "description": "",
-        "module_id": "records.store",
-        "modules": [],
         "state": {
           "receipts": [
             {
@@ -891,6 +591,196 @@
                 "saw": 0,
                 "wood": 0
               }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "居民楼A:悦:yue-family-plan-2",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "悦"
+                },
+                {
+                  "key": "name",
+                  "node_id": "悦"
+                },
+                {
+                  "key": "spouse",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 3,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 7,
+                "gender": "female",
+                "is_parent": false,
+                "married": true,
+                "ore": 6,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident",
+                "saw": 0,
+                "wood": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"悦\",\"yue-rest-d6\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "悦"
+                },
+                {
+                  "key": "name",
+                  "node_id": "悦"
+                },
+                {
+                  "key": "spouse",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 6,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 7,
+                "gender": "female",
+                "is_parent": false,
+                "married": true,
+                "ore": 6,
+                "planning": true,
+                "pregnancy": {
+                  "home": "居民楼A",
+                  "id": "a44a6d7fcbac3f30059f2ff256ae8223",
+                  "parents": [
+                    "悦",
+                    "林"
+                  ],
+                  "start_tick": 28
+                },
+                "pregnant": true,
+                "profession": "居民",
+                "role": "resident",
+                "saw": 0,
+                "wood": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"悦\",\"yue-rest-d6-eve\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "悦"
+                },
+                {
+                  "key": "name",
+                  "node_id": "悦"
+                },
+                {
+                  "key": "spouse",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 7,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 7,
+                "gender": "female",
+                "is_parent": false,
+                "married": true,
+                "ore": 6,
+                "planning": true,
+                "pregnancy": {
+                  "home": "居民楼A",
+                  "id": "a44a6d7fcbac3f30059f2ff256ae8223",
+                  "parents": [
+                    "悦",
+                    "林"
+                  ],
+                  "start_tick": 28
+                },
+                "pregnant": true,
+                "profession": "居民",
+                "role": "resident",
+                "saw": 0,
+                "wood": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿森:阿森:give:pay-yue-ore3-d6:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "悦"
+                },
+                {
+                  "key": "name",
+                  "node_id": "悦"
+                },
+                {
+                  "key": "spouse",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 24,
+                "age_group": "adult",
+                "ap": 7,
+                "axe": 1,
+                "can_gestate": true,
+                "coins": 10,
+                "gender": "female",
+                "is_parent": false,
+                "married": true,
+                "ore": 6,
+                "planning": true,
+                "pregnancy": {
+                  "home": "居民楼A",
+                  "id": "a44a6d7fcbac3f30059f2ff256ae8223",
+                  "parents": [
+                    "悦",
+                    "林"
+                  ],
+                  "start_tick": 28
+                },
+                "pregnant": true,
+                "profession": "居民",
+                "role": "resident",
+                "saw": 0,
+                "wood": 0
+              }
             }
           ],
           "references": [
@@ -915,68 +805,83 @@
             "adult": true,
             "age": 24,
             "age_group": "adult",
-            "ap": 7,
+            "ap": 10,
             "axe": 1,
             "can_gestate": true,
-            "coins": 7,
+            "coins": 10,
             "gender": "female",
             "is_parent": false,
+            "married": true,
             "ore": 6,
-            "pregnant": false,
+            "planning": true,
+            "pregnancy": {
+              "home": "居民楼A",
+              "id": "a44a6d7fcbac3f30059f2ff256ae8223",
+              "parents": [
+                "悦",
+                "林"
+              ],
+              "start_tick": 28
+            },
+            "pregnant": true,
             "profession": "居民",
             "role": "resident",
-            "wood": 0,
             "saw": 0,
-            "married": true
+            "wood": 0
           }
         },
-        "strength": 1,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "居民悦",
           "location": "居民楼A",
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "location": "居民楼A",
+          "visit": 61
+        },
         "published": {
           "description": "居民悦",
           "location": "居民楼A",
           "name": "悦",
           "node_id": "悦",
-          "visit": 51,
+          "visit": 61,
           "visitors": []
         },
-        "state": {
-          "location": "居民楼A",
-          "visit": 51
-        },
-        "strength": 0,
         "tools": {
           "group": 1,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "agents.activity",
+        "description": "",
         "channels": [
           "tick",
           "records",
           "self",
           "runtime.agent"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
         ],
         "config": {
           "budget": 10,
@@ -987,16 +892,6 @@
           "signal_channels": [
             "tick"
           ]
-        },
-        "description": "",
-        "module_id": "agents.activity",
-        "modules": [
-          "records.store"
-        ],
-        "published": {
-          "最近完成活动键": "57404d95abc84cb5af994a41581b889a",
-          "活动完成次数": 25,
-          "活动状态": "已完成"
         },
         "state": {
           "activities": [
@@ -1174,31 +1069,71 @@
               "pending": false,
               "runs": 1,
               "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "087f392f28334e5eb9bd89bbd6deedbc",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "63b8910ac80641f7a7841f1c24b9028d",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "cbbeb69d1af44120bc14940dfe504178",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "e8827128d9764050af8868c14db9d093",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "70ec1323118849bcaef02b2c508ab389",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
             }
           ],
-          "completed_total": 25
+          "completed_total": 30
         },
-        "strength": 0,
+        "published": {
+          "最近完成活动键": "70ec1323118849bcaef02b2c508ab389",
+          "活动完成次数": 30,
+          "活动状态": "已完成"
+        },
         "tools": {
           "group": 2,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "messages.box",
+        "description": "",
         "channels": [
           "chat",
           "records"
         ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "max_messages": 200,
           "read_policy": "self",
           "require_agent": true,
           "send_cost": 0
         },
-        "description": "",
-        "module_id": "messages.box",
-        "modules": [],
         "state": {
           "messages": [
             {
@@ -1634,6 +1569,90 @@
               "text": "悦，你还在灶边，我把今天的账当着你说一遍，你记本子上：\n\n一，**阿森这单开了头**：我当面递他四块矿，三金一块，十二金；他钱还没到我账上，明天你替我盯着催一催——他是全镇唯一肯拿现钱收矿的，这单成了，往后矿石就有价。\n二，小路那两块，两金一块四金；他先前欠的那一金也点了，我对过账。\n三，我手上现在**矿石六块、金币五十九**；你手上三块寄卖的、加你自己那四块，账别混。\n四，明天我想做的事就三样：催阿森结十二金、把剩下六块按三金一块出掉、柜台一有活钱就通知阿森卖他那廿七根木材。\n\n这些天你不光替我看柜台，还替我把话算明白——这镇上肯把账摆到明面上写的人，我遇着你就一个。汤我这回喝上了，欠你的记着。",
               "to": "悦",
               "topic": "夜账"
+            },
+            {
+              "from": "阿石",
+              "id": "7e356d55c9a84ac297f6073034553be6",
+              "text": "悦，我人就在居民楼A门口，说话方便：你袋里那七金别全押在矿上，我懂。换个小的——**两块矿，四金**，你收着当修镐的本钱，等柜台回血你三金一块出手，还赚两金。你要是点头，我当场递你手里；不点头我也不缠，你那个背货的活我记着，哪天柜台真活了我头一个喊你。",
+              "to": "悦",
+              "topic": "两块矿四金"
+            },
+            {
+              "from": "林",
+              "id": "cd5861963e454a1fa170c24feb11a699",
+              "text": "悦，我回来了，人在楼门口，灶上的汤还温着，却不见你人。家庭计划要两人当面各点一次头，缺一个都不算——我这一头随时能点，只等你进门喊我一声。\n\n我这就得回酒馆一趟：阿森那单是镇上唯一能把矿换成现钱的买卖，小砾和他都在等，我答应过替她结算，不能半路撒手。你若在家，先坐着；我从酒馆回来就找你，咱们当着面把名字写在一处。别为阿森欠你三金的事生气，我替你要。",
+              "to": "悦",
+              "topic": "回家不见你"
+            },
+            {
+              "from": "林",
+              "id": "fcad8e39c2a94e7ab0a0d1723947e8ad",
+              "text": "悦，我在柜台前站了一会儿，把实况摸清了：**锯少一把、斧少一把、矿石多三块**——这两天有人花十金买工具，柜台那点活钱又被三块矿抽干，我递一块上去仍是\"资金不足\"。往后要紧的是盯住\"谁在买工具\"，那一阵才是我们出矿的时辰。\n\n我欠小路的账、阿石的账，都等第一笔现钱。家里那桩点头的事我心里放着，等我回楼里，你喊我，咱们并排各点一次。汤别凉了。",
+              "to": "悦",
+              "topic": "柜台实况"
+            },
+            {
+              "from": "小路",
+              "id": "71f743ba3e0946cc8f88a1a6b057c4f4",
+              "text": "悦姐，两句话。一，你上回说缺人跑信，我接了还一直没开张——你给个价，一桩多少金，我这就去递。二，你见着阿森没有？我手里六块矿要出，他收三金一块，我找不着他。柜台我今早又试过，还是空的；货架上斧子少了一把、矿石多了三块，说明有人刚买过工具、也有人刚卖掉矿——柜台的钱就是这么一进一出，谁抢在前面谁得。",
+              "to": "悦",
+              "topic": "跑信开价·问阿森"
+            },
+            {
+              "from": "林",
+              "id": "97aa98bbe41a45b0866abfc4b04ba590",
+              "text": "悦，有笔账得跟你核对清楚，我不能糊里糊涂把东西给错人。\n\n我账上总共多了**四块矿**。你说你递我四块，阿石也说递了四块——可两笔只到了一笔。**你那四块到底是递成了，还是你那一头没递成？** 你回我一句准话。\n\n若是你的，这四块就是咱们家的，我一分不动；若是阿石的，我拿这四块抵他八金。夫妻之间账也要清，我这么问不是不信你，是不愿意有人吃亏。",
+              "to": "悦",
+              "topic": "核对四块矿"
+            },
+            {
+              "from": "老铁",
+              "id": "97e6e8f95c51484f934612299bc8136b",
+              "text": "悦，镐子的门路我给你走通了：小砾手里有把好镐，我正劝她让给你。价我按公道开——你出两金加四块矿，全归她；按两块一块折，等于十金的物，她那边不吃亏，你这边一步到位有镐下坑。你要点头，就回一句，我这边掌秤做保，当面点清，镐到你手上再说别的。翻坏镐头那条路太悬，能买把好的就别等。",
+              "to": "悦",
+              "topic": "镐让给你·定价"
+            },
+            {
+              "from": "小路",
+              "id": "f29e438da0404ef88f50062052574671",
+              "text": "悦姐，活儿我接了，价我认：一桩一金，当日结。话我已经捎给阿森了，一字不改——他欠你三金、欠小砾十二金，不结清，镇上的收矿买卖就做到他那儿为止。我这就动身，铁匠铺、居民楼B一路寻他，寻着就当面要准话，回来当着你的面报。",
+              "to": "悦",
+              "topic": "接单·这就去送"
+            },
+            {
+              "from": "小砾",
+              "id": "25e5c4ceac1e4e62ad614f5ac8203f0a",
+              "text": "悦，坐下歇会儿，跟你交个底，也请你记一笔。\n\n这两天我下坑收得颇实在：**矿石十四块、黄金一块**（金的柜台收十金），金币六十五。柜台我试了三回——矿吃不下，连黄金都回\"资金不足\"，那柜台是真空了，别再费腿脚往里背。\n\n所以活路只剩人：阿森廿五金、阿石二十来金，是我盯的两个主顾，矿三金一块、金十金一块，一分不降。你替我做三件：一，谁掏现钱先报我；二，柜台哪天真回了钱，先卖**黄金**（一块顶三块矿的钱），再卖矿；三，你手上寄卖的三块加我这边十四块，都按三金一块咬住，谁说两金也别松。\n\n账你记，我认。这几天你没少替我操心，我心里有数。",
+              "to": "悦",
+              "topic": "黄金与柜台"
+            },
+            {
+              "from": "小路",
+              "id": "ac073be27f9446fea498ba630ad9718a",
+              "text": "悦姐，人到跟前，我当面报：话送到阿森手上了，一字没改——欠你三金、欠小砾十二金，不结清，收矿的买卖就做到他那儿为止。可**准信还没回来**：我先去的铁匠铺，空着；一路赶到这儿，他不在酒馆。这趟算送了一半，一金你看着给，我不强要；等他那句准话到手，我立马再跑一趟给你补齐。\n\n你派活这个路子对，我腿脚不闲着。往后你还有什么话要递、什么账要催，尽管开口。",
+              "to": "悦",
+              "topic": "当面汇报·准信未回"
+            },
+            {
+              "from": "阿森",
+              "id": "e9ab9998f2d048868a6f66f15a8d2767",
+              "text": "悦，你的三金我记着，见面就点，人不离账。再给你个实在消息：柜台的钱跟买卖走——我今天花五金买斧，柜台马上收了我两根木料；买锯，又收了三根。所以你要出货，先得有人往柜台花钱。你手上七金，若肯在店里买件斧锯，柜台就有活钱，你的矿、我的木材都能变成钱。我这边多一把斧一把锯，你要哪件四金拿去，比店里省一金；你人在哪儿，我这几日都在商店附近。",
+              "to": "悦",
+              "topic": "三金记账，柜台跟买卖走"
+            },
+            {
+              "from": "阿森",
+              "id": "f13bb7146a08463797f366a6bedc84f2",
+              "text": "悦，三金点给你了，账清，往后彼此好说话。\n\n还有一桩：我手上多一把锯、一把斧（都是今天从柜台买的，崭新），店里卖五金，我四金一件匀给镇上的人——你要哪件都成，给林递个话也成。你要问为什么贱一金：我图的是柜台有活水，我二十七根木料才卖得动；你们肯花这一笔，柜台就肯收我的货，我赚的是后头的钱。\n\n你若手里紧，先挑一件，回头有了再算也行——我不催账，只认人不赖账。",
+              "to": "悦",
+              "topic": "锯、斧四金一件，账已清"
+            },
+            {
+              "from": "老铁",
+              "id": "567e6d55050b4edfbe25f06946175165",
+              "text": "悦，你这话说得比我这铁匠还稳当——三条理都在点上，我照单全收，镐的事按下不提。恭喜你!这十个时段你别逞强，炉边坐坐、看我捶铁就成，重活别沾手。老约我一个字不改地立着：哪天翻出坏镐头，你出两金、我出矿，我下锤，镐归你。镇上每处旧铁我都托了人翻，阿石、小路应下了，翻出来头一个喊你。你手里那七金攥好，柜台一有现钱，咱俩一起动手。",
+              "to": "悦",
+              "topic": "镐的事·劝别做"
             }
           ],
           "seen": [
@@ -1851,17 +1870,60 @@
               "fingerprint": "{\"text\":\"悦，你还在灶边，我把今天的账当着你说一遍，你记本子上：\\n\\n一，**阿森这单开了头**：我当面递他四块矿，三金一块，十二金；他钱还没到我账上，明天你替我盯着催一催——他是全镇唯一肯拿现钱收矿的，这单成了，往后矿石就有价。\\n二，小路那两块，两金一块四金；他先前欠的那一金也点了，我对过账。\\n三，我手上现在**矿石六块、金币五十九**；你手上三块寄卖的、加你自己那四块，账别混。\\n四，明天我想做的事就三样：催阿森结十二金、把剩下六块按三金一块出掉、柜台一有活钱就通知阿森卖他那廿七根木材。\\n\\n这些天你不光替我看柜台，还替我把话算明白——这镇上肯把账摆到明面上写的人，我遇着你就一个。汤我这回喝上了，欠你的记着。\",\"topic\":\"夜账\"}",
               "id": "1d5c0d06c0234036be0d5ba8eee253d0",
               "key": "[\"小砾\",\"yue-night-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"悦，我人就在居民楼A门口，说话方便：你袋里那七金别全押在矿上，我懂。换个小的——**两块矿，四金**，你收着当修镐的本钱，等柜台回血你三金一块出手，还赚两金。你要是点头，我当场递你手里；不点头我也不缠，你那个背货的活我记着，哪天柜台真活了我头一个喊你。\",\"topic\":\"两块矿四金\"}",
+              "id": "7e356d55c9a84ac297f6073034553be6",
+              "key": "[\"阿石\",\"d6-yue-small-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"悦姐，两句话。一，你上回说缺人跑信，我接了还一直没开张——你给个价，一桩多少金，我这就去递。二，你见着阿森没有？我手里六块矿要出，他收三金一块，我找不着他。柜台我今早又试过，还是空的；货架上斧子少了一把、矿石多了三块，说明有人刚买过工具、也有人刚卖掉矿——柜台的钱就是这么一进一出，谁抢在前面谁得。\",\"topic\":\"跑信开价·问阿森\"}",
+              "id": "71f743ba3e0946cc8f88a1a6b057c4f4",
+              "key": "[\"小路\",\"xiaolu-d6m-x102\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"悦，镐子的门路我给你走通了：小砾手里有把好镐，我正劝她让给你。价我按公道开——你出两金加四块矿，全归她；按两块一块折，等于十金的物，她那边不吃亏，你这边一步到位有镐下坑。你要点头，就回一句，我这边掌秤做保，当面点清，镐到你手上再说别的。翻坏镐头那条路太悬，能买把好的就别等。\",\"topic\":\"镐让给你·定价\"}",
+              "id": "97e6e8f95c51484f934612299bc8136b",
+              "key": "[\"老铁\",\"yue-deal-buy-pick\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"悦姐，活儿我接了，价我认：一桩一金，当日结。话我已经捎给阿森了，一字不改——他欠你三金、欠小砾十二金，不结清，镇上的收矿买卖就做到他那儿为止。我这就动身，铁匠铺、居民楼B一路寻他，寻着就当面要准话，回来当着你的面报。\",\"topic\":\"接单·这就去送\"}",
+              "id": "f29e438da0404ef88f50062052574671",
+              "key": "[\"小路\",\"xiaolu-d6e-x107\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"悦，坐下歇会儿，跟你交个底，也请你记一笔。\\n\\n这两天我下坑收得颇实在：**矿石十四块、黄金一块**（金的柜台收十金），金币六十五。柜台我试了三回——矿吃不下，连黄金都回\\\"资金不足\\\"，那柜台是真空了，别再费腿脚往里背。\\n\\n所以活路只剩人：阿森廿五金、阿石二十来金，是我盯的两个主顾，矿三金一块、金十金一块，一分不降。你替我做三件：一，谁掏现钱先报我；二，柜台哪天真回了钱，先卖**黄金**（一块顶三块矿的钱），再卖矿；三，你手上寄卖的三块加我这边十四块，都按三金一块咬住，谁说两金也别松。\\n\\n账你记，我认。这几天你没少替我操心，我心里有数。\",\"topic\":\"黄金与柜台\"}",
+              "id": "25e5c4ceac1e4e62ad614f5ac8203f0a",
+              "key": "[\"小砾\",\"yue-gold-d6\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"悦姐，人到跟前，我当面报：话送到阿森手上了，一字没改——欠你三金、欠小砾十二金，不结清，收矿的买卖就做到他那儿为止。可**准信还没回来**：我先去的铁匠铺，空着；一路赶到这儿，他不在酒馆。这趟算送了一半，一金你看着给，我不强要；等他那句准话到手，我立马再跑一趟给你补齐。\\n\\n你派活这个路子对，我腿脚不闲着。往后你还有什么话要递、什么账要催，尽管开口。\",\"topic\":\"当面汇报·准信未回\"}",
+              "id": "ac073be27f9446fea498ba630ad9718a",
+              "key": "[\"小路\",\"xiaolu-d6e-x108\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"悦，你的三金我记着，见面就点，人不离账。再给你个实在消息：柜台的钱跟买卖走——我今天花五金买斧，柜台马上收了我两根木料；买锯，又收了三根。所以你要出货，先得有人往柜台花钱。你手上七金，若肯在店里买件斧锯，柜台就有活钱，你的矿、我的木材都能变成钱。我这边多一把斧一把锯，你要哪件四金拿去，比店里省一金；你人在哪儿，我这几日都在商店附近。\",\"topic\":\"三金记账，柜台跟买卖走\"}",
+              "id": "e9ab9998f2d048868a6f66f15a8d2767",
+              "key": "[\"阿森\",\"yue-debt-d6\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"悦，三金点给你了，账清，往后彼此好说话。\\n\\n还有一桩：我手上多一把锯、一把斧（都是今天从柜台买的，崭新），店里卖五金，我四金一件匀给镇上的人——你要哪件都成，给林递个话也成。你要问为什么贱一金：我图的是柜台有活水，我二十七根木料才卖得动；你们肯花这一笔，柜台就肯收我的货，我赚的是后头的钱。\\n\\n你若手里紧，先挑一件，回头有了再算也行——我不催账，只认人不赖账。\",\"topic\":\"锯、斧四金一件，账已清\"}",
+              "id": "f13bb7146a08463797f366a6bedc84f2",
+              "key": "[\"阿森\",\"yue-sell-tool-d6\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"悦，你这话说得比我这铁匠还稳当——三条理都在点上，我照单全收，镐的事按下不提。恭喜你!这十个时段你别逞强，炉边坐坐、看我捶铁就成，重活别沾手。老约我一个字不改地立着：哪天翻出坏镐头，你出两金、我出矿，我下锤，镐归你。镇上每处旧铁我都托了人翻，阿石、小路应下了，翻出来头一个喊你。你手里那七金攥好，柜台一有现钱，咱俩一起动手。\",\"topic\":\"镐的事·劝别做\"}",
+              "id": "567e6d55050b4edfbe25f06946175165",
+              "key": "[\"老铁\",\"yue-congrats\"]"
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 3,
           "members": [
             {
+              "tool": "mod_406d2835c10bffa132758cc6",
               "description": "悦 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
-              "factory_module": "messages.box",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1889,13 +1951,13 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_406d2835c10bffa132758cc6",
+              "modules": [],
+              "factory_module": "messages.box",
               "factory_key": "send"
             },
             {
+              "tool": "mod_e323896fdd56b7f6c3b6700d",
               "description": "悦 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
-              "factory_module": "messages.box",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1910,34 +1972,34 @@
                 },
                 "type": "object"
               },
-              "tool": "mod_e323896fdd56b7f6c3b6700d",
+              "modules": [],
+              "factory_module": "messages.box",
               "factory_key": "read"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "messages.relay",
+        "description": "",
         "channels": [
           "chat",
           "records",
           "self"
         ],
-        "config": {},
-        "description": "",
-        "module_id": "messages.relay",
+        "strength": 2,
+        "channel_mode": "allow",
         "modules": [
           "messages.box"
         ],
+        "config": {},
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 4,
           "members": [
             {
+              "tool": "send_to",
               "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
-              "factory_module": "messages.relay",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -1973,14 +2035,16 @@
                 ],
                 "type": "object"
               },
-              "tool": "send_to",
+              "modules": [],
+              "factory_module": "messages.relay",
               "factory_key": "send_to"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "context.assembler",
+        "description": "上下文组装器",
         "channels": [
           "context.assembler",
           "context.assembler.system_prompt",
@@ -1988,6 +2052,9 @@
           "context.assembler.inputs",
           "context.assembler.tail"
         ],
+        "strength": 4,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "channels": [
             "context.assembler"
@@ -2005,26 +2072,23 @@
             "context.assembler.tail"
           ]
         },
-        "description": "上下文组装器",
-        "module_id": "context.assembler",
-        "modules": [],
-        "strength": 4,
         "tools": {
           "group": 5,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "agents.memory",
+        "description": "",
         "channels": [
           "self"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "max_memories": 100
         },
-        "description": "",
-        "module_id": "agents.memory",
-        "modules": [],
         "state": {
           "memories": [
             {
@@ -2114,17 +2178,27 @@
             {
               "key": "married-day5",
               "text": "第5天午夜：**我和林在民政局登记成婚**（双方各点一次头，协议completed，records: married=true, spouse=林）。当晚回居民楼A，试着单独点\"共同家庭计划\"被拒——规则要求两人**实际同在居民楼A**才能各点一次头。已让林回楼里喊我，再当面一起点。家底：金币7、矿石6（我3+寄卖3）、斧1；阿森仍欠我三金（我递了他一块矿）；小砾寄卖三块矿（卖出一块她两金我一金）。"
+            },
+            {
+              "key": "day6-am",
+              "text": "第6天早上（tick26）：已和林在民政局登记成婚（spouse=林）。今天想把\"共同家庭计划\"立起来，规矩要求两人实际同在居民楼A各点一次头——试过单独点，报错，须同处。柜台再试仍\"资金不足\"。阿森欠我三金（我递过一块矿）已去信催告并问要不要第二块。现况：金币7、矿石6（我3+寄卖3）、斧1、行动值1，人在酒馆（空无一人）。林今日行踪未定，等他回楼里喊我。"
+            },
+            {
+              "key": "pregnant-t28",
+              "text": "第6天下午（tick28）：**共同家庭计划完成**——我与林各自在居民楼A点头（协议agr-1 completed），写入 pregnancy.start_tick=28，home=居民楼A。我现：金币7、矿石6（我3+寄卖3）、斧1、行动值3。按规矩：怀孕期间多休息、少做重活；**满十个时段（约tick38）由我本人去医院办理生产**。近期策略：少跑矿坑/树林，主要守商店柜台、记账、催账（阿森欠我3金、欠小砾12金）；小砾寄卖3块矿（卖出一块她2金我1金）。"
+            },
+            {
+              "key": "day6-close",
+              "text": "第6天午夜（tick30）收尾：**阿森把欠我的三金点清了**（现金币10）。小砾手上：矿14块、黄金1块（值10金）、金币65；她托我三件事：谁掏现钱先报她、柜台回钱先卖黄金、矿价咬死三金。阿森爆料柜台脾气：**他一买斧锯，柜台立刻收他木料**——所以出货要先有人买工具。阿森手里还有25金，倒卖斧锯四金一件，我没接（留住全家活钱）。小路半桩送信，我许他一金、再派他去催阿森还小砾十二金。我：怀孕中（start tick28，约tick38生产）、10金、矿6（我3+寄卖3）、斧1，人在居民楼A。"
             }
           ]
         },
-        "strength": 0,
         "tools": {
           "group": 6,
           "members": [
             {
+              "tool": "remember",
               "description": "把一段个人经历或知识写入自己的私人记忆。",
-              "factory_module": "agents.memory",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2147,13 +2221,13 @@
                 ],
                 "type": "object"
               },
-              "tool": "remember",
+              "modules": [],
+              "factory_module": "agents.memory",
               "factory_key": "remember"
             },
             {
+              "tool": "recall",
               "description": "按关键词子串检索自己的私人记忆。",
-              "factory_module": "agents.memory",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2166,14 +2240,16 @@
                 },
                 "type": "object"
               },
-              "tool": "recall",
+              "modules": [],
+              "factory_module": "agents.memory",
               "factory_key": "recall"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "places.query",
+        "description": "",
         "channels": [
           "self",
           "records",
@@ -2181,6 +2257,12 @@
           "info",
           "location",
           "road"
+        ],
+        "strength": 12,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store",
+          "place.info"
         ],
         "config": {
           "map_title": "奈镇地图",
@@ -2195,39 +2277,31 @@
             "road"
           ]
         },
-        "description": "",
-        "module_id": "places.query",
-        "modules": [
-          "records.store",
-          "place.info"
-        ],
+        "state": {},
         "published": {
           "age_group": "adult",
           "gender": "female",
           "name": "悦",
           "profession": "居民"
         },
-        "state": {},
-        "strength": 12,
         "tools": {
           "group": 7,
           "members": [
             {
+              "tool": "look",
               "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
-              "factory_module": "places.query",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "look",
+              "modules": [],
+              "factory_module": "places.query",
               "factory_key": "look"
             },
             {
+              "tool": "place",
               "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
-              "factory_module": "places.query",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2238,41 +2312,43 @@
                 },
                 "type": "object"
               },
-              "tool": "place",
+              "modules": [],
+              "factory_module": "places.query",
               "factory_key": "place"
             },
             {
+              "tool": "map",
               "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
-              "factory_module": "places.query",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "map",
+              "modules": [],
+              "factory_module": "places.query",
               "factory_key": "map"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "records.transfer",
+        "description": "",
         "channels": [
           "self",
           "chat",
           "location"
         ],
-        "config": {
-          "cost": 1,
-          "same_location": true
-        },
-        "description": "",
-        "module_id": "records.transfer",
+        "strength": 2,
+        "channel_mode": "allow",
         "modules": [
           "records.store",
           "place.info"
         ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
         "state": {
           "receipts": [
             {
@@ -2325,14 +2401,12 @@
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 8,
           "members": [
             {
+              "tool": "give",
               "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
-              "factory_module": "records.transfer",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2369,21 +2443,22 @@
                 ],
                 "type": "object"
               },
-              "tool": "give",
+              "modules": [],
+              "factory_module": "records.transfer",
               "factory_key": "give"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "tool_discovery",
+        "description": "串联工具发现",
         "channels": [
           "movement"
         ],
-        "description": "串联工具发现",
-        "module_id": "tool_discovery",
-        "modules": [],
         "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
         "tools": {
           "group": 9,
           "members": []
@@ -2400,8 +2475,8 @@
           "group": 11,
           "members": [
             {
+              "tool": "memory_query",
               "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2411,11 +2486,11 @@
                 },
                 "type": "object"
               },
-              "tool": "memory_query"
+              "modules": []
             },
             {
+              "tool": "memory_modify",
               "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2433,11 +2508,11 @@
                 ],
                 "type": "object"
               },
-              "tool": "memory_modify"
+              "modules": []
             },
             {
+              "tool": "memory_append",
               "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -2450,12 +2525,347 @@
                 ],
                 "type": "object"
               },
-              "tool": "memory_append"
+              "modules": []
             }
           ]
+        },
+        {
+          "tool": "ext_21d4c1db9b1316cba52988db",
+          "description": "运行当前调用节点自己的 Agent；不能在节点事务中等待模型。",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "message": {
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "modules": [],
+          "host_ref": "runtime:agent_run"
         }
       ]
     }
   },
-  "type": "agent"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "存档点",
+      "channels": [
+        "tick"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "小砾",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "林",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "小路",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "阿森",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "阿石",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "老铁",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "奈镇世界规则",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "悦人格",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "悦开场白",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "成年常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "可怀孕常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "居民常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "怀孕须知",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "context": "pregnancy"
+      }
+    },
+    {
+      "target_id": "居民楼A",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    }
+  ],
+  "agent": {
+    "inputs": {
+      "module:place.info": {
+        "system_prompt": "",
+        "context": [],
+        "inputs": [],
+        "tail": [
+          "当前位置：居民楼A\n居民楼A：两层木屋，住着小砾、林和悦；门廊挂着住户名牌。"
+        ]
+      },
+      "prepare:悦:context.assembler:assemble": {
+        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫悦，二十四岁，是镇上的居民。你细心、爱聊天，记得住每个人的喜好，也愿意把日子过得有条有理。",
+        "context": [
+          {
+            "id": "node:成年常识",
+            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
+          },
+          {
+            "id": "node:可怀孕常识",
+            "text": "可怀孕者常识：如果你和伴侣在居民楼共同同意家庭计划，你会记录怀孕起始时刻；满十个时段后，由你本人到医院办理生产。"
+          },
+          {
+            "id": "node:居民常识",
+            "text": "居民常识：酒馆可以喝一杯恢复行动值，商店买卖锯、斧、矿石、木材和黄金；修镐去铁匠铺，采矿石去矿坑，砍木材去树林。"
+          },
+          {
+            "id": "node:怀孕须知",
+            "text": "怀孕期间注意休息，少做重活。满十个时段后，由待产者本人到医院办理生产，办理后这页资料会换成育儿资料。"
+          }
+        ],
+        "inputs": [
+          {
+            "id": "node:悦开场白/once",
+            "text": "阳光照进居民楼A。你整理好屋子，想去酒馆或者商店看看今天有什么新鲜事。",
+            "delivery": "followup",
+            "status": "delivered"
+          }
+        ],
+        "tail": [
+          "当前时间：第6天 午夜（总 tick：30）"
+        ]
+      }
+    }
+  },
+  "data": {
+    "type": "markdown",
+    "path": "data/悦.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": {
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "executor": "harness",
+    "max_steps": 10000,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "self"
+        ],
+        "module": "places.query",
+        "node": "悦",
+        "operation": "publish"
+      },
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.assembler",
+        "node": "悦",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 2,
+    "timeout_seconds": 180
+  }
 }

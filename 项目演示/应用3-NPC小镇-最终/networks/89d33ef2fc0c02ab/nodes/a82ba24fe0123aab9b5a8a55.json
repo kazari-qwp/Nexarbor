@@ -1,96 +1,22 @@
 {
-  "aggregation": "sum",
-  "bias": -1,
-  "description": "",
-  "execution": null,
-  "links": [
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "酒馆",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "医院",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "商店",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "time"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "世界时间",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "family.pregnancy"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "怀孕须知",
-      "threshold": 1
-    }
-  ],
-  "name": "居民楼B",
+  "type": "node",
   "node_id": "居民楼B",
+  "name": "居民楼B",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "石墙小楼，住着小路、阿森、阿石和老铁；院里堆着木柴和矿车零件。",
           "visitors": [
@@ -101,33 +27,41 @@
           ],
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "visitors": [
+            "小路",
+            "老铁"
+          ]
+        },
         "published": {
           "description": "石墙小楼，住着小路、阿森、阿石和老铁；院里堆着木柴和矿车零件。",
           "location": null,
           "name": "居民楼B",
           "node_id": "居民楼B",
           "visit": 0,
-          "visitors": []
+          "visitors": [
+            "小路",
+            "老铁"
+          ]
         },
-        "state": {
-          "visitors": []
-        },
-        "strength": 0,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "movement.here",
+        "description": "",
         "channels": [
           "road",
           "location",
           "records",
           "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
         ],
         "config": {
           "before_hooks": [
@@ -140,6 +74,14 @@
               "module": "records.store",
               "operation": "apply",
               "target": "requester"
+            },
+            {
+              "arguments": {
+                "trigger": "arrive"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "destination"
             }
           ],
           "location_channels": [
@@ -148,47 +90,42 @@
           ],
           "timeout_seconds": 60
         },
-        "description": "",
-        "module_id": "movement.here",
-        "modules": [
-          "place.info"
-        ],
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 1,
           "members": [
             {
+              "tool": "mod_b55022477865977c894167a0",
               "description": "居民楼B · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
-              "factory_module": "movement.here",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "required": [],
                 "type": "object"
               },
-              "tool": "mod_b55022477865977c894167a0",
+              "modules": [],
+              "factory_module": "movement.here",
               "factory_key": "move_here"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "records.store",
+        "description": "",
         "channels": [
           "records",
           "road",
           "location"
         ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "initial": {},
           "minimum": {},
           "references": []
         },
-        "description": "",
-        "module_id": "records.store",
-        "modules": [],
         "state": {
           "receipts": [
             {
@@ -238,19 +175,25 @@
               "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"d5-rest-b\",\"local\"]",
               "references": [],
               "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"小路\",\"xiaolu-d6m-rest\",\"local\"]",
+              "references": [],
+              "values": {}
             }
           ],
           "references": [],
           "values": {}
         },
-        "strength": 1,
         "tools": {
           "group": 2,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "agreements.pair",
+        "description": "",
         "channels": [
           "agreements",
           "records",
@@ -260,6 +203,9 @@
           "tools",
           "location"
         ],
+        "strength": 3,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "address": null,
           "rules": [
@@ -279,30 +225,25 @@
             }
           ]
         },
-        "description": "",
-        "module_id": "agreements.pair",
-        "modules": [],
         "state": {},
-        "strength": 3,
         "tools": {
           "group": 3,
           "members": [
             {
+              "tool": "mod_8174738ad5153365f264c4d6",
               "description": "居民楼B · 查看协议 · 查看本地点的协议规则和自己参与的协议。",
-              "factory_module": "agreements.pair",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_8174738ad5153365f264c4d6",
+              "modules": [],
+              "factory_module": "agreements.pair",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_529d73f2d3175650eca4b302",
               "description": "居民楼B · 同意协议 · 双方在场时，以自己的身份登记同意。双方分别同意后立即完成；离场使未完成的旧同意失效。",
-              "factory_module": "agreements.pair",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -333,19 +274,26 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_529d73f2d3175650eca4b302",
+              "modules": [],
+              "factory_module": "agreements.pair",
               "factory_key": "agree"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "service.actions",
+        "description": "",
         "channels": [
           "service",
           "records",
           "movement",
           "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
         ],
         "config": {
           "actions": [
@@ -364,13 +312,21 @@
             }
           ],
           "address": "居民楼B",
+          "after_hooks": [
+            {
+              "actions": [
+                "rest"
+              ],
+              "arguments": {
+                "trigger": "rest"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "local"
+            }
+          ],
           "events": []
         },
-        "description": "",
-        "module_id": "service.actions",
-        "modules": [
-          "records.store"
-        ],
         "state": {
           "event_counts": {},
           "receipts": [
@@ -631,29 +587,75 @@
                   "role": "miner"
                 }
               }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"小路\",\"quantity\":1}",
+              "key": "xiaolu-d6m-rest",
+              "result": {
+                "action": "rest",
+                "actor": "小路",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "wall2": 2
+                      },
+                      "observations": [
+                        "门口鞋子排成一圈，像在开会讨论谁最先学会走路。"
+                      ],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 29,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "axe": 1,
+                  "can_gestate": false,
+                  "coins": 2,
+                  "context_node": "小路",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "小路",
+                  "ore": 6,
+                  "pregnant": false,
+                  "profession": "流浪汉",
+                  "role": "wanderer",
+                  "saw": 1
+                }
+              }
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 4,
           "members": [
             {
+              "tool": "mod_cb929e4100e7f2f206ce5e85",
               "description": "居民楼B · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_cb929e4100e7f2f206ce5e85",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_94a18c167c93e718d208a1bf",
               "description": "居民楼B · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -683,14 +685,16 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_94a18c167c93e718d208a1bf",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "perform"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "family.household",
+        "description": "",
         "channels": [
           "road",
           "agreements",
@@ -700,6 +704,9 @@
           "location",
           "records"
         ],
+        "strength": 12,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "pregnancy_channels": [
             "family.pregnancy"
@@ -708,30 +715,25 @@
             "time"
           ]
         },
-        "description": "",
-        "module_id": "family.household",
-        "modules": [],
         "state": {},
-        "strength": 12,
         "tools": {
           "group": 5,
           "members": [
             {
+              "tool": "mod_81dfd5b919986d1387c91b07",
               "description": "居民楼B · 查看家庭计划 · 查看本居民楼的双方同意登记。",
-              "factory_module": "family.household",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_81dfd5b919986d1387c91b07",
+              "modules": [],
+              "factory_module": "family.household",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_74bb3ab1f3e0d6cc6c9ca27a",
               "description": "居民楼B · 同意家庭计划 · 夫妻须同时在自己的居民楼，各自同意后写入怀孕起始时间；不要求同 tick。",
-              "factory_module": "family.household",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -751,15 +753,54 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_74bb3ab1f3e0d6cc6c9ca27a",
+              "modules": [],
+              "factory_module": "family.household",
               "factory_key": "plan"
             }
           ]
         }
+      },
+      {
+        "module_id": "events.chance",
+        "description": "",
+        "channels": [
+          "events",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "events": [
+            {
+              "id": "wall2",
+              "limit": 2,
+              "probability": 1,
+              "rewards": {},
+              "text": "门口鞋子排成一圈，像在开会讨论谁最先学会走路。",
+              "triggers": [
+                "rest",
+                "arrive"
+              ]
+            }
+          ]
+        },
+        "state": {
+          "counts": {
+            "wall2": 2
+          }
+        },
+        "tools": {
+          "group": 6,
+          "members": []
+        }
       }
     ],
     "tools": {
-      "group": 6,
+      "group": 7,
       "members": [
         {
           "modules": true
@@ -767,5 +808,115 @@
       ]
     }
   },
-  "type": "node"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "酒馆",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "医院",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "商店",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "time"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "怀孕须知",
+      "channels": [
+        "family.pregnancy"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "小路",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    },
+    {
+      "target_id": "老铁",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    }
+  ],
+  "execution": null
 }

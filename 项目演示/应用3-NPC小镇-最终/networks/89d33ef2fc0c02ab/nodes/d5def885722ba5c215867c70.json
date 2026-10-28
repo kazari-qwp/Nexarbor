@@ -1,106 +1,56 @@
 {
-  "aggregation": "sum",
-  "bias": -1,
-  "description": "",
-  "execution": null,
-  "links": [
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "矿坑",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "医院",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "location"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "location",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "阿森",
-      "threshold": 1
-    }
-  ],
-  "name": "树林",
+  "type": "node",
   "node_id": "树林",
+  "name": "树林",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "镇北的树林，用斧头能砍下木材。",
           "visitors": [],
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "visitors": []
+        },
         "published": {
           "description": "镇北的树林，用斧头能砍下木材。",
           "location": null,
           "name": "树林",
           "node_id": "树林",
           "visit": 0,
-          "visitors": [
-            "阿森"
-          ]
+          "visitors": []
         },
-        "state": {
-          "visitors": [
-            "阿森"
-          ]
-        },
-        "strength": 0,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "movement.here",
+        "description": "",
         "channels": [
           "road",
           "location",
           "records",
           "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
         ],
         "config": {
           "before_hooks": [
@@ -113,6 +63,14 @@
               "module": "records.store",
               "operation": "apply",
               "target": "requester"
+            },
+            {
+              "arguments": {
+                "trigger": "arrive"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "destination"
             }
           ],
           "location_channels": [
@@ -121,47 +79,42 @@
           ],
           "timeout_seconds": 60
         },
-        "description": "",
-        "module_id": "movement.here",
-        "modules": [
-          "place.info"
-        ],
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 1,
           "members": [
             {
+              "tool": "mod_b68945209d23d4c170bfc08d",
               "description": "树林 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
-              "factory_module": "movement.here",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "required": [],
                 "type": "object"
               },
-              "tool": "mod_b68945209d23d4c170bfc08d",
+              "modules": [],
+              "factory_module": "movement.here",
               "factory_key": "move_here"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "records.store",
+        "description": "",
         "channels": [
           "records",
           "road",
           "location"
         ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "initial": {},
           "minimum": {},
           "references": []
         },
-        "description": "",
-        "module_id": "records.store",
-        "modules": [],
         "state": {
           "receipts": [
             {
@@ -241,24 +194,41 @@
               "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d4-midnight-1\",\"local\"]",
               "references": [],
               "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d6-morning-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d6-noon-1\",\"local\"]",
+              "references": [],
+              "values": {}
             }
           ],
           "references": [],
           "values": {}
         },
-        "strength": 1,
         "tools": {
           "group": 2,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "service.actions",
+        "description": "",
         "channels": [
           "service",
           "records",
           "movement",
           "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
         ],
         "config": {
           "actions": [
@@ -276,13 +246,21 @@
             }
           ],
           "address": "树林",
+          "after_hooks": [
+            {
+              "actions": [
+                "chop"
+              ],
+              "arguments": {
+                "trigger": "chop"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "local"
+            }
+          ],
           "events": []
         },
-        "description": "",
-        "module_id": "service.actions",
-        "modules": [
-          "records.store"
-        ],
         "state": {
           "event_counts": {},
           "receipts": [
@@ -714,29 +692,123 @@
                   "wood": 27
                 }
               }
+            },
+            {
+              "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+              "key": "chop-d6-morning-1",
+              "result": {
+                "action": "chop",
+                "actor": "阿森",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "ghost": 1
+                      },
+                      "observations": [
+                        "远处一个穿西装的鬼影抱着树哭，说树欠它三个月房租。转眼又没影了。"
+                      ],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“砍柴”×1",
+                  "消耗行动点6"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 25,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "axe": 1,
+                  "can_gestate": false,
+                  "coins": 19,
+                  "context_node": "阿森",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿森",
+                  "ore": 3,
+                  "pregnant": false,
+                  "profession": "伐木工",
+                  "role": "woodcutter",
+                  "wood": 30
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"chop\",\"actor\":\"阿森\",\"quantity\":1}",
+              "key": "chop-d6-noon-1",
+              "result": {
+                "action": "chop",
+                "actor": "阿森",
+                "after_results": [
+                  {
+                    "data": {
+                      "counts": {
+                        "ghost": 2
+                      },
+                      "observations": [],
+                      "rewards": {}
+                    },
+                    "module": "events.chance",
+                    "operation": "sample",
+                    "target": "local"
+                  }
+                ],
+                "duplicate": false,
+                "observation": [
+                  "完成“砍柴”×1",
+                  "消耗行动点6"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 25,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "axe": 1,
+                  "can_gestate": false,
+                  "coins": 19,
+                  "context_node": "阿森",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿森",
+                  "ore": 3,
+                  "pregnant": false,
+                  "profession": "伐木工",
+                  "role": "woodcutter",
+                  "wood": 33
+                }
+              }
             }
           ]
         },
-        "strength": 2,
         "tools": {
           "group": 3,
           "members": [
             {
+              "tool": "mod_c3cae9dd47b45f59d6629458",
               "description": "树林 · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_c3cae9dd47b45f59d6629458",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_0f88fa3e0eddb5b1731b83c9",
               "description": "树林 · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
-              "factory_module": "service.actions",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -766,15 +838,54 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_0f88fa3e0eddb5b1731b83c9",
+              "modules": [],
+              "factory_module": "service.actions",
               "factory_key": "perform"
             }
           ]
         }
+      },
+      {
+        "module_id": "events.chance",
+        "description": "",
+        "channels": [
+          "events",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "events": [
+            {
+              "id": "ghost",
+              "limit": 2,
+              "probability": 1,
+              "rewards": {},
+              "text": "远处一个穿西装的鬼影抱着树哭，说树欠它三个月房租。转眼又没影了。",
+              "triggers": [
+                "chop",
+                "arrive"
+              ]
+            }
+          ]
+        },
+        "state": {
+          "counts": {
+            "ghost": 2
+          }
+        },
+        "tools": {
+          "group": 4,
+          "members": []
+        }
       }
     ],
     "tools": {
-      "group": 4,
+      "group": 5,
       "members": [
         {
           "modules": true
@@ -782,5 +893,41 @@
       ]
     }
   },
-  "type": "node"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "矿坑",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "医院",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    }
+  ],
+  "execution": null
 }

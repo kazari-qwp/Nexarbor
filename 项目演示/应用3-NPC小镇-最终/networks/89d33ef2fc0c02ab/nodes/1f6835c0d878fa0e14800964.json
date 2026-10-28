@@ -1,117 +1,30 @@
 {
-  "aggregation": "sum",
-  "bias": -1,
-  "description": "",
-  "execution": null,
-  "links": [
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "居民楼B",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "树林",
-      "threshold": 1
-    },
-    {
-      "attributes": {
-        "relation": "road"
-      },
-      "channel_mode": "allow",
-      "channels": [
-        "road",
-        "movement"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "民政局",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "time"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "世界时间",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "family.parent"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "育儿须知",
-      "threshold": 1
-    },
-    {
-      "attributes": {},
-      "channel_mode": "allow",
-      "channels": [
-        "family.pregnancy"
-      ],
-      "processor": {
-        "factor": 1,
-        "type": "multiplier"
-      },
-      "target_id": "怀孕须知",
-      "threshold": 1
-    }
-  ],
-  "name": "医院",
+  "type": "node",
   "node_id": "医院",
+  "name": "医院",
+  "description": "",
   "tables": {
     "modules": [
       {
-        "channel_mode": "allow",
+        "module_id": "place.info",
+        "description": "",
         "channels": [
           "movement",
           "info",
           "road",
           "location"
         ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "description": "安静的医院，待产者在这里办理生产。",
           "visitors": [],
           "visitors_from_edges": false
         },
-        "description": "",
-        "module_id": "place.info",
-        "modules": [],
+        "state": {
+          "visitors": []
+        },
         "published": {
           "description": "安静的医院，待产者在这里办理生产。",
           "location": null,
@@ -120,22 +33,24 @@
           "visit": 0,
           "visitors": []
         },
-        "state": {
-          "visitors": []
-        },
-        "strength": 0,
         "tools": {
           "group": 0,
           "members": []
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "movement.here",
+        "description": "",
         "channels": [
           "road",
           "location",
           "records",
           "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
         ],
         "config": {
           "before_hooks": [
@@ -148,6 +63,14 @@
               "module": "records.store",
               "operation": "apply",
               "target": "requester"
+            },
+            {
+              "arguments": {
+                "trigger": "arrive"
+              },
+              "module": "events.chance",
+              "operation": "sample",
+              "target": "destination"
             }
           ],
           "location_channels": [
@@ -156,34 +79,29 @@
           ],
           "timeout_seconds": 60
         },
-        "description": "",
-        "module_id": "movement.here",
-        "modules": [
-          "place.info"
-        ],
         "state": {},
-        "strength": 2,
         "tools": {
           "group": 1,
           "members": [
             {
+              "tool": "mod_72a304f53a05ace47d516625",
               "description": "医院 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
-              "factory_module": "movement.here",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "required": [],
                 "type": "object"
               },
-              "tool": "mod_72a304f53a05ace47d516625",
+              "modules": [],
+              "factory_module": "movement.here",
               "factory_key": "move_here"
             }
           ]
         }
       },
       {
-        "channel_mode": "allow",
+        "module_id": "family.birth",
+        "description": "",
         "channels": [
           "road",
           "service",
@@ -195,6 +113,9 @@
           "records",
           "location"
         ],
+        "strength": 12,
+        "channel_mode": "allow",
+        "modules": [],
         "config": {
           "cost": 1,
           "duration": 10,
@@ -218,30 +139,25 @@
             "time"
           ]
         },
-        "description": "",
-        "module_id": "family.birth",
-        "modules": [],
         "state": {},
-        "strength": 12,
         "tools": {
           "group": 2,
           "members": [
             {
+              "tool": "mod_34f0d5c6742ff22103b5f8bd",
               "description": "医院 · 查看待产状态 · 查看自己的怀孕起始 tick、经过时间和是否到期。",
-              "factory_module": "family.birth",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {},
                 "type": "object"
               },
-              "tool": "mod_34f0d5c6742ff22103b5f8bd",
+              "modules": [],
+              "factory_module": "family.birth",
               "factory_key": "inspect"
             },
             {
+              "tool": "mod_7330cc7e9ef9b2c3d5e7cf31",
               "description": "医院 · 办理生产 · 待产者本人到医院，满足等待时间后创建儿童；不需要伴侣同时到场，同请求重试不会重复创建。",
-              "factory_module": "family.birth",
-              "modules": [],
               "parameters": {
                 "additionalProperties": false,
                 "properties": {
@@ -261,21 +177,192 @@
                 ],
                 "type": "object"
               },
-              "tool": "mod_7330cc7e9ef9b2c3d5e7cf31",
+              "modules": [],
+              "factory_module": "family.birth",
               "factory_key": "deliver"
             }
           ]
         }
+      },
+      {
+        "module_id": "records.store",
+        "description": "",
+        "channels": [],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {},
+        "state": {},
+        "tools": {
+          "group": 3,
+          "members": []
+        }
+      },
+      {
+        "module_id": "events.chance",
+        "description": "",
+        "channels": [
+          "events",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "events": [
+            {
+              "id": "invoice",
+              "limit": 1,
+              "probability": 1,
+              "rewards": {},
+              "text": "墙上小报说，隔壁镇的新生儿第一句话是“请开增值税发票”。真假不明。",
+              "triggers": [
+                "arrive"
+              ]
+            }
+          ]
+        },
+        "state": {
+          "counts": {
+            "invoice": 1
+          }
+        },
+        "tools": {
+          "group": 4,
+          "members": []
+        }
       }
     ],
     "tools": {
-      "group": 3,
+      "group": 5,
       "members": [
         {
           "modules": true
+        },
+        {
+          "tool": "ext_def30fcc4d4d66d2b6e2db7a",
+          "description": "实例化宿主预登记的固定节点模板；参数不会授予其他网络权限。",
+          "parameters": {
+            "additionalProperties": false,
+            "properties": {
+              "arguments": {
+                "type": "object"
+              },
+              "key": {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              "template": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "template",
+              "key",
+              "arguments"
+            ],
+            "type": "object"
+          },
+          "modules": [],
+          "host_ref": "templates:instantiate"
         }
       ]
     }
   },
-  "type": "node"
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "居民楼B",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "树林",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "民政局",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "time"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "育儿须知",
+      "channels": [
+        "family.parent"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "怀孕须知",
+      "channels": [
+        "family.pregnancy"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "execution": null
 }
