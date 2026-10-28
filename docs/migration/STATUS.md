@@ -323,3 +323,12 @@ Project加载未应用草稿保存的项目时，缺少完整工具表的显式�
 
 
 模块共享包加载变更后的单次完整Python回归490项238.851秒通过（build/shared-module-full-regression.log）。原可选桌面启动器/启动接口已迁入adapt/harness/framework，注入的真实连接校验专项通过。制作Agent当前/候选/环境观察原专项已迁移至实际NetworkHarness并通过（build/frontend-scene-observer-current.log其中2项；该轮图片场景因旧夹具位置酒馆与当前初始居民楼B不一致未过，正在按真实输入纠正），不可把尚未通过的场景算通过。
+
+
+## 2026-10-28 资源导航及真实客户端专项
+
+原资源栏完整场景通过 build/resource-library-e2e-1793147917300：虚拟目录/剪切粘贴/别名/路径返回、配置书签/历史/拖放装配/去重、预览/筛选、侧栏宽度/窗口缩放/小地图、Commit后冷重开。依赖导航 build/dependency-navigation-1793148190895 通过：弹窗、跨栏嵌套定位、保留资源草稿、节点内实例跳转、配置返回、撤销不消耗导航历史。节点快捷按钮和连续书签删除 build/node-badges-e2e-1793148239851 通过。均沿用原客户端行为；测试按现行表/端口记录适配，Commit忙碌期间等待完成后才验撤销。
+
+隔离项目实际汇合方式验收 build/aggregation-e2e-1793148278898 通过：sum/max/min/average各自应用到后端，Commit后冷重开恢复max，未接触用户既有项目。该场景10条view HTTP400原样记入证据，属于B011，不能称全客户端无API错误。四场景付费0；资源/依赖截图已目视核对。
+
+原场景图工具真实原生图片夹具已通过 build/frontend-scene-current.log：Python场所/地图工具→原生模型收到图片→Commit→Git克隆→上下文导入→消息图片预览恢复，模型为本地替身，付费0。以上五项证据合并 evidence/2026-10-28-resource-navigation-client.json。最近完整Python仍490项238.851秒、完整前端仍110项93通过17失败，后续专项不混算。

@@ -1,7 +1,8 @@
+import {moduleTable} from '../../shared/graph/node-records.js';
 // 真实组件库、Python 后端和 Electron 客户端，模型调用为零。
 import {_electron,expect} from '@playwright/test';
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/resource-library-e2e-'+Date.now());
 let host=await startStudio({directory}),client,page;const errors=[];
 const api=async(operation,params={})=>{const response=await fetch('http://'+host.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(host.url).hash.slice(7)},body:JSON.stringify({operation,params})});const result=await response.json();if(result.error)throw Error(result.error);return result.value;};
@@ -9,7 +10,7 @@ const library=()=>api('editor.library'),node=id=>page.locator('.react-flow__node
 const tree=kind=>page.locator('[data-resource-library="'+kind+'"]'),item=(kind,id)=>tree(kind).locator('[data-resource-id="'+id+'"]');
 const book=id=>page.locator('[data-bookmark-id="'+id+'"]');
 const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
-const launch=async()=>{client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));await expect(node('a')).toBeVisible({timeout:20000});};
+const launch=async()=>{client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));await expect(node('a')).toBeVisible({timeout:20000});const combined=page.locator('.combined-resources');if(await combined.getAttribute('open')===null)await combined.locator(':scope>summary').click();};
 const menuAction=async(kind,action,target)=>{await (target??tree(kind).locator('.resource-items')).click({button:'right'});await page.getByRole('menuitem',{name:(kind==='tool'?'工具':'模块')+action,exact:true}).click();};
 const prompt=async(name,value)=>{const dialog=page.getByRole('dialog',{name,exact:true});await dialog.getByRole('textbox').fill(value);await dialog.getByRole('button',{name:'确定',exact:true}).click();};
 try{
@@ -43,12 +44,12 @@ try{
  // 独立模块前端编辑，保存为配置书签，不改变节点或运行实例。
  await item('module','metadata.fields').click();const detail=page.getByLabel('模块资源详情',{exact:true}),frame=detail.frameLocator('iframe');
  await frame.getByRole('button',{name:'＋ 添加元数据',exact:true}).click();await frame.getByLabel('字段名称').fill('金币');await frame.getByLabel('字段类型').selectOption('number');await frame.getByLabel('字段值').fill('12');await frame.getByRole('button',{name:'保存配置',exact:true}).click();
- await expect(frame.getByText('已写入网络草稿，校验并更新网络后生效',{exact:true})).toBeVisible();
+ await expect(frame.getByText('已写入网络草稿，应用网络后生效',{exact:true})).toBeVisible();
  await detail.getByRole('button',{name:'Save · 保存至书签',exact:true}).click();await expect.poll(async()=>(await library()).bookmarks.length).toBe(1);
- let preset=(await library()).bookmarks[0];expect(preset.asset.config).toEqual({fields:{金币:12}});expect((await api('state')).live.document.network.nodes.find(n=>n.node_id==='a').modules).toEqual({});expect((await library()).history).toEqual(historyBefore);
+ let preset=(await library()).bookmarks[0];expect(preset.asset.config).toEqual({fields:{金币:12}});expect(moduleTable((await api('state')).live.document.network.nodes.find(n=>n.node_id==='a'))).toEqual({});expect((await library()).history).toEqual(historyBefore);
  await expect(book(preset.id)).toHaveClass(/module/);await expect(book(preset.id)).toHaveText('元数据模板');await expect(book(preset.id)).toHaveAttribute('title',/^元数据模板：/);
  await book(preset.id).dragTo(node('a'));await expect(node('a').getByRole('button',{name:'装配节点的模块，1 个',exact:true})).toBeVisible();
- await page.getByRole('button',{name:'校验并更新网络',exact:true}).click();await expect(page.getByRole('button',{name:'校验并更新网络',exact:true})).toBeDisabled();expect((await api('state')).live.document.network.nodes.find(n=>n.node_id==='a').modules['metadata.fields'].config.fields.金币).toBe(12);
+ await page.getByRole('button',{name:'校验并更新网络',exact:true}).click();await expect(page.getByRole('button',{name:'校验并更新网络',exact:true})).toBeDisabled();await expect.poll(async()=>moduleTable((await api('state')).live.document.network.nodes.find(n=>n.node_id==='a'))['metadata.fields']?.config?.fields?.金币).toBe(12);
  // 当前挂载项顶部两个图标，保存配置和卸载；书签操作不截断撤销。
  await page.getByRole('button',{name:'保存模块 metadata.fields至书签',exact:true}).click();await expect.poll(async()=>(await library()).bookmarks.length).toBe(2);
  await page.getByRole('button',{name:'删除模块 metadata.fields',exact:true}).click();await expect(node('a').getByRole('button',{name:'装配节点的模块，0 个',exact:true})).toBeVisible();await page.keyboard.press('Control+z');await node('a').hover();await expect(node('a').getByRole('button',{name:'装配节点的模块，1 个',exact:true})).toBeVisible();
@@ -81,8 +82,9 @@ try{
  const win=await client.browserWindow(page);await win.evaluate(w=>w.setSize(1120,760));await page.waitForTimeout(400);const smaller=await node('a').boundingBox();expect(smaller.width).toBeLessThan(zoom.width);expect(await page.locator('.react-flow__node').evaluateAll(ns=>ns.map(n=>n.style.transform))).toEqual(positions);
  await win.evaluate(w=>w.maximize());await page.waitForTimeout(450);expect((await node('a').boundingBox()).width).toBeGreaterThan(smaller.width);await page.screenshot({path:path.join(directory,'02-window-resize.png')});
  await win.evaluate(w=>w.unmaximize());await page.waitForTimeout(350);expect(Math.abs((await node('a').boundingBox()).width-smaller.width)).toBeLessThan(3);
- await page.getByRole('button',{name:'保存',exact:true}).click();await client.close();client=null;await host.close();host=await startStudio({directory});await launch();
- for(const kind of ['tool','module']){await expect(tree(kind)).not.toHaveAttribute('open','');await tree(kind).locator(':scope>summary').click();}
+ const openBefore=Object.fromEntries(await Promise.all(['tool','module'].map(async kind=>[kind,await tree(kind).getAttribute('open')!==null]))),headBefore=(await api('project.info')).head;
+ await page.getByRole('button',{name:'Commit',exact:true}).click();await expect.poll(async()=>(await api('project.info')).head).not.toBe(headBefore);await client.close();client=null;await host.close();host=await startStudio({directory});await launch();
+ for(const kind of ['tool','module']){expect(await tree(kind).getAttribute('open')!==null).toBe(openBefore[kind]);if(!openBefore[kind])await tree(kind).locator(':scope>summary').click();}
  expect((await library()).assets.module.items['metadata.fields']).toEqual({folder:child,name:'元数据模板'});expect((await library()).assets.module.folders.find(f=>f.id===parent).name).toBe('分类一');
  expect((await page.locator('.left-panel').boundingBox()).width).toBe((await library()).settings.panels.leftWidth);await expect(book(picture.id).locator('img')).toBeVisible();expect(errors).toEqual([]);
  await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify({passed:true,virtualFolders:true,explorerBreadcrumbs:true,oneDirectoryLevel:true,resizableSidebars:true,cutPasteFolderAndItem:true,aliasesPersist:true,standaloneModuleFrontend:true,configuredAssetBookmark:true,directLibraryDrop:true,historyDrop:true,deduplicatedTool:true,headerSaveAndDelete:true,historyStableOnManagement:true,resourceFilters:true,distinctColors:true,optionalPreview:true,nameAndDescriptionTooltip:true,resizeKeepsNodePositions:true,minimapMatchesFrame:true,restartRestores:true,modelCalls:0,errors},null,2));console.log('PASS 资源栏、配置书签、历史复用、窗口视口及小地图：'+directory);

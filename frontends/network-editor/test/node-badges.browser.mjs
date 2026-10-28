@@ -1,6 +1,7 @@
+import {setModule,setPorts} from '../../shared/graph/node-records.js';
 import {_electron,expect} from '@playwright/test';
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 import {copySubnet} from '../src/subnets.js';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/node-badges-e2e-'+Date.now());
 const host=await startStudio({directory});let client,page;const errors=[];
@@ -9,8 +10,8 @@ const library=()=>api('editor.library');
 try{
  const initial=await api('state'),catalog=await api('catalog');let document=await api('template',{kind:'node',options:{id:'a',name:'测试节点'},document:initial.live.document});
  const a=document.network.nodes.find(n=>n.node_id==='a'),agent=document.network.nodes.find(n=>n.node_id==='root');
- a.offered_tools=catalog.tools.slice(0,2).map(t=>({ref:t.ref,channels:['tools']}));agent.offered_tools=catalog.tools.slice(0,1).map(t=>({ref:t.ref,channels:['tools']}));
- for(const node of [a,agent])node.modules['metadata.fields']=structuredClone(catalog.modules['metadata.fields'].defaults);
+ document.network.properties??={};setPorts(a,document.network.properties,catalog.tools.filter(t=>!t.module).slice(0,2).map(t=>({ref:t.ref,channels:['tools']})));setPorts(agent,document.network.properties,catalog.tools.filter(t=>!t.module).slice(0,1).map(t=>({ref:t.ref,channels:['tools']})));
+ for(const node of [a,agent])setModule(node,'metadata.fields',structuredClone(catalog.modules['metadata.fields'].defaults));
  const layout={root:{x:0,y:0},a:{x:210,y:0}};await api('apply',{document,base_commit:initial.live.commit,layout});
  const snapshot=copySubnet(document,['a'],'internal',layout),books=Array.from({length:4},(_,i)=>({id:'book-'+i,name:'书签 '+i,mode:'internal',category:'default',createdAt:i,snapshot}));
  await api('editor.library.update',{action:'bookmark.patch',changes:books.map(b=>({id:b.id,expected:null,value:b}))});
@@ -28,7 +29,7 @@ try{
  await modules.locator('span').click();await expect(page.locator('.inspector-tabs button.active')).toHaveText('模块');await expect(page.locator('.module-section')).toHaveCount(1);
  await page.locator('.brand').hover();await expect(modules).toBeVisible();
  await page.locator('.right-panel .module-section>summary').click();await page.getByRole('button',{name:'卸载模块',exact:true}).click();await expect(node('a').getByRole('button',{name:'测试节点的模块，0 个',exact:true})).toBeVisible();
- await node('root').hover();const agentTools=node('root').getByRole('button',{name:'DataNet根节点的工具，1 个',exact:true});await agentTools.click();await page.waitForTimeout(400);await expect(page.locator('.inspector-tabs button.active')).toHaveText('工具');await expect(page.locator('.chat-overlay')).toHaveCount(0);await expect(node('root')).toHaveClass(/selected/);
+ await node('root').hover();const agentTools=node('root').getByRole('button',{name:'起始节点的工具，1 个',exact:true});await agentTools.click();await page.waitForTimeout(400);await expect(page.locator('.inspector-tabs button.active')).toHaveText('工具');await expect(page.locator('.chat-overlay')).toHaveCount(0);await expect(node('root')).toHaveClass(/selected/);
  await page.locator('.react-flow__pane').dispatchEvent('click');await page.locator('.brand').hover();await expect(agentTools).toBeHidden();await expect(page.getByRole('button',{name:'展开右侧栏',exact:true})).toBeVisible();
  // 鼠标只定位一次，删除后不移动：后续按键继续命中补位后的书签。
  const history=(await library()).history.map(e=>e.kind+e.id);await page.locator('.bookmark-card').first().hover();
