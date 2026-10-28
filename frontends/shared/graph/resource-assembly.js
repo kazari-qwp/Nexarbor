@@ -1,5 +1,6 @@
 import {copyJson} from '../json-copy.js';
 import {moduleTable,moduleAccess,setModule,nodeSkills,setSkills,offeredPorts,setPorts} from './node-records.js';
+export const initialModuleAccess=(document,nodeId,value={})=>({...value,strength:value.strength??document.network.properties?.[nodeId]?.module_strength??1});
 // Pure, atomic resource assembly. Used by the editor and the transport host.
 export function assembleResources(document,nodeId,assets,catalog,{available=()=>true}={}){
  const next=copyJson(document),node=next.network.nodes.find(n=>n.node_id===nodeId);
@@ -25,7 +26,7 @@ export function assembleResources(document,nodeId,assets,catalog,{available=()=>
   visiting.delete(key);done.add(key);
   if(kind==='module'){
    const previous=moduleTable(node)[id];
-   if(!previous||explicit){const selected=spec??definition.defaults??{};setModule(node,id,{...previous,config:copy(selected.config??{}),state:copy(previous?.state??selected.state??{}),...copy(selected.access??(previous?moduleAccess(previous):definition.defaults?.access??{strength:0,channels:[]}))});}
+   if(!previous||explicit){const selected=spec??definition.defaults??{};setModule(node,id,{...previous,config:copy(selected.config??{}),state:copy(previous?.state??selected.state??{}),...initialModuleAccess(next,nodeId,copy(selected.access??(previous?moduleAccess(previous):definition.defaults?.access??{channels:[]})))});}
   }else if(kind==='skill')setSkills(node,[...new Set([...nodeSkills(node),id])]);
   else if(!definition.module){const offers=offeredPorts(node,properties),index=offers.findIndex(t=>t.ref===id),offer={ref:id,channels:copy(spec?.channels??definition.channels??['tools'])};if(index<0)offers.push(offer);else if(explicit)offers[index]=offer;setPorts(node,properties,offers);}
  };

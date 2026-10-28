@@ -18,7 +18,7 @@ class WorkbenchProjectTests(unittest.TestCase):
                 try:
                     self.assertEqual(len(transport.dispatch('studio_state',{})['live']['document']['network']['nodes']),count)
                     self.assertEqual(len(transport.dispatch('studio_catalog',{})['library']),library_count)
-                    self.assertEqual([row['id'] for row in transport.dispatch('data_templates',{})],['value','csv','sqlite','wiki'])
+                    self.assertEqual([row['id'] for row in transport.dispatch('data_templates',{})],['value','csv','sqlite','rag','wiki'])
                 finally:transport.close()
 
     def test_template_copies_actual_host_tool_names_and_keeps_nested_business_tool_keys(self):

@@ -1,3 +1,4 @@
+import readAgentDefaults from '../adapt/harness/framework/agent-defaults.cjs';
 // Original two-node bootstrap and preset task through the real project host.
 import assert from 'node:assert/strict';import fs from 'node:fs/promises';import path from 'node:path';
 import {startStudio} from '../adapt/harness/studio/host.mjs';
@@ -10,7 +11,7 @@ const report={model:process.env.DEEPSEEK_MODEL??'deepseek-flash',real_api:live,i
 const save=()=>fs.writeFile(path.join(folder,'root-evidence.json'),JSON.stringify(report,null,2));
 let host,timer,busy=false,stopReason;
 const project=new Project(spec.project,spec.runtime);await project.initialize();
-if(live){assert.ok(process.env.DEEPSEEK_API_KEY);const models=new ModelConnections({project,configDirectory:path.join(folder,'model-config')});const connection=await models.save({name:'DeepSeek应用验收',provider:'DeepSeek',protocol:'openai-completions',base_url:process.env.DEEPSEEK_BASE_URL??'https://api.deepseek.com',models:[report.model],api_key:process.env.DEEPSEEK_API_KEY});for(const scope of ['project','network','component'])await models.choose(scope,{connection:connection.id,model:report.model,reasoning_effort:'low',max_tokens:16000,context_window:600000});}
+if(live){assert.ok(process.env.DEEPSEEK_API_KEY);const models=new ModelConnections({project,configDirectory:path.join(folder,'model-config')});const connection=await models.save({name:'DeepSeek应用验收',provider:'DeepSeek',protocol:'openai-completions',base_url:process.env.DEEPSEEK_BASE_URL??'https://api.deepseek.com',models:[report.model],api_key:process.env.DEEPSEEK_API_KEY});for(const scope of ['project','network','component'])await models.choose(scope,{connection:connection.id,model:report.model,reasoning_effort:readAgentDefaults(root).reasoning_effort,max_tokens:readAgentDefaults(root).max_tokens,context_window:readAgentDefaults(root).context_window});}
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const baseline=JSON.parse(await fs.readFile(path.join(root,'docs/migration/evidence/2026-10-28-hone-original-baseline.json'),'utf8'));
 async function progress(){

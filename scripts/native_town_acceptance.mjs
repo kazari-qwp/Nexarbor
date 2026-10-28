@@ -45,9 +45,9 @@ const gateway=http.createServer(async(req,res)=>{
  }catch(error){if(!res.headersSent)res.writeHead(502,{'Content-Type':'application/json'});res.end(JSON.stringify({error:{message:redact(error)}}));}
 });
 await new Promise(resolve=>gateway.listen(0,'127.0.0.1',resolve));
-const signature=crypto.createHash('sha256').update('newcore-town:'+base+':'+model+':'+JSON.stringify({...readAgentDefaults(root),max_tokens:16000,reasoning_effort:'low'})).digest('hex');
+const signature=crypto.createHash('sha256').update('newcore-town:'+base+':'+model+':'+JSON.stringify(readAgentDefaults(root))).digest('hex');
 const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+gateway.address().port+'/v1',api_key:'acceptance-proxy',signature,
- model:{model,reasoningEfforts:{off:'none',low:'low',high:'high',max:'max'},compat:{supportsDeveloperRole:false,thinkingFormat:'deepseek',supportsReasoningEffort:true,requiresReasoningContentOnAssistantMessages:true,maxTokensField:'max_tokens'},reasoningEffort:'low',maxTokens:16000,contextWindow:readAgentDefaults(root).context_window}};
+ model:{model,reasoningEfforts:{off:'none',low:'low',high:'high',max:'max'},compat:{supportsDeveloperRole:false,thinkingFormat:'deepseek',supportsReasoningEffort:true,requiresReasoningContentOnAssistantMessages:true,maxTokensField:'max_tokens'},reasoningEffort:readAgentDefaults(root).reasoning_effort,maxTokens:readAgentDefaults(root).max_tokens,contextWindow:readAgentDefaults(root).context_window}};
 let bridge,native;
 const evidence={mode:'town',directory,started:new Date().toISOString(),cycles:[],days:[],requested_days:days,requested_ticks:ticks,model,model_config:profile.model,source:'converted original npc-town project',real_api:true,api_calls:calls};
 let resume=null,priorCalls=[],previousCalls=[];

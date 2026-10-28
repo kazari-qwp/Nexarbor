@@ -28,9 +28,10 @@ export async function startStudio({directory=path.join(root,'build/workbench'),p
  try{await fs.access(path.join(directory,'checkpoints.sqlite3'));checkpointExists=true;}catch{}
  try{await fs.access(restoreMarker);restorePending=true;}catch{}
  if(!initialNetwork&&(!checkpointExists||restorePending))restoreBundle=await readProjectBundle(projectDirectory);
- if(restoreBundle?.document.network.nodes.some(node=>offeredPorts(node,restoreBundle.document.network.properties).some(tool=>tool.ref.startsWith('harness:'))))await requireCompatibleHarness();
+ if(initialNetwork&&(!checkpointExists||restorePending))restoreBundle=JSON.parse(await fs.readFile(path.resolve(initialNetwork),'utf8'));
+ const restoreDocument=restoreBundle?.document??restoreBundle;
+ if(restoreDocument?.network?.nodes?.some(node=>offeredPorts(node,restoreDocument.network.properties).some(tool=>tool.ref.startsWith('harness:'))))await requireCompatibleHarness();
  if(restoreBundle){await fs.mkdir(directory,{recursive:true});await fs.writeFile(restoreMarker,JSON.stringify({format:'nexarbor-project-restore/v1',project:projectDirectory}));}
- if(initialNetwork)restoreBundle=JSON.parse(await fs.readFile(path.resolve(initialNetwork),'utf8'));
  await fs.mkdir(directory,{recursive:true});const temporary=path.join(directory,'temp');await fs.mkdir(temporary,{recursive:true});
  onProgress('正在恢复网络…');const startTime=performance.now(),timings={};const mark=name=>{timings[name]=Math.round(performance.now()-startTime);};
  const project=new Project(projectDirectory,directory,(method,p)=>rpc(method,p));await project.initialize();
@@ -131,15 +132,16 @@ export async function startStudio({directory=path.join(root,'build/workbench'),p
  try{
  await rpc('ping');await project.initialize();await rpc('studio_project_modules');mark('pythonReady');onProgress('正在准备画布…');officialNeeded=await rpc('studio_official_needed');mark('presetsReady');
  runtimeTools=(await rpc('runtime_catalog')).map(t=>({...t,owner:'可选宿主端口'}));
- if(templates.length)await rpc('templates_register',{templates});runtimeTools.push(...(await rpc('templates_catalog')).map(t=>({...t,owner:'固定模板端口'})));
  workspaceFiles.runtime={components,templates,application};workspaceFiles.project=project;
  if(restoreBundle){
-  if(restoreBundle.document.network.nodes.some(node=>offeredPorts(node,restoreBundle.document.network.properties).some(tool=>tool.ref.startsWith('harness:'))))await loadOfficial();
+  if(restoreDocument.network.nodes.some(node=>offeredPorts(node,restoreDocument.network.properties).some(tool=>tool.ref.startsWith('harness:'))))await loadOfficial();
   const staged=await workspaceFiles.request('workspace.import',{bundle:restoreBundle});
   if(!restoreBundle.dirty){if(!staged.validation.valid)throw Error('项目网络无法载入：'+JSON.stringify(staged.validation.errors??staged.validation));await workspaceFiles.request('workspace.apply',{...staged,base_commit:staged.base_commit});}
   await fs.unlink(restoreMarker).catch(error=>{if(error.code!=='ENOENT')throw error;});
   officialNeeded=await rpc('studio_official_needed');
  }
+ if(templates.length){await rpc('templates_register',{templates});await rpc('save');}
+ runtimeTools.push(...(await rpc('templates_catalog')).map(t=>({...t,owner:'固定模板端口'})));
  makers=new MakerManager(directory,rpc,{runnerFactory:makerRunnerFactory??((p,callback)=>nativeMakerFactory({...p,directory,modelResolver:(choice,meta)=>modelConnections.runtime(choice,meta.kind==='network'?'network':'component')},callback))});await makers.initialize();makers.project=project;makers.advisor=new Advisors(directory,rpc,makers,()=>request('catalog',{}));
  adminRequest=(method,p)=>{if(method==='start')return makers.start(p);if(method==='status')return makers.read(p);if(method==='cancel')return makers.cancel(p);throw Error('未知局部管理员宿主操作');};
  // 原生 Agent 与制作运行器已有按需启动；官方工具同样不阻塞画布。

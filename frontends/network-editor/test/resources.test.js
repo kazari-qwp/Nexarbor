@@ -46,3 +46,12 @@ test('tool presets deduplicate references and resource history keeps the configu
  const entry=assetHistory(preset),copy=historyBookmark(entry);assert.equal(copy.kind,'tool');assert.deepEqual(copy.asset,preset.asset);assert.equal(copy.snapshot,undefined);
  assert.equal(matchesType(copy,'tool'),true);assert.equal(matchesType(copy,'node'),false);assert.equal(matchesType({mode:'internal',snapshot:{nodes:[{},{}]}},'network'),true);
 });
+
+
+test('node strength is an installation default only; explicit zero, dependencies and installed values remain independent',()=>{
+ const source=structuredClone(document);source.network.properties={a:{module_strength:6}};
+ const definitions={modules:{plain:{node_types:['node'],requires:['dependency'],defaults:{config:{},access:{channels:['x']}}},dependency:{node_types:['node'],defaults:{config:{}}},zero:{node_types:['node'],defaults:{config:{},access:{strength:0,channels:[]}}},configured:{node_types:['node'],defaults:{config:{},access:{strength:2,channels:[]}}}},tools:[]};
+ const installed=attachResources(source,'a',[resource(definitions,'module','plain').asset,resource(definitions,'module','zero').asset,resource(definitions,'module','configured').asset],definitions);const table=moduleTable(installed.network.nodes[0]);assert.equal(table.plain.strength,6);assert.equal(table.dependency.strength,6);assert.equal(table.zero.strength,0);assert.equal(table.configured.strength,2);
+ installed.network.properties.a.module_strength=9;const untouched=attachResources(installed,'a',[resource(definitions,'module','configured').asset],definitions);assert.equal(moduleTable(untouched.network.nodes[0]).plain.strength,6);assert.equal(moduleTable(untouched.network.nodes[0]).dependency.strength,6);assert.equal(source.network.nodes[0].tables.modules.length,0);
+ const noDefault=attachResources(document,'a',[resource(definitions,'module','plain').asset],definitions);assert.equal(moduleTable(noDefault.network.nodes[0]).plain.strength,1);
+});

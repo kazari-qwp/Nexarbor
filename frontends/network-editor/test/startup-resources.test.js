@@ -23,3 +23,19 @@ test('index updates stay small; archive stores independent payload and deletion 
  await assert.rejects(library('editor.library.update',{summary:true,action:'asset.purge',kind:'module',id:'example.module',confirm:'example.module'}),/仍引用/);assert.equal(purged,false);
  const archived=await library('editor.library.update',{summary:true,action:'asset.archive',kind:'preset',entries:[{id:saved.id}]});assert.deepEqual(archived.assets.preset.items[saved.id].resource.snapshot.files,document.files);
 });
+
+
+test('raw stored network loads before caller templates; reopening keeps edited checkpoint and real template instance',async t=>{
+ const {startStudio}=await import('../../../adapt/harness/studio/host.mjs'),{editorNode}=await import('../../../adapt/harness/framework/editor-nodes.js');
+ const base=await fs.mkdtemp(path.resolve('../../build/initial-network-order-')),directory=path.join(base,'project'),source=path.join(base,'network.json');
+ const document={network:{nodes:[editorNode('node','caller','完整网络调用者')]},files:{}};await fs.writeFile(source,JSON.stringify(document));
+ const child=editorNode('node','new','实际模板子项');child.tables.tools={group:0,members:[{modules:true}]};
+ const templates=[{id:'child',callers:['caller'],document:{network:{nodes:[child]},files:{}},arguments_schema:{type:'object',properties:{},additionalProperties:false},bindings:[],attachments:[]}];
+ let host;try{
+  host=await startStudio({directory,initialNetwork:source,templates});let state=await host.request('state',{});assert.deepEqual(state.live.document.network.nodes.map(n=>n.node_id),['caller']);
+  const result=await host.rpc('template_instantiate',{actor:'caller',template:'child',key:'created',arguments:{}});const id=result.node_ids.new;assert.ok(id);
+  state=await host.request('state',{});state.live.document.network.nodes.find(n=>n.node_id==='caller').name='保存后的名称';await host.request('apply',{document:state.live.document,base_commit:state.live.commit});
+  await host.close();host=null;host=await startStudio({directory,initialNetwork:source,templates});const cold=await host.request('state',{});assert.equal(cold.live.document.network.nodes.find(n=>n.node_id==='caller').name,'保存后的名称');assert.ok(cold.live.document.network.nodes.some(n=>n.node_id===id));
+  assert.equal((await host.rpc('template_instantiate',{actor:'caller',template:'child',key:'created',arguments:{}})).duplicate,true);
+ }finally{await host?.close();}
+});

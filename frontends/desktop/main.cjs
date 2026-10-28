@@ -108,7 +108,7 @@ async function startImportedNetwork(bundle){
   if(!Array.isArray(document?.network?.nodes))throw Error('网络文件缺少节点列表');
   const {editorNode}=await import(pathToFileURL(path.join(root,'adapt/harness/framework/editor-nodes.js')).href);await fs.promises.mkdir(spec.directory,{recursive:true});
   // 固定模板先登记现有节点身份；业务配置与上下文在校验更新时一起装配。
-  const bootstrap=path.join(spec.directory,'import-bootstrap.json');await fs.promises.writeFile(bootstrap,JSON.stringify({network:{version:8,nodes:document.network.nodes.map(n=>editorNode('node',n.node_id,n.name)),signals:{},delegations:[]},files:{}}));
+  const bootstrap=path.join(spec.directory,'import-bootstrap.json');await fs.promises.writeFile(bootstrap,JSON.stringify({network:{nodes:document.network.nodes.map(n=>editorNode('node',n.node_id,n.name))},files:{}}));
   next=await startStudio({...spec,projectDirectory:workspaceHome,onOpenProject:()=>projectAction('open'),onCreateProject:()=>projectAction('new'),onOpenText:openExternalText,onChooseText:chooseText,onRevealFile:file=>{shell.showItemInFolder(file);return {revealed:true};},initialNetwork:bootstrap,onOpenNetwork:openStoredNetwork,onImportNetwork:value=>enqueueStart(()=>startImportedNetwork(value)),onProgress:progress});await next.request('workspace.import.local',{bundle});next.launchSpec=spec;await activate(next.url,next,spec);
  }catch(error){await next?.close().catch(()=>{});await clearProgress();await dialog.showMessageBox(window,{type:'error',title:'无法导入网络',message:error.message});}
 }

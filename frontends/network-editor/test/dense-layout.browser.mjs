@@ -1,19 +1,17 @@
-import {chromium,expect} from '@playwright/test';
-import fs from 'node:fs/promises';
-const connection=JSON.parse(await fs.readFile('E:/Nexarbor项目/NPC小镇/.nexarbor/runs/main/editor-connection.json','utf8'));
-const browser=await chromium.launch({channel:'msedge',headless:true});
+// Completed town in an isolated real desktop; no agents or ticks are run.
+import {_electron,expect} from '@playwright/test';
+import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
+const root=fileURLToPath(new URL('../../../',import.meta.url)),base=await fs.mkdtemp(path.join(root,'build/dense-layout-client-')),folder=path.join(base,'project'),directory=path.join(folder,'.nexarbor/runs/main');
+await fs.cp(path.join(root,'项目演示/应用3-NPC小镇-最终'),folder,{recursive:true,filter:f=>!f.split(path.sep).some(x=>['.git','runs','cache'].includes(x))});
+const host=await startStudio({directory,projectDirectory:folder}),env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
+const browser=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir',path.join(base,'client')],env});
 try{
- const page=await browser.newPage({viewport:{width:1800,height:1100}}),errors=[];
+ const page=await browser.firstWindow(),errors=[];await browser.evaluate(({BrowserWindow})=>BrowserWindow.getAllWindows()[0].setSize(1800,1100));
  page.on('pageerror',e=>errors.push(e.message));
- await page.route('**/api',async route=>{
-  const data=route.request().postDataJSON();
-  if(['workspace.view','workspace.save'].includes(data.operation))return route.fulfill({json:{value:{savedAt:new Date().toISOString()}}});
-  return route.continue();
- });
- await page.goto(connection.url);
  await expect(page.locator('.react-flow__node').first()).toBeVisible({timeout:20000});
  const reset=page.getByRole('button',{name:'清除筛选',exact:true});if(await reset.count())await reset.click();
- await expect(page.locator('.react-flow__node')).toHaveCount(61);
+ await expect(page.locator('.react-flow__node')).toHaveCount(59);
  const original=await page.locator('.react-flow__node').evaluateAll(ns=>Object.fromEntries(ns.map(n=>[n.dataset.id,n.style.transform])));
  const arrange=async()=>{
   await page.getByRole('button',{name:'整理',exact:true}).click();
@@ -28,15 +26,15 @@ try{
  const width=Math.max(...geometry.map(n=>n.x+n.w))-Math.min(...geometry.map(n=>n.x)),height=Math.max(...geometry.map(n=>n.y+n.h))-Math.min(...geometry.map(n=>n.y));
  expect(width/height).toBeGreaterThan(.6);expect(width/height).toBeLessThan(2.1);
  for(let i=0;i<geometry.length;i++)for(const b of geometry.slice(i+1)){const a=geometry[i];expect(a.x+a.w<=b.x||b.x+b.w<=a.x||a.y+a.h<=b.y||b.y+b.h<=a.y).toBeTruthy();}
- expect(await page.locator('[data-id="npc/lin"] .network-node').evaluate(n=>getComputedStyle(n).width)).toBe('84px');
+ expect(await page.locator('.react-flow__node:has(.node-name:text-is("小砾")) .network-node').evaluate(n=>getComputedStyle(n).width)).toBe('84px');
  const strokes=await page.locator('.react-flow__edge:not(.react-flow__edge-ownership) .react-flow__edge-path').evaluateAll(es=>[...new Set(es.map(e=>getComputedStyle(e).stroke))]);
  expect(strokes.length).toBeGreaterThan(4);
- await page.screenshot({path:'../../build/town-migration/v3-dense-all.png'});
+ await page.screenshot({path:path.join(base,'dense-all.png')});
  await page.getByRole('button',{name:'撤销',exact:true}).click();
  expect(await page.locator('.react-flow__node').evaluateAll(ns=>Object.fromEntries(ns.map(n=>[n.dataset.id,n.style.transform])))).toEqual(original);
  for(const kind of ['文本','亚节点'])await page.getByRole('group',{name:'节点类型显示'}).getByRole('button',{name:kind,exact:true}).click();
  await arrange();
- await page.screenshot({path:'../../build/town-migration/v3-dense-main.png'});
+ await page.screenshot({path:path.join(base,'dense-main.png')});
  expect(errors).toEqual([]);
- console.log('PASS actual client: 61 nodes, dense aspect',Number((width/height).toFixed(2)),', no overlaps, 84px nodes,',strokes.length,'bright edge colours, undo and filtered arrangement; no page errors');
-}finally{await browser.close();}
+ const state=await host.request('state',{resume:false});expect(state.live.document.network.nodes).toHaveLength(52);expect(state.live.document.network.nodes.find(n=>n.type==='pulse').parameters.state.sequence).toBe(25);await fs.writeFile(path.join(base,'verification.json'),JSON.stringify({passed:true,realNodes:52,moduleRectangles:7,ratio:width/height,noOverlaps:true,nodeSize:84,colours:strokes.length,undo:true,filtered:true,paidCalls:0,ticksAdvanced:0,errors},null,2));console.log('PASS '+base);
+}finally{await browser.close();await host.close();}

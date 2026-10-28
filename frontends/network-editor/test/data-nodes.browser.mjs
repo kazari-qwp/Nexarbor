@@ -1,18 +1,19 @@
 // 真实第二应用与 Electron，节点数据编辑/复制/保存/冷启动，无模型调用。
 import {_electron,expect} from '@playwright/test';
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {startStudioProfile} from '../../../adapt/harness/studio/host.mjs';
-const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/data-nodes-ui-'+Date.now()),profile=path.join(root,'configs/knowledge_v3/profile.json');
-let host=await startStudioProfile(profile,{directory}),client,page;const errors=[];
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
+import {dataFixture} from './support/data-fixture.mjs';
+const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/data-nodes-ui-'+Date.now());
+let host=await dataFixture(root,directory),client,page;const errors=[];
 const api=async(operation,params={})=>{const r=await fetch('http://'+host.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(host.url).hash.slice(7)},body:JSON.stringify({operation,params})}),v=await r.json();if(v.error)throw Error(v.error);return v.value;};
 const lib=()=>api('editor.library'),canvas=()=>page.locator('.node-link-gesture'),node=id=>page.locator('.react-flow__node[data-id="'+id+'"]'),book=id=>page.locator('[data-bookmark-id="'+id+'"]');
 const launch=async()=>{const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));await expect(node('root')).toBeVisible({timeout:30000});};
 const select=async id=>{const selected=page.locator('.right-panel .inspector-intro>small');if(await selected.textContent().catch(()=>null)!==id){await node(id).click();await expect(selected).toHaveText(id);}await page.locator('.inspector-tabs').getByRole('button',{name:'资料',exact:true}).click();return page.getByLabel('节点本地数据',{exact:true});};
 const apply=async()=>{await page.getByRole('button',{name:'校验并更新网络',exact:true}).click();await expect(page.locator('.toast')).toContainText('已校验并更新网络',{timeout:15000});await expect(page.getByRole('button',{name:'校验并更新网络',exact:true})).toBeDisabled();};
-const current=async()=>{await page.getByRole('button',{name:'保存',exact:true}).click();await expect(page.getByRole('button',{name:'保存',exact:true})).toBeEnabled();return (await api('state')).draft.document;};
+const current=async()=>{await page.evaluate(()=>window.nexarborWorkspace.flush());const state=await api('state');return state.workspace?.document??state.draft.document;};
 try{
  const state=await api('state'),catalog=await api('catalog');expect(state.live.document.network.nodes).toHaveLength(7);expect(catalog.nodes.map(n=>n.id)).toEqual(expect.arrayContaining(['value','csv','sqlite','rag','wiki']));
- let document=await api('template',{kind:'text_file',options:{id:'text-source',name:'原始文本'},document:state.live.document});const text=document.network.nodes.at(-1);text.modules['data.local']=structuredClone(catalog.modules['data.local'].defaults);document.files[text.parameters.file_path]='文本原件正文';await api('apply',{document,base_commit:state.live.commit});await launch();
+ await launch();
  const tree=page.locator('[data-resource-library="node"]');await tree.locator(':scope>summary').click();await tree.getByRole('button',{name:'节点文件夹 官方节点',exact:true}).dblclick();await expect(tree.locator('[data-resource-id="sqlite"]')).toBeVisible();await expect(tree.locator('[data-resource-id="wiki"]')).toBeVisible();
  // 尚未放入画布的官方节点可填好真实数据，再存书签。
  await tree.locator('[data-resource-id="sqlite"]').click();let panel=page.getByLabel('节点本地数据',{exact:true});await panel.getByLabel('数据主键',{exact:true}).fill('draft');await panel.getByLabel('数据内容',{exact:true}).fill(JSON.stringify({id:'draft',text:'未进场也有数据'}));await panel.getByRole('button',{name:'保存数据到草稿',exact:true}).click();await expect(panel.locator('pre')).toContainText('未进场也有数据');await page.getByLabel('节点模板详情',{exact:true}).getByRole('button',{name:'Save · 保存至书签',exact:true}).click();await expect.poll(async()=>(await lib()).bookmarks.length).toBe(1);let prepared=(await lib()).bookmarks[0];expect(Object.values(prepared.snapshot.files).some(v=>v?.encoding==='base64')).toBe(true);
@@ -24,7 +25,7 @@ try{
  }
  // 数据文件视图不会把二进制对象送入文本编辑器。
  await page.getByRole('button',{name:'网络文档',exact:true}).click();const documents=page.getByRole('dialog',{name:'网络文档',exact:true});const binary=documents.locator('.studio-sidebar button').filter({hasText:'records.sqlite3'}).first();await binary.click();await expect(documents).toContainText('二进制数据资源随节点独立复制和存档');await documents.getByRole('button',{name:'关闭网络文档',exact:true}).click();
- await page.screenshot({path:path.join(directory,'data-nodes.png')});await client.close();client=null;await host.close();host=await startStudioProfile(profile,{directory});await launch();
+ await page.screenshot({path:path.join(directory,'data-nodes.png')});await client.close();client=null;await host.close();host=await startStudio({directory});await launch();
  for(const c of copies){const value=await api('module.call',{node:c.id,module:'data.local',operation:'read',arguments:{key:c.key}});expect(JSON.stringify(value)).toContain(typeof c.value==='string'?c.value:c.value.text);}
  expect(errors).toEqual([]);await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify({passed:true,knowledgeAppNodes:7,officialDataTemplates:5,standaloneSQLiteEditing:true,bookmarkStorage:true,independentTextCsvSqliteRagWiki:true,binaryViewer:true,coldRestart:true,modelCalls:0,errors},null,2));console.log('PASS 数据节点真实客户端 '+directory);
 }catch(error){await fs.writeFile(path.join(directory,'errors.json'),JSON.stringify(errors,null,2));if(page&&!page.isClosed()){await page.screenshot({path:path.join(directory,'failed.png')});await fs.writeFile(path.join(directory,'failed.txt'),await page.locator('body').innerText());}throw error;}finally{if(client)await client.close();await host.close();}

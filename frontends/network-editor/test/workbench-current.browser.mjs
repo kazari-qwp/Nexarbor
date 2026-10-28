@@ -1,3 +1,4 @@
+import readAgentDefaults from '../../../adapt/harness/framework/agent-defaults.cjs';
 // The original desktop main entry, real Electron renderer and real Python backend.
 import { _electron as electron } from 'playwright';
 import assert from 'node:assert/strict';
@@ -13,7 +14,7 @@ if(live){
  const project=new Project(folder,path.join(directory,'setup'));await project.initialize();
  const models=new ModelConnections({project,configDirectory:path.join(directory,'models')});
  const connection=await models.save({name:'DeepSeek 验收',provider:'DeepSeek',protocol:'openai-completions',base_url:process.env.DEEPSEEK_BASE_URL??'https://api.deepseek.com',models:[process.env.DEEPSEEK_MODEL??'deepseek-flash'],api_key:process.env.DEEPSEEK_API_KEY});
- await models.choose('network',{connection:connection.id,model:process.env.DEEPSEEK_MODEL??'deepseek-flash',reasoning_effort:'low',max_tokens:16000,context_window:600000});
+ await models.choose('network',{connection:connection.id,model:process.env.DEEPSEEK_MODEL??'deepseek-flash',reasoning_effort:readAgentDefaults(root).reasoning_effort,max_tokens:readAgentDefaults(root).max_tokens,context_window:readAgentDefaults(root).context_window});
 }
 let app;const errors=[],consoleErrors=[],apiErrors=[];let record;
 const started=Date.now();

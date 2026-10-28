@@ -100,12 +100,14 @@ class DataPreview(unittest.IsolatedAsyncioTestCase):
         from app.studio.data_templates import templates
         from app.studio.service import Studio
         from app.studio.network_work import validate_network
-        studio=Studio(self.h.backend,{'data.local':ROOT/'projects/knowledge_archive/modules/data_local'})
+        from projects.knowledge_archive.nodes.collection import CollectionNode
+        self.h.backend.saver.node_types['knowledge_collection']=CollectionNode
+        studio=Studio(self.h.backend,{'data.local':ROOT/'projects/knowledge_archive/modules/data_local','data.knowledge':ROOT/'projects/knowledge_archive/modules/data_knowledge'})
         try:
-            values=templates(self.h.backend,studio.library);self.assertEqual([item['id'] for item in values],['value','csv','sqlite'])
+            values=templates(self.h.backend,studio.library);self.assertEqual([item['id'] for item in values],['value','csv','sqlite','rag','wiki'])
             for item in values:
                 snapshot=item['snapshot'];document=validate_network({'network':{'nodes':snapshot['nodes']},'files':snapshot['files']},self.h.backend,studio.library)
-                node=document['network']['nodes'][0];self.assertEqual(node['type'],item['id'])
+                node=document['network']['nodes'][0];self.assertEqual(node['type'],'knowledge_collection' if item['id'] in ('rag','wiki') else item['id'])
                 self.assertTrue(node['tables']['modules'][0]['tools']['members'])
                 result=preview(self.h.backend,dict(node=node,files=document['files'],operation='inspect'))
                 self.assertIsInstance(result['result'],dict)

@@ -23,6 +23,8 @@ async def read_accounts(self, node):
 
 回调内直接用 node.info、node.modules、node.tools、node.links。模块用 node.modules.get(id)，直接调用其公开方法；工具箱是可迭代 Tools，需要列表就 list(node.tools)，调用单个工具用 tool.invoke(**arguments)，异步结果再 await。无需 list/invoke 提供器或兼容旧封套。
 
+前端装配模块时，未配置访问强度则填入节点的模块默认强度；明确配置的值优先，已装配模块不随节点默认值联动。
+
 显式装饰器参数优先；无参数 @access() 使用模块的 channels/strength/channel_mode，没有频道设置则只在本节点执行一次。需要明确本地操作用 @access(channels=())。频道匹配用 channel_mode='allow' 或 'deny'，无需旧的频道解析接口。
 
 节点对象属于当前回调，不写入 JSON 参数、state 或持久配置。保留身份用 node.info.node_id，下次行为重新通过装饰器访问。需要在结果上汇总时，由公开方法处理返回字典的 values，不在模块中再实现一套遍历。
