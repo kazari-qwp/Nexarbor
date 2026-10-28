@@ -16,7 +16,7 @@ Nexarbor 0.9.2（2026-10-28 新核心构建）是独立的桌面工作台，使�
 
 默认查找 `%LOCALAPPDATA%\Programs\DeepSeek Harness\DeepSeek Harness.exe`。安装在其他位置时，设置 `DATANET_HARNESS_EXE` 为可执行文件的完整路径。
 
-授权文件可以通过制作 Agent 页面的 Harness home 指定，也可以设置 `DATANET_HARNESS_CREDENTIALS` 为 `.credentials.yaml` 的完整路径。默认依次尝试 `DSH_HOME` 和 `%USERPROFILE%\.dsh`。授权内容只由本机运行器读取，不写入项目或压缩包。
+本机账户授权沿用 Harness 的授权文件，也可以设置 `DATANET_HARNESS_CREDENTIALS` 为 `.credentials.yaml` 的完整路径。默认依次尝试 `DSH_HOME` 和 `%USERPROFILE%\.dsh`。授权内容只由本机运行器读取，不写入项目或压缩包。
 
 例如，新建一个仅在本机使用的启动脚本：
 
@@ -106,7 +106,7 @@ npm --prefix frontends/network-editor run build
 npm start
 ```
 
-重建 Windows 运行包：`npm run package`。脚本把干净源码、构建后的前端和必要运行依赖装配到 `build/release/`，生成 ZIP 与 SHA-256 校验文件。测试、历史报告、凭据和运行缓存均不打包。
+重建 Windows 运行包：`npm run package`。脚本把干净源码、构建后的前端和必要运行依赖装配到 `build/release/`，生成 ZIP 与 SHA-256 校验文件。开发测试驱动、凭据和运行缓存不打包；保留安装/验收说明，以及六份演示自身的真实成果与测试材料。
 
 需要在客户端运行期间另行打包时，可使用 `.\.venv-runtime\Scripts\python.exe scripts/package_release.py --output-dir build/release-preview --desktop-dir build/desktop-preview`，将 Electron 构建和运行包放入独立目录。
 

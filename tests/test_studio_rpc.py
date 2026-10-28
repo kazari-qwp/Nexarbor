@@ -61,7 +61,9 @@ class StudioRpc(unittest.TestCase):
                 try:
                     state=transport.dispatch('studio_state',{});nodes=state['live']['document']['network']['nodes']
                     self.assertEqual(len(nodes),52)
-                    self.assertEqual(len(transport.dispatch('studio_catalog',{})['library']),19)
+                    library=transport.dispatch('studio_catalog',{})['library']
+                    self.assertEqual(len(library),20)
+                    self.assertIn('events.chance',library)
                     actor=next(node for node in nodes if node['name']=='小砾')
                     view=transport.dispatch('executor_prepare',{'actor':actor['node_id']})
                     self.assertTrue(any('memory_query'==tool['name'] for tool in view['tools']))
