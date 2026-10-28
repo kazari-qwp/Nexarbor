@@ -28,9 +28,9 @@ npm start -- --project "E:\项目_手动重构\项目演示\应用3-NPC小镇-�
 | 知识资料库 | [初始项目](项目演示/应用2-资料库-初始) | [最终项目](项目演示/应用2-资料库-最终) |
 | NPC 小镇 | [初始项目](项目演示/应用3-NPC小镇-初始) | [最终项目](项目演示/应用3-NPC小镇-最终) |
 
-最终状态来自实际运行：应用一由管理员组装讨论和协作网络，完成 CSV 转 JSON 项目；应用二保留原文、集合、版本、索引和导航；小镇运行五天、25个时刻。双击 Agent 可查看保存的原生会话历史。不要在原始交付目录中做破坏性试验，先复制项目。
+最终状态来自实际运行：应用一由管理员组装讨论和协作网络，完成 CSV 转 JSON 项目；应用二保留原文、集合、版本、索引和导航；小镇完成原五天后追加概率事件，最终为六天、30个时刻。双击 Agent 可查看保存的原生会话历史。不要在原始交付目录中做破坏性试验，先复制项目。
 
-对应验收、时间和 token 统计分别见 [讨论协作](docs/migration/HONE_RESULT.md)、[资料库](docs/migration/KNOWLEDGE_RESULT.md)、[五天小镇](docs/migration/TOWN_FIVE_DAY_RESULT.md)。
+对应验收、时间和 token 统计分别见 [讨论协作](docs/migration/HONE_RESULT.md)、[资料库](docs/migration/KNOWLEDGE_RESULT.md)、[五天小镇](docs/migration/TOWN_FIVE_DAY_RESULT.md)及[第六天事件](docs/migration/TOWN_SIXTH_DAY_RESULT.md)。
 
 ## 结构与操作
 
@@ -51,3 +51,7 @@ npm run test:desktop
 ```
 
 这些命令运行本地回归。真实模型测试单独授权与统计，不由普通回归命令启动。`build/` 保存本机测试截图、日志和临时项目，不作为产品源码。可选向量能力需要应用声明的依赖与本地模型权重。
+
+## Windows release
+
+免安装包完整解压后运行 `Nexarbor.exe`，已内置Electron/Python和基础依赖；Git与DeepSeek Harness另行安装。安装、模型连接和向量依赖见 [安装说明](docs/INSTALLATION.md)。从源码执行 `npm run package` 生成 `build/release/Nexarbor-0.9.2-win-x64.zip` 与SHA256校验文件。
