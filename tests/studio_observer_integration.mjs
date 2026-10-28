@@ -8,11 +8,11 @@ import {inspectNetwork} from '../adapt/harness/studio/makers/network-inspection.
 import skill from '../adapt/harness/studio/makers/network-skill.cjs';
 const directory=path.resolve('resources/examples/npc-town');
 const snapshot=await readProjectSnapshot(directory);
-assert.equal(snapshot.document.network.nodes.length,52);assert.deepEqual(snapshot.missing_modules,[]);
+assert.equal(snapshot.document.network.nodes.length,45);assert.deepEqual(snapshot.missing_modules,[]);
 assert.equal(Object.keys(snapshot.resources).length,19);
 const index=indexNetwork(snapshot.document);snapshot.observerIndex=index;
 const observer=new NetworkObserver(snapshot,'fixed');
-assert.equal(observer.nodes.length,52);assert.ok(observer.links.length>52);
+assert.equal(observer.nodes.length,45);assert.ok(observer.links.length>45);
 const resident=observer.nodes.find(node=>node.name==='小砾');assert.equal(resident.type,'agent');
 const details=observer.inspectNodes({nodes:[resident.node_id],section:'modules'}).nodes[0];
 assert.ok(details.modules.some(module=>module.id==='tool_discovery'));
@@ -23,9 +23,9 @@ assert.throws(()=>observer.inspectNodes({nodes:[resident.node_id],snapshot:'stal
 const body=readObservedText(snapshot,'fixed',{nodes:[resident.node_id]}).nodes[0];
 assert.equal(body.file,resident.data.path);assert.equal(body.text,await fs.readFile(path.join(directory,resident.data.path),'utf8'));
 const source=readObservedResource(snapshot,'fixed',{module:'movement.here',file:'module.py',line_count:30});assert.match(source.text,/access/);
-const overview=inspectNetwork(snapshot,'fixed');assert.equal(overview.counts.nodes,52);assert.ok(overview.counts.edges>52);
+const overview=inspectNetwork(snapshot,'fixed');assert.equal(overview.counts.nodes,45);assert.ok(overview.counts.edges>45);
 const observations=new ProjectObservations({render(){throw Error('no image requested')}});
 const response=await observations.observe('test','view_network',{project:directory,image:false,types:['pulse']});
 assert.ok(response.nodes.length>0);assert.ok(response.nodes.every(node=>node.type==='pulse'));
 const bundle=await skill.bundles();assert.equal(bundle.length,4);assert.match(bundle.find(item=>item.name==='nexarbor-basics').files['references/lessons/01-local.md'],/class Counter/);
-console.log(JSON.stringify({status:'passed',nodes:52,modules:19,edges:observer.links.length,skills:bundle.length,case:directory}));
+console.log(JSON.stringify({status:'passed',nodes:45,modules:19,edges:observer.links.length,skills:bundle.length,case:directory}));

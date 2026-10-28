@@ -55,7 +55,7 @@ async function finished(id){const until=Date.now()+180000;for(;;){const record=a
 try{
  const initial=await rpc('studio_state');await start();
  const resident=initial.live.document.network.nodes.find(node=>node.name==='小砾');
- const network=await advisors.open({role:'network',newConversation:true,selection:{nodes:[resident.node_id]}});assert.equal(network.snapshot.nodes,52);
+ const network=await advisors.open({role:'network',newConversation:true,selection:{nodes:[resident.node_id]}});assert.equal(network.snapshot.nodes,45);
  await advisors.send({id:network.id,text:'ADVICE_network'});const answered=await finished(network.id);
  assert.ok(JSON.stringify(answered.job.messages).includes('ADVICE_network_OK'));
  const nodeReceipt=receipts.find(item=>item.tool==='inspect_nodes');assert.ok(nodeReceipt.result.nodes[0].modules.some(item=>item.id==='tool_discovery'));
@@ -66,7 +66,7 @@ try{
  const session=answered.session_id;await makers.close();await start();
  const reopened=await advisors.open({id:network.id,role:'network'});assert.equal(reopened.session_id,session);
  await advisors.send({id:network.id,text:'ADVICE_resume'});const resumed=await finished(network.id);assert.equal(resumed.session_id,session);
- const actual=await rpc('studio_state');assert.equal(actual.live.document.network.nodes.length,52);
+ const actual=await rpc('studio_state');assert.equal(actual.live.document.network.nodes.length,45);
  const archived=(await project.conversations('advice',{id:network.id,prefix:true}))[0];assert.ok(archived.portablePrefix.events.length);assert.ok(JSON.stringify(archived.job.messages).includes('ADVICE_resume_OK'));
  assert.ok((await project.workFiles(created.work))['tests/test_counter.py']);
  const result={status:'passed',paid_requests:0,requests:calls.length,network_session:session,component_workspace:created.workspace,cold_resume:true,project_git:true,portable_native_history:true,roles:['network','component'],calls,tools:receipts.map(item=>item.tool)};

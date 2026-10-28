@@ -27,8 +27,10 @@ class TownProjectTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_actual_graph_preserves_agents_resources_and_has_no_legacy_runtime(self):
         backend=self.host.backend
-        self.assertEqual(len(backend.network),52);self.assertEqual(len(backend.bindings),7)
+        self.assertEqual(len(backend.network),45);self.assertEqual(len(backend.bindings),7)
         self.assertEqual(len(backend.snapshot()['files']),33)
+        self.assertEqual(sum(len(node.links) for node in backend.network),156)
+        self.assertFalse(any(node.info.node_id.endswith('通信') for node in backend.network))
         for node in backend.network:
             self.assertTrue(type(node).__module__.startswith(('domain.','projects.')))
             if node.node_type!='agent':continue
@@ -97,4 +99,4 @@ class TownProjectTests(unittest.IsolatedAsyncioTestCase):
         self.assertTrue((await self.instantiate())['duplicate'])
         self.assertEqual(child.info.name,'小芽')
         self.assertEqual((await child.modules.get('records.store').read())['values']['name'],'小芽')
-        self.assertEqual(len(self.host.backend.network),53)
+        self.assertEqual(len(self.host.backend.network),46)

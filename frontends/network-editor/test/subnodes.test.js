@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {editorNode} from '../../../adapt/harness/framework/editor-nodes.js';
 import {edgesOf,layoutNodes,filterGraph} from '../src/model.js';
-import {projectModules,moduleViewId,moduleConnection} from '../src/module-projection.js';
+import {projectModules,moduleViewId,moduleConnection,modulePerspective} from '../src/module-projection.js';
 import {copySubnet,pasteSubnet} from '../src/subnets.js';
 const manifest=JSON.parse(await fs.readFile(new URL('../../../modules/context_assembler/module.json',import.meta.url),'utf8'));
 const catalog={modules:{'context.assembler':{label:'上下文组装器',frontend:manifest.frontend,schema:manifest.config_schema}}};
@@ -41,4 +41,45 @@ test('copying a host preserves its module and generates a fresh display identity
  assert.notEqual(owner.node_id,'owner');assert.equal(owner.tables.modules[0].state.value,'preserved');
  assert.notEqual(moduleViewId(owner.node_id,'context.assembler'),moduleViewId('owner','context.assembler'));
  assert.ok(pasted.document.network.nodes.every(n=>n.type!=='module_view'&&n.type!=='subnode'));
+});
+
+test('module perspective keeps only its host, card and channel connections',()=>{
+ const doc=fixture(),owner=doc.network.nodes[0];
+ const unrelated=editorNode('node','unrelated','不相关'),far=editorNode('node','far','更远');
+ doc.network.nodes.push(unrelated,far);
+ owner.links.push({...structuredClone(owner.links[0]),target_id:'unrelated',channels:['chat']});
+ doc.network.nodes[1].links=[{...structuredClone(owner.links[0]),target_id:'far'}];
+ // A connection may carry both a module channel and an unrelated one.
+ owner.links[0].channels.push('chat');
+ const before=structuredClone(doc),view=modulePerspective(scene(doc),{owner:'owner',module:'context.assembler'});
+ assert.deepEqual(new Set(view.nodes.map(n=>n.id)),new Set(['owner','document',moduleViewId('owner','context.assembler')]));
+ assert.equal(view.edges.length,2);
+ const link=view.edges.find(e=>!e.ownership);
+ assert.equal(link.source,moduleViewId('owner','context.assembler'));
+ assert.deepEqual(link.metadata.channels,['system']);
+ assert.deepEqual(doc,before);
+});
+
+test('module perspective follows module and connection deny channel modes',()=>{
+ const doc=fixture(),owner=doc.network.nodes[0];
+ owner.tables.modules[0].config.channel_modes={system_prompt_channels:'deny'};
+ owner.tables.modules[0].config.system_prompt_channels=['blocked'];
+ owner.links[0].channels=['blocked'];
+ owner.links[0].channel_mode='deny';
+ const view=modulePerspective(scene(doc),{owner:'owner',module:'context.assembler'});
+ const channels=view.edges.find(e=>!e.ownership).metadata.channels;
+ assert.ok(channels.includes('docs'));assert.ok(!channels.includes('blocked'));
+});
+
+test('an unconnected module keeps its host and ownership line; removed focus is empty',()=>{
+ const doc=fixture();doc.network.nodes[0].links[0].channels=['chat'];
+ const view=modulePerspective(scene(doc),{owner:'owner',module:'context.assembler'});
+ assert.equal(view.nodes.length,2);assert.equal(view.edges.length,1);assert.ok(view.edges[0].ownership);
+ assert.equal(modulePerspective(scene(doc),{owner:'owner',module:'deleted'}),null);
+});
+
+test('the existing subnode filter hides module cards and every incident line',()=>{
+ const doc=fixture(),view=scene(doc);
+ const visible=filterGraph(view.nodes,view.edges,{kinds:view.nodes.map(n=>n.data.kind).filter(k=>k!=='亚节点')});
+ assert.equal(visible.nodes.length,2);assert.equal(visible.edges.length,0);
 });

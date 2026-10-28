@@ -3,7 +3,7 @@ import {_electron,expect} from '@playwright/test';import assert from 'node:asser
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
 import {createEditorClient} from '../../shared/editor-client.js';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),base=await fs.mkdtemp(path.join(root,'build/demo-initial-client-')),results=[];
-for(const [name,nodes,agents] of [['应用1-讨论协作-初始',2,1],['应用2-资料库-初始',4,1],['应用3-NPC小镇-初始',52,7]]){
+for(const [name,nodes,agents] of [['应用1-讨论协作-初始',2,1],['应用2-资料库-初始',4,1],['应用3-NPC小镇-初始',45,7]]){
  const folder=path.join(base,name),errors=[],apiErrors=[];await fs.cp(path.join(root,'项目演示',name),folder,{recursive:true,filter:file=>!file.split(path.sep).some(part=>['.git','runs','cache'].includes(part))});let client,page;
  const env={...process.env,NEXARBOR_ROOT:root,NEXARBOR_MODEL_DIRECTORY:path.join(base,'models')};delete env.ELECTRON_RUN_AS_NODE;
  const launch=async()=>{client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--project',folder,'--user-data-dir',path.join(base,'client-'+nodes)],env,timeout:60000});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));page.on('response',async response=>{if(response.status()>=400&&response.url().endsWith('/api'))apiErrors.push({operation:response.request().postDataJSON().operation,error:(await response.json()).error});});await expect(page.locator('.react-flow__node:not(:has(.module-view))')).toHaveCount(nodes,{timeout:60000});};

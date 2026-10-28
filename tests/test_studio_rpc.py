@@ -60,7 +60,7 @@ class StudioRpc(unittest.TestCase):
                 project=TownProject(temp,studio=True);transport=Transport(project.backend,StringIO())
                 try:
                     state=transport.dispatch('studio_state',{});nodes=state['live']['document']['network']['nodes']
-                    self.assertEqual(len(nodes),52)
+                    self.assertEqual(len(nodes),45)
                     library=transport.dispatch('studio_catalog',{})['library']
                     self.assertEqual(len(library),20)
                     self.assertIn('events.chance',library)

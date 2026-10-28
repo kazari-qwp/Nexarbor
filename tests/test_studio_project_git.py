@@ -18,7 +18,7 @@ class StudioProjectGit(unittest.TestCase):
             transport=Transport(project.backend,StringIO())
             try:
                 state=transport.dispatch('studio_state',{});nodes=state['live']['document']['network']['nodes']
-                self.assertEqual(len(nodes),52)
+                self.assertEqual(len(nodes),45)
                 resident=next(node for node in nodes if node['name']=='小砾')
                 view=transport.dispatch('executor_prepare',{'actor':resident['node_id']})
                 self.assertTrue(any('memory_query'==tool['name'] for tool in view['tools']))

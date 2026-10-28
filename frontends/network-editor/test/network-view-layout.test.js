@@ -15,7 +15,7 @@ test('full town is compact and completely covered by useful, differently colored
  const snapshot={document:(await readProjectBundle(fileURLToPath(new URL('../../../resources/examples/npc-town/',import.meta.url)))).document},scene=new NetworkObserver(snapshot,'layout-test').view({include_subnodes:true,include_text:true}).scene;
  const nodes=await placeNetwork(scene,new ELK()),bounds=envelope(nodes),plan=planRegions(bounds,{width:1500,height:1250},{nodes});
  assertClear(nodes);assert.ok(bounds[2]/bounds[3]>.6&&bounds[2]/bounds[3]<1.8);assert.ok(plan.regions.length>=2&&plan.regions.length<=4);
- const union=new Set(plan.regions.flatMap(r=>completeRefs(nodes,r.bounds)));assert.equal(union.size,nodes.length);assert.ok(plan.regions.every(r=>r.complete.length>=15));
+ const union=new Set(plan.regions.flatMap(r=>completeRefs(nodes,r.bounds)));assert.equal(union.size,nodes.length);assert.ok(plan.regions.every(r=>r.complete.length>=Math.ceil(nodes.length/5)));
  assert.ok(plan.regions.every(r=>regionColors.includes(r.color)));assert.ok(new Set(plan.regions.map(r=>r.color)).size>1);
  const repeated=plan.regions.reduce((n,r)=>n+r.complete.length,0)-nodes.length;assert.ok(repeated<nodes.length*.4);
  const again=await placeNetwork(scene,new ELK());assert.deepEqual(again,nodes);

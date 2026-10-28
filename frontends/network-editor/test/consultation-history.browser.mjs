@@ -10,7 +10,7 @@ try{
  await page.locator('.react-flow__node').first().waitFor({timeout:60000});
  const node=page.locator('.react-flow__node').filter({has:page.locator('.node-name',{hasText:'小砾'})}).first();await node.click({button:'right',force:true});await page.getByRole('menuitem',{name:'咨询 Agent',exact:true}).click();
  const answer=page.locator('.conversation-message.assistant').filter({hasText:'网络规模'}).last();await answer.waitFor({timeout:30000});
- assert.match(await answer.innerText(),/52.*节点.*205.*连线/s);assert.match(await answer.innerText(),/小砾/);
+ assert.match(await answer.innerText(),/45.*节点.*156.*连线/s);assert.match(await answer.innerText(),/小砾/);
  await page.getByRole('button',{name:'展开咨询页面',exact:true}).click();await page.waitForTimeout(500);
  await page.locator('.conversation-message.assistant').filter({hasText:'网络规模'}).last().evaluate(element=>element.scrollIntoView({block:'start'}));
  await page.screenshot({path:path.join(directory,'town-introduction-start.png')});

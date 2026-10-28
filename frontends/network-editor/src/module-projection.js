@@ -32,3 +32,18 @@ export function moduleConnection(connection,nodes){
  const selected=source?.channelGroups?.find(group=>group.label===connection.sourceHandle)??target?.channelGroups?.find(group=>group.label===connection.targetHandle);
  return {...connection,source:source?.host?.node_id??connection.source,target:target?.host?.node_id??connection.target,...(selected?{channels:selected.channels}:{})};
 }
+
+export function modulePerspective(scene,focus){
+ const card=focus&&scene.nodes.find(node=>node.id===moduleViewId(focus.owner,focus.module));
+ if(!card)return null;
+ const host=card.data.host.node_id,groups=card.data.channelGroups;
+ const owners=new Map(scene.nodes.map(node=>[node.id,node.data.host?.node_id??node.id]));
+ const universe=[...new Set([...scene.edges.flatMap(edge=>edge.metadata.channels),...groups.flatMap(group=>group.channels)])];
+ const accepts=(channels,mode,channel)=>mode==='deny'?!channels.includes(channel):channels.includes(channel);
+ const edges=scene.edges.filter(edge=>!edge.ownership&&owners.get(edge.source)===host).flatMap(edge=>{
+  const channels=universe.filter(channel=>groups.some(group=>accepts(group.channels,group.mode,channel))&&accepts(edge.metadata.channels,edge.metadata.attributes?.channel_mode,channel));
+  return channels.length?[{...edge,source:card.id,metadata:{...edge.metadata,channels,attributes:{...edge.metadata.attributes,channel_mode:'allow'}}}]:[];
+ });
+ const ids=new Set([host,card.id,...edges.map(edge=>edge.target)]);
+ return {nodes:scene.nodes.filter(node=>ids.has(node.id)),edges:[...edges,...scene.edges.filter(edge=>edge.ownership&&edge.target===card.id)]};
+}

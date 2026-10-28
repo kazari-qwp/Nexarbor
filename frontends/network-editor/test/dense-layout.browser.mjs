@@ -36,5 +36,5 @@ try{
  await arrange();
  await page.screenshot({path:path.join(base,'dense-main.png')});
  expect(errors).toEqual([]);
- const state=await host.request('state',{resume:false});expect(state.live.document.network.nodes).toHaveLength(52);expect(state.live.document.network.nodes.find(n=>n.type==='pulse').parameters.state.sequence).toBe(25);await fs.writeFile(path.join(base,'verification.json'),JSON.stringify({passed:true,realNodes:52,moduleRectangles:7,ratio:width/height,noOverlaps:true,nodeSize:84,colours:strokes.length,undo:true,filtered:true,paidCalls:0,ticksAdvanced:0,errors},null,2));console.log('PASS '+base);
+ const state=await host.request('state',{resume:false});expect(state.live.document.network.nodes).toHaveLength(45);expect(state.live.document.network.nodes.find(n=>n.type==='pulse').parameters.state.sequence).toBe(30);await fs.writeFile(path.join(base,'verification.json'),JSON.stringify({passed:true,realNodes:45,moduleRectangles:7,ratio:width/height,noOverlaps:true,nodeSize:84,colours:strokes.length,undo:true,filtered:true,paidCalls:0,ticksAdvanced:0,errors},null,2));console.log('PASS '+base);
 }finally{await browser.close();await host.close();}

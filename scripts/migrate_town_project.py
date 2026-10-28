@@ -30,6 +30,7 @@ CLASSES = {
     'world.time':('world_time','WorldTimeModule'),
 }
 AGGREGATIONS = {'sum':SumAggregation,'max':MaxAggregation,'min':MinAggregation,'mean':AverageAggregation}
+UNUSED_COMMUNICATION_NODES = {name+'通信' for name in ('小砾','林','小路','阿森','阿石','老铁','悦')}
 
 
 def read(root,name):
@@ -70,7 +71,8 @@ def normalize_nodes(original):
         execution=node.get('execution')
         if execution:execution.pop('tool_sources',None)
     for node in nodes:
-        if node['type']!='subnode' or node.get('modules') or node['connections']['interfaces']:continue
+        if node['type']!='subnode' or node.get('modules'):continue
+        if node['connections']['interfaces'] and node['node_id'] not in UNUSED_COMMUNICATION_NODES:continue
         if any(referenced(other,node['node_id']) for other in nodes if other is not node):continue
         removed.append(node['node_id'])
     return [node for node in nodes if node['node_id'] not in removed],moved,removed

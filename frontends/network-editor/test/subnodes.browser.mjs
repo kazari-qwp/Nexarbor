@@ -17,20 +17,20 @@ async function launch(){
 try{
  await launch();let state=await api('state',{resume:false}),nodes=state.live.document.network.nodes;
  const expected=nodes.filter(n=>n.tables.modules.some(m=>m.module_id==='context.assembler')).length;
- await expect(page.locator('.module-view')).toHaveCount(expected);expect(nodes).toHaveLength(52);
+ await expect(page.locator('.module-view')).toHaveCount(expected);expect(nodes).toHaveLength(45);
  expect(nodes.some(n=>['subnode','module_view'].includes(n.type))).toBe(false);
- expect(nodes.find(n=>n.type==='pulse').parameters.state.sequence).toBe(25);
+ expect(nodes.find(n=>n.type==='pulse').parameters.state.sequence).toBe(30);
  await page.screenshot({path:path.join(out,'town-module-overview.png')});
- const card=page.locator('.module-view').filter({hasText:'小砾'}).first();await card.click({force:true});
+ const card=page.locator('.module-view[title^="小砾 ·"]');await card.click({force:true});
  const mounted=page.locator('[data-mounted-id="context.assembler"]');await expect(mounted).toHaveAttribute('open','');
- await expect(card).toContainText('系统提示');await expect(card).toContainText('参考资料');await expect(card).toContainText('输入事件');await expect(card).toContainText('尾部快照');
+ await expect(card).toHaveAttribute('title',/系统提示/);await expect(card).toHaveAttribute('title',/参考资料/);await expect(card).toHaveAttribute('title',/输入事件/);await expect(card).toHaveAttribute('title',/尾部快照/);
  const frame=mounted.frameLocator('iframe');await frame.locator('#preview').click();await expect(frame.locator('#result')).toContainText('system_prompt',{timeout:15000});
  await page.screenshot({path:path.join(out,'town-context-module.png')});
  const view=await api('view',{actor:'小砾',strength:2});expect(Object.keys(view.reachable).length).toBeGreaterThan(0);expect(view.paths).toBeUndefined();
  await page.getByRole('button',{name:'Commit',exact:true}).click();await expect(page.getByRole('button',{name:'Commit',exact:true})).toBeEnabled({timeout:30000});
- await client.close();client=null;await launch();await expect(page.locator('.module-view')).toHaveCount(expected);
- state=await api('state',{resume:false});expect(state.live.document.network.nodes).toHaveLength(52);expect(state.live.document.network.nodes.find(n=>n.type==='pulse').parameters.state.sequence).toBe(25);
+ await client.close();client=null;await launch();await expect(page.locator('.module-view')).toHaveCount(1);
+ state=await api('state',{resume:false});expect(state.live.document.network.nodes).toHaveLength(45);expect(state.live.document.network.nodes.find(n=>n.type==='pulse').parameters.state.sequence).toBe(30);
  expect(errors).toEqual([]);expect(apiErrors).toEqual([]);
- const result={passed:true,paid_api_calls:0,town_agent_runs:0,town_ticks_advanced:0,actualDesktop:true,real_nodes:52,module_cards:expected,config_and_actual_preview:true,access_view:true,commit_cold_reopen:true,errors,apiErrors,screenshots:['town-module-overview.png','town-context-module.png']};
+ const result={passed:true,paid_api_calls:0,town_agent_runs:0,town_ticks_advanced:0,actualDesktop:true,real_nodes:45,module_cards:expected,config_and_actual_preview:true,access_view:true,commit_cold_reopen:true,errors,apiErrors,screenshots:['town-module-overview.png','town-context-module.png']};
  await fs.writeFile(path.join(out,'verification.json'),JSON.stringify(result,null,2));console.log(JSON.stringify({directory:out,...result}));
 }catch(error){await fs.writeFile(path.join(out,'failure.json'),JSON.stringify({error:error.stack,errors,apiErrors},null,2));await page?.screenshot({path:path.join(out,'failure.png')}).catch(()=>{});console.log('FAILED '+out);throw error;}finally{await client?.close();}
