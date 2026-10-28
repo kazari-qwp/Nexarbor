@@ -357,3 +357,24 @@ Skill真实桌面导入/说明读取/依赖装配/去重/书签和历史筛选/�
 暂停前最后完成number.window真实Module迁移，原HTML/README/example逐字节复制，统计/窗口裁剪/有限数值/幂等200条/并发重试/实例隔离/真实工具/恢复专项及工作台联合7项2.177秒通过。实际页面配置校验/应用/统计/Commit/冷重开/幂等回执恢复通过build/number-window-ui-1793149950013，4条已知view HTTP400保留为B011。工作台补齐messages.box、network.administrator及number.window，空白库9模块、现行小镇库24模块。
 
 管理员面板已改直接使用module.call实际返回值，不再读取旧status/data封套；空白工作台管理员模板/权限配置/实际可达副本/隐藏无连接及强度范围外节点的原桌面验收通过build/network-admin-ui-1793149895421，未委托模型。两场景付费0，证据evidence/2026-10-28-number-window-admin-client.json。最近完整回归仍为此次新模块前490项249.390秒通过；新增5项测试与工作台注册后仅跑上述7项及桌面专项，暂停后未再跑全量。
+
+
+## 2026-10-28 按D023恢复全量迁移
+
+用户确认四个边界与缓存修复，要求继续直到完整迁移或只剩未决事项，不再运行小镇五天。先修复模型身份/明确high配置/全部入口10000次请求上限和adapt请求事件，随后完成模块展示亚节点、app原子文本备份、Wiki原文和RAG定位/原应用二/剩余前端与全量交付。用户core/data_node.py保持不暂存，migrate_final_demo.py的原两行WIP保留并继续其已授权装配迁移。
+
+
+D023首段：统一默认显式high、10000次请求上限；模型重放provider按连接身份稳定，不再按生成参数signature变化。普通/制作/咨询原生入口均计数拒绝第10001次；adapt每次agent/request转executor_request并通知本节点模块on_model_request，协作按该事件累计真实请求，去掉整轮返回值的重复估算。生产/初始与最终演示记录的execution.max_steps同步10000。未改冻结core，用户DataNode改动保持未暂存。
+
+模型策略5项、执行器16项、原协作/命令日志14项本地回归通过。真实已安装DSH+本地HTTP夹具 build/resume-prefix-current-4：5请求/5事件，冷重开完整历史前缀不变、仅调整生成参数后推理仍在reasoning_content，显式high、付费0。原生压缩/溢出/取消/冷恢复夹具 build/resume-compaction-high-default-current通过；夹具显式low覆盖保留，发现内部摘要请求仍无显式强度，正在补齐适配profile默认，不宣称所有入口最终验完。
+
+待继续：内部摘要强度验证、全局限额剩余文案/驱动、协作预算上限专项；随后app普通文本原子写入/.bak及节点快照、纯展示模块亚节点与组装器/真实可达视角、原文Wiki/RAG定位及原应用二、缺失模块与剩余旧文件/前端、六份演示/文档/全量回归。小镇五天不得重测。
+
+
+### D023 第一阶段检查点（2026-10-28）
+
+共享模型配置显式 high，请求计数上限 10000；适配层将实际 DSH request 事件传给协作成员。稳定 provider 身份后，真实 DSH 本地端点冷启动重续保留 reasoning_content 前缀，内部压缩请求也携带显式思考强度。未调用付费模型，未重跑小镇。
+
+普通文本的原子写入与 .bak 已迁入 app，局部事务同时恢复正文与备份。上下文组装器声明为前端模块卡片，五路频道展示来自实际配置，卡片连线映射回宿主；studio_view 使用真正 access 结果。完整 Python 回归 502 项通过，证据 build/d023-projection-full-python.log。真实 Electron 小镇副本通过模块卡片、配置预览、可达视图、Commit 和冷重开；52 个真实节点、7 张卡片、时钟保持 tick25，证据 build/module-subnode-desktop-zr1vsX。截图已检查，当前全图因旧布局纵向压缩，仍需补近景及布局验收。
+
+这些是组件检查点；应用二六阶段与反馈、损坏模块恢复、前端全部旧功能、文档与六份演示交付尚未完成，不能视为全量迁移通过。

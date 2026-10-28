@@ -107,9 +107,9 @@ function ModuleFrontend({api,module,source,definition,node,config,state,onChange
 
 export function ModuleConfig(props){
   const [generic,setGeneric]=useState(false);
-  const custom=!!props.definition.frontend&&!generic;
+  const custom=!!props.definition.frontend?.entry&&!generic;
   return <div className="module-config">
-    {props.definition.frontend&&<button className="module-page-toggle" onClick={()=>setGeneric(value=>!value)}>{custom?'切换到通用表单':'使用模块页面'}</button>}
+    {props.definition.frontend?.entry&&<button className="module-page-toggle" onClick={()=>setGeneric(value=>!value)}>{custom?'切换到通用表单':'使用模块页面'}</button>}
     {custom?(props.active===false?null:<ModuleFrontend {...props}/>):
       <SchemaForm schema={props.definition.schema} value={props.config} onChange={props.onChange} nodes={props.nodes} readOnly={props.readOnly}/>}
   </div>;

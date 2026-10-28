@@ -1,6 +1,6 @@
 // Native DSH sessions, persistence and compaction; core-declared tools only.
 const fs=require('node:fs/promises'),path=require('node:path'),readline=require('node:readline'),crypto=require('node:crypto');
-const toolContent=require('./tool-content.cjs');
+const toolContent=require('./tool-content.cjs'),countRequest=require('./request-policy.cjs');
 const callbacks=new Map(),agents=new Map();let next=0,host,native,config,history,permissions,createUserMessage,checkpoints,modelAdapters;
 const keepAlive=setInterval(()=>{},1000),write=value=>process.stdout.write(JSON.stringify(value)+'\n');
 const rpc=(method,params)=>new Promise((resolve,reject)=>{const host_id=String(++next);callbacks.set(host_id,{resolve,reject});write({host_id,method,params});});
@@ -21,7 +21,7 @@ async function init(p){
  await host.plugin((await loader.load(p.root+'/adapt/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
  modelAdapters=await require('./model-adapters.cjs')({host,native,root:p.root,credentials:p.credentials,defaults:options.model??{}});
  const limits=require('../framework/agent-defaults.cjs')(p.root);
- config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:limits.max_tokens,contextWindow:limits.context_window,...options.model};config.maxRequests=null;config.maxSeconds=null;
+ config.model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:limits.reasoning_effort,maxTokens:limits.max_tokens,contextWindow:limits.context_window,...options.model};config.maxRequests=limits.max_requests;config.maxSeconds=null;
  const original=globalThis.fetch;globalThis.fetch=async(url,args)=>{++requestCount;return original(url,args);};
  createUserMessage=native('dsh-llm').createUserMessage;
  const instructions=await loader.load(p.root+'/adapt/harness/framework/instructions.js'),tools=await loader.load(p.root+'/adapt/harness/framework/tool-permissions.js');history=new instructions.InstructionHistory(createUserMessage);permissions=new tools.ToolPermissions(createUserMessage);
@@ -95,12 +95,12 @@ async function agentFor(p){
  agent.ctx.systemPrompt.section({name:'nexarbor:assembled',order:90,interpolate:false,text:()=>[entry.view.system_prompt??'',...(entry.view.skill_errors??[]).map(s=>'Skill '+s.id+' 暂不可用：'+s.error)].join('\n')});
  agent.ctx.on('agent/prepare-context',()=>refresh(entry));
  agent.ctx.on('agent/request-tail',async(_p,next)=>[...await next(),...(entry.view.tail??[]).map(text=>({role:'user',content:[{type:'text',text:text.replaceAll('{{request.count}}',String(entry.steps)).replaceAll('{{request.limit}}',String(entry.maxSteps))}]}))]);
- agent.ctx.on('agent/request',async(_p,next)=>{++entry.steps;return next();});
+ agent.ctx.on('agent/request',async(_p,next)=>{const request_index=countRequest(entry,config.maxRequests);await agentRpc(entry,'executor_request',{actor:entry.actor,request_index});return next();});
  await agentRpc(entry,'executor_bind',{actor:p.actor,session_id:agent.id,model_signature:selected.signature,...(cursor?{context_cursor:cursor}:{})});checkpoints.schedule();
  return entry;
 }
 async function run(p){
- const entry=await agentFor(p);if(entry.running)throw Error('Agent already running');entry.running=true;entry.ticket=p.node_access_ticket;entry.steps=0;entry.maxSteps=Math.max(p.max_steps??100000,100000);
+ const entry=await agentFor(p);if(entry.running)throw Error('Agent already running');entry.running=true;entry.ticket=p.node_access_ticket;entry.steps=0;entry.maxSteps=config.maxRequests;
  const before=entry.agent.session.seq;let expired=false;const timer=setTimeout(()=>{expired=true;entry.agent.cancel('user');},Math.max(p.timeout_seconds??86400,86400)*1000);
  try{
   await refresh(entry);entry.agent.followup(user(p.message||'请处理当前请求。'));await entry.agent.whenIdle();
@@ -111,7 +111,7 @@ async function run(p){
   await checkpoints.checkpoint();
   const messages=entry.agent.session.deriveMessages();
   await fs.writeFile(path.join(config.directory,'native-sessions.json'),JSON.stringify([...agents.values()].map(e=>({actor:e.actor,session_id:e.agent.id,title:host.sessionTitle.get(e.agent.session).title,events:e.agent.session.seq})),null,2));
-   return {status,session_id:entry.agent.id,steps:entry.steps,output:messages.filter(m=>m.role==='assistant').at(-1)?.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')??'',error:status==='completed'?null:JSON.stringify(reason??{kind:'interrupted'}),requests:requestCount};
+   return {status,session_id:entry.agent.id,steps:entry.steps,output:messages.filter(m=>m.role==='assistant').at(-1)?.content.filter(b=>b.type==='text').map(b=>b.text).join('\n')??'',error:status==='completed'?null:JSON.stringify(reason??{kind:'interrupted'}),requests:entry.steps};
  }finally{clearTimeout(timer);entry.running=false;entry.ticket=null;await host.sessions.flush(entry.agent.session);}
 }
 async function close(){if(closed)return;closed=true;for(const e of agents.values())e.agent.cancel('user');try{await checkpoints?.checkpoint();}catch{}await checkpoints?.stop();await host?.fiber.dispose();clearInterval(keepAlive);}

@@ -15,9 +15,9 @@ module.exports=async function(p){
  const persistence=native('dsh-session-persistence-jsonl');await host.plugin(persistence.default??persistence,{root:path.join(p.directory,'maker-logs')});
  await host.plugin((await loader.load(p.root+'/adapt/harness/runtime/agent-loop/lib/index.js')).default,{agents:[]});
  const limits=require('../../framework/agent-defaults.cjs')(p.root);
- const model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:'low',maxTokens:limits.max_tokens,contextWindow:limits.context_window,...p.options?.model};
+ const model={provider:'deepseek-account',model:'deepseek-flash',reasoningEffort:limits.reasoning_effort,maxTokens:limits.max_tokens,contextWindow:limits.context_window,...p.options?.model};
  const models=await require('../../native/model-adapters.cjs')({host,native,root:p.root,credentials:p.credentials,defaults:model});
  let requests=0;const fetch=globalThis.fetch;
  globalThis.fetch=async(url,args)=>{++requests;return fetch(url,args);};
- return {host,native,loader,model,resolveModel:profile=>models.resolve(profile),redact:models.redact,requests:()=>requests,createUserMessage:native('dsh-llm').createUserMessage};
+ return {host,native,loader,model,limits,resolveModel:profile=>models.resolve(profile),redact:models.redact,requests:()=>requests,createUserMessage:native('dsh-llm').createUserMessage};
 };

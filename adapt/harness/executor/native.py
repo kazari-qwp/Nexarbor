@@ -6,6 +6,7 @@ from inspect import isawaitable
 from contextlib import nullcontext
 
 from app.runtime.context_packets import apply_context_packet
+from app.runtime.agent_policy import agent_defaults
 from app.runtime.requester import as_requester
 from app.runtime.signal_authority import signal_authority
 from domain.core import Tools, access
@@ -52,7 +53,7 @@ class NativeExecutor:
         request = dict(
             actor=actor, name=agent.info.name, message=message,
             timeout_seconds=max(86400, options.get("timeout_seconds", binding.get("timeout_seconds", 86400))),
-            max_steps=max(100000, binding.get("max_steps", 100000)),
+            max_steps=agent_defaults()["max_requests"],
             session_id=state.get("session_id"), context_cursor=state.get("context_cursor"),
             model=binding.get("model"), model_signature=state.get("model_signature"),
         )
@@ -143,6 +144,21 @@ class NativeExecutor:
             _access_origin = origin
 
         return (await call(Preparation()))[target]
+
+    async def request(self, parameters):
+        async with self._scope(parameters["actor"], asynchronous=True):
+            self._check_session(parameters)
+            actor = parameters["actor"]
+            agent, binding = self.binding(actor)
+            with as_requester(actor), signal_authority(actor, binding.get("strength", 0)):
+                event = dict(actor=actor, session_id=parameters.get("executor_session_id"), request_index=parameters["request_index"])
+                for module in agent.modules:
+                    handler = getattr(module, "on_model_request", None)
+                    if handler is not None:
+                        result = handler(event)
+                        if isawaitable(result):
+                            await result
+            return {"ok": True}
 
     async def invoke(self, parameters):
         async with self._scope(parameters["actor"], asynchronous=True):

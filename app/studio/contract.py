@@ -22,8 +22,9 @@ SCHEMA = {'type':'object', 'additionalProperties':False,
  'node_types':{'type':'array','minItems':1,'uniqueItems':True,'items':{'type':'string','pattern':r'^[a-z][a-z0-9_]*$'}},
  'requires':{'type':'array','uniqueItems':True,'items':{'type':'string'}},
  'config_schema':{'type':'object'}, 'state_schema':{'type':'object'},
- 'frontend':{'type':'object','additionalProperties':False,'required':['entry'],
+ 'frontend':{'type':'object','additionalProperties':False,'anyOf':[{'required':['entry']},{'required':['display_as']}],
     'properties':{'entry':{'type':'string','minLength':1},'title':{'type':'string','minLength':1},
+                  'display_as':{'enum':['subnode']},'channel_groups':{'type':'array','items':{'type':'object','additionalProperties':False,'required':['label','field'],'properties':{'label':{'type':'string','minLength':1},'field':{'type':'string','minLength':1}}}},
                   'height':{'type':'integer','minimum':160,'maximum':900},'preview_operation':{'type':'string','minLength':1}}},
  'operations':{'type':'array','items':{'type':'object','additionalProperties':False,
    'required':['name','parameters','result'], 'properties':{
@@ -65,7 +66,7 @@ def manifest(folder):
 def frontend_file(folder,specification):
     """可选页面必须是组件目录内的自包含 HTML 文件。"""
     page=specification.get('frontend')
-    if page is None:return None
+    if page is None or not page.get('entry'):return None
     entry=page['entry'];relative=PurePosixPath(entry)
     if '\\' in entry or ':' in entry or relative.is_absolute() or '..' in relative.parts or relative.suffix!='.html':
         raise ValueError('模块前端入口必须是组件内的相对 HTML 路径')

@@ -22,6 +22,17 @@ class CooperativeMemberModule(Module):
         self.config, self.state = deepcopy(config or {}), deepcopy(state or {})
         self._active = False
 
+    async def on_model_request(self, event):
+        if self._active:
+            counts = await self._request()
+            self.state["requests"] = next(value for value in counts.values() if value is not None)["requests"]
+
+    @access(channels=["collaboration"])
+    async def _request(self, node):
+        group = node.modules.get("cooperation.group")
+        if group is not None:
+            return await group.request()
+
     async def on_signal(self, context):
         return next(iter((await self._run()).values()))
 
@@ -93,7 +104,6 @@ class CooperativeMemberModule(Module):
                     prompt = "共同目标尚未收尾。依据当前协作状态继续推进；已有候选时阅读验收材料，有异议指出具体问题，无异议提交批准。"
                     result = await asyncio.wait_for(self.agent_run(node.info.node_id, prompt), left)
                     self.state["turns"] += 1
-                    self.state["requests"] += result.get("requests", 0)
         except Exception as error:
             with as_requester(node.info.node_id):
                 await self._retire(node.info.node_id, str(error))

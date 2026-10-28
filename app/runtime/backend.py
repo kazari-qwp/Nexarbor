@@ -7,6 +7,7 @@ from threading import RLock
 from app.network_saver import NetworkSaver
 from app.persistence.checkpoints import Checkpoints
 from app.persistence.node_records import merge_records
+from app.persistence.node_resources import resource_roots
 from app.persistence.resource_data import decode_data, encode_bytes, read_data, resource_files, write_data
 from app.transactions import NodeLocks, NodeSnapshots
 from domain.agent import MarkdownAgentNode
@@ -114,24 +115,24 @@ class Backend:
         files = self.document_files()
         for node in self.network:
             if node.info.node_id in images or not isinstance(node, DataNode):continue
-            root = node.saver.path.resolve()
-            if root.is_relative_to(self.directory):
-                for path in resource_files(root):
-                    if not path.resolve().is_relative_to(self.directory):raise ValueError('Node resource escapes runtime directory')
-                    files[path.relative_to(self.directory).as_posix()] = read_data(path)
+            for root, _ in resource_roots(node):
+                if root != node.saver.path.resolve() and not root.exists():continue
+                if root.is_relative_to(self.directory):
+                    for path in resource_files(root):
+                        if not path.resolve().is_relative_to(self.directory):raise ValueError('Node resource escapes runtime directory')
+                        files[path.relative_to(self.directory).as_posix()] = read_data(path)
         extra = deepcopy(self.extension_state)
         if self.snapshot_extra is not None:extra.update(self.snapshot_extra(self))
         files.update(extra.pop('files', {}))
         agents = deepcopy(self.agents)
         for node, image in images.items():
-            root = image['root']
-            if root is not None:
+            for root, directory in image['resource_roots']:
                 files = {name: value for name, value in files.items() if not (
-                    self._file(name) == root or image['directory'] and self._file(name).is_relative_to(root))}
+                    self._file(name) == root or directory and self._file(name).is_relative_to(root))}
             if image['execution'] is None:agents.pop(node, None)
             else:agents[node] = deepcopy(image['execution'])
             files.update({path.relative_to(self.directory).as_posix(): encode_bytes(content)
-                          for path, content in image['files'].items()})
+                          for path, content in image['files'].items() if content is not None or path == image['root']})
         document = dict(version=1, network=network, agents=agents, files=files, **extra)
         return merge_records(document, self.node_locks.records(committing))
 

@@ -20,6 +20,8 @@ def register(transport):
     transport.routes['network_admin_child']=lambda p:transport.backend.network_administrator.bind_child(p)
     from .skill_resources import parse_skill
     transport.routes['skill_parse']=parse_skill
+    from .reachable import reachable_view
+    transport.routes['studio_view']=lambda p:transport.runtime.run(reachable_view(transport.backend,p),timeout=86460)
     from .data_preview import preview
     from .data_clear import clear_live
     from .data_templates import templates

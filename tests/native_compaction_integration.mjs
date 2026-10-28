@@ -35,6 +35,7 @@ const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127
 async function callback(method,p){
  if(method==='executor_prepare')return {tools:[],context:[],inputs:[],tail:[],retained_tools:[]};
  if(method==='executor_prune')return [];
+ if(method==='executor_request')return {ok:true};
  if(method==='executor_bind'){bindings[p.actor]={...p,name:p.actor};return {ok:true};}
  if(method==='persistence_info')return {commit_id:0,bindings:Object.fromEntries(Object.entries(bindings).map(([a,b])=>[a,b.session_id])),pending:[]};
  if(method==='persistence_latest_point')return latest;
@@ -76,6 +77,7 @@ try{
  assert.ok(overflow.rows.some(e=>e.type==='compaction/summary'),'Native overflow handler must compact before retry');
  assert.equal(overflow.rows.filter(e=>e.type==='turn/end'&&e.data.reason.kind==='completed').length,2);
  assert.equal(calls.filter(c=>c.overflow).length,1);
+ for(const call of calls)assert.equal(call.reasoning_effort,'low','Internal summaries also use an explicit effort');
  for(const call of calls.filter(c=>!c.summary)){assert.equal(call.max_tokens,limits.max_tokens);assert.equal(call.reasoning_effort,'low');}
  await run('cancel','CANCEL_SEED '+('cancel-history '.repeat(12000)));
  const pending=native.request('agent-run',{...bindings.cancel,actor:'cancel',message:'CANCEL_OVERFLOW_CHECK'});

@@ -6,10 +6,18 @@ import './subnodes.css';
 import {colors} from './model.js';
 
 export function NetworkNode({data,selected,readonly=false}){
- const subnode=data.node.type==='subnode';
+ if(data.host)return <div className="network-node module-view" style={{'--module-height':data.viewHeight+'px'}}>
+  <div className="module-view-title"><Box size={14}/><strong>{data.node.name}</strong></div>
+  <small className="module-view-owner">{data.host.name} · {data.module_id}</small>
+  {data.channelGroups.map((group,index)=><div className="module-channel-group" key={group.label} title={group.channels.join('、')}>
+   <span>{group.label}</span><code>{group.mode==='deny'?'排除：':''}{group.channels.join(' / ')||'本节点'}</code>
+   {!readonly&&group.mode==='allow'&&group.channels.length>0&&<Handle id={group.label} type="source" position={Position.Right} style={{top:52+index*25+12}}/>}
+  </div>)}
+  {!readonly&&<Handle id="left" type="source" position={Position.Left}/>}
+ </div>;
  const problems=Object.entries(data.moduleProblems??{}),problemText=problems.map(([id,reason])=>id+'：'+reason).join('\n');
  const node=data.node,tools=data.toolCount??(node.offered_tools?.length??0),modules=(node.tables?.modules??[]).length;
- return <div onDoubleClick={e=>{e.stopPropagation();if(node.type==='agent')data.openChat?.(node);}} className={'network-node '+(subnode?'subnode ':'')+(selected?'is-selected':'')} style={{'--node-color':colors[data.kind]}}>
+ return <div onDoubleClick={e=>{e.stopPropagation();if(node.type==='agent')data.openChat?.(node);}} className={'network-node '+(selected?'is-selected':'')} style={{'--node-color':colors[data.kind]}}>
   {!readonly&&[Position.Left,Position.Right,Position.Top,Position.Bottom].map(side=><Handle key={side} id={side} type="source" position={side}/>)}
   {problems.length>0&&<button className="node-problem nodrag nopan" aria-label={node.name+'的模块不可用'} title={problemText} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();data.openNodeTab?.(node,problems.every(([id])=>id.startsWith('skill:'))?'Skills':'模块');}}><CircleAlert size={17}/></button>}
   <div className="node-content"><span className="node-name">{node.name}</span><div className="node-actions">

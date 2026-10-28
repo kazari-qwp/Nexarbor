@@ -71,6 +71,24 @@ class CooperativeProtocolTests(unittest.IsolatedAsyncioTestCase):
     async def start(self):
         return await self.call("caller", "start", task="共同实现并验收一个功能")
 
+    async def test_native_request_event_enforces_the_accumulated_member_budget(self):
+        from adapt.harness.executor import NativeExecutor
+        await self.start()
+        member = self.members[0].modules.get("cooperation.member")
+        member._active = True
+        self.module.state["requests"]["one"] = 9999
+        executor = NativeExecutor(self.backend.network, None, bindings={"one": {"executor": "harness"}})
+        try:
+            await executor.request(dict(actor="one", request_index=1))
+            self.assertEqual(self.module.state["requests"]["one"], 10000)
+            self.assertEqual(member.state["requests"], 10000)
+            with self.assertRaisesRegex(RuntimeError, "10000"):
+                await executor.request(dict(actor="one", request_index=2))
+            self.assertEqual(self.module.state["requests"]["one"], 10000)
+            self.assertEqual(self.module.state["requests"].get("two", 0), 0)
+        finally:
+            member._active = False
+
     async def publish(self, actor="one", text="print(42)\n"):
         info = await self.call(actor, "workspace", action="inspect")
         path = Path(info["personal_path"])

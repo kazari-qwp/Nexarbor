@@ -1,6 +1,7 @@
 // 两种制作职责共享原生会话；仅登记宿主按工作副本授权的工具。
 const readline=require('node:readline'),crypto=require('node:crypto'),toolContent=require('../../native/tool-content.cjs');
 let runtime,positions,closed=false;const sessions=new Map(),callbacks=new Map();let serial=0;const keep=setInterval(()=>{},1000);
+const countRequest=require('../../native/request-policy.cjs');
 const write=value=>process.stdout.write(JSON.stringify(value)+'\n');
 const rpc=params=>new Promise((resolve,reject)=>{const host_id=String(++serial);callbacks.set(host_id,{resolve,reject});write({host_id,method:'maker-tool',params});});
 async function create(p){
@@ -16,7 +17,7 @@ async function create(p){
  entry.prompt=agent.ctx.systemPrompt.section({name:'nexarbor-maker',order:90,interpolate:false,text:p.instructions});
  const register=original=>{const definition=structuredClone(original);if(definition.name==='view_network'&&!entry.supportsImages){definition.description+=' 当前模型使用紧凑拓扑索引。';definition.parameters.properties.image.default=false;}entry.tools.push(agent.ctx.tools.register({...definition,output:{schema:{},render:toolContent.render},execute:async args=>toolContent.prepare(runtime,await rpc({task:entry.task,tool:definition.name,arguments:definition.name==='view_network'&&!entry.supportsImages?{...args,image:false}:args}))}));};
  await skill.install(runtime,entry,p.tools,register);
- entry.requestHook=agent.ctx.on('agent/request',async(_p,next)=>{++entry.steps;return next();});
+ entry.requestHook=agent.ctx.on('agent/request',async(_p,next)=>{countRequest(entry,runtime.limits.max_requests);return next();});
  const cursor=await positions.capture(agent.session,{allowPending:true});return {session_id:agent.id,seed_cursor:cursor,model_signature:selected.signature,model_name:selected.model.model};
 }
 async function read(p){const e=sessions.get(p.session_id);if(!e)throw Error('会话尚未载入');const events=e.agent.session.snapshotEvents(e.start_seq).filter(v=>v.data?.usage).map(v=>({seq:v.seq,usage:v.data.usage}));return {session_id:e.agent.id,requests:e.steps,host_requests:runtime.requests(),steps:e.steps,messages:e.agent.session.deriveMessages().slice(-35),previews:[...(e.previews??[]),...Object.entries(await toolContent.previews(runtime,e.agent.session.deriveMessages().slice(-35))).map(([id,preview])=>({id,preview}))],events};}

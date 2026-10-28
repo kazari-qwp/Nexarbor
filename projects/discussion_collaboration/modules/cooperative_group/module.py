@@ -8,6 +8,7 @@ from time import time
 from uuid import uuid4
 
 from app.runtime.requester import requester_id
+from app.runtime.agent_policy import agent_defaults
 from app.runtime.signal_work import current_work
 from domain.core import CallableTool, Module, access
 from domain.json_values import thaw
@@ -37,6 +38,7 @@ class CooperativeGroupModule(Module):
         self.transaction, self.emit, self.write_documents = transaction, emit, write_documents
         self.config, self.state = deepcopy(config or {}), deepcopy(state or {})
         self._work = None
+        self.request_limit = agent_defaults()["max_requests"]
         self.command_log_store = CommandLogs(self.directory) if command_logs is None else command_logs
         for spec in TOOLS:
             function = self.finish_tool if spec["operation"] == "finish" else getattr(self, spec["operation"])
@@ -136,6 +138,13 @@ class CooperativeGroupModule(Module):
                 parameters["review"] = self.workspace_store().proposal(actor, parameters.get("test_scripts", []), parameters.get("test_results", []), logs, artifacts)
             if operation in ("claim", "note", "finish"):
                 result = getattr(rules, operation)(group, parameters)
+            elif operation == "request":
+                self.member(node)
+                count = group["requests"].get(actor, 0)
+                if count >= self.request_limit:
+                    raise RuntimeError("模型请求次数达到上限 " + str(self.request_limit))
+                group["requests"][actor] = count + 1
+                result = dict(requests=count + 1)
             elif operation == "member_exit":
                 if actor != parameters["target"] and actor != group.get("caller"):
                     raise PermissionError("只能退出自己，调用者可处理失效成员")
@@ -190,6 +199,9 @@ class CooperativeGroupModule(Module):
         group["archive_path"] = home
         group["archives"] = list(dict.fromkeys([*group.get("archives", []), *files]))
         group.setdefault("runs", {})[group["run_id"]] = dict(run_id=group["run_id"], task=group["task"], phase=group["phase"], archive_path=home, report_reference=group.get("report_reference"))
+
+    async def request(self):
+        return await self._call("request", {})
 
     async def start(self, task, budget_minutes=30):
         return await self._call("start", dict(task=task, budget_minutes=budget_minutes))

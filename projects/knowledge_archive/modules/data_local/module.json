@@ -9,7 +9,8 @@
     "value",
     "csv",
     "sqlite",
-    "knowledge_collection"
+    "knowledge_collection",
+    "markdown"
   ],
   "requires": [],
   "config_schema": {
@@ -19,6 +20,11 @@
         "type": "boolean",
         "title": "只读",
         "default": false
+      },
+      "max_chars": {
+        "type": "integer",
+        "minimum": 1,
+        "title": "文本最多字符数"
       }
     },
     "required": [],
@@ -104,7 +110,8 @@
             "enum": [
               "insert",
               "update",
-              "upsert"
+              "upsert",
+              "append"
             ]
           }
         },

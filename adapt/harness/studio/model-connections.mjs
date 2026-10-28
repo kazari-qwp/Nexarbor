@@ -1,4 +1,5 @@
 import agentDefaults from '../framework/agent-defaults.cjs';
+import providerIdentity from '../native/model-identity.cjs';
 import {replaceFile} from './atomic-write.mjs';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -54,17 +55,18 @@ export class ModelConnections{
  }
  async choose(scope,value){if(!['project','component','network'].includes(scope))throw Error('模型配置范围无效');const next=selection(value);return this.project.serial(async()=>{const project=await this.project.read();project.model_settings={...project.model_settings,[scope]:next};await this.project.write('nexarbor.json',JSON.stringify(project,null,2)+'\n');return {selection:next};});}
  async runtime(value,scope='project'){
-  const settings=await this.settings(),chosen={...agentDefaults(),...(selection(value??settings[scope]??settings.project)??{connection:'harness-default',model:'deepseek-flash'})};
+  const settings=await this.settings(),defaults=agentDefaults(),chosen={context_window:defaults.context_window,max_tokens:defaults.max_tokens,reasoning_effort:defaults.reasoning_effort,...(selection(value??settings[scope]??settings.project)??{connection:'harness-default',model:'deepseek-flash'})};
   if(this.modelPolicy&&(chosen.model!==this.modelPolicy.model||chosen.connection!==this.modelPolicy.connection))throw Error('测试模型策略拒绝此选择；仅允许 '+this.modelPolicy.connection+' / '+this.modelPolicy.model);
   await this.onModelSelection?.({scope,connection:chosen.connection,model:chosen.model,stage:'selection'});
   const model={provider:'deepseek-account',model:chosen.model,maxTokens:chosen.max_tokens,contextWindow:chosen.context_window,...(chosen.reasoning_effort?{reasoningEffort:chosen.reasoning_effort}:{})};
   if(chosen.connection==='harness-default'){
    const credentials=await harnessCredentials({directory:this.directory}),stat=await fs.stat(credentials),signature=createHash('sha256').update(JSON.stringify({chosen,credentials,modified:stat.mtimeMs})).digest('hex');
-   return {kind:'harness-account',id:chosen.connection,signature,credentials,model:{...model,contextWindow:chosen.context_window,reasoningEffort:chosen.reasoning_effort??'low'}};
+   return {kind:'harness-account',id:chosen.connection,signature,credentials,model:{...model,contextWindow:chosen.context_window,reasoningEffort:chosen.reasoning_effort}};
   }
   const connection=await this.read(chosen.connection),api_key=connection.secret?await this.protect(connection.secret,true):undefined;
   const signature=createHash('sha256').update(JSON.stringify({chosen,revision:connection.revision})).digest('hex');
-  return {kind:'api-key',id:connection.id,signature,protocol:connection.protocol,base_url:connection.base_url,api_key,model:{...model,...apiCapabilities(connection,chosen.model),provider:'nexarbor-'+connection.id+'-'+signature.slice(0,12)}};
+  const profile={kind:'api-key',id:connection.id,signature,protocol:connection.protocol,base_url:connection.base_url,api_key,model:{...model,...apiCapabilities(connection,chosen.model)}};
+  profile.model.provider=providerIdentity(profile);return profile;
  }
  async discover(p){
   const connection=await this.read(p.id),key=connection.secret?await this.protect(connection.secret,true):undefined;

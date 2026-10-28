@@ -251,3 +251,20 @@ class ContextPacketTests(unittest.TestCase):
 
     def test_other_preparation_result_is_not_misclassified(self):
         self.assertFalse(apply_context_packet(self.agent, self.state, 'prepare', {'format': 'different'}))
+
+
+class ModelRequestEventTests(unittest.IsolatedAsyncioTestCase):
+    async def test_request_is_delivered_to_mounted_modules_and_stale_sessions_are_rejected(self):
+        from domain.core import Module
+        events = []
+        class Observer(Module):
+            async def on_model_request(self, event):
+                events.append(event)
+        node = AgentNode(NodeInfo("actor", "Actor"))
+        node.install(Observer("observer"))
+        executor = NativeExecutor(Network([node]), None, bindings={"actor": {"executor": "harness"}}, states={"actor": {"session_id": "current"}})
+        await executor.request(dict(actor="actor", executor_session_id="current", request_index=1))
+        self.assertEqual(events, [dict(actor="actor", session_id="current", request_index=1)])
+        with self.assertRaises(PermissionError):
+            await executor.request(dict(actor="actor", executor_session_id="stale", request_index=2))
+        self.assertEqual(len(events), 1)

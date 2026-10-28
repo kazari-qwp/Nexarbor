@@ -69,7 +69,7 @@ class Transport(JsonRpcTransport):
         raise ValueError('Unknown runtime operation: ' + method)
 
     def _executor(self, action, p):
-        if action in ('prepare', 'invoke'):
+        if action in ('prepare', 'invoke', 'request'):
             return self.backend.perform('executor_' + action,
                 lambda: self.runtime.run(getattr(self.executor, action)(p), timeout=86460))
         if action in ('ack', 'bind', 'prune'):

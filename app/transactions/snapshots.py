@@ -4,6 +4,7 @@ from copy import deepcopy
 from pathlib import Path
 
 from app.persistence.resource_data import read_bytes, resource_files
+from app.persistence.node_resources import resource_roots
 from domain.core import DataNode, Multiplier, Tools
 
 _MODULE_FIELDS = ("description", "channels", "strength", "channel_mode", "config", "state", "published")
@@ -53,24 +54,24 @@ class NodeSnapshots:
 
     def capture(self, nodes):
         selected = set(nodes)
-        roots = {node.info.node_id: self._root(node) for node in self.network}
+        roots = {node.info.node_id: resource_roots(node) for node in self.network}
         for node in selected:
-            root = roots[node]
-            if root is None:
-                continue
-            if not root.is_relative_to(self.directory):
-                raise ValueError('Transactional node resources must stay in the runtime directory')
-            for path in self._files(root):
-                if not path.resolve().is_relative_to(self.directory):
-                    raise ValueError('Transactional node resource is outside the runtime directory')
-            for other, target in roots.items():
-                if other in selected or target is None:
-                    continue
-                if root == target or root.is_dir() and target.is_relative_to(root) or target.is_dir() and root.is_relative_to(target):
-                    raise ValueError('Nodes sharing a resource file must be locked together')
-        return {node: self._capture(self.network.get(node), roots[node]) for node in nodes}
+            for root, directory in roots[node]:
+                if not root.is_relative_to(self.directory):
+                    raise ValueError('Transactional node resources must stay in the runtime directory')
+                for path in self._files(root):
+                    if not path.resolve().is_relative_to(self.directory):
+                        raise ValueError('Transactional node resource is outside the runtime directory')
+                for other, targets in roots.items():
+                    if other in selected:
+                        continue
+                    for target, target_directory in targets:
+                        if root == target or directory and target.is_relative_to(root) or target_directory and root.is_relative_to(target):
+                            raise ValueError('Nodes sharing a resource file must be locked together')
+        return {node: self._capture(self.network.get(node), self._root(self.network.get(node))) for node in nodes}
 
     def _capture(self, node, root):
+        roots = resource_roots(node)
         groups, tools = {}, {}
 
         def capture_tools(group):
@@ -98,7 +99,7 @@ class NodeSnapshots:
             execution=deepcopy(self.execution.get(node.info.node_id)),
             binding=deepcopy(self.bindings.get(node.info.node_id)),
             runner=getattr(node, 'runner', None), root=root, directory=root is not None and root.is_dir(),
-            files={path: read_bytes(path) for path in self._files(root)},
+            resource_roots=roots, files={path: read_bytes(path) for owned, _ in roots for path in self._files(owned)},
         )
         if node.node_type == 'pulse':
             image['pulse_fields'] = _fields(node, ('channels', 'strength', 'content', 'signal_options', 'state'))
@@ -161,7 +162,7 @@ class NodeSnapshots:
                     vars(data).clear()
                     vars(data).update(deepcopy(fields))
                 root = image['root']
-                for path in self._files(root):
+                for path in (path for owned, _ in image['resource_roots'] for path in self._files(owned)):
                     if path not in image['files']:
                         if not path.resolve().is_relative_to(self.directory):
                             raise ValueError('Rollback resource is outside the runtime directory')

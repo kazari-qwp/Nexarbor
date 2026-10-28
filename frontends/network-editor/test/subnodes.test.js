@@ -1,16 +1,43 @@
-import test from 'node:test';import assert from 'node:assert/strict';
-import {edgesOf,layoutNodes,removeNode} from '../src/model.js';import {selectionStep,copySubnet,pasteSubnet} from '../src/subnets.js';import {editorNode} from '../../../adapt/harness/framework/editor-nodes.js';
-const sub=(id,parent)=>({...editorNode('node',id,id),type:'subnode',divergence:0,parameters:{parent_id:parent,use_parent_links:false,share_links:false}});
-const fixture=()=>({network:{version:8,signals:{},delegations:[],nodes:[editorNode('node','a','主节点'),sub('b','a'),sub('c','b'),editorNode('node','outside','外部')]},files:{}});
-test('ownership is one selection step and never an edge selection',()=>{const doc=fixture(),nodes=layoutNodes(doc),edges=edgesOf(doc),result=selectionStep(nodes,edges,{nodes:['a'],edges:[]});assert.deepEqual(result,{nodes:['a','b'],edges:[]});assert.ok(edges.filter(e=>e.ownership).every(e=>e.metadata.channels.length===0));assert.equal(nodes.find(n=>n.id==='b').height,34);});
-test('parent copy preserves nested subnodes and remaps ownership with unique IDs',()=>{const doc=fixture();doc.network.nodes[1].modules={'test':{config:{x:1},state:{data:'独立缓存'},access:{strength:4,channels:['x']}}};doc.network.nodes[1].connections.interfaces.push({target_node_id:'outside',metadata:{channels:['x'],threshold:0,multiplier:1,attributes:{}}});const snapshot=copySubnet(doc,['a'],'external'),pasted=pasteSubnet(doc,{snapshot},{x:0,y:0});const [a,b,c]=pasted.document.network.nodes.slice(4);assert.equal(snapshot.nodes.length,3);assert.notEqual(a.node_id,'a');assert.equal(b.parameters.parent_id,a.node_id);assert.equal(c.parameters.parent_id,b.node_id);assert.equal(b.connections.interfaces[0].target_node_id,'outside');assert.equal(b.modules.test.state.data,'独立缓存');});
-test('subnode-only bookmark attaches to the drop target and internal copy drops external links',()=>{const doc=fixture();doc.network.nodes[1].connections.interfaces.push({target_node_id:'outside',metadata:{channels:['x'],threshold:0,multiplier:1,attributes:{}}});const snapshot=copySubnet(doc,['b'],'internal'),pasted=pasteSubnet(doc,{snapshot},{x:0,y:0},{},{},{source:'outside'});assert.equal(pasted.document.network.nodes[4].parameters.parent_id,'outside');assert.equal(pasted.document.network.nodes[4].connections.interfaces.length,0);assert.equal(removeNode(doc,'a').network.nodes.length,1);});
-
-test('single node preset and history retain a complete ownership tree',async()=>{
- const {singleOwnedNode}=await import('../../shared/graph/ownership.js'),{storedNodes}=await import('../../../adapt/harness/framework/stored-networks.js'),fs=await import('node:fs/promises'),os=await import('node:os'),path=await import('node:path');
- const directory=await fs.mkdtemp(path.join(os.tmpdir(),'subnode-preset-')),snapshot=copySubnet(fixture(),['a'],'internal');
- assert.ok(singleOwnedNode(snapshot.nodes));assert.equal(singleOwnedNode(fixture().network.nodes),false);
- const store=storedNodes(directory),saved=await store.save({storageKind:'node',document:{network:{version:8,nodes:snapshot.nodes},files:{}},editor:{name:'父子节点'}});
- assert.equal((await store.load(saved.id)).snapshot.nodes.length,3);
- const restored=pasteSubnet(fixture(),saved,{x:0,y:0});assert.equal(restored.document.network.nodes.length,7);assert.equal(restored.document.network.nodes[5].parameters.parent_id,restored.document.network.nodes[4].node_id);
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import {editorNode} from '../../../adapt/harness/framework/editor-nodes.js';
+import {edgesOf,layoutNodes,filterGraph} from '../src/model.js';
+import {projectModules,moduleViewId,moduleConnection} from '../src/module-projection.js';
+import {copySubnet,pasteSubnet} from '../src/subnets.js';
+const manifest=JSON.parse(await fs.readFile(new URL('../../../modules/context_assembler/module.json',import.meta.url),'utf8'));
+const catalog={modules:{'context.assembler':{label:'上下文组装器',frontend:manifest.frontend,schema:manifest.config_schema}}};
+function fixture(){
+ const owner=editorNode('agent','owner','居民'),document=editorNode('node','document','规则');
+ owner.tables.modules=[{module_id:'context.assembler',channels:['system','docs'],strength:2,config:{channels:['relay'],system_prompt_channels:['system'],context_channels:['docs'],inputs_channels:[],tail_channels:['clock']},state:{value:'preserved'}}];
+ owner.links=[{target_id:'document',channels:['system'],threshold:1,processor:{type:'multiplier',factor:1},attributes:{}}];
+ return {network:{nodes:[owner,document]},files:{[owner.data.path]:'# memory'}};
+}
+const scene=doc=>projectModules(doc,catalog,{},layoutNodes(doc),edgesOf(doc));
+test('module subnodes are derived presentation and never change runtime records',()=>{
+ const doc=fixture(),before=structuredClone(doc),view=scene(doc),card=view.nodes.find(n=>n.data.host);
+ assert.equal(view.nodes.length,3);assert.equal(doc.network.nodes.length,2);assert.deepEqual(doc,before);
+ assert.equal(card.id,moduleViewId('owner','context.assembler'));assert.equal(card.data.host.node_id,'owner');
+ assert.equal(view.edges.find(e=>!e.ownership).source,card.id);assert.equal(doc.network.nodes[0].links[0].target_id,'document');
+ assert.equal(view.edges.filter(e=>e.ownership).length,1);
+});
+test('each channel group reads the actual module configuration',()=>{
+ const doc=fixture();doc.network.nodes[0].tables.modules[0].config.system_prompt_channels=['new-system'];
+ const card=scene(doc).nodes.find(n=>n.data.host);
+ assert.deepEqual(card.data.channelGroups.find(g=>g.label==='系统提示').channels,['new-system']);
+ assert.equal(card.data.channelGroups.length,5);
+});
+test('connections and local view resolve module cards to their real host',()=>{
+ const doc=fixture(),view=scene(doc),id=moduleViewId('owner','context.assembler');
+ const edge=moduleConnection({source:id,target:'document',sourceHandle:'系统提示'},view.nodes);
+ assert.equal(edge.source,'owner');assert.equal(edge.target,'document');assert.deepEqual(edge.channels,['system']);
+ const filtered=filterGraph(view.nodes,view.edges,{local:{actor:'owner',reachable:{system:[{id:'owner'},{id:'document'}]}}});
+ assert.equal(filtered.nodes.length,3);
+});
+test('copying a host preserves its module and generates a fresh display identity',async()=>{
+ const doc=fixture(),snapshot=copySubnet(doc,['owner'],'external');assert.equal(snapshot.nodes.length,1);
+ const pasted=await pasteSubnet(doc,{snapshot},{x:500,y:300});const owner=pasted.document.network.nodes.at(-1);
+ assert.notEqual(owner.node_id,'owner');assert.equal(owner.tables.modules[0].state.value,'preserved');
+ assert.notEqual(moduleViewId(owner.node_id,'context.assembler'),moduleViewId('owner','context.assembler'));
+ assert.ok(pasted.document.network.nodes.every(n=>n.type!=='module_view'&&n.type!=='subnode'));
 });

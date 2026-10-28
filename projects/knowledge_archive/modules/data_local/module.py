@@ -1,6 +1,7 @@
 """保留原本地数据读写与只读规则；实际文件归 DataNode 管理。"""
 from copy import deepcopy
 from domain.core import Module,access
+from app.data.text import TextFileAccess
 
 class DataLocalModule(Module):
     def __init__(self,transaction,config=None,state=None,**access_settings):
@@ -18,7 +19,8 @@ class DataLocalModule(Module):
 
     @access(channels=())
     async def _operate(self,node,operation,parameters):
-        if operation=='inspect':return node.dataer.get_schema()
-        if operation=='read':return node.dataer.read(parameters)
+        dataer=TextFileAccess(node,max_chars=self.config.get('max_chars')) if node.saver.kind=='markdown' else node.dataer
+        if operation=='inspect':return dataer.get_schema()
+        if operation=='read':return dataer.read(parameters)
         self.check(write=True)
-        async with self.transaction([node.info.node_id]):return node.dataer.write(**parameters)
+        async with self.transaction([node.info.node_id]):return dataer.write(**parameters)

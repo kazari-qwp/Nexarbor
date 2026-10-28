@@ -32,3 +32,24 @@ test('official DeepSeek API routes declare native reasoning and conversation cap
  const other=await models.runtime({connection:'fixture',model:'deepseek-flash'},'network');
  assert.equal(other.model.compat,undefined,'a model name alone cannot impose another provider protocol');
 });
+
+
+test('generation settings do not change a connection model replay identity',async()=>{
+ const models=new ModelConnections({project:{read:async()=>({})},protect:async v=>v});
+ models.read=async id=>({id,revision:1,protocol:'openai-completions',base_url:'https://api.deepseek.com/v1',secret:'local-key'});
+ const a=await models.runtime({connection:'fixture',model:'deepseek-flash'});
+ const b=await models.runtime({connection:'fixture',model:'deepseek-flash',max_tokens:16000,context_window:128000});
+ assert.equal(a.model.reasoningEffort,'high');assert.equal(b.model.reasoningEffort,'high');
+ assert.notEqual(a.signature,b.signature);assert.equal(a.model.provider,b.model.provider);
+ const other=await models.runtime({connection:'second',model:'deepseek-flash'});
+ // Identity uses the connection record, not a display label or generation settings.
+ assert.notEqual(other.model.provider,a.model.provider);
+});
+
+test('ordinary and maker request policy permits 10000 and rejects the next request',async()=>{
+ const {default:countRequest}=await import('../adapt/harness/native/request-policy.cjs');
+ const {default:defaults}=await import('../adapt/harness/framework/agent-defaults.cjs');
+ const limit=defaults().max_requests;assert.equal(limit,10000);
+ const entry={steps:9999};assert.equal(countRequest(entry,limit),10000);
+ assert.throws(()=>countRequest(entry,limit),/10000/);assert.equal(entry.steps,10000);
+});
