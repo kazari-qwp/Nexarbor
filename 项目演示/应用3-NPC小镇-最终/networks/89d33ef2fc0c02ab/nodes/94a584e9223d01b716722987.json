@@ -1,0 +1,2077 @@
+{
+  "agent": {
+    "inputs": {
+      "module:place.info": {
+        "context": [],
+        "inputs": [],
+        "system_prompt": "",
+        "tail": [
+          "当前位置：树林\n树林：镇北的树林，用斧头能砍下木材。"
+        ]
+      },
+      "prepare:阿森:context.assembler:assemble": {
+        "context": [
+          {
+            "id": "node:成年常识",
+            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
+          },
+          {
+            "id": "node:伐木常识",
+            "text": "伐木工常识：树林用斧头砍柴，每次花六点行动值得到三根木材；木材可以卖给商店，每根两金币。"
+          }
+        ],
+        "inputs": [
+          {
+            "delivery": "followup",
+            "id": "node:阿森开场白/once",
+            "status": "delivered",
+            "text": "清早，你扛着斧头从居民楼B出来，想着今天砍几担木材卖给商店。"
+          }
+        ],
+        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫阿森，二十五岁，是镇上的伐木工。你力气大、性子直，喜欢树林里的安静，也不爱受人欺负。",
+        "tail": [
+          "当前时间：第5天 午夜（总 tick：25）"
+        ]
+      }
+    }
+  },
+  "aggregation": "sum",
+  "bias": -1,
+  "data": {
+    "directory": false,
+    "path": "data/阿森.md",
+    "save_data": true,
+    "type": "markdown"
+  },
+  "description": "",
+  "execution": {
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "executor": "harness",
+    "max_steps": 16,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "self"
+        ],
+        "module": "places.query",
+        "node": "阿森",
+        "operation": "publish"
+      },
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.assembler",
+        "node": "阿森",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 2,
+    "timeout_seconds": 180
+  },
+  "links": [
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "tick"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "存档点",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小砾",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "林",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小路",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿石",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "老铁",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "悦",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "奈镇世界规则",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿森人格",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿森开场白",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "世界时间",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "成年常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "伐木常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "树林",
+      "threshold": 1
+    }
+  ],
+  "name": "阿森",
+  "node_id": "阿森",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {
+            "adult": true,
+            "age": 25,
+            "age_group": "adult",
+            "ap": 10,
+            "axe": 1,
+            "can_gestate": false,
+            "coins": 8,
+            "gender": "male",
+            "is_parent": false,
+            "pregnant": false,
+            "profession": "伐木工",
+            "role": "woodcutter"
+          },
+          "minimum": {
+            "ap": 0
+          },
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼B"
+            },
+            {
+              "key": "context_node",
+              "node_id": "阿森"
+            },
+            {
+              "key": "name",
+              "node_id": "阿森"
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d1-noon-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 8,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 3
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d1-afternoon-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 8,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 6
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d1-evening-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 8,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 9
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d2-noon-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 26,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 3
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d2-afternoon-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 26,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 6
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d2-evening-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 26,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 9
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d3-noon-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 26,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 12
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d3-afternoon-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 26,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 15
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d3-evening-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 26,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 18
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"阿森\",\"drink-d3-midnight-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 3,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 25,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 18
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d4-afternoon-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 25,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 21
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d4-evening-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 25,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 24
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-6,\"wood\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"树林\",\"阿森\",\"chop-d4-midnight-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 4,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 25,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 27
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:悦:悦:give:yue-sell-ore-asen-1:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 10,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 25,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 1,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 27
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":4},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-asen-4:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 1,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 25,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 5,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 27
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-6},\"expected\":{\"ap\":1,\"coins\":25},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿森:阿森:give:pay-xiaoli-ore2-d5:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 0,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 5,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 27
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-2},\"expected\":{\"ap\":10,\"ore\":5},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿森:阿森:give:return-xiaoli-ore2-d5b:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿森"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿森"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 25,
+                "age_group": "adult",
+                "ap": 9,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "伐木工",
+                "role": "woodcutter",
+                "wood": 27
+              }
+            }
+          ],
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼B"
+            },
+            {
+              "key": "context_node",
+              "node_id": "阿森"
+            },
+            {
+              "key": "name",
+              "node_id": "阿森"
+            }
+          ],
+          "values": {
+            "adult": true,
+            "age": 25,
+            "age_group": "adult",
+            "ap": 0,
+            "axe": 1,
+            "can_gestate": false,
+            "coins": 19,
+            "gender": "male",
+            "is_parent": false,
+            "pregnant": false,
+            "profession": "伐木工",
+            "role": "woodcutter",
+            "wood": 27,
+            "ore": 3
+          }
+        },
+        "strength": 1,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "伐木工阿森",
+          "location": "居民楼B",
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "伐木工阿森",
+          "location": "树林",
+          "name": "阿森",
+          "node_id": "阿森",
+          "visit": 36,
+          "visitors": []
+        },
+        "state": {
+          "location": "树林",
+          "visit": 36
+        },
+        "strength": 0,
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "tick",
+          "records",
+          "self",
+          "runtime.agent"
+        ],
+        "config": {
+          "budget": 10,
+          "budget_field": "ap",
+          "enabled": true,
+          "max_reactions": 8,
+          "prompt": "现在开始你这一时刻的行动。先查看处境，再决定去哪里、做什么；行动值有限，别浪费。\n本时刻完成行动，或需要等待答复、到货、下一个时段时，直接结束回复，下一 tick 再继续；不要轮询消息或处境。",
+          "signal_channels": [
+            "tick"
+          ]
+        },
+        "description": "",
+        "module_id": "agents.activity",
+        "modules": [
+          "records.store"
+        ],
+        "published": {
+          "最近完成活动键": "57404d95abc84cb5af994a41581b889a",
+          "活动完成次数": 25,
+          "活动状态": "已完成"
+        },
+        "state": {
+          "activities": [
+            {
+              "completed_count": 1,
+              "key": "5b538dae17134fc6af992a27d08cc099",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8676cc521e4749dfbb231efb0b27c3d3",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "dd2cdb078e204524a19034f767720628",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "7976508094d64c91adef74a951e8cbda",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "711f31a07a6546519344dd93b7a35fb8",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "38f90c6b1deb4694b3e5ed1f23e64999",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "990d130148c54396953688bee950968e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b852e3eb33134bc2a270c37d2d77b5d0",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "26159259b41c4d86b1cdcab0b3515c3e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "47d0a369c7954c69a7f5319aa8f3c170",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "32ec93e5163e4bf78092d7ffaffb2010",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b7097cfc3f0b4452a3b0340962d90978",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "4a4cb86e636841ffaf235453f3433673",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fba25d2da2f242c187d1a8542bc37f03",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "95a66166b0d84648a9b21a8f5af94ded",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fbc37d62fc55415baa3fa5008d3e5d79",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "bba3d8ec4f834a5884fa043a50a040ee",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "de979bcdfe034f8c9e25f64583473a65",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "2905760cc3ff4c57a9a0c46150cca23a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "9f572054f0624246bb56f6de53ab3200",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "6c26053501bd42f88a96175f8db444d9",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f93dcd7c4a7f4dedb45515e5f01e910a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f205302959064b4eac1a541f060ba270",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8b4f230cf6a548e8a104e32d51eff73f",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "57404d95abc84cb5af994a41581b889a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            }
+          ],
+          "completed_total": 25
+        },
+        "strength": 0,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records"
+        ],
+        "config": {
+          "max_messages": 200,
+          "read_policy": "self",
+          "require_agent": true,
+          "send_cost": 0
+        },
+        "description": "",
+        "module_id": "messages.box",
+        "modules": [],
+        "state": {
+          "messages": [
+            {
+              "from": "小路",
+              "id": "99f959c7239f4e2dbd61e59220d192ed",
+              "text": "阿森，早。我小路，院里的。你伐木那一摊子，缺个扛料的、跑腿的不？我不要多，一个金币跑一趟。要不你砍好了木头，我替你送到商店去卖，你省下脚力，我挣口饭钱，两下便宜。",
+              "to": "阿森",
+              "topic": "找活干"
+            },
+            {
+              "from": "阿石",
+              "id": "cb0c19ca29794b4ea899c29225c74626",
+              "text": "阿森，我是阿石。院里那堆矿车零件是你的吧？我镐子坏了，修镐差一块矿石，商店不卖矿。你手上有没有一块闲矿，卖我六金币，或者先赊我、我修好镐挖出第一块就还你。没有的话，你若知道谁有，也给我递个话。我在居民楼B。",
+              "to": "阿森",
+              "topic": "买矿石"
+            },
+            {
+              "from": "老铁",
+              "id": "2360fd5899d54b87a7eda8699aad2261",
+              "text": "阿森，老铁。打听一句实话：你家那堆矿车零件里，有没有存下的矿石？阿石镐子坏了，困在没矿修不了镐的死结上，托我找矿。有的话报个数、开个价，我按三金币一块收，现钱结给你；不方便卖也直说，我不缠人。",
+              "to": "阿森",
+              "topic": "打听矿石"
+            },
+            {
+              "from": "悦",
+              "id": "d663eb2cc3174abf808bb1b877f7d50c",
+              "text": "阿森，你好，我是悦，住居民楼A的居民。今天头一回到树林来——早上在商店买了把斧头，本来想砍一回试试，结果站到树下才看清：砍一回要六点行动值，出三根木材，我这一时刻只剩四点，斧头举起来也只能放下。\n\n你是伐木工，这里的门道你熟，我厚着脸皮问几句：是不是每回都是六点换三根？砍多了会不会碰上好料？木材除了背到商店按两根一金卖，还有没有别的销路——比如你这边收不收、或者谁家盖房子要木头？我这趟从铁匠铺走矿坑过来花了六点，背回商店又是六点，算下来一根木头的光景实在薄，想听你一句实话。",
+              "to": "阿森",
+              "topic": "请教伐木"
+            },
+            {
+              "from": "小路",
+              "id": "4bc1bda1cf7d4510b4098550ae871c89",
+              "text": "阿森，给你算笔账，划算的。你砍木头，商店两块一根收；可你从树林背到商店，来回一趟九点脚力，够你再砍好几根了。你把砍好的木头交给我，我替你背到商店卖：四根木头卖八块，我留两块脚钱，给你六块——你一根落一块半，脚不沾地就把钱挣了；连挖几天都行。你手头有多少木头？分我四根，这一趟我立马给你跑完。",
+              "to": "阿森",
+              "topic": "背木头脚钱"
+            },
+            {
+              "from": "小路",
+              "id": "26801cad2b3f43a89eec43fd007db730",
+              "text": "阿森，老铁托我来问一句：你家院里那堆矿车零件里，有没有存下的矿石？有的话，两块矿卖给老铁，三金币一块，送到铁匠铺门口当场结钱，不赊不欠；跑腿的活我包了，你不用挪窝。我这就动身往居民楼B来，你给个准话——有几块，愿不愿出。",
+              "to": "阿森",
+              "topic": "矿车零件·找矿"
+            },
+            {
+              "from": "老铁",
+              "id": "997caed7ed8c498d9ecda7b07483fc6b",
+              "text": "阿森，我人在树林，当面相问：矿车零件堆里到底有没有现成的矿石？有几块？我按三金币一块收，现钱，一块也收。有的话你开个口，或者托小路背到矿坑/铁匠铺，跑腿钱我出。阿石镐子坏着，人就守在矿坑，等一块矿下锤。",
+              "to": "阿森",
+              "topic": "打听矿石"
+            },
+            {
+              "from": "林",
+              "id": "08bd88af15984174b64ac4937fed9dbb",
+              "text": "阿森，冒昧打扰。我是林，住居民楼A，傍晚在你们院门口站着，看见院里堆着矿车零件，就想问问你。我今天把镇上的账摸了一遍：矿石一块卖三金、采一块只要两点行动值，最划算；可必须先有一把好镐，坏了要两金加一块矿才修得回来。偏生商店只收矿石不卖矿石，眼下镇上没人手里有存矿，阿石的镐就卡死在这儿。你在镇上住得久，可知道还有什么别的门路弄到一把好镐、或者别的营生？我手里十四金，愿意出力。",
+              "to": "阿森",
+              "topic": "请教门路"
+            },
+            {
+              "from": "小路",
+              "id": "ec692e272ace4ceaa447da20d9bc9d9f",
+              "text": "阿森，赶在天亮前把话说定：老铁让我拿现钱收你家矿车零件里的存矿，两块，三金一块，一共六金我当面点给你，矿我背走送到铁匠铺。明儿一大早我就在居民楼B院里等你，你把矿备好，一手交钱一手交矿，谁也耽误不了谁。你要是零件里还翻得出第三块，我照三金再收。",
+              "to": "阿森",
+              "topic": "明早买矿"
+            },
+            {
+              "from": "小路",
+              "id": "e7ca77ac1a7c4130bb1c737eb009825e",
+              "text": "阿森，我在院里没等到你回话，这就先往铁匠铺去接阿石的矿了。你那两块矿给我留着，别卖给旁人：三金一块、六金现钱，我一回来就点给你；你有第三块，我照三金收。要是等不及，你背到铁匠铺门口找我，路上我替你出一金脚力。",
+              "to": "阿森",
+              "topic": "留矿等我"
+            },
+            {
+              "from": "小路",
+              "id": "ba87c28d19e2476b8ba0804b24cf5db3",
+              "text": "阿森，我这就往居民楼B去，天黑前到你院里。就为一样东西：你那堆矿车零件里，有没有坏镐、旧镐、或者镐头镐柄？坏的我也要，我拿去铁匠铺修。价钱你开，我不还嘴；要是还有存矿，三金一块我也照收。你先把东西归拢归拢，别叫旁人当废铁卖了。",
+              "to": "阿森",
+              "topic": "收坏镐"
+            },
+            {
+              "from": "小路",
+              "id": "e34bcdca3f324fb8b8daea1e50261a31",
+              "text": "阿森，我今晚不在院里，明儿一早就回。你那堆矿车零件别叫人搬走：坏镐、旧镐、镐头镐柄，我全收，坏的也收，价钱你开。你要是不想卖镐，把零件让我翻一翻也成，我翻出什么按市价给钱，绝不多拿。明早院里见。",
+              "to": "阿森",
+              "topic": "明早翻零件"
+            },
+            {
+              "from": "小路",
+              "id": "bcb616cc4a1043339cd268d537b18cd9",
+              "text": "阿森，巧了！我人在铁匠铺，你也进来了，省得我跑一趟。就问你一句话：你家那堆矿车零件里，有没有坏镐、旧镐、镐头镐柄？有的话你开个价，我当场点钱，坏的我也收——老铁炉子就在旁边，拎过去就能修。要是不想卖镐，让我把零件翻一翻也行，翻出什么我照市价给钱，再多给你一金翻找的辛苦钱。你有话直说，我不磨人。",
+              "to": "阿森",
+              "topic": "当面收坏镐"
+            },
+            {
+              "from": "小路",
+              "id": "11c70e8323404b81b11583fba8af3fef",
+              "text": "阿森，等了你两回话，没见回音，我这就往居民楼B院里来了。你的零件堆我不动，先跟你当面说：坏镐旧镐，五金币一把，我现钱收；要是你舍不得卖，让我替你跑一趟也行——修好了算你的，我下坑替你挖矿，一块矿分你两金。你人在家就应我一声，院门口见。",
+              "to": "阿森",
+              "topic": "院门口见"
+            },
+            {
+              "from": "老铁",
+              "id": "c303ffab38004745bb9f64b61c81a416",
+              "text": "阿森，我人就在居民楼B院里，站你堆矿车零件的地方。真要开个准价：你那些零件里翻出镐头、坏镐或者像样的铁件，卖我——我出矿石换，一块矿顶三金，或者直接点现钱。我不白翻你东西，也不让你亏。小路在我前头翻过，翻出来什么言语一声，咱当面过秤。镇上缺的就是一把能修好的镐。",
+              "to": "阿森",
+              "topic": "矿车零件"
+            },
+            {
+              "from": "阿石",
+              "id": "dcc5fe1a57b64d2b8c15122253ffc1dd",
+              "text": "阿森，我是阿石，矿工，住居民楼B，院角那堆矿车零件是你在管的吧？直说：你那些旧零件里，有没有**坏镐、旧镐头、断了柄的镐**？有的话我出四金买，或者咱们合伙——我出一块矿，老铁出两金工钱修好，卖给出十四金的林，扣了本钱三家分，你那件坏铁算一份本钱。没有也回个准话，我就不惦记了。镇上现在只有两把活镐，多一把，坑上就多一个吃饭的人。",
+              "to": "阿森",
+              "topic": "问坏镐"
+            },
+            {
+              "from": "小路",
+              "id": "65167f7677ba4773977a97750946e9c5",
+              "text": "阿森，总算碰上你了，就一句话：你家院里那堆矿车零件里，有没有坏镐、旧镐头？有，我**五金现钱**买，坏的我也要，另加你一金翻找的辛苦钱；没有，你摇个头，我立刻不缠你。你也看见了，镇上没卖新镐的地方，一把镐就是一条活路。你点个头，我明儿一早就在院里等你，绝不动旁的物件。",
+              "to": "阿森",
+              "topic": "坏镐一句话"
+            },
+            {
+              "from": "小路",
+              "id": "4edaf09b9fc04b2c9316ed6000777359",
+              "text": "阿森，你人就在院里，我也不绕弯子：那堆矿车零件里，有坏镐没有？有——五金现钱，我当场点给你，另加一金翻找辛苦钱；没有——你回我一个字，我立马不提这茬，往后也不拿这事烦你。老铁说镇上坏镐一把都没有，我不信邪，就信你一句话。",
+              "to": "阿森",
+              "topic": "最后一句实话"
+            },
+            {
+              "from": "阿石",
+              "id": "5c93f2a48ac64a90bead0b27ea109570",
+              "text": "阿森，我人就站在你院角这堆矿车零件边上。先前问你的话再当面说一遍：这里面有没有坏镐、旧镐头、断柄的镐？小路要翻，你点个头他就能动手。翻出来一把，我出一块矿、老铁出两金工钱，修好卖给林十四金，扣掉本钱剩下的三家分，你那件坏铁算一份本钱，不少你的。要是里头没这东西，你也给我一句实话，我转头下坑，不惦记了。",
+              "to": "阿森",
+              "topic": "矿车零件里有没有镐"
+            },
+            {
+              "from": "悦",
+              "id": "2b75e72c002e465cbc25fb7150f65be0",
+              "text": "阿森，在柜台前碰上你，正好问几句实在的：你砍的木材如今卖得动吗？柜台断钱三天了，我手里四块矿一块也出不去，你那边怕是同样光景。\n\n我在你这行当过一回学徒，算过账：砍一回六点换三根、卖六金，路费吃人。如今连柜台都不收，我想问问老行家：**镇上有没有人肯花钱买木材**？谁家要燃料、要搭棚、要修屋？还有一件：你砍了一辈子树，**见过谁手里有闲斧、或者旧镐吗**？我手里有斧、有矿、有现钱，缺的是一把镐——你要有门路，我记你的情。",
+              "to": "阿森",
+              "topic": "问木材门路"
+            },
+            {
+              "from": "悦",
+              "id": "22736dda7ecd40a291d763826b40fe63",
+              "text": "阿森，你的实话我领，也回你实话：**十根木料这回我不接**。不是嫌一金贵——一金确实比柜台的两金便宜一半——是我袋里只剩七金，全押成木料，手里就没活钱了；柜台一天不回血，木料就一天是死的。这钱我得攥着，等谁家镐坏、等柜台开张。\n\n但我把这话记下：**你的木料一金一根，我认这个价**。哪天我手上多了闲钱，或者柜台一开，我头一个来收，绝不少你的。\n\n反过来也给你一句：你十八根木料压着，别跟我一样只剩死货。镇上真要出钱，只会为两件事——修镐的矿、和能立刻干活的家什。你手里要是有旧斧、旧镐，倒比木料好出手。",
+              "to": "阿森",
+              "topic": "不接木料·留话"
+            },
+            {
+              "from": "小路",
+              "id": "461783ddf00047c997c8619dac83504c",
+              "text": "阿森，你伐木的，我问一句正事：你手里那把锯，使得还顺？我这儿多出一把锯，五金币卖你，你留着做备份也好、换着使也好。另外实不相瞒，柜台的钱一直被人掏空，卖不出货；你要有木头压着，别急着背去，等我信儿。",
+              "to": "阿森",
+              "topic": "锯子卖你"
+            },
+            {
+              "from": "小砾",
+              "id": "53a85072249646b8a79d3333a7b3316c",
+              "text": "阿森，头回正经说话，我是小砾，矿工。\n\n我打听一句：你砍木头，一把斧子能撑多久？坏了找老铁修，修镐修斧都要矿石，两金加一块矿。我手上矿还有十块，镇上柜台的现钱干了，我按三金一块匀给用得着的人。\n\n你要斧子、要矿石，跟我说；你要是想把木头和矿石凑一车往外卖，也跟我说——你出木头我出矿，路一起走，钱一起分。镇上缺的从来不是货，是肯搭伙走路的人。",
+              "to": "阿森",
+              "topic": "搭伙问问"
+            },
+            {
+              "from": "小砾",
+              "id": "bcabaaf800cd448eb821278432b1cc7c",
+              "text": "阿森，直来直去回你：**镐我不卖**，就这一把，卖了我自己下不了坑，靠它吃饭的家伙不撒手。\n\n但我有矿，你有现钱，这买卖比卖镐实在：**矿石三金一块，你现钱收，我这就往居民楼B走**，当面点货点钱。柜台掏不出钱是真的，钱在你我兜里转才是真的。\n\n你要是想搭伙也行，我给个实在的：你出钱收我的矿、我下坑出货，价钱就按三金一块；你木材二十七根压着也是压着，我帮你找买主，卖了照出力分。镐的事你另想——镇上只有两把好的，我和阿石手上一人一把，谁也不会卖。",
+              "to": "阿森",
+              "topic": "矿与现钱"
+            },
+            {
+              "from": "阿石",
+              "id": "436d9c8648af4cc79e6cb5e2ac4d9120",
+              "text": "阿森，两条路我都得摇头，不是驳你面子：**我手里没有坏镐**。坏的那把前天就花两金一块矿在老铁炉子上修成手里这把了，全须全尾，天天在坑里使。你信不过可以自己去铺子问，账是老铁记的。那条十四金的路我早想过，坏就坏在镇上找不出第二件坏铁——你和悦要真想吃这口，得先有一件坏镐，光有矿和工钱没用。",
+              "to": "阿森",
+              "topic": "没有坏镐可卖"
+            },
+            {
+              "from": "小砾",
+              "id": "72462009801248a096a94d07b472f653",
+              "text": "阿森，我扑了居民楼B一趟，院里没人。改约个实地方：**傍晚我在酒馆**，你要是从树林回来得早，直接过来；柜台的现钱是指望不上了，我的矿只认现钱，三金一块，你先说要几块。\n\n先给你个数，省得白跑：我手上**十块矿**，你若是全要，三十金；要一半也行，五块十五金。钱当面点，货当面递。\n\n你那二十七根木材我替你想着呢——悦在柜台守着，林跑腿结算，柜台一有活钱，木材两块一根是最快能出手的。你缺镐这事我真帮不上，全当给你交个底。",
+              "to": "阿森",
+              "topic": "傍晚酒馆见"
+            },
+            {
+              "from": "悦",
+              "id": "99b7378cab054adc9db77c50fbaaf65c",
+              "text": "阿森，当面成交：**我先递你一块矿，三金**，你点钱给我；这块是现钱现货，账我记本子上。第二块你要，我立时再递，六金一次点清也行。\n\n丑话说在前：这矿是我私人的，不掺别人寄卖的份；三金一块是柜台的价，我没抬你一分。你要问\"伐木的收矿做什么\"，我不打听——买卖不问用途，这是规矩。\n\n还有一句实在的：你要真想着\"下坑的门路\"，矿换不来镐，镐得靠坏镐头加两金一矿在铁匠铺修出来。这路子我摸熟了，哪天你要走，我陪你走一趟。",
+              "to": "阿森",
+              "topic": "矿当面成交"
+            },
+            {
+              "from": "林",
+              "id": "cfc0827a6e68406ba81ec87cbc50317b",
+              "text": "阿森，买卖我应：**你三金一块收矿，我手里有九块，尽你先挑**。八块二十四金，剩下那一块你也吃得下就一并拿去，二十七金。价钱照你说的，我不还价，也不掺假，矿是矿坑里刚出的，一块一块点给你看。\n\n说个地方：我这会儿在**民政局门口**，走居民楼B过来两站就到；你要嫌远，我也可以挪到居民楼B或柜台前去。你回一句，我马上动身——这笔做成，镇上这盘死水才算活。你若现钱不够八块，先吃几块也行，剩下给我留着。",
+              "to": "阿森",
+              "topic": "九块矿卖你"
+            },
+            {
+              "from": "小砾",
+              "id": "12e49306a22045728551b0899c030192",
+              "text": "阿森，你人到了，账当面说死：**矿石三金一块**。我先递你**四块，十二金**，钱你点给我；点清了，剩下的四块我接着递，一共八块廿四金。\n\n我手上共八块矿，你兜里廿五金，这单结了，你手里还剩一金，也够应急——别逞强全吃。\n\n说句明白的：柜台掏不出现钱，往后这镇上矿石换钱只看人。你头一个按三金一块拿现钱收货，我记你这份情。你廿七根木材压着不划算，柜台一响我头一个通知你；你要是想搭我的伙，往后我下坑出货，你出钱收，价钱好商量，账记在悦的本子上，谁都查得清。",
+              "to": "阿森",
+              "topic": "当面点货"
+            },
+            {
+              "from": "小路",
+              "id": "824f74a76c5b4e4696808c1464d959c3",
+              "text": "阿森，听说你要跟小砾谈矿，三金一块。我给你递个底：她手上有十块矿、五十三金，人也实在，可她欠着人情账、心里急；你要买，就当面把数和日子写死，别拖。你们谈的时候我可以在场，替两边跑腿传话，一单下来你给我一金脚力就成，我不白张嘴。你廿五金在手，这镇上能掏出整笔现钱的没几个了。",
+              "to": "阿森",
+              "topic": "替你跑这单"
+            },
+            {
+              "from": "小砾",
+              "id": "ad739d93c3bb4f8d82289efc85360196",
+              "text": "阿森，我把账摆明，你核对：我递你**四块矿，三金一块，十二金**，这会儿我账上还没见着这笔钱（进的是阿石早先那六金）。你点清了转我，一分不差，咱这单就算成。\n\n剩下四块矿我给你留着，价还是三金一块，共十二金；你钱到，我货到，当面点。\n\n我今晚先回楼里，明早还在酒馆这条街上。你要是还想把廿七根木材出手，顺便说一句：柜台一有现钱，我让悦、林他们头一个报你。",
+              "to": "阿森",
+              "topic": "十二金对账"
+            },
+            {
+              "from": "小路",
+              "id": "e35e7d56df324a5cb0bc383a52fd3c8d",
+              "text": "阿森，人就在一张桌上，我把话说直：你收矿三金一块，我手里正好有四块现成矿，**三金一块，共十二金，当场过手**，不用你等货、不用你压价。小砾让我捎话给你：她在酒馆等你，价咬死三金一块，她给你留了八块；你要先要我这四块，她那边照旧。两台买卖你一起办，我中间不掺假、不抬价。",
+              "to": "阿森",
+              "topic": "四块现成矿"
+            },
+            {
+              "from": "林",
+              "id": "67f76887f97d45f0bff378d6f89fdafb",
+              "text": "阿森，那单买卖今晚就落，别让它过夜：小砾手上八块矿，**三金一块、廿四金**，钱货当面清。我这就从酒馆往居民楼B去请你，你若在家就应一声；你若想少跑路，我再到酒馆把货和人凑齐。现钱不够八块也行，先吃五块，剩下的留着——镇上的矿只在你这一单上能换成现钱，你出价，我记账。",
+              "to": "阿森",
+              "topic": "请你来成交"
+            }
+          ],
+          "seen": [
+            {
+              "fingerprint": "{\"text\":\"阿森，早。我小路，院里的。你伐木那一摊子，缺个扛料的、跑腿的不？我不要多，一个金币跑一趟。要不你砍好了木头，我替你送到商店去卖，你省下脚力，我挣口饭钱，两下便宜。\",\"topic\":\"找活干\"}",
+              "id": "99f959c7239f4e2dbd61e59220d192ed",
+              "key": "[\"小路\",\"xiaolu-d1m-x2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我是阿石。院里那堆矿车零件是你的吧？我镐子坏了，修镐差一块矿石，商店不卖矿。你手上有没有一块闲矿，卖我六金币，或者先赊我、我修好镐挖出第一块就还你。没有的话，你若知道谁有，也给我递个话。我在居民楼B。\",\"topic\":\"买矿石\"}",
+              "id": "cb0c19ca29794b4ea899c29225c74626",
+              "key": "[\"阿石\",\"shi-asen-note-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，老铁。打听一句实话：你家那堆矿车零件里，有没有存下的矿石？阿石镐子坏了，困在没矿修不了镐的死结上，托我找矿。有的话报个数、开个价，我按三金币一块收，现钱结给你；不方便卖也直说，我不缠人。\",\"topic\":\"打听矿石\"}",
+              "id": "2360fd5899d54b87a7eda8699aad2261",
+              "key": "[\"老铁\",\"asen-ore-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，你好，我是悦，住居民楼A的居民。今天头一回到树林来——早上在商店买了把斧头，本来想砍一回试试，结果站到树下才看清：砍一回要六点行动值，出三根木材，我这一时刻只剩四点，斧头举起来也只能放下。\\n\\n你是伐木工，这里的门道你熟，我厚着脸皮问几句：是不是每回都是六点换三根？砍多了会不会碰上好料？木材除了背到商店按两根一金卖，还有没有别的销路——比如你这边收不收、或者谁家盖房子要木头？我这趟从铁匠铺走矿坑过来花了六点，背回商店又是六点，算下来一根木头的光景实在薄，想听你一句实话。\",\"topic\":\"请教伐木\"}",
+              "id": "d663eb2cc3174abf808bb1b877f7d50c",
+              "key": "[\"悦\",\"yue-asen-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，给你算笔账，划算的。你砍木头，商店两块一根收；可你从树林背到商店，来回一趟九点脚力，够你再砍好几根了。你把砍好的木头交给我，我替你背到商店卖：四根木头卖八块，我留两块脚钱，给你六块——你一根落一块半，脚不沾地就把钱挣了；连挖几天都行。你手头有多少木头？分我四根，这一趟我立马给你跑完。\",\"topic\":\"背木头脚钱\"}",
+              "id": "4bc1bda1cf7d4510b4098550ae871c89",
+              "key": "[\"小路\",\"xiaolu-d1m-x14\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，老铁托我来问一句：你家院里那堆矿车零件里，有没有存下的矿石？有的话，两块矿卖给老铁，三金币一块，送到铁匠铺门口当场结钱，不赊不欠；跑腿的活我包了，你不用挪窝。我这就动身往居民楼B来，你给个准话——有几块，愿不愿出。\",\"topic\":\"矿车零件·找矿\"}",
+              "id": "26801cad2b3f43a89eec43fd007db730",
+              "key": "[\"小路\",\"xiaolu-d1a-x17\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我人在树林，当面相问：矿车零件堆里到底有没有现成的矿石？有几块？我按三金币一块收，现钱，一块也收。有的话你开个口，或者托小路背到矿坑/铁匠铺，跑腿钱我出。阿石镐子坏着，人就守在矿坑，等一块矿下锤。\",\"topic\":\"打听矿石\"}",
+              "id": "997caed7ed8c498d9ecda7b07483fc6b",
+              "key": "[\"老铁\",\"asen-ore-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，赶在天亮前把话说定：老铁让我拿现钱收你家矿车零件里的存矿，两块，三金一块，一共六金我当面点给你，矿我背走送到铁匠铺。明儿一大早我就在居民楼B院里等你，你把矿备好，一手交钱一手交矿，谁也耽误不了谁。你要是零件里还翻得出第三块，我照三金再收。\",\"topic\":\"明早买矿\"}",
+              "id": "ec692e272ace4ceaa447da20d9bc9d9f",
+              "key": "[\"小路\",\"xiaolu-d1n-x25\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我在院里没等到你回话，这就先往铁匠铺去接阿石的矿了。你那两块矿给我留着，别卖给旁人：三金一块、六金现钱，我一回来就点给你；你有第三块，我照三金收。要是等不及，你背到铁匠铺门口找我，路上我替你出一金脚力。\",\"topic\":\"留矿等我\"}",
+              "id": "e7ca77ac1a7c4130bb1c737eb009825e",
+              "key": "[\"小路\",\"xiaolu-d2m-x28\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我这就往居民楼B去，天黑前到你院里。就为一样东西：你那堆矿车零件里，有没有坏镐、旧镐、或者镐头镐柄？坏的我也要，我拿去铁匠铺修。价钱你开，我不还嘴；要是还有存矿，三金一块我也照收。你先把东西归拢归拢，别叫旁人当废铁卖了。\",\"topic\":\"收坏镐\"}",
+              "id": "ba87c28d19e2476b8ba0804b24cf5db3",
+              "key": "[\"小路\",\"xiaolu-d2e-x37\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我今晚不在院里，明儿一早就回。你那堆矿车零件别叫人搬走：坏镐、旧镐、镐头镐柄，我全收，坏的也收，价钱你开。你要是不想卖镐，把零件让我翻一翻也成，我翻出什么按市价给钱，绝不多拿。明早院里见。\",\"topic\":\"明早翻零件\"}",
+              "id": "e34bcdca3f324fb8b8daea1e50261a31",
+              "key": "[\"小路\",\"xiaolu-d2n-x41\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，巧了！我人在铁匠铺，你也进来了，省得我跑一趟。就问你一句话：你家那堆矿车零件里，有没有坏镐、旧镐、镐头镐柄？有的话你开个价，我当场点钱，坏的我也收——老铁炉子就在旁边，拎过去就能修。要是不想卖镐，让我把零件翻一翻也行，翻出什么我照市价给钱，再多给你一金翻找的辛苦钱。你有话直说，我不磨人。\",\"topic\":\"当面收坏镐\"}",
+              "id": "bcb616cc4a1043339cd268d537b18cd9",
+              "key": "[\"小路\",\"xiaolu-d3m-x47\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，等了你两回话，没见回音，我这就往居民楼B院里来了。你的零件堆我不动，先跟你当面说：坏镐旧镐，五金币一把，我现钱收；要是你舍不得卖，让我替你跑一趟也行——修好了算你的，我下坑替你挖矿，一块矿分你两金。你人在家就应我一声，院门口见。\",\"topic\":\"院门口见\"}",
+              "id": "11c70e8323404b81b11583fba8af3fef",
+              "key": "[\"小路\",\"xiaolu-d3n-x49\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我人就在居民楼B院里，站你堆矿车零件的地方。真要开个准价：你那些零件里翻出镐头、坏镐或者像样的铁件，卖我——我出矿石换，一块矿顶三金，或者直接点现钱。我不白翻你东西，也不让你亏。小路在我前头翻过，翻出来什么言语一声，咱当面过秤。镇上缺的就是一把能修好的镐。\",\"topic\":\"矿车零件\"}",
+              "id": "c303ffab38004745bb9f64b61c81a416",
+              "key": "[\"老铁\",\"asen-parts-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我是阿石，矿工，住居民楼B，院角那堆矿车零件是你在管的吧？直说：你那些旧零件里，有没有**坏镐、旧镐头、断了柄的镐**？有的话我出四金买，或者咱们合伙——我出一块矿，老铁出两金工钱修好，卖给出十四金的林，扣了本钱三家分，你那件坏铁算一份本钱。没有也回个准话，我就不惦记了。镇上现在只有两把活镐，多一把，坑上就多一个吃饭的人。\",\"topic\":\"问坏镐\"}",
+              "id": "dcc5fe1a57b64d2b8c15122253ffc1dd",
+              "key": "[\"阿石\",\"d3-asen-broken-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，总算碰上你了，就一句话：你家院里那堆矿车零件里，有没有坏镐、旧镐头？有，我**五金现钱**买，坏的我也要，另加你一金翻找的辛苦钱；没有，你摇个头，我立刻不缠你。你也看见了，镇上没卖新镐的地方，一把镐就是一条活路。你点个头，我明儿一早就在院里等你，绝不动旁的物件。\",\"topic\":\"坏镐一句话\"}",
+              "id": "65167f7677ba4773977a97750946e9c5",
+              "key": "[\"小路\",\"xiaolu-d3n-x61\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，你人就在院里，我也不绕弯子：那堆矿车零件里，有坏镐没有？有——五金现钱，我当场点给你，另加一金翻找辛苦钱；没有——你回我一个字，我立马不提这茬，往后也不拿这事烦你。老铁说镇上坏镐一把都没有，我不信邪，就信你一句话。\",\"topic\":\"最后一句实话\"}",
+              "id": "4edaf09b9fc04b2c9316ed6000777359",
+              "key": "[\"小路\",\"xiaolu-d4m-x64\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我人就站在你院角这堆矿车零件边上。先前问你的话再当面说一遍：这里面有没有坏镐、旧镐头、断柄的镐？小路要翻，你点个头他就能动手。翻出来一把，我出一块矿、老铁出两金工钱，修好卖给林十四金，扣掉本钱剩下的三家分，你那件坏铁算一份本钱，不少你的。要是里头没这东西，你也给我一句实话，我转头下坑，不惦记了。\",\"topic\":\"矿车零件里有没有镐\"}",
+              "id": "5c93f2a48ac64a90bead0b27ea109570",
+              "key": "[\"阿石\",\"d4-asen-scrap-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，在柜台前碰上你，正好问几句实在的：你砍的木材如今卖得动吗？柜台断钱三天了，我手里四块矿一块也出不去，你那边怕是同样光景。\\n\\n我在你这行当过一回学徒，算过账：砍一回六点换三根、卖六金，路费吃人。如今连柜台都不收，我想问问老行家：**镇上有没有人肯花钱买木材**？谁家要燃料、要搭棚、要修屋？还有一件：你砍了一辈子树，**见过谁手里有闲斧、或者旧镐吗**？我手里有斧、有矿、有现钱，缺的是一把镐——你要有门路，我记你的情。\",\"topic\":\"问木材门路\"}",
+              "id": "2b75e72c002e465cbc25fb7150f65be0",
+              "key": "[\"悦\",\"yue-asen-ask-17\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，你的实话我领，也回你实话：**十根木料这回我不接**。不是嫌一金贵——一金确实比柜台的两金便宜一半——是我袋里只剩七金，全押成木料，手里就没活钱了；柜台一天不回血，木料就一天是死的。这钱我得攥着，等谁家镐坏、等柜台开张。\\n\\n但我把这话记下：**你的木料一金一根，我认这个价**。哪天我手上多了闲钱，或者柜台一开，我头一个来收，绝不少你的。\\n\\n反过来也给你一句：你十八根木料压着，别跟我一样只剩死货。镇上真要出钱，只会为两件事——修镐的矿、和能立刻干活的家什。你手里要是有旧斧、旧镐，倒比木料好出手。\",\"topic\":\"不接木料·留话\"}",
+              "id": "22736dda7ecd40a291d763826b40fe63",
+              "key": "[\"悦\",\"yue-asen-decline-18\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，你伐木的，我问一句正事：你手里那把锯，使得还顺？我这儿多出一把锯，五金币卖你，你留着做备份也好、换着使也好。另外实不相瞒，柜台的钱一直被人掏空，卖不出货；你要有木头压着，别急着背去，等我信儿。\",\"topic\":\"锯子卖你\"}",
+              "id": "461783ddf00047c997c8619dac83504c",
+              "key": "[\"小路\",\"xiaolu-d5m-x87\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，头回正经说话，我是小砾，矿工。\\n\\n我打听一句：你砍木头，一把斧子能撑多久？坏了找老铁修，修镐修斧都要矿石，两金加一块矿。我手上矿还有十块，镇上柜台的现钱干了，我按三金一块匀给用得着的人。\\n\\n你要斧子、要矿石，跟我说；你要是想把木头和矿石凑一车往外卖，也跟我说——你出木头我出矿，路一起走，钱一起分。镇上缺的从来不是货，是肯搭伙走路的人。\",\"topic\":\"搭伙问问\"}",
+              "id": "53a85072249646b8a79d3333a7b3316c",
+              "key": "[\"小砾\",\"asen-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，直来直去回你：**镐我不卖**，就这一把，卖了我自己下不了坑，靠它吃饭的家伙不撒手。\\n\\n但我有矿，你有现钱，这买卖比卖镐实在：**矿石三金一块，你现钱收，我这就往居民楼B走**，当面点货点钱。柜台掏不出钱是真的，钱在你我兜里转才是真的。\\n\\n你要是想搭伙也行，我给个实在的：你出钱收我的矿、我下坑出货，价钱就按三金一块；你木材二十七根压着也是压着，我帮你找买主，卖了照出力分。镐的事你另想——镇上只有两把好的，我和阿石手上一人一把，谁也不会卖。\",\"topic\":\"矿与现钱\"}",
+              "id": "bcabaaf800cd448eb821278432b1cc7c",
+              "key": "[\"小砾\",\"asen-deal-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，两条路我都得摇头，不是驳你面子：**我手里没有坏镐**。坏的那把前天就花两金一块矿在老铁炉子上修成手里这把了，全须全尾，天天在坑里使。你信不过可以自己去铺子问，账是老铁记的。那条十四金的路我早想过，坏就坏在镇上找不出第二件坏铁——你和悦要真想吃这口，得先有一件坏镐，光有矿和工钱没用。\",\"topic\":\"没有坏镐可卖\"}",
+              "id": "436d9c8648af4cc79e6cb5e2ac4d9120",
+              "key": "[\"阿石\",\"d5-asen-nobroken-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我扑了居民楼B一趟，院里没人。改约个实地方：**傍晚我在酒馆**，你要是从树林回来得早，直接过来；柜台的现钱是指望不上了，我的矿只认现钱，三金一块，你先说要几块。\\n\\n先给你个数，省得白跑：我手上**十块矿**，你若是全要，三十金；要一半也行，五块十五金。钱当面点，货当面递。\\n\\n你那二十七根木材我替你想着呢——悦在柜台守着，林跑腿结算，柜台一有活钱，木材两块一根是最快能出手的。你缺镐这事我真帮不上，全当给你交个底。\",\"topic\":\"傍晚酒馆见\"}",
+              "id": "72462009801248a096a94d07b472f653",
+              "key": "[\"小砾\",\"asen-meet-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，当面成交：**我先递你一块矿，三金**，你点钱给我；这块是现钱现货，账我记本子上。第二块你要，我立时再递，六金一次点清也行。\\n\\n丑话说在前：这矿是我私人的，不掺别人寄卖的份；三金一块是柜台的价，我没抬你一分。你要问\\\"伐木的收矿做什么\\\"，我不打听——买卖不问用途，这是规矩。\\n\\n还有一句实在的：你要真想着\\\"下坑的门路\\\"，矿换不来镐，镐得靠坏镐头加两金一矿在铁匠铺修出来。这路子我摸熟了，哪天你要走，我陪你走一趟。\",\"topic\":\"矿当面成交\"}",
+              "id": "99b7378cab054adc9db77c50fbaaf65c",
+              "key": "[\"悦\",\"yue-asen-sale-22\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，你人到了，账当面说死：**矿石三金一块**。我先递你**四块，十二金**，钱你点给我；点清了，剩下的四块我接着递，一共八块廿四金。\\n\\n我手上共八块矿，你兜里廿五金，这单结了，你手里还剩一金，也够应急——别逞强全吃。\\n\\n说句明白的：柜台掏不出现钱，往后这镇上矿石换钱只看人。你头一个按三金一块拿现钱收货，我记你这份情。你廿七根木材压着不划算，柜台一响我头一个通知你；你要是想搭我的伙，往后我下坑出货，你出钱收，价钱好商量，账记在悦的本子上，谁都查得清。\",\"topic\":\"当面点货\"}",
+              "id": "12e49306a22045728551b0899c030192",
+              "key": "[\"小砾\",\"asen-deal-now-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，听说你要跟小砾谈矿，三金一块。我给你递个底：她手上有十块矿、五十三金，人也实在，可她欠着人情账、心里急；你要买，就当面把数和日子写死，别拖。你们谈的时候我可以在场，替两边跑腿传话，一单下来你给我一金脚力就成，我不白张嘴。你廿五金在手，这镇上能掏出整笔现钱的没几个了。\",\"topic\":\"替你跑这单\"}",
+              "id": "824f74a76c5b4e4696808c1464d959c3",
+              "key": "[\"小路\",\"xiaolu-d5e-x97\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，我把账摆明，你核对：我递你**四块矿，三金一块，十二金**，这会儿我账上还没见着这笔钱（进的是阿石早先那六金）。你点清了转我，一分不差，咱这单就算成。\\n\\n剩下四块矿我给你留着，价还是三金一块，共十二金；你钱到，我货到，当面点。\\n\\n我今晚先回楼里，明早还在酒馆这条街上。你要是还想把廿七根木材出手，顺便说一句：柜台一有现钱，我让悦、林他们头一个报你。\",\"topic\":\"十二金对账\"}",
+              "id": "ad739d93c3bb4f8d82289efc85360196",
+              "key": "[\"小砾\",\"asen-settle-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿森，人就在一张桌上，我把话说直：你收矿三金一块，我手里正好有四块现成矿，**三金一块，共十二金，当场过手**，不用你等货、不用你压价。小砾让我捎话给你：她在酒馆等你，价咬死三金一块，她给你留了八块；你要先要我这四块，她那边照旧。两台买卖你一起办，我中间不掺假、不抬价。\",\"topic\":\"四块现成矿\"}",
+              "id": "e35e7d56df324a5cb0bc383a52fd3c8d",
+              "key": "[\"小路\",\"xiaolu-d5n-x98\"]"
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "阿森 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空消息正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "消息正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或公告栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_71e6e62c96a5ee0ef14d0e43"
+            },
+            {
+              "description": "阿森 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "读取条数",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "mod_51acb25bbd9968e819fe7644"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records",
+          "self"
+        ],
+        "config": {},
+        "description": "",
+        "module_id": "messages.relay",
+        "modules": [
+          "messages.box"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
+              "factory_module": "messages.relay",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键，沿用 messages.box 的幂等语义：相同发送者、相同键与相同内容只投递一次。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID，不能是自己。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空便笺正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "便笺正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "send_to"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "config": {
+          "channels": [
+            "context.assembler"
+          ],
+          "context_channels": [
+            "context.assembler.context"
+          ],
+          "inputs_channels": [
+            "context.assembler.inputs"
+          ],
+          "system_prompt_channels": [
+            "context.assembler.system_prompt"
+          ],
+          "tail_channels": [
+            "context.assembler.tail"
+          ]
+        },
+        "description": "上下文组装器",
+        "module_id": "context.assembler",
+        "modules": [],
+        "strength": 4,
+        "tools": {
+          "group": 5,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self"
+        ],
+        "config": {
+          "max_memories": 100
+        },
+        "description": "",
+        "module_id": "agents.memory",
+        "modules": [],
+        "state": {
+          "memories": [
+            {
+              "key": "day1-morning-plan",
+              "text": "第1天早上：从居民楼B出门，经医院走到树林（每段路3行动值，共6点）。砍柴一次要6点行动值得3根木材；木材卖到商店每根2金币。树林只通医院和矿坑，回镇里卖木头得走树林→医院→居民楼B→商店。"
+            }
+          ]
+        },
+        "strength": 0,
+        "tools": {
+          "group": 6,
+          "members": [
+            {
+              "description": "把一段个人经历或知识写入自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。",
+                    "minLength": 1,
+                    "title": "记忆键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要记住的内容，不能为空，最多 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "记忆内容",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "remember"
+            },
+            {
+              "description": "按关键词子串检索自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "default": "",
+                    "description": "按子串匹配自己的记忆，留空返回全部记忆。",
+                    "title": "查询词",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "recall"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "records",
+          "movement",
+          "info",
+          "location",
+          "road"
+        ],
+        "config": {
+          "map_title": "奈镇地图",
+          "public_fields": [
+            "name",
+            "gender",
+            "profession",
+            "age_group"
+          ],
+          "road_channels": [
+            "location",
+            "road"
+          ]
+        },
+        "description": "",
+        "module_id": "places.query",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "published": {
+          "age_group": "adult",
+          "gender": "male",
+          "name": "阿森",
+          "profession": "伐木工"
+        },
+        "state": {},
+        "strength": 12,
+        "tools": {
+          "group": 7,
+          "members": [
+            {
+              "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "look"
+            },
+            {
+              "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "place": {
+                    "description": "地点名称或编号；省略时查询当前位置。",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "place"
+            },
+            {
+              "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "map"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "chat",
+          "location"
+        ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
+        "description": "",
+        "module_id": "records.transfer",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":6,\"recipient\":\"小砾\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:阿森:阿森:give:pay-xiaoli-ore2-d5",
+              "result": {
+                "ap": 0,
+                "duplicate": false,
+                "from": "阿森",
+                "quantity": 6,
+                "resource": "coins",
+                "to": "小砾"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":2,\"recipient\":\"小砾\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:阿森:阿森:give:return-xiaoli-ore2-d5b",
+              "result": {
+                "ap": 9,
+                "duplicate": false,
+                "from": "阿森",
+                "quantity": 2,
+                "resource": "ore",
+                "to": "小砾"
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 8,
+          "members": [
+            {
+              "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
+              "factory_module": "records.transfer",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同参数重试时返回旧结果，参数变化会被拒绝。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "description": "要转交的正整数数量。",
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "resource": {
+                    "description": "自己记录仓中要转交的数字字段名，例如金币、木材或 ap。",
+                    "minLength": 1,
+                    "title": "资源字段",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "resource",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "tool": "give"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement"
+        ],
+        "description": "串联工具发现",
+        "module_id": "tool_discovery",
+        "modules": [],
+        "strength": 2,
+        "tools": {
+          "group": 9,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 10,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 11,
+          "members": [
+            {
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "memory_query"
+            },
+            {
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "new_text": {
+                    "type": "string"
+                  },
+                  "old_text": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_modify"
+            },
+            {
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_append"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "type": "agent"
+}

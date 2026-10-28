@@ -8,7 +8,7 @@ import {startEditorServer} from '../../../adapt/harness/framework/editor-server.
 const product=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../..');
 test('loopback editor requires credentials, checks origin and dispatches only explicit host operations',async()=>{
  const root=path.join(product,'build/editor-http-tests');await fs.mkdir(root,{recursive:true});const directory=await fs.mkdtemp(path.join(root,'run-'));
- const server=await startEditorServer({web:path.join(product,'extensions/editor/capabilities/network_editor/web'),directory,
+ const server=await startEditorServer({web:path.join(product,'build/network-editor'),directory,
   request:async(operation,params)=>({operation,params}),chat:async()=>({chat:true}),recover:async()=>({recovered:true})});
  try{
   const base='http://'+server.authority,token=new URLSearchParams(new URL(server.url).hash.slice(1)).get('token');
@@ -36,7 +36,7 @@ test('module pages have a scoped capability URL, injected bridge and opaque sand
  const root=path.join(product,'build/editor-http-tests');await fs.mkdir(root,{recursive:true});
  const directory=await fs.mkdtemp(path.join(root,'frontend-'));
  let page={module:'example.counter',title:'计数配置',height:320,html:'<!doctype html><html><head></head><body>组件页面</body></html>'};
- const server=await startEditorServer({web:path.join(product,'extensions/editor/capabilities/network_editor/web'),directory,
+ const server=await startEditorServer({web:path.join(product,'build/network-editor'),directory,
   request:async()=>page,chat:async()=>{},recover:async()=>{}});
  try{
   const base='http://'+server.authority,token=new URLSearchParams(new URL(server.url).hash.slice(1)).get('token');

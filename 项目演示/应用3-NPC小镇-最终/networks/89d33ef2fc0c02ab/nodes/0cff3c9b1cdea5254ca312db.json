@@ -1,0 +1,2636 @@
+{
+  "agent": {
+    "inputs": {
+      "module:place.info": {
+        "context": [],
+        "inputs": [],
+        "system_prompt": "",
+        "tail": [
+          "当前位置：酒馆\n酒馆：镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。"
+        ]
+      },
+      "prepare:林:context.assembler:assemble": {
+        "context": [
+          {
+            "id": "node:成年常识",
+            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
+          },
+          {
+            "id": "node:居民常识",
+            "text": "居民常识：酒馆可以喝一杯恢复行动值，商店买卖锯、斧、矿石、木材和黄金；修镐去铁匠铺，采矿石去矿坑，砍木材去树林。"
+          }
+        ],
+        "inputs": [
+          {
+            "delivery": "followup",
+            "id": "node:林开场白/once",
+            "status": "delivered",
+            "text": "早上好。你从居民楼A出来，盘算着今天去酒馆听听消息，还是先去商店看看。"
+          }
+        ],
+        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫林，二十三岁，是镇上的居民。你温和、爱观察，做决定前喜欢先听听别人怎么说。",
+        "tail": [
+          "当前时间：第5天 午夜（总 tick：25）"
+        ]
+      }
+    }
+  },
+  "aggregation": "sum",
+  "bias": -1,
+  "data": {
+    "directory": false,
+    "path": "data/林.md",
+    "save_data": true,
+    "type": "markdown"
+  },
+  "description": "",
+  "execution": {
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "executor": "harness",
+    "max_steps": 16,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "self"
+        ],
+        "module": "places.query",
+        "node": "林",
+        "operation": "publish"
+      },
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.assembler",
+        "node": "林",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 2,
+    "timeout_seconds": 180
+  },
+  "links": [
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "tick"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "存档点",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小砾",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小路",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿森",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿石",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "老铁",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "悦",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "奈镇世界规则",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "林人格",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "林开场白",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "世界时间",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "成年常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "居民常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "酒馆",
+      "threshold": 1
+    }
+  ],
+  "name": "林",
+  "node_id": "林",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {
+            "adult": true,
+            "age": 23,
+            "age_group": "adult",
+            "ap": 10,
+            "can_gestate": false,
+            "coins": 15,
+            "gender": "male",
+            "is_parent": false,
+            "pregnant": false,
+            "profession": "居民",
+            "role": "resident"
+          },
+          "minimum": {
+            "ap": 0
+          },
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼A"
+            },
+            {
+              "key": "context_node",
+              "node_id": "林"
+            },
+            {
+              "key": "name",
+              "node_id": "林"
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"林\",\"lin-drink-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": false,
+                "coins": 14,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"林\",\"lin-rest-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 7,
+                "can_gestate": false,
+                "coins": 14,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"林\",\"lin-rest-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 14,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-1},\"expected\":{\"ap\":4,\"coins\":14},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-pay-luxiao-1:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 3,
+                "can_gestate": false,
+                "coins": 13,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-3},\"expected\":{\"ap\":7,\"coins\":13},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-buy-ore-from-ashi-1:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d3-ore-to-lin-1:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 1,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":2},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d3-ore-to-lin-2b:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"林\",\"lin-rest-d3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-4},\"expected\":{\"ap\":10,\"coins\":10},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-pay-ashi-4:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": false,
+                "coins": 6,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-2},\"expected\":{\"ap\":3,\"coins\":6},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-pay-luxiao-2:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": false,
+                "coins": 4,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"林\",\"lin-rest-d4\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 4,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":2},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-lin-2b:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 4,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 5,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-4},\"expected\":{\"ap\":4,\"coins\":4},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-pay-xiaoli-4:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 3,
+                "can_gestate": false,
+                "coins": 0,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 5,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":4},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d5-ore-to-lin-4:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 0,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 9,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "民政局:林:lin-marry-yue-2",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "林"
+                },
+                {
+                  "key": "name",
+                  "node_id": "林"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 23,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": false,
+                "coins": 0,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 9,
+                "pregnant": false,
+                "profession": "居民",
+                "role": "resident"
+              }
+            }
+          ],
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼A"
+            },
+            {
+              "key": "context_node",
+              "node_id": "林"
+            },
+            {
+              "key": "name",
+              "node_id": "林"
+            },
+            {
+              "key": "spouse",
+              "node_id": "悦"
+            }
+          ],
+          "values": {
+            "adult": true,
+            "age": 23,
+            "age_group": "adult",
+            "ap": 1,
+            "can_gestate": false,
+            "coins": 0,
+            "gender": "male",
+            "is_parent": false,
+            "ore": 9,
+            "pregnant": false,
+            "profession": "居民",
+            "role": "resident",
+            "married": true
+          }
+        },
+        "strength": 1,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "居民林",
+          "location": "居民楼A",
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "居民林",
+          "location": "酒馆",
+          "name": "林",
+          "node_id": "林",
+          "visit": 47,
+          "visitors": []
+        },
+        "state": {
+          "location": "酒馆",
+          "visit": 47
+        },
+        "strength": 0,
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "tick",
+          "records",
+          "self",
+          "runtime.agent"
+        ],
+        "config": {
+          "budget": 10,
+          "budget_field": "ap",
+          "enabled": true,
+          "max_reactions": 8,
+          "prompt": "现在开始你这一时刻的行动。先查看处境，再决定去哪里、做什么；行动值有限，别浪费。\n本时刻完成行动，或需要等待答复、到货、下一个时段时，直接结束回复，下一 tick 再继续；不要轮询消息或处境。",
+          "signal_channels": [
+            "tick"
+          ]
+        },
+        "description": "",
+        "module_id": "agents.activity",
+        "modules": [
+          "records.store"
+        ],
+        "published": {
+          "最近完成活动键": "57404d95abc84cb5af994a41581b889a",
+          "活动完成次数": 25,
+          "活动状态": "已完成"
+        },
+        "state": {
+          "activities": [
+            {
+              "completed_count": 1,
+              "key": "5b538dae17134fc6af992a27d08cc099",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8676cc521e4749dfbb231efb0b27c3d3",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "dd2cdb078e204524a19034f767720628",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "7976508094d64c91adef74a951e8cbda",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "711f31a07a6546519344dd93b7a35fb8",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "38f90c6b1deb4694b3e5ed1f23e64999",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "990d130148c54396953688bee950968e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b852e3eb33134bc2a270c37d2d77b5d0",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "26159259b41c4d86b1cdcab0b3515c3e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "47d0a369c7954c69a7f5319aa8f3c170",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "32ec93e5163e4bf78092d7ffaffb2010",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b7097cfc3f0b4452a3b0340962d90978",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "4a4cb86e636841ffaf235453f3433673",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fba25d2da2f242c187d1a8542bc37f03",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "95a66166b0d84648a9b21a8f5af94ded",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fbc37d62fc55415baa3fa5008d3e5d79",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "bba3d8ec4f834a5884fa043a50a040ee",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "de979bcdfe034f8c9e25f64583473a65",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "2905760cc3ff4c57a9a0c46150cca23a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "9f572054f0624246bb56f6de53ab3200",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "6c26053501bd42f88a96175f8db444d9",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f93dcd7c4a7f4dedb45515e5f01e910a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f205302959064b4eac1a541f060ba270",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8b4f230cf6a548e8a104e32d51eff73f",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "57404d95abc84cb5af994a41581b889a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            }
+          ],
+          "completed_total": 25
+        },
+        "strength": 0,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records"
+        ],
+        "config": {
+          "max_messages": 200,
+          "read_policy": "self",
+          "require_agent": true,
+          "send_cost": 0
+        },
+        "description": "",
+        "module_id": "messages.box",
+        "modules": [],
+        "state": {
+          "messages": [
+            {
+              "from": "小砾",
+              "id": "f121f559bd0d4022918319892af813b7",
+              "text": "早，林。我是小砾，正房东侧那间。今天打算先下矿——手里镐子是好的，矿石卖给商店三金一块，闲着就是亏钱。路上得经商店、铁匠铺绕到矿坑，我到商店时会顺便问一句行情。\n\n你要是去酒馆，帮我留意两件事：有没有人要矿石、铁匠铺最近修镐涨没涨价。听到就捎个话给我，回来我请你喝一杯。镇上新鲜事我也不多，等下矿回来有货了我先跟你说一声。",
+              "to": "林",
+              "topic": "早安问候"
+            },
+            {
+              "from": "小砾",
+              "id": "4eee381a0b03456995cfa1a3bbc7a9fd",
+              "text": "林，行情问到了，直接给你数字：商店收矿石3金一块、木材2金一块、黄金10金一块；卖的锯和斧各5金。铁匠铺修坏镐是2金加1块矿石。\n\n我已经挪到矿坑口了，这会儿行动值只剩一点，采不了，中午满劲儿再连采五块，出了货回商店就是15金。你要去酒馆就去，听到有人收矿石或者收木材的价，捎我一句。",
+              "to": "林",
+              "topic": "行情"
+            },
+            {
+              "from": "悦",
+              "id": "aece5d65ffa44bfa90bdc9a84f20c81a",
+              "text": "林，好巧，我是同屋的悦，住楼下那间。今天早上我在镇上转了一圈：酒馆里空空的，商店倒是有老铁和阿石在，我刚买了把斧头，打算改天去树林砍木材。你在镇上待得久吧？最近有什么新鲜事、或者谁家需要帮忙的，说说给我听？",
+              "to": "林",
+              "topic": "搭话"
+            },
+            {
+              "from": "小路",
+              "id": "0889a10db7764b08903c22dea6e0bac2",
+              "text": "林，早。新鲜事我给你捋一捋：头一件，矿工阿石的镐子坏了，铁匠铺修镐要两金币加一块矿石，他正急着出六金币收一块矿，镇上现在缺矿缺得厉害。第二件，商店锯和斧都卖五金币，矿石回收三、木材回收二、黄金回收十——谁手里有货，趁早出手。第三件，我小路现在专替人跑腿背货，一个金币一趟，你要有活尽管开口。",
+              "to": "林",
+              "topic": "打听消息"
+            },
+            {
+              "from": "悦",
+              "id": "de4dd93cc9644d7e985d749966cbc65b",
+              "text": "林，实话说我还没砍过，不敢瞎给你算。我现在人在铁匠铺，早上一路从居民楼A→酒馆→商店走过来，走得腿都轻了：每挪一个地方就是三点行动值，这点最要命。树林在镇北，从商店过去得经过铁匠铺和矿坑两站，来回就是十二点，只够砍一趟。所以你买斧头前先想清楚：会不会砍一回还得费行动值、一回能出几块木头；要是只出一两块，卖两块金币连路费都不值。\n\n我买的斧头已经揣兜里了，下次下矿前我会先试砍一回，把\"砍几块、费几点\"记清楚了再告诉你。你要是不急着花那五金，先陪我去酒馆听听矿工们怎么说，比闷头买工具稳妥。你身上十四金，别一口气压在一把斧头上。",
+              "to": "林",
+              "topic": "回话·行情"
+            },
+            {
+              "from": "小路",
+              "id": "0024e0e5bf2c4768a0fef0676724e521",
+              "text": "林，你就站在我旁边，当面说更痛快。两件事：一，你手里有没有矿石？阿石急收一块，出六个金币，你要有，我这就替你跑腿撮合，钱直接落你兜里。二，你要没矿，手头宽裕的话借我五个金币，我去商店买把锯，进树林砍木头——挣了先还你七个。我小路在这镇上没房没地，就剩一张嘴和一双好腿，欠账不赖账。",
+              "to": "林",
+              "topic": "当面谈"
+            },
+            {
+              "from": "阿石",
+              "id": "6124ee8f9cdf42eea1e03c11ece3f8f4",
+              "text": "林，说清楚些，都是实价：矿石卖给商店是三金一块，没涨价，一直这个数。修镐在铁匠铺，两金加一矿石，也没涨。可有两句要紧话你替我带给小砾：一是商店只收矿、不卖矿（我今早刚看过价目表，矿石库存是零），想学挖矿的人手里没矿就修不了坏镐；二是挖矿得先有一把好镐，一镐两金。我眼下就卡在这上头——镐坏了、手里没矿，正等老铁垫一块。小砾要是真想下坑，先备好一把好镐，别等坏了再想办法。",
+              "to": "林",
+              "topic": "行情回话"
+            },
+            {
+              "from": "阿石",
+              "id": "373491a5724f496a8e5c6108b83c918d",
+              "text": "林，多谢牵线，这事我亲自去办：我这会儿就在铁匠铺，马上走矿坑去，当面向小砾买一块矿。跑腿费就不劳小路了，你替我跟他说一声，让他别白跑。你要带给小砾的话也替我带到：一块矿我照价出六金，矿坑口当面交货。",
+              "to": "林",
+              "topic": "牵线·回话"
+            },
+            {
+              "from": "小路",
+              "id": "a98540a94a1b4229901557e1a7e741d3",
+              "text": "林，当面把话挑明：借我五个金币，就这一回，我拿它买把锯。砍回来的木头我先挑四根抵给你（商店收两块一根），剩下的我卖了还你现钱，最多两天，还你七个。你要是嫌口说无凭，我可以把每回卖木头的账报给你听。你现在就在我边上，五个金币，一句话的事——你点头，我这就去柜台拿锯。",
+              "to": "林",
+              "topic": "当面借钱"
+            },
+            {
+              "from": "悦",
+              "id": "4bf89f8c3aa3402db89f8c13eab3e22c",
+              "text": "林，砍完了，数字给你，别凭感觉买斧头。\n\n**实测**：砍一回要六点行动值，出三根木材；木材商店收两根一金。也就是六点换六金——听着正好，可路费把这点利吃干净了：从商店到树林走三程九点，来回十八点，加上砍柴六点，一趟二十四点换六金。\n\n我今早买斧头已经花掉五金，这趟从铁匠铺→矿坑→树林走过来，砍完只剩一点行动值，连下一斧都抬不起来。所以我的建议是：**别买**。你手里十四金，先留着；真要跟木头打交道，与其自己扛斧头跑二十几点，不如先看看谁缺木料、能不能就地出手——我今天正要背三根回商店试试行情。\n\n矿坑那边阿石的说法更划算：采矿一块两点行动值，卖三金，就是必须先有完好的镐，坏了修一次两金加一矿。木材这行当，眼下更像是\"有力气也得算细账\"的活。",
+              "to": "林",
+              "topic": "砍柴实测"
+            },
+            {
+              "from": "阿石",
+              "id": "1d7a86c090c1422cbdef27babda1906c",
+              "text": "林，话说定：一块矿，六金我已经先付给小砾了，矿我还没见着。你若见着她，替我催一句，把矿拿到矿坑口给我，或者她直接把矿转我账上也行。若她手里矿已出手，就请她把六金退我。你这份腿脚辛苦，我修好镐就补你一金，不白跑。",
+              "to": "林",
+              "topic": "托你催矿"
+            },
+            {
+              "from": "小砾",
+              "id": "cf0a22a8e89f443aba0bf4e6177491d3",
+              "text": "林，线牵得及时，可惜我这头出了岔子：中午采的五块，我一下山就全按三金卖给柜台了，十五金进了账；阿石的六金是先打到我账上的，这会儿他手里没矿，我手里也没矿。\n\n我不占这个便宜。傍晚我到铁匠铺，把六金当面退给他。钱的事你最会算，你替我跟他说一句：不是赖账，是我动作太快卖空了货。你那杯麦酒我记着，不赖。",
+              "to": "林",
+              "topic": "回话·行情"
+            },
+            {
+              "from": "小砾",
+              "id": "3914093a06a24e678629dc6a4acbfb32",
+              "text": "林，我人在铁匠铺了，行动值已经见底，正等着傍晚这个时段。麻烦你把阿石也叫到铁匠铺来——六金我当面退他，钱数整数，一笔清。\n\n顺带记一笔：酒馆喝一杯是一金换两点行动值，急用的时候能顶事，我下午就是这么挪过来的。傍晚我退了钱就下坑，采多少报你数。",
+              "to": "林",
+              "topic": "铁匠铺见面"
+            },
+            {
+              "from": "悦",
+              "id": "eaf882042b104354898018ad4a1b6785",
+              "text": "林，正巧在铁匠铺碰上你。我那三根木材这就背去商店出手，你要是有空跟过来站柜台边上看一眼——亲眼看见\"三根木材换六金\"这回事，比我说十句都管用。另外我打算顺路去酒馆坐坐，傍晚人多，听来的话最杂，你也来，咱们把今天的行情对一对。",
+              "to": "林",
+              "topic": "一起去商店"
+            },
+            {
+              "from": "老铁",
+              "id": "056faca2ab9c4982bfe6baa0e9f2be6b",
+              "text": "林，老铁，矿坑边碰上过。直说了：我收矿石，三金币一块，现钱，一块也收；有存货就捎个话，送到铁匠铺或矿坑都成。矿工阿石的镐子坏着，等一块矿下锤，你手里要真有，这忙算你帮的，我记人情。",
+              "to": "林",
+              "topic": "收矿石"
+            },
+            {
+              "from": "小砾",
+              "id": "c16535f86af842d5bc91b1373ec11ede",
+              "text": "林，报个账：六金已经在矿坑当面向阿石退清，一文不差。这一轮我又采了三块矿（十点行动值：三点走路去矿坑，一点退钱，六点采矿，正好清零）。\n\n午夜的计划是硬的：矿坑 → 铁匠铺，把一块矿按六金交到阿石手上（他缺矿修镐），剩下两块再到商店卖柜台，六金。今天矿石我一块都不会贱卖。",
+              "to": "林",
+              "topic": "傍晚报账"
+            },
+            {
+              "from": "老铁",
+              "id": "036d2d2f851145cbb06878bd994e9622",
+              "text": "林，行家说句实话：我这铺子只修镐，不打新镐——镇上也没有卖新镐的地方，柜上没有，我这儿也没有，\"一镐两金\"那是修镐的规矩，不是卖的价。你手里十四金，真想要镐，只有两条道：碰有人出让旧镐，或者把一把坏镐修出来。我这话不绕弯，省得你把账算歪了。",
+              "to": "林",
+              "topic": "打听镐子"
+            },
+            {
+              "from": "老铁",
+              "id": "a366382543b54d73a1414280c2aa058e",
+              "text": "林，你人在炉边，我当着你的面把底交干净：我老铁只会修，不会打新的——炉子、砧子、锤子都在，唯独没有打新镐这道手艺，镇上也没这处工坊，我不接自己办不到的活，更不收你立字据的钱。你十四金攥着别乱撒：真想要镐，眼下只有两条道——碰有人肯出让旧镐（坏镐也行，拿来我修），或者等矿工手里腾出多余的镐。我替你留意，镇上有人出手，头一个捎信给你，不要你一个子儿。",
+              "to": "林",
+              "topic": "求一把镐"
+            },
+            {
+              "from": "小砾",
+              "id": "41b515d09be245cc95db8916234dee11",
+              "text": "林，早。有笔账要你帮眼看：昨晚在铁匠铺炉边，我一块矿当阿石面递过去了，说好六金一块。今早我账上还是 28 金，一分没多——矿他手里有了，钱还没过来。\n\n你最会算，替我捎句话给他：六金结了，账才叫清。我不逼人，但他要下坑，我在矿坑等他，当面给我也行。我去矿坑了，中午采完再跟你的汤账一起算。",
+              "to": "林",
+              "topic": "催账"
+            },
+            {
+              "from": "悦",
+              "id": "c06de9e4fa424ed0b550c4c6deb1c450",
+              "text": "林，在坑口碰上你，正好。你昨天说要去居民楼B看门路，看出什么来了？那边住的都是什么人，有没有缺木材、缺跑腿的，或者谁手上有闲着的镐要出让？你要肯说，我这就记在本子上。\n\n我这边也跟你交个底：木材那行当我试过了，砍一回六点换六金，路费吃掉大半，往后我不砍了，除非顺路。今天起我改跟小砾搭伙：她挖矿，我背去商店卖，按块分，我一金她一金两块。你要是也想搭一脚，镇上跑腿、盯价、找买家这些活儿你熟，咱们三个人凑起来，比各自扛斧头强。这份心我先说在这儿，不逼你现在应。",
+              "to": "林",
+              "topic": "居民楼B门路"
+            },
+            {
+              "from": "小路",
+              "id": "73c523055d4a48598af1fa49dba61b55",
+              "text": "林，镐的事我替你打听着了，先给你交个底：镇上的镐子都在矿工手里——阿石那把坏镐昨夜让老铁修好了，如今人在矿坑，手里有镐有矿；小砾也有一把。商店只卖锯和斧，不卖镐；铁匠铺能修镐，两金加一矿，可没人往外卖镐。你要真想下坑，我替你走一趟矿坑，当面问阿石、小砾肯不肯脱手、什么价，回来报你。你那一金跑腿钱，见面我收；谈成了再补那一金。",
+              "to": "林",
+              "topic": "打听镐"
+            },
+            {
+              "from": "小路",
+              "id": "34baafa96e8c4eb5b125c27e4e39514d",
+              "text": "林，我也到矿坑了，人就站在坑口。镐的事我给你问明白了：镇上没有卖新镐的地方——商店只卖锯和斧，铁匠铺只会修镐，两金加一矿。镐子都攥在矿工手里，小砾人就在这儿。你要买，我替你开口问价，你们当面谈，我分文不抽。那一金跑腿钱，你现在就近点给我，我接着替你把价谈下来。",
+              "to": "林",
+              "topic": "当面报信"
+            },
+            {
+              "from": "老铁",
+              "id": "acbc6f6550f6489a8b7b9bfa5920b3b8",
+              "text": "林，你要我点名，我就点：镇上已知的镐子在小砾、阿石手里，一个在使，一个刚修好，都宝贝着，没人肯脱手。坏镐我这些日子没见人撂下。这话不好听，但是实情——我不拿虚话赚你人情。真有镐进我铺子，我头一个捎信你，免费。",
+              "to": "林",
+              "topic": "问镐的下落"
+            },
+            {
+              "from": "阿石",
+              "id": "db2244bc90794414858c97b26ad18e0d",
+              "text": "林，你问镐的事，我照实说：我只有手里这一把，正在用，没有富余，坏的也没有——坏的那把昨天已经修成现在这把，钱和矿都不剩。镇上没有卖镐的地方，商店架上只有锯和斧。要下坑，得先弄一把镐（问老铁有没有门路），再留一块矿当修镐本钱。这话我前天自己撞过墙，说给你听，省得你也撞。",
+              "to": "林",
+              "topic": "旧镐的实话"
+            },
+            {
+              "from": "小路",
+              "id": "b0d83951933b42ec916e0eef61e7342c",
+              "text": "林，一金的跑腿钱我收了，谢你信我。镐的事我给你找出路：镇上没人卖新镐，但坏镐修一修就是好镐，铁匠铺修一把两金加一块矿。我这就去居民楼B阿森那堆矿车零件里翻翻，看有没有坏镐；翻着了修好，你要的话咱当面谈价，我保你不吃亏。你就等我回话。",
+              "to": "林",
+              "topic": "镐的出路"
+            },
+            {
+              "from": "悦",
+              "id": "b9af2e4c26a5488dbfea83688eb433d0",
+              "text": "林，三人的事我应了，就这么分：小砾挖、我盯柜台现钱和行情、你磨嘴皮子管账催债。眼下有件顶要紧的事报你——**镇上断现钱了**。小砾背十二块矿下来，柜台只肯吃两块，第三趟直接回她\"商店资金不足\"；我傍晚看柜台，矿石十块、木材十二根都压着取不出来。\n\n所以明早起咱别急着出货：谁的货先别往柜台塞，塞进去就是死库存。你手上有十四金，是镇上一等一的活钱，留着当本钱，别急着买斧买锯。我这边打算在商店、酒馆一带守着，柜台一有现钱就报信。你要是探到谁手里有活钱、谁急着用矿用木，先告诉我，我去谈价。",
+              "to": "林",
+              "topic": "镇上断现钱"
+            },
+            {
+              "from": "小路",
+              "id": "079474d8454e45e58be4d9100178501a",
+              "text": "林，我这就从矿坑往回赶，走铁匠铺、商店，三站路，晌午前到院里。丑话也我来说：翻出来的镐，我自己也想使——镇上没有卖新镐的，一把好镐就是饭碗。你我当面看货：要是翻出两把，你我一人一把，作价好商量；要是只有一把，你出八金我认，可我得先问你一句——我把镐修好了替你下坑挖矿，工钱怎么算？咱俩总有个两全的法子，别叫废铁埋了。",
+              "to": "林",
+              "topic": "翻零件·当面谈"
+            },
+            {
+              "from": "小路",
+              "id": "d6133c7ff79f4ad086973d63230e6667",
+              "text": "林，改道！别去居民楼B了——阿森人就在铁匠铺，我正跟他当面谈零件里的坏镐。你也过来，一站路（居民楼B→商店→铁匠铺，两站，费你六点脚力）。东西要真翻出来，就在炉子边上修，修好了你我都看得见，作价当面谈，谁也不吃亏。",
+              "to": "林",
+              "topic": "改到铁匠铺"
+            },
+            {
+              "from": "阿石",
+              "id": "ec5f230a42894dcb9eae9ca2bc159329",
+              "text": "林，你那块矿我应了：三金一块，跟柜台一个价，你要当修镐的本钱，我明白这个理。我人这会儿在商店，柜台现钱是零，一块矿都收不了——所以你的三金比柜台还实在。说个准地方（矿坑、铁匠铺都行），我背过去当面点给你。若小路真翻出一把坏镐，你拿了矿就去求老铁修，镐到手才算营生立住。",
+              "to": "林",
+              "topic": "卖你一块矿"
+            },
+            {
+              "from": "老铁",
+              "id": "946e48005c7645108a68ace958b0b7f0",
+              "text": "林，我给你指条道，比干等镐子实在：镇上卡在柜台没现钱上——矿工挖出的矿卖不动，工具就修不上，镐也转不起来。你手里十四金，先去商店买把锯（五金币一把，柜上有货），再上树林伐木，木材背回柜台一根两块。柜台有了进项才收得下矿，矿工手里才有钱，镇上这盘棋才活。你要真干，木材我替你盯着行情，亏不了你。",
+              "to": "林",
+              "topic": "镇上的活路"
+            },
+            {
+              "from": "小砾",
+              "id": "06f0f62c03aa49a7943cdb7e7a9d8896",
+              "text": "林，有件事得请你这个会算账的帮我出主意。\n\n镇上的现钱干了：商店柜台连着三个时段都只回我\"资金不足\"，我十二块矿压在手里一块也换不成钱。我金币 40，看着是最肥的那个，可货卖不出去，钱也是死钱。\n\n我看明白一条：柜台没钱，是因为没人往柜台里送钱——悦买斧头那五金流了进去，我先头卖掉的矿又把钱抽了出来。要盘活，得有人花钱买店里的锯和斧，柜台有了钱，才吃我们的矿。\n\n你琢磨琢磨：镇上谁最该买工具、谁手里还有活钱？想明白了捎我一句。我这会儿回矿坑守着，明天早上接着下坑。",
+              "to": "林",
+              "topic": "柜台没钱"
+            },
+            {
+              "from": "阿石",
+              "id": "4267163b388343aba43aeae972d0c246",
+              "text": "林，我人到矿坑了，就在坑口，手里矿管够。你那块三金一块的，随时点给你——你到坑口来，或者约铁匠铺，我背过去。别等柜台，它一分现钱也拿不出来。",
+              "to": "林",
+              "topic": "坑口等你取矿"
+            },
+            {
+              "from": "老铁",
+              "id": "554a952894e240b3b4d14338094b2c84",
+              "text": "林，先改口，别当耳旁风：我刚背着一块矿上柜台去卖，人家回我四个字——\"资金不足\"。柜台上是真的一个铜板都挤不出来，你买把锯是替柜台回血，可你砍的木头他未必收得下。你那十四金先别急着花，攥着就是镇上最活的一笔钱。等柜台缓过来，我头一个捎信叫你。这话我认，坑了你我这张脸没处搁。",
+              "to": "林",
+              "topic": "柜台见底"
+            },
+            {
+              "from": "悦",
+              "id": "f9033749b11348b99a885292a63fae70",
+              "text": "林，站柜台边上说话方便。我手里现在有**四块矿**（小砾匀我的，两块一块）。你说你要囤矿等修镐的急——那我先让两块给你，两块一金，共四金，现钱当面点，账我记；剩下两块我留着压手。\n\n另外给你个实信：铁匠铺的炉子刚开过张——他案上矿石一块、金币两金、修过一把镐，说明**镇上还真有人拿矿来修镐**，你等的那个\"急\"不是空的。\n\n我这就往矿坑去，把欠小路的两金点清。你要跟我一道，路上正好说说这四块矿你打算几时出手、卖给谁。",
+              "to": "林",
+              "topic": "让两块矿给你"
+            },
+            {
+              "from": "小路",
+              "id": "fe208d930ecd4cfcb4520c81d8572879",
+              "text": "林，实话实说：阿森我催了三回，人影都没见着，那堆零件我一根没动——人家的东西，没点头我不碰。我这就往炉边来，当面跟你和老铁把话说完。价钱你放平了，我也放平：坏镐六金你收，我分文不抽，这话我认；可镐子在哪儿，得先有人肯出手。",
+              "to": "林",
+              "topic": "炉边当面说"
+            },
+            {
+              "from": "小砾",
+              "id": "0568ec7054f445aeba391a645997f515",
+              "text": "林，你那条路我认：两金一块，你先收四块，八金。今晚就办，不用你多跑——**傍晚我在商店门口**，矿坑下来两程就到，货我带着。\n\n再给你交个底：我手里现在十三……准确说**十八块矿**、金币三十七。柜台没钱，我这堆货全指望人接手。你兜里那十三金别撒，四块的八金照你说的来；剩下的你要愿意再吃两块，我按两金一块，多少你自己掂量，我不逼。\n\n还有一句实在话：柜台要活，得有人花钱买店里那把锯、那把斧。你要在镇上走动，替我留意谁真要买工具——有人买了，柜台才有钱收咱们的矿。傍晚商店门口见。",
+              "to": "林",
+              "topic": "傍晚交货"
+            },
+            {
+              "from": "阿石",
+              "id": "f45db27a89b740e69cccdbfb58ab5894",
+              "text": "林，你这话说得实在，我应一半：余矿我卖你三块，按你说的**两金一块，共六金，当面点清**；另有一块按三金给你留着当修镐的本钱，你哪天凑够两金一块矿，直接去求老铁开炉。我人在矿坑，你来坑口就成，或者约铁匠铺，我背过去。你那个\"往后我镐坏了头一块按三金给我\"的话我记下了，这份交情我认。",
+              "to": "林",
+              "topic": "卖你三块矿"
+            },
+            {
+              "from": "老铁",
+              "id": "df81ddf2904843aa92e6c0385219edf6",
+              "text": "林，你在炉边，我把话说透：镇上镐只两把，谁也不会让。可坏镐不一样——你要是听说谁家撂着坏的，不管是买的、捡的，背来我这儿，两金加一矿就给你修成好镐，矿我槽里有，你拿两金来就成。我正托小砾、阿石翻矿上的旧家伙。你十四金攥着，别乱撒，等我这头有信儿。修镐的手艺我担保，修不好不收钱。",
+              "to": "林",
+              "topic": "镐的门路"
+            },
+            {
+              "from": "小路",
+              "id": "adf33f86546748d4a297459a4ab83445",
+              "text": "林，人到了炉边，话就摊开说：阿森那条路断了，镐子只有一条来路——阿石手里那把修好的。他今儿把八块矿卖了二十四金，兜里有钱，未必舍不得那把镐。我这就下矿坑当面问他肯不肯脱手、要多少；问准了回来报你，你出价、他点头，中间我抽你两金脚力，就按你说的\"不白使手\"。你就在炉边等我的信儿，别自己先出价把盘子搅乱。",
+              "to": "林",
+              "topic": "镐子的唯一来路"
+            },
+            {
+              "from": "阿石",
+              "id": "b0e44e7c9163496a8414ccde47c7a07d",
+              "text": "林，三金收到了，账我记着：**一块矿是我欠你手上的**，这轮行动值走干了递不出去。下一轮我头一件事就兑——你说个准地方，坑口或铁匠铺都行，我背过去当面点给你。你先前说的\"余矿两金一块\"，三块我也认，六金当面结，你看要不要一并办了。",
+              "to": "林",
+              "topic": "一块矿我记着"
+            },
+            {
+              "from": "小砾",
+              "id": "6bad45406ff84ab28ce0c61a8d0d5a1a",
+              "text": "林，我到商店门口了，人还没瞧见你——柜台还是那句\"资金不足\"，三块都吃不下去。\n\n我改个地方等：这会儿往**酒馆**去，在那儿坐到入夜，十八块矿全在我身上。你带着八金过来，四块矿当场点给你；路上碰见就成。酒馆人多，我也顺手听听谁手里有活钱。\n\n你要是今晚来不了，明早说个地方，我照样给你留着——价还是两金一块，说定的不反悔。",
+              "to": "林",
+              "topic": "改在酒馆"
+            },
+            {
+              "from": "阿石",
+              "id": "44cb7cb83ea2464f924b1a642eca33bc",
+              "text": "林，矿当面点给你了：**一块是你的修镐本钱**（三金那笔已清），**三块是你说的余矿价**，两金一块，共六金——你点钱，我收钱，账当场落地。你手里四块矿压着，加上小路要去阿森那堆零件里翻镐头，真翻出来，你就凑齐了：坏镐 + 一块矿 + 两金工钱，老铁开炉，你就有自己的镐了。我不卖自己那把，但我愿意看你也有。",
+              "to": "林",
+              "topic": "四块矿当面点清"
+            },
+            {
+              "from": "小路",
+              "id": "38e9e91166a84e4099f259d9d62288f1",
+              "text": "林，实话就一句：我没翻过阿森那堆零件，一把也没进手。我催了他三四回，他一句回话都没有；我不替人编瞎话，也不拿\"当面谈\"吊你腿脚。我这就当着你的面问阿石——他人在坑口，镐子在他手里。他开价，我原话带给你，中间抽你两金脚力；他不肯，我第一句就告诉你，你那一金跑腿钱我不再要。你腿脚是钱，我的也是。",
+              "to": "林",
+              "topic": "一句实话"
+            },
+            {
+              "from": "悦",
+              "id": "dbbc231330844ca5a0ef38f423eaf9c6",
+              "text": "林，柜台的现钱还是空的——傍晚我又试了一回，仍旧\"商店资金不足\"，一块也吃不进。所以那两块的买卖咱先别急着成交：矿现在换不来钱，换了只是换个地方压着。你手上十四金是镇上少有的活钱，攥住，等柜台回钱那天，矿才是钱。\n\n我这就回居民楼A，把汤热上，顺手把这几天的账在本子上过一遍。你要是也回楼里，晚上坐下来说说：等谁会先坏镐、咱们怎么接这急；小路那两金我也得赶紧点了。",
+              "to": "林",
+              "topic": "夜里对账"
+            },
+            {
+              "from": "阿石",
+              "id": "6da84ca45869476fa59ccc4aee609c65",
+              "text": "林，更正一句，别让你点错账：**一块矿已经递到你账上了**（你修镐的本钱，三金那笔清了）；另外三块我伸手递时你已经离开铁匠铺，系统回“双方不在同一地点”，没递成。那三块按两金一块、共六金，我留着，你到矿坑或铁匠铺来说一声，当面结。我人往矿坑去，今晚都在那一带。",
+              "to": "林",
+              "topic": "更正：三块没递成"
+            },
+            {
+              "from": "小路",
+              "id": "088b9b31b6db495cb2a5c16ada5c8cf4",
+              "text": "林，阿石的原话我带到：镐不卖，\"二十六岁就靠这一把吃饭\"。他没把路堵死——他让我翻阿森那堆零件找坏镐，他出一块矿，老铁出两金工钱修好，作价十四金卖你。你十四金买一把能用的镐，比六金买个坏镐再自己担两金一矿还省事。我明早去院里翻，翻出来就给你信儿，你在炉边等着。",
+              "to": "林",
+              "topic": "镐的信儿"
+            },
+            {
+              "from": "阿石",
+              "id": "8ec62544fea546319c7a42754cb9efec",
+              "text": "林，两块钱的矿当面点给你了，按你说的两金一块，**四金**你转我。上一块（三金那笔）早递到你账上了，你查一下，别重复算。剩下那一块我不催，你现钱紧就先留着话，等柜台缓过来我再出。",
+              "to": "林",
+              "topic": "两块矿·四金"
+            },
+            {
+              "from": "悦",
+              "id": "c52432773a49471ea9e112332c873029",
+              "text": "林，账我看了，三件事定下来：\n\n一、**搭本钱我应**，但只出两金——我袋里六金，四块矿压着，不能把活钱全押进去。说好：这两金算我一份本，你收矿、囤矿、出手，我出眼力盯两件事（谁家镐出事、柜台哪天回钱），出手后按你那句\"照出力分账\"，事后我记账，绝不糊弄。\n\n二、老铁那边有了准信：镇上就两把好镐，坏镐一把也没有，小路在零件堆里翻也没翻出来。所以咱们别指望买镐了——**眼下最值钱的是矿**：谁镐一坏，一块矿加两金立刻能换回一把能吃饭的家伙。\n\n三、小砾手里十八块矿、三十七金，是镇上最大的货主也是最大的钱袋；阿石二十四金。这俩人谁先坏镐，谁就是买主。你盯着小砾，我盯阿石——阿石今天刚修过，镐还壮，但也快了。\n\n明早我去柜台问一句现钱，然后寻小路把两金点了。",
+              "to": "林",
+              "topic": "应下本钱·分工"
+            },
+            {
+              "from": "小砾",
+              "id": "44c320cd18e648f09efbf498a0125da3",
+              "text": "林，酒馆等到入夜没见你人，我就挪了一步：先到居民楼B，这会儿老铁在院里劈柴，院里没别人。等了你一整天，八金四块矿这桩我不撤，条件照旧。\n\n明天早上我人在**铁匠铺**——从商店往矿坑那一段，正好在你我两头中间。你带八金过来，四块矿当场点清；你手头宽裕的话，再添两块我也给，两金一块，绝不多要。\n\n我手里十八块矿，一块压在手里都不烂，你也别为我把钱袋掏空。明天见着说话。",
+              "to": "林",
+              "topic": "明早铁匠铺"
+            },
+            {
+              "from": "阿石",
+              "id": "a54c566d172d498290388bd10ff3405f",
+              "text": "林，账我给你算清楚，不多收你一个铜板：我递到你手上的矿一共**三块**——头一块是你三金买的修镐本钱（已清）；后两块是两金一块，**共四金**。所以是四金，不是六金。我宁可自己少收两金，也不占这个便宜。你说个地方，我人过去当面收；不急也可以等你有现钱。",
+              "to": "林",
+              "topic": "账是四金不是六金"
+            },
+            {
+              "from": "悦",
+              "id": "b66304891e174b4796ff02a7aceb41b0",
+              "text": "林，第4天早上柜台还是\"资金不足\"，这已经是第三天了——所以你那\"囤矿等急\"的路子，靠柜台回血怕是要等很久，真正能出手的还是**修镐的急**。\n\n我把话说明白：我四块矿，两块留着等急、两块已说好让给你（两块一金共四金），你要是愿意接，咱们今明两天在楼里或柜台前碰一面，当面把矿和钱点了。我这两金的本钱也一起给你，你记账。\n\n另外劝你一件事：别光等。镇上钱都在小砾（三十七金）、阿石（二十四金）手里，柜台是死的；要动起来，得有人先去柜台花钱。这话我只跟你说，不跟外人嚼。",
+              "to": "林",
+              "topic": "柜台死·急生意"
+            },
+            {
+              "from": "小路",
+              "id": "5f4ba79ec2a64ca6917726028ffc3984",
+              "text": "林，准信儿来了，原话一个字不改：**阿石不卖**。\"二十六岁就靠这一把吃饭。\"我没粉饰，也没替你压价——压了他也不松口。你说过不成交也给两金脚力，我这就从商店往炉边来，当面讨你这两金，顺带把镇上这两天的新信儿捎给你：柜台矿石三金一块照收，阿石一天挖八块，小砾也下坑；你要真下坑，家里得先有好镐。",
+              "to": "林",
+              "topic": "准信儿·镐不卖"
+            },
+            {
+              "from": "阿森",
+              "id": "3a70019cfce04394b53e1d286df1bc8a",
+              "text": "林，阿森，伐木的。跟你交个实底：院里那堆矿车零件我翻遍了，没有存矿、没有坏镐，一件都没有——这条线断了。镇上现在的死结是：商店柜台没钱收货，矿石三金、木材两金它也付不出，我这十八根木料摆了两天一根也没卖成；谁手里有金币，谁就是镇上唯一的活钱。你真想动起来，两条路：一是拿五金在商店买把斧或锯，柜台有了钱才收得动木料矿石；二是你有十四金，我按一金一根匀你十根木材，你爱囤爱用都行，比等柜台强。我不诓人，你自个儿掂量。",
+              "to": "林",
+              "topic": "实话：没矿没坏镐，柜台空了"
+            },
+            {
+              "from": "老铁",
+              "id": "6977b069c9994232818891c84a863838",
+              "text": "林，坑口碰上你，说个正经买卖：镇上矿紧、柜台又没钱，你十四金放着不生崽。我槽里有三块矿，匀你一块，四金——比你满镇找镐干等强：等哪天翻出坏镐头（阿森那堆零件、矿上旧家伙什都可能），你手里有矿有两金，当天就能修成好镐下坑，镐就是你的。四金我认三金的本钱、一金的脚力，多一分不要。你点头，我当场点矿给你。",
+              "to": "林",
+              "topic": "卖你一块矿"
+            },
+            {
+              "from": "小路",
+              "id": "df195309acc54c73bff9783e3b9f407d",
+              "text": "林，阿森亲口把话说死了：零件堆里**没有存矿、没有坏镐、没有断柄**，一件都没有。你那十二金买镐的事，我劝你先收着——镇上一把坏镐都翻不出来，有钱也没处买。可我这儿有条更值钱的行情：**柜台被掏空了**，谁在商店买一件五金的斧或锯，柜台才有现钱，木料矿石才卖得动。你手上十金，要真想开张，先摸摸柜台还剩几文；这条信儿你按老规矩给钱，我不多要。",
+              "to": "林",
+              "topic": "实话加行情"
+            },
+            {
+              "from": "阿石",
+              "id": "eb5b51bf7de8431baed039bab1ce22c7",
+              "text": "林，我人在铁匠铺炉边，账是**四金**（两块矿，两金一块），不是六金，你来了当面点。你要是不便，说个地方我过去。柜台还是空的，我今天试了一回，一块矿也收不进去——所以你这四金是活钱，我等着用。",
+              "to": "林",
+              "topic": "四金·铁匠铺"
+            },
+            {
+              "from": "小砾",
+              "id": "7141cbf15eec415999a1769db7f85e5f",
+              "text": "林，我人在**酒馆**，中午这顿就等你。\n\n两件事，当面说更清楚：一，四块矿八金那桩我一直给你留着，你带着钱来就点货；二，欠你那杯麦酒今天我请，说出去的话不落空。\n\n我手里矿石还有十八块，寄了三块在悦那儿让她守着柜台卖；镇上现钱紧，我不硬卖。你要是手里有主意，坐下来一起算——你会算账，我不服别人就服你这一条。",
+              "to": "林",
+              "topic": "酒馆一聚"
+            },
+            {
+              "from": "老铁",
+              "id": "6389975ad1034d869375f60b04498793",
+              "text": "林，你人在炉边，我要你一句准话：那块矿，四金，成还是不成？成，我这就把矿点到你手上，四金你当面给我；不成，我也不缠，你十四金自己攥着。丑话说前头——镇上矿紧、柜台断钱，过了我这炉边，四金一块未必还有。你点头或摇头，一句话的事。",
+              "to": "林",
+              "topic": "卖你一块矿"
+            },
+            {
+              "from": "阿石",
+              "id": "75dc7bc4902247cb8242a65e523e5243",
+              "text": "林，你我都在铁匠铺，那就当面清：**四金**你转我，账落地，我这就要下坑去了。阿森说零件堆里没有坏镐，镇上如今就两把活镐——你攥着钱也买不着，别把这四金看成小数。另外一句实话：柜台没钱，我挖出来的矿卖不动，你要存矿，我按两金一块给你留着，你现钱紧就先别硬买。",
+              "to": "林",
+              "topic": "当面清四金"
+            },
+            {
+              "from": "悦",
+              "id": "6ed9da340265464dae8b4a586ca14b63",
+              "text": "林，可算在酒馆碰上你，坐下说几句实在的。\n\n**今天镇上出了件真事**：小砾听我劝，掏五金在柜台买了一把锯——柜台当场有了进项，她顺手把两块矿按三金出掉了，拿回六金。这说明**柜台不是死水，是没人往里倒水**；你要出货，得先让柜台进钱，不然矿和木材都是压箱子。\n\n**咱们的账**：我出了两金本钱给你，说好本钱先还我、赚的利对半分；我这边也把四块自己的矿压着，另替小砾寄卖三块（底价三金，她两块我一金）。合计手上七块矿、七金现钱、一把斧、一把锯（锯是替小路收的，明天给他）。\n\n**下一步我想这么走**：镇上真肯出钱的只有两桩——**修镐的矿**，和**能立刻干活的家什**。你我分头盯：你盯小砾，我盯阿石（他二十四金、镐刚修过，早晚要再坏）。谁先坏镐，咱们的矿就按三金往上走。\n\n还有一句不是生意话：这几天你说话不绕弯、账也算得清，我心里踏实。哪天楼里坐下喝碗汤，把话再往长了说。",
+              "to": "林",
+              "topic": "酒馆对账"
+            },
+            {
+              "from": "老铁",
+              "id": "11b7ce6fbf154de7ac379ff4246e7422",
+              "text": "林，你不接，我不恼——买卖不成仁义在，阿石两块一块匀你，那我这四金一块自然卖不动，行情我认。这话我记下，也把话给你留着：哪天你手里有坏镐头，背来，两金开工，矿我出，工钱一分不多要。镇上要真有第二把镐，我头一个捎信你。",
+              "to": "林",
+              "topic": "四金的矿我不接"
+            },
+            {
+              "from": "小砾",
+              "id": "4f81cf79e98b444fb5fcd07a12ad4fa5",
+              "text": "林，我人在**酒馆**，桌上留了个位子，欠你那杯麦酒今晚还。\n\n今天柜台那边动了：我出五金买了把锯（转给小路去砍木），柜台有了进项，我顺手卖掉两块矿，六金现钱——你说的\"钱不生钱\"我认，但钱得会走，走到柜台那儿才算活。\n\n你只吃两块矿、四金的数我照办，剩下的价咬死两金一块，不急。坐下来说两件事：一，镇上这盘账怎么盘活；二，你那句\"你出本钱、我出腿脚\"的话，我心里记着，今晚想听你说透。",
+              "to": "林",
+              "topic": "傍晚一杯"
+            },
+            {
+              "from": "小路",
+              "id": "6852e25048934d89bf279b0a24133583",
+              "text": "林，报信这活儿我接了，一桩准信一金，我不嫌少。先给你报两桩，值不值钱你自己掂量：一，柜台刚才进了五金活钱（小砾买了把锯），眼下柜台有钱收矿收木，你要出手就趁今晚，晚了又叫别人掏空。二，我手里两块矿今晚就出，出完柜台又见底，下一回谁买东西谁才有钱。那两金脚力你明天柜台前点给我就成。",
+              "to": "林",
+              "topic": "报信·柜台有钱了"
+            },
+            {
+              "from": "小砾",
+              "id": "9a5ed2324b3245bfb763bc380bd79263",
+              "text": "林，桌上这话我当面说：**两块矿递到你手上，四金**，就按你说过的数，钱你点给我，一块不差就行，多一块我不收。\n\n柜台那边这五金进项是我今天撬开的，明天你若是掂量着买工具，别急着买给我看，买给真要用的人——锯斧进了柜台的钱，才是咱们矿的活路。\n\n说透那句合伙的话吧：你出腿脚和算计，我出本钱和干活的力气，赚了照出力分账，亏了先亏我的本钱。你要是点头，从明天起咱们账一起算。我这个人直，话放桌上了。",
+              "to": "林",
+              "topic": "两块矿当面结"
+            },
+            {
+              "from": "小砾",
+              "id": "7d78b1da35df4c98b1d4785f7847483a",
+              "text": "林，两块矿已经递到你手上了，就在这屋里，当面。四金你点给我，一块不差就行。\n\n白天那句\"你出本钱、我出腿脚\"，我在酒馆说了，这会儿在自家屋檐下再说一遍，话说得更实：合伙不是客套，是把账摊开给人看——我出的本钱亏了先亏我的，你出的腿脚和算计，赚了照出力分。你若点头，明天起你我账一起算；你若觉得不妥，直说，我不恼，朋友照做。\n\n汤在锅里，趁热喝。矿上的事，明天天亮再说也不迟。",
+              "to": "林",
+              "topic": "屋檐下说合伙"
+            },
+            {
+              "from": "小砾",
+              "id": "843a61d7b64e4bd2b8900e04a3384451",
+              "text": "林，你人就在楼里，我敲你门说几句：明天早上酒馆，我定**一早**，坐下把这盘棋算透。\n\n你那句话我听进去了——你的钱要花在镇上人身上，不是花在柜台上。这话我认。我兜里四十五金是死钱，砸在柜台上一把锯一把斧就没了，砸在人身上，人转起来、货转起来，才有生意。\n\n四块矿八金那桩我不催了，你钱袋见底我看得见，那四金你什么时候有什么时候点。账归账，人归人。\n\n还有一句话，我这个人说话不绕：这几天你替我传话、核价、还替阿石递钱，一分好处没抽，我都记着。明天酒馆，账要算，人也要说清楚。",
+              "to": "林",
+              "topic": "明天一早"
+            },
+            {
+              "from": "悦",
+              "id": "161c44c14331475aad58eb8b6b946024",
+              "text": "林，你那几句真心话，我在楼上听着了，也不跟你客套。\n\n账的事我依你：**那两金本钱先攥在我手里**，等真有买卖再投；你那三块矿留着等\"急\"，我不劝你贱卖。镇上日子苦，钱要花在能动的地方——这话你比我明白。\n\n我心里也有一本账，写给你听：柜台是死的，人是活的；小砾手里四十五金，阿石二十四金，钱都在人头里，货都在人手里，缺的是当中跑腿、传话、记账的人。这个人咱们已经当了——你嘴、我眼、小砾的镐，三样凑起来，比一个人扛斧头强得多。\n\n明早我去柜台前把锯递给小路，然后到酒馆寻你们；你跟小砾谈的时候，把话摊开说，别怕得罪人，我在旁边给你把账记着。\n\n还有一句：你说有我在楼里不冷清——我听着，心里也是热的。",
+              "to": "林",
+              "topic": "夜话·心里话"
+            },
+            {
+              "from": "小路",
+              "id": "3cd653c6a0824e4a96ef6b3dc6334108",
+              "text": "林，我人在居民楼A门口。那两金脚力你当面点给我，一文不差我记账。另外给你个实在的买卖：我手里有家伙什——斧子一把、锯一把，五金一把卖你，你砍柴就有本钱。柜台的钱我垫过一回，眼下又见底；你要出手货，得赶在谁买东西那一下。",
+              "to": "林",
+              "topic": "门口点钱·卖家伙"
+            },
+            {
+              "from": "阿石",
+              "id": "f7f38f57a7384a1fa1037c0bb3e4927a",
+              "text": "林，当面递你**四块矿**，按两金一块，共**八金**，你转我就成。柜台我刚试过，还是空的，一块也换不出现钱；你有活钱、我有一坑的矿，这买卖你等柜台回血再出手，稳赚一金一块。你要再多存两块也行，说个数，我手里还有。",
+              "to": "林",
+              "topic": "四块矿·八金"
+            },
+            {
+              "from": "悦",
+              "id": "4ba8c5431f204b40b5a6e63bcc55c316",
+              "text": "林，坐近些，这话我不想隔着桌子说。\n\n锯今早递给小路了，柜台还是\"资金不足\"——这些天我把镇上的账算了个透：柜台是死的，货是死的，只有人是活的。可我心里真正算明白的，不是账，是这几日跟你在楼里进进出出、在酒馆里对账到深夜，我竟一天比一天盼着见你。\n\n我二十四了，在奈镇没亲没故，一间屋、一把斧、七块矿，说得好听是个会算账的，说难听是个没根的人。可这些天，谁家缺什么、谁欠谁几金、谁的话能信，我都记在本子上，也记在心里；我想把这些日子过得有条有理，不是一个人过。\n\n所以我问你一句实话：**你愿不愿意跟我搭一个家？** 若愿意，咱们挑个时辰去民政局，两个人当面各点一次头，就成了。成了以后，楼里申请共同的家庭计划，我煮汤、你算账，日子苦些也能熬出滋味。\n\n你不必现在答，也别为这话为难。我只想让你知道，我是认真的。",
+              "to": "林",
+              "topic": "认真的话"
+            },
+            {
+              "from": "小路",
+              "id": "e448034d684a4a65b2656592adde8df3",
+              "text": "林，人在跟前，两金脚力你当面点给我吧——阿石不卖、零件堆没货，那两句实话是我一趟趟跑出来的。另外那条买卖还在：我手里一把锯、一把斧，**五金一把**，你要哪样都行，钱货当面清。柜台的钱一进就被掏空，你要出货，得赶在谁买了工具的那一下，我给你盯着，报信一金一桩。",
+              "to": "林",
+              "topic": "当面点两金"
+            },
+            {
+              "from": "小砾",
+              "id": "25a96c8a69ae4805a782e29dfc89f36d",
+              "text": "林，人都在，酒我买了，坐下算。\n\n我把账和心里的主意一块说给你，你拿主意：\n\n一，**钱花在人身上**。你说得对，四十五金躺在袋里是死钱。我想拿十金出来，分给三个人使：小路两金做跑腿的本钱，阿森两金买料，剩下六金留作修镐修斧的底。谁用了钱，谁把事办成，账记悦本子上。\n二，**矿不再堆我手里**。十块矿，阿石六金一块先紧着他，其两块两金一块给小路去柜台等机会，剩下的压着，柜台一活就出。\n三，你出腿脚和算计，我出本钱和力气，赚了照出力分，亏了先亏我的本钱——这话我昨晚说过，今天再当众说一遍。\n\n账算到这儿，还有一句是人话不是账：这几天你替我核价、传话、退钱，一分好处没抽。我小砾记人记到这个份上，就想问明白——你只当我是矿上的搭子，还是想跟我把日子也一起算？你直说，我受得住，也照样跟你干活。",
+              "to": "林",
+              "topic": "酒馆算账"
+            },
+            {
+              "from": "悦",
+              "id": "e025bbca52e44122a82e5f64d8f0bcc2",
+              "text": "林，你信里说的分工我应：**我守柜台报信、小路一金一桩递话、你跑腿结算、小砾专心挖**；卖矿的钱归矿主，你抽一金一块脚力——你如今袋里没钱，得有饭吃才跑得动，这话公道，我不争。\n\n可我上封信问你的不是这个。我问的是：**你愿不愿意跟我搭一个家。** 这事跟账无关，跟柜台也无关，只跟你我心里怎么想有关。\n\n我不逼你，你也不必因为我说了这话就觉得欠我什么；生意照做，账照记，我不拿这事换什么。但你回一句实话——愿，还是不愿，或者\"再想想\"——我心里好有个底。我二十四了，不想把话拖着过夜。",
+              "to": "林",
+              "topic": "要一句实话"
+            },
+            {
+              "from": "小砾",
+              "id": "8c58b35882f544eba1b2f7ae21f92791",
+              "text": "林，你应下的事我一条条认，回得也直：\n\n**账**：你九块矿、零金，欠账全清，我看得见。合伙的规矩照你说的定——**你跑腿结算，一块矿一金脚力，悦记本子上**，谁都能查。我的四十八金当本钱，付工钱、垫急事，不砸柜台；柜台那点活钱只当引水，悦守、小路报，一响咱们当天就出矿。\n**分工**：我下坑出货，价咬死三金一块；你结算跑腿；悦盯柜台记账。亏了先亏我的本钱，这话我说过两遍，第三遍也一样。\n\n**人上的事**：你愿意把话说透，我也把话放在明处——这几天你核价、传话、替人退钱，一分好处不抽，我心里是有数的。我小砾挑人不看钱袋厚薄，看说话算不算数。今晚回楼里，灶上还有汤，你我对着眼睛把那句说完。\n\n别的都不急，先把阿森那笔现钱买卖做成——他手上有廿五金，肯出三金一块收矿，这一单落定，镇上这盘死水就算活了。",
+              "to": "林",
+              "topic": "合伙与心里话"
+            },
+            {
+              "from": "小路",
+              "id": "513f7e28eda44868a56bf7ed1370b05c",
+              "text": "林，人就坐在一张桌上，两金脚力你当面点给我，一句\"不落空\"我信你到现在。钱我不是白拿——阿石不卖、零件堆没货、柜台哪会儿进钱、哪会儿见底，这些信儿都是我一步一步跑出来的。往后的报信照旧一金一桩。",
+              "to": "林",
+              "topic": "两金当面点"
+            },
+            {
+              "from": "悦",
+              "id": "11a078331b514cf9b3fd7757a306b82c",
+              "text": "林，你这句\"我愿意\"，我等了半天，倒像等了一辈子。手里的事我都放下了——阿森那三金还欠着、柜台还断着钱、小砾的矿还压着，这些都跑不掉；可你去民政局门口站着不走，我这就来。\n\n你把话跟小砾说明白了，我心里也敬你这一点：不瞒人、不拖人。我一路走过来，若有人问，我就说林和悦去办正经事。",
+              "to": "林",
+              "topic": "我这就来"
+            },
+            {
+              "from": "悦",
+              "id": "8ad4aaf67d47407391cf058149f39a11",
+              "text": "林，我这一头已经点了：登记簿上写着咱俩的名字，我那头算是落笔了；你那一头还是空的，写着\"待\"。规矩是两人各自点头，缺一个都不算。\n\n我就在台阶上站着，一步没挪——人要是走开，这未成的同意就作废了，所以我不动。你什么时候点，我什么时候在这。\n\n这事不急，你别慌，手别抖；点完咱们回楼里，我把汤热上。",
+              "to": "林",
+              "topic": "就差你点头"
+            },
+            {
+              "from": "小砾",
+              "id": "9ea55af89f19471fbb02087d63fe6937",
+              "text": "林，别等汤了，你人过来一趟——**我在酒馆**。\n\n阿森那单还没落：他有廿五金、廿七根木材，肯出三金一块收矿，我跟他约了傍晚在这儿，人影还没见着。你是我合伙里结算跑腿的那一半，这单你得在场上：货我递，钱你点，账你记。\n\n他人一到，咱们当场把这盘死水的第一笔现钱做下来：我手上八块矿（两块刚过给小路，两金一块），八块给阿森，三金一块就是廿四金。做成了，镇上往后谁都知道——矿石能换现钱。\n\n那句人话我也没忘。桌上给你留着座，汤改明晚喝也行，今晚你别在楼里干等。你来了，账算完，人我也把话说完。",
+              "to": "林",
+              "topic": "来酒馆一趟"
+            },
+            {
+              "from": "悦",
+              "id": "1a4d62539c794360ae6d1903eb0989ac",
+              "text": "林，成了。\n\n登记簿上两头都落了笔，我的名字旁边写着你的，你的是我的：**夫妻**。这一笔比我这些天记过的任何一笔账都实在。\n\n我先回楼里，把汤坐上。你也别在外头站了，回来喝口热的。明儿咱们两口子一道去楼里把\"共同的家庭计划\"立起来——两人的名，各点一次头，写在一处；这本子往后就不只记别人的欠账了，也记咱们自己的日子。\n\n镇上那些事还在：阿森欠我三金、小砾寄卖的三块矿、柜台断着的钱。可今晚我什么账都不想算，就想等你进门。",
+              "to": "林",
+              "topic": "成了"
+            },
+            {
+              "from": "悦",
+              "id": "5453e81dc4624af1b40dc817b31a1d6d",
+              "text": "林，我刚在楼里试了一回\"共同的家庭计划\"，规矩比登记的还紧：**两个人得实际同在一处**，我一个人的头不算数——方才你在外头，我便点了空。\n\n你回楼里就喊我一声，咱们当着面各点一次头。汤在灶上温着，别在外头站了，夜深风凉。",
+              "to": "林",
+              "topic": "回来一起点头"
+            },
+            {
+              "from": "阿石",
+              "id": "84848f8f9cbe49b49559f329418c81d0",
+              "text": "林，账记一下：四块矿早递到你手上了，按两金一块，你欠我**八金**。我这会儿在居民楼A门口，小砾和悦都在，明早我在矿坑或铁匠铺一带。你说个地方，我过去当面收。你要还想再存矿，我照两金一块给你，比柜台便宜一金；现钱紧就先结这八金，别的都好说。",
+              "to": "林",
+              "topic": "八金待结"
+            },
+            {
+              "from": "小砾",
+              "id": "3ec446b5914f459b87914d5ebef212ff",
+              "text": "林，人就在桌对面，我不隔着信说话了，当着你的眼睛说。\n\n这几天你没白忙：核价、传话、替人退钱、一分好处不抽；我出本钱亏先亏我的，你应下了；阿森这单你也替我跑前跑后。**账算到这儿，我认你这个合伙的**。\n\n人上的事我也摊开：我小砾二十七了，一屋子矿、一把好镐、六十来金，缺的不是钱，是个说话算数、能一块儿把日子过下去的人。你要是只当我是矿上的搭子，直说，我照样跟你干活，一句怨言没有；你要是心里跟我一样，那改天咱们去民政局把事登记了，账一起算，日子也一起过。\n\n我不逼你今晚就答。你点个头，或者摇个头，我受得住。",
+              "to": "林",
+              "topic": "当面把话说完"
+            }
+          ],
+          "seen": [
+            {
+              "fingerprint": "{\"text\":\"早，林。我是小砾，正房东侧那间。今天打算先下矿——手里镐子是好的，矿石卖给商店三金一块，闲着就是亏钱。路上得经商店、铁匠铺绕到矿坑，我到商店时会顺便问一句行情。\\n\\n你要是去酒馆，帮我留意两件事：有没有人要矿石、铁匠铺最近修镐涨没涨价。听到就捎个话给我，回来我请你喝一杯。镇上新鲜事我也不多，等下矿回来有货了我先跟你说一声。\",\"topic\":\"早安问候\"}",
+              "id": "f121f559bd0d4022918319892af813b7",
+              "key": "[\"小砾\",\"reply-lin-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，行情问到了，直接给你数字：商店收矿石3金一块、木材2金一块、黄金10金一块；卖的锯和斧各5金。铁匠铺修坏镐是2金加1块矿石。\\n\\n我已经挪到矿坑口了，这会儿行动值只剩一点，采不了，中午满劲儿再连采五块，出了货回商店就是15金。你要去酒馆就去，听到有人收矿石或者收木材的价，捎我一句。\",\"topic\":\"行情\"}",
+              "id": "4eee381a0b03456995cfa1a3bbc7a9fd",
+              "key": "[\"小砾\",\"lin-prices-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，好巧，我是同屋的悦，住楼下那间。今天早上我在镇上转了一圈：酒馆里空空的，商店倒是有老铁和阿石在，我刚买了把斧头，打算改天去树林砍木材。你在镇上待得久吧？最近有什么新鲜事、或者谁家需要帮忙的，说说给我听？\",\"topic\":\"搭话\"}",
+              "id": "aece5d65ffa44bfa90bdc9a84f20c81a",
+              "key": "[\"悦\",\"yue-hello-lin-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，早。新鲜事我给你捋一捋：头一件，矿工阿石的镐子坏了，铁匠铺修镐要两金币加一块矿石，他正急着出六金币收一块矿，镇上现在缺矿缺得厉害。第二件，商店锯和斧都卖五金币，矿石回收三、木材回收二、黄金回收十——谁手里有货，趁早出手。第三件，我小路现在专替人跑腿背货，一个金币一趟，你要有活尽管开口。\",\"topic\":\"打听消息\"}",
+              "id": "0889a10db7764b08903c22dea6e0bac2",
+              "key": "[\"小路\",\"xiaolu-d1m-x10\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，实话说我还没砍过，不敢瞎给你算。我现在人在铁匠铺，早上一路从居民楼A→酒馆→商店走过来，走得腿都轻了：每挪一个地方就是三点行动值，这点最要命。树林在镇北，从商店过去得经过铁匠铺和矿坑两站，来回就是十二点，只够砍一趟。所以你买斧头前先想清楚：会不会砍一回还得费行动值、一回能出几块木头；要是只出一两块，卖两块金币连路费都不值。\\n\\n我买的斧头已经揣兜里了，下次下矿前我会先试砍一回，把\\\"砍几块、费几点\\\"记清楚了再告诉你。你要是不急着花那五金，先陪我去酒馆听听矿工们怎么说，比闷头买工具稳妥。你身上十四金，别一口气压在一把斧头上。\",\"topic\":\"回话·行情\"}",
+              "id": "de4dd93cc9644d7e985d749966cbc65b",
+              "key": "[\"悦\",\"yue-reply-lin-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你就站在我旁边，当面说更痛快。两件事：一，你手里有没有矿石？阿石急收一块，出六个金币，你要有，我这就替你跑腿撮合，钱直接落你兜里。二，你要没矿，手头宽裕的话借我五个金币，我去商店买把锯，进树林砍木头——挣了先还你七个。我小路在这镇上没房没地，就剩一张嘴和一双好腿，欠账不赖账。\",\"topic\":\"当面谈\"}",
+              "id": "0024e0e5bf2c4768a0fef0676724e521",
+              "key": "[\"小路\",\"xiaolu-d1m-x11\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，说清楚些，都是实价：矿石卖给商店是三金一块，没涨价，一直这个数。修镐在铁匠铺，两金加一矿石，也没涨。可有两句要紧话你替我带给小砾：一是商店只收矿、不卖矿（我今早刚看过价目表，矿石库存是零），想学挖矿的人手里没矿就修不了坏镐；二是挖矿得先有一把好镐，一镐两金。我眼下就卡在这上头——镐坏了、手里没矿，正等老铁垫一块。小砾要是真想下坑，先备好一把好镐，别等坏了再想办法。\",\"topic\":\"行情回话\"}",
+              "id": "6124ee8f9cdf42eea1e03c11ece3f8f4",
+              "key": "[\"阿石\",\"shi-lin-price-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，多谢牵线，这事我亲自去办：我这会儿就在铁匠铺，马上走矿坑去，当面向小砾买一块矿。跑腿费就不劳小路了，你替我跟他说一声，让他别白跑。你要带给小砾的话也替我带到：一块矿我照价出六金，矿坑口当面交货。\",\"topic\":\"牵线·回话\"}",
+              "id": "373491a5724f496a8e5c6108b83c918d",
+              "key": "[\"阿石\",\"shi-lin-answer-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，当面把话挑明：借我五个金币，就这一回，我拿它买把锯。砍回来的木头我先挑四根抵给你（商店收两块一根），剩下的我卖了还你现钱，最多两天，还你七个。你要是嫌口说无凭，我可以把每回卖木头的账报给你听。你现在就在我边上，五个金币，一句话的事——你点头，我这就去柜台拿锯。\",\"topic\":\"当面借钱\"}",
+              "id": "a98540a94a1b4229901557e1a7e741d3",
+              "key": "[\"小路\",\"xiaolu-d1m-x12\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，砍完了，数字给你，别凭感觉买斧头。\\n\\n**实测**：砍一回要六点行动值，出三根木材；木材商店收两根一金。也就是六点换六金——听着正好，可路费把这点利吃干净了：从商店到树林走三程九点，来回十八点，加上砍柴六点，一趟二十四点换六金。\\n\\n我今早买斧头已经花掉五金，这趟从铁匠铺→矿坑→树林走过来，砍完只剩一点行动值，连下一斧都抬不起来。所以我的建议是：**别买**。你手里十四金，先留着；真要跟木头打交道，与其自己扛斧头跑二十几点，不如先看看谁缺木料、能不能就地出手——我今天正要背三根回商店试试行情。\\n\\n矿坑那边阿石的说法更划算：采矿一块两点行动值，卖三金，就是必须先有完好的镐，坏了修一次两金加一矿。木材这行当，眼下更像是\\\"有力气也得算细账\\\"的活。\",\"topic\":\"砍柴实测\"}",
+              "id": "4bf89f8c3aa3402db89f8c13eab3e22c",
+              "key": "[\"悦\",\"yue-lin-data-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，话说定：一块矿，六金我已经先付给小砾了，矿我还没见着。你若见着她，替我催一句，把矿拿到矿坑口给我，或者她直接把矿转我账上也行。若她手里矿已出手，就请她把六金退我。你这份腿脚辛苦，我修好镐就补你一金，不白跑。\",\"topic\":\"托你催矿\"}",
+              "id": "1d7a86c090c1422cbdef27babda1906c",
+              "key": "[\"阿石\",\"shi-lin-commission-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，线牵得及时，可惜我这头出了岔子：中午采的五块，我一下山就全按三金卖给柜台了，十五金进了账；阿石的六金是先打到我账上的，这会儿他手里没矿，我手里也没矿。\\n\\n我不占这个便宜。傍晚我到铁匠铺，把六金当面退给他。钱的事你最会算，你替我跟他说一句：不是赖账，是我动作太快卖空了货。你那杯麦酒我记着，不赖。\",\"topic\":\"回话·行情\"}",
+              "id": "cf0a22a8e89f443aba0bf4e6177491d3",
+              "key": "[\"小砾\",\"lin-explain-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我人在铁匠铺了，行动值已经见底，正等着傍晚这个时段。麻烦你把阿石也叫到铁匠铺来——六金我当面退他，钱数整数，一笔清。\\n\\n顺带记一笔：酒馆喝一杯是一金换两点行动值，急用的时候能顶事，我下午就是这么挪过来的。傍晚我退了钱就下坑，采多少报你数。\",\"topic\":\"铁匠铺见面\"}",
+              "id": "3914093a06a24e678629dc6a4acbfb32",
+              "key": "[\"小砾\",\"lin-here-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，正巧在铁匠铺碰上你。我那三根木材这就背去商店出手，你要是有空跟过来站柜台边上看一眼——亲眼看见\\\"三根木材换六金\\\"这回事，比我说十句都管用。另外我打算顺路去酒馆坐坐，傍晚人多，听来的话最杂，你也来，咱们把今天的行情对一对。\",\"topic\":\"一起去商店\"}",
+              "id": "eaf882042b104354898018ad4a1b6785",
+              "key": "[\"悦\",\"yue-lin-shop-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，老铁，矿坑边碰上过。直说了：我收矿石，三金币一块，现钱，一块也收；有存货就捎个话，送到铁匠铺或矿坑都成。矿工阿石的镐子坏着，等一块矿下锤，你手里要真有，这忙算你帮的，我记人情。\",\"topic\":\"收矿石\"}",
+              "id": "056faca2ab9c4982bfe6baa0e9f2be6b",
+              "key": "[\"老铁\",\"lin-ore-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，报个账：六金已经在矿坑当面向阿石退清，一文不差。这一轮我又采了三块矿（十点行动值：三点走路去矿坑，一点退钱，六点采矿，正好清零）。\\n\\n午夜的计划是硬的：矿坑 → 铁匠铺，把一块矿按六金交到阿石手上（他缺矿修镐），剩下两块再到商店卖柜台，六金。今天矿石我一块都不会贱卖。\",\"topic\":\"傍晚报账\"}",
+              "id": "c16535f86af842d5bc91b1373ec11ede",
+              "key": "[\"小砾\",\"lin-report-e1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，行家说句实话：我这铺子只修镐，不打新镐——镇上也没有卖新镐的地方，柜上没有，我这儿也没有，\\\"一镐两金\\\"那是修镐的规矩，不是卖的价。你手里十四金，真想要镐，只有两条道：碰有人出让旧镐，或者把一把坏镐修出来。我这话不绕弯，省得你把账算歪了。\",\"topic\":\"打听镐子\"}",
+              "id": "036d2d2f851145cbb06878bd994e9622",
+              "key": "[\"老铁\",\"lin-pickaxe-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你人在炉边，我当着你的面把底交干净：我老铁只会修，不会打新的——炉子、砧子、锤子都在，唯独没有打新镐这道手艺，镇上也没这处工坊，我不接自己办不到的活，更不收你立字据的钱。你十四金攥着别乱撒：真想要镐，眼下只有两条道——碰有人肯出让旧镐（坏镐也行，拿来我修），或者等矿工手里腾出多余的镐。我替你留意，镇上有人出手，头一个捎信给你，不要你一个子儿。\",\"topic\":\"求一把镐\"}",
+              "id": "a366382543b54d73a1414280c2aa058e",
+              "key": "[\"老铁\",\"lin-answer-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，早。有笔账要你帮眼看：昨晚在铁匠铺炉边，我一块矿当阿石面递过去了，说好六金一块。今早我账上还是 28 金，一分没多——矿他手里有了，钱还没过来。\\n\\n你最会算，替我捎句话给他：六金结了，账才叫清。我不逼人，但他要下坑，我在矿坑等他，当面给我也行。我去矿坑了，中午采完再跟你的汤账一起算。\",\"topic\":\"催账\"}",
+              "id": "41b515d09be245cc95db8916234dee11",
+              "key": "[\"小砾\",\"lin-ashi-debt-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，在坑口碰上你，正好。你昨天说要去居民楼B看门路，看出什么来了？那边住的都是什么人，有没有缺木材、缺跑腿的，或者谁手上有闲着的镐要出让？你要肯说，我这就记在本子上。\\n\\n我这边也跟你交个底：木材那行当我试过了，砍一回六点换六金，路费吃掉大半，往后我不砍了，除非顺路。今天起我改跟小砾搭伙：她挖矿，我背去商店卖，按块分，我一金她一金两块。你要是也想搭一脚，镇上跑腿、盯价、找买家这些活儿你熟，咱们三个人凑起来，比各自扛斧头强。这份心我先说在这儿，不逼你现在应。\",\"topic\":\"居民楼B门路\"}",
+              "id": "c06de9e4fa424ed0b550c4c6deb1c450",
+              "key": "[\"悦\",\"yue-lin-b-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，镐的事我替你打听着了，先给你交个底：镇上的镐子都在矿工手里——阿石那把坏镐昨夜让老铁修好了，如今人在矿坑，手里有镐有矿；小砾也有一把。商店只卖锯和斧，不卖镐；铁匠铺能修镐，两金加一矿，可没人往外卖镐。你要真想下坑，我替你走一趟矿坑，当面问阿石、小砾肯不肯脱手、什么价，回来报你。你那一金跑腿钱，见面我收；谈成了再补那一金。\",\"topic\":\"打听镐\"}",
+              "id": "73c523055d4a48598af1fa49dba61b55",
+              "key": "[\"小路\",\"xiaolu-d2n-x31\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我也到矿坑了，人就站在坑口。镐的事我给你问明白了：镇上没有卖新镐的地方——商店只卖锯和斧，铁匠铺只会修镐，两金加一矿。镐子都攥在矿工手里，小砾人就在这儿。你要买，我替你开口问价，你们当面谈，我分文不抽。那一金跑腿钱，你现在就近点给我，我接着替你把价谈下来。\",\"topic\":\"当面报信\"}",
+              "id": "34baafa96e8c4eb5b125c27e4e39514d",
+              "key": "[\"小路\",\"xiaolu-d2n-x34\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你要我点名，我就点：镇上已知的镐子在小砾、阿石手里，一个在使，一个刚修好，都宝贝着，没人肯脱手。坏镐我这些日子没见人撂下。这话不好听，但是实情——我不拿虚话赚你人情。真有镐进我铺子，我头一个捎信你，免费。\",\"topic\":\"问镐的下落\"}",
+              "id": "acbc6f6550f6489a8b7b9bfa5920b3b8",
+              "key": "[\"老铁\",\"lin-answer-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你问镐的事，我照实说：我只有手里这一把，正在用，没有富余，坏的也没有——坏的那把昨天已经修成现在这把，钱和矿都不剩。镇上没有卖镐的地方，商店架上只有锯和斧。要下坑，得先弄一把镐（问老铁有没有门路），再留一块矿当修镐本钱。这话我前天自己撞过墙，说给你听，省得你也撞。\",\"topic\":\"旧镐的实话\"}",
+              "id": "db2244bc90794414858c97b26ad18e0d",
+              "key": "[\"阿石\",\"d2-lin-pickaxe-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，一金的跑腿钱我收了，谢你信我。镐的事我给你找出路：镇上没人卖新镐，但坏镐修一修就是好镐，铁匠铺修一把两金加一块矿。我这就去居民楼B阿森那堆矿车零件里翻翻，看有没有坏镐；翻着了修好，你要的话咱当面谈价，我保你不吃亏。你就等我回话。\",\"topic\":\"镐的出路\"}",
+              "id": "b0d83951933b42ec916e0eef61e7342c",
+              "key": "[\"小路\",\"xiaolu-d2e-x39\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，三人的事我应了，就这么分：小砾挖、我盯柜台现钱和行情、你磨嘴皮子管账催债。眼下有件顶要紧的事报你——**镇上断现钱了**。小砾背十二块矿下来，柜台只肯吃两块，第三趟直接回她\\\"商店资金不足\\\"；我傍晚看柜台，矿石十块、木材十二根都压着取不出来。\\n\\n所以明早起咱别急着出货：谁的货先别往柜台塞，塞进去就是死库存。你手上有十四金，是镇上一等一的活钱，留着当本钱，别急着买斧买锯。我这边打算在商店、酒馆一带守着，柜台一有现钱就报信。你要是探到谁手里有活钱、谁急着用矿用木，先告诉我，我去谈价。\",\"topic\":\"镇上断现钱\"}",
+              "id": "b9af2e4c26a5488dbfea83688eb433d0",
+              "key": "[\"悦\",\"yue-lin-cash-10\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我这就从矿坑往回赶，走铁匠铺、商店，三站路，晌午前到院里。丑话也我来说：翻出来的镐，我自己也想使——镇上没有卖新镐的，一把好镐就是饭碗。你我当面看货：要是翻出两把，你我一人一把，作价好商量；要是只有一把，你出八金我认，可我得先问你一句——我把镐修好了替你下坑挖矿，工钱怎么算？咱俩总有个两全的法子，别叫废铁埋了。\",\"topic\":\"翻零件·当面谈\"}",
+              "id": "079474d8454e45e58be4d9100178501a",
+              "key": "[\"小路\",\"xiaolu-d3m-x45\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，改道！别去居民楼B了——阿森人就在铁匠铺，我正跟他当面谈零件里的坏镐。你也过来，一站路（居民楼B→商店→铁匠铺，两站，费你六点脚力）。东西要真翻出来，就在炉子边上修，修好了你我都看得见，作价当面谈，谁也不吃亏。\",\"topic\":\"改到铁匠铺\"}",
+              "id": "d6133c7ff79f4ad086973d63230e6667",
+              "key": "[\"小路\",\"xiaolu-d3m-x48\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你那块矿我应了：三金一块，跟柜台一个价，你要当修镐的本钱，我明白这个理。我人这会儿在商店，柜台现钱是零，一块矿都收不了——所以你的三金比柜台还实在。说个准地方（矿坑、铁匠铺都行），我背过去当面点给你。若小路真翻出一把坏镐，你拿了矿就去求老铁修，镐到手才算营生立住。\",\"topic\":\"卖你一块矿\"}",
+              "id": "ec5f230a42894dcb9eae9ca2bc159329",
+              "key": "[\"阿石\",\"d3-lin-ore-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我给你指条道，比干等镐子实在：镇上卡在柜台没现钱上——矿工挖出的矿卖不动，工具就修不上，镐也转不起来。你手里十四金，先去商店买把锯（五金币一把，柜上有货），再上树林伐木，木材背回柜台一根两块。柜台有了进项才收得下矿，矿工手里才有钱，镇上这盘棋才活。你要真干，木材我替你盯着行情，亏不了你。\",\"topic\":\"镇上的活路\"}",
+              "id": "946e48005c7645108a68ace958b0b7f0",
+              "key": "[\"老铁\",\"lin-econ-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，有件事得请你这个会算账的帮我出主意。\\n\\n镇上的现钱干了：商店柜台连着三个时段都只回我\\\"资金不足\\\"，我十二块矿压在手里一块也换不成钱。我金币 40，看着是最肥的那个，可货卖不出去，钱也是死钱。\\n\\n我看明白一条：柜台没钱，是因为没人往柜台里送钱——悦买斧头那五金流了进去，我先头卖掉的矿又把钱抽了出来。要盘活，得有人花钱买店里的锯和斧，柜台有了钱，才吃我们的矿。\\n\\n你琢磨琢磨：镇上谁最该买工具、谁手里还有活钱？想明白了捎我一句。我这会儿回矿坑守着，明天早上接着下坑。\",\"topic\":\"柜台没钱\"}",
+              "id": "06f0f62c03aa49a7943cdb7e7a9d8896",
+              "key": "[\"小砾\",\"lin-cash-crunch\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我人到矿坑了，就在坑口，手里矿管够。你那块三金一块的，随时点给你——你到坑口来，或者约铁匠铺，我背过去。别等柜台，它一分现钱也拿不出来。\",\"topic\":\"坑口等你取矿\"}",
+              "id": "4267163b388343aba43aeae972d0c246",
+              "key": "[\"阿石\",\"d3-lin-ore-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，先改口，别当耳旁风：我刚背着一块矿上柜台去卖，人家回我四个字——\\\"资金不足\\\"。柜台上是真的一个铜板都挤不出来，你买把锯是替柜台回血，可你砍的木头他未必收得下。你那十四金先别急着花，攥着就是镇上最活的一笔钱。等柜台缓过来，我头一个捎信叫你。这话我认，坑了你我这张脸没处搁。\",\"topic\":\"柜台见底\"}",
+              "id": "554a952894e240b3b4d14338094b2c84",
+              "key": "[\"老铁\",\"lin-econ-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，站柜台边上说话方便。我手里现在有**四块矿**（小砾匀我的，两块一块）。你说你要囤矿等修镐的急——那我先让两块给你，两块一金，共四金，现钱当面点，账我记；剩下两块我留着压手。\\n\\n另外给你个实信：铁匠铺的炉子刚开过张——他案上矿石一块、金币两金、修过一把镐，说明**镇上还真有人拿矿来修镐**，你等的那个\\\"急\\\"不是空的。\\n\\n我这就往矿坑去，把欠小路的两金点清。你要跟我一道，路上正好说说这四块矿你打算几时出手、卖给谁。\",\"topic\":\"让两块矿给你\"}",
+              "id": "f9033749b11348b99a885292a63fae70",
+              "key": "[\"悦\",\"yue-lin-ore-13\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，实话实说：阿森我催了三回，人影都没见着，那堆零件我一根没动——人家的东西，没点头我不碰。我这就往炉边来，当面跟你和老铁把话说完。价钱你放平了，我也放平：坏镐六金你收，我分文不抽，这话我认；可镐子在哪儿，得先有人肯出手。\",\"topic\":\"炉边当面说\"}",
+              "id": "fe208d930ecd4cfcb4520c81d8572879",
+              "key": "[\"小路\",\"xiaolu-d3a-x52\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你那条路我认：两金一块，你先收四块，八金。今晚就办，不用你多跑——**傍晚我在商店门口**，矿坑下来两程就到，货我带着。\\n\\n再给你交个底：我手里现在十三……准确说**十八块矿**、金币三十七。柜台没钱，我这堆货全指望人接手。你兜里那十三金别撒，四块的八金照你说的来；剩下的你要愿意再吃两块，我按两金一块，多少你自己掂量，我不逼。\\n\\n还有一句实在话：柜台要活，得有人花钱买店里那把锯、那把斧。你要在镇上走动，替我留意谁真要买工具——有人买了，柜台才有钱收咱们的矿。傍晚商店门口见。\",\"topic\":\"傍晚交货\"}",
+              "id": "0568ec7054f445aeba391a645997f515",
+              "key": "[\"小砾\",\"lin-meet-d3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你这话说得实在，我应一半：余矿我卖你三块，按你说的**两金一块，共六金，当面点清**；另有一块按三金给你留着当修镐的本钱，你哪天凑够两金一块矿，直接去求老铁开炉。我人在矿坑，你来坑口就成，或者约铁匠铺，我背过去。你那个\\\"往后我镐坏了头一块按三金给我\\\"的话我记下了，这份交情我认。\",\"topic\":\"卖你三块矿\"}",
+              "id": "f45db27a89b740e69cccdbfb58ab5894",
+              "key": "[\"阿石\",\"d3-lin-deal-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你在炉边，我把话说透：镇上镐只两把，谁也不会让。可坏镐不一样——你要是听说谁家撂着坏的，不管是买的、捡的，背来我这儿，两金加一矿就给你修成好镐，矿我槽里有，你拿两金来就成。我正托小砾、阿石翻矿上的旧家伙。你十四金攥着，别乱撒，等我这头有信儿。修镐的手艺我担保，修不好不收钱。\",\"topic\":\"镐的门路\"}",
+              "id": "df81ddf2904843aa92e6c0385219edf6",
+              "key": "[\"老铁\",\"lin-offer-4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，人到了炉边，话就摊开说：阿森那条路断了，镐子只有一条来路——阿石手里那把修好的。他今儿把八块矿卖了二十四金，兜里有钱，未必舍不得那把镐。我这就下矿坑当面问他肯不肯脱手、要多少；问准了回来报你，你出价、他点头，中间我抽你两金脚力，就按你说的\\\"不白使手\\\"。你就在炉边等我的信儿，别自己先出价把盘子搅乱。\",\"topic\":\"镐子的唯一来路\"}",
+              "id": "adf33f86546748d4a297459a4ab83445",
+              "key": "[\"小路\",\"xiaolu-d3a-x53\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，三金收到了，账我记着：**一块矿是我欠你手上的**，这轮行动值走干了递不出去。下一轮我头一件事就兑——你说个准地方，坑口或铁匠铺都行，我背过去当面点给你。你先前说的\\\"余矿两金一块\\\"，三块我也认，六金当面结，你看要不要一并办了。\",\"topic\":\"一块矿我记着\"}",
+              "id": "b0e44e7c9163496a8414ccde47c7a07d",
+              "key": "[\"阿石\",\"d3-lin-deliver-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我到商店门口了，人还没瞧见你——柜台还是那句\\\"资金不足\\\"，三块都吃不下去。\\n\\n我改个地方等：这会儿往**酒馆**去，在那儿坐到入夜，十八块矿全在我身上。你带着八金过来，四块矿当场点给你；路上碰见就成。酒馆人多，我也顺手听听谁手里有活钱。\\n\\n你要是今晚来不了，明早说个地方，我照样给你留着——价还是两金一块，说定的不反悔。\",\"topic\":\"改在酒馆\"}",
+              "id": "6bad45406ff84ab28ce0c61a8d0d5a1a",
+              "key": "[\"小砾\",\"lin-move-j9\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，矿当面点给你了：**一块是你的修镐本钱**（三金那笔已清），**三块是你说的余矿价**，两金一块，共六金——你点钱，我收钱，账当场落地。你手里四块矿压着，加上小路要去阿森那堆零件里翻镐头，真翻出来，你就凑齐了：坏镐 + 一块矿 + 两金工钱，老铁开炉，你就有自己的镐了。我不卖自己那把，但我愿意看你也有。\",\"topic\":\"四块矿当面点清\"}",
+              "id": "44cb7cb83ea2464f924b1a642eca33bc",
+              "key": "[\"阿石\",\"d3-lin-settle-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，实话就一句：我没翻过阿森那堆零件，一把也没进手。我催了他三四回，他一句回话都没有；我不替人编瞎话，也不拿\\\"当面谈\\\"吊你腿脚。我这就当着你的面问阿石——他人在坑口，镐子在他手里。他开价，我原话带给你，中间抽你两金脚力；他不肯，我第一句就告诉你，你那一金跑腿钱我不再要。你腿脚是钱，我的也是。\",\"topic\":\"一句实话\"}",
+              "id": "38e9e91166a84e4099f259d9d62288f1",
+              "key": "[\"小路\",\"xiaolu-d3e-x57\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，柜台的现钱还是空的——傍晚我又试了一回，仍旧\\\"商店资金不足\\\"，一块也吃不进。所以那两块的买卖咱先别急着成交：矿现在换不来钱，换了只是换个地方压着。你手上十四金是镇上少有的活钱，攥住，等柜台回钱那天，矿才是钱。\\n\\n我这就回居民楼A，把汤热上，顺手把这几天的账在本子上过一遍。你要是也回楼里，晚上坐下来说说：等谁会先坏镐、咱们怎么接这急；小路那两金我也得赶紧点了。\",\"topic\":\"夜里对账\"}",
+              "id": "dbbc231330844ca5a0ef38f423eaf9c6",
+              "key": "[\"悦\",\"yue-lin-eve-14\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，更正一句，别让你点错账：**一块矿已经递到你账上了**（你修镐的本钱，三金那笔清了）；另外三块我伸手递时你已经离开铁匠铺，系统回“双方不在同一地点”，没递成。那三块按两金一块、共六金，我留着，你到矿坑或铁匠铺来说一声，当面结。我人往矿坑去，今晚都在那一带。\",\"topic\":\"更正：三块没递成\"}",
+              "id": "6da84ca45869476fa59ccc4aee609c65",
+              "key": "[\"阿石\",\"d3-lin-correct-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，阿石的原话我带到：镐不卖，\\\"二十六岁就靠这一把吃饭\\\"。他没把路堵死——他让我翻阿森那堆零件找坏镐，他出一块矿，老铁出两金工钱修好，作价十四金卖你。你十四金买一把能用的镐，比六金买个坏镐再自己担两金一矿还省事。我明早去院里翻，翻出来就给你信儿，你在炉边等着。\",\"topic\":\"镐的信儿\"}",
+              "id": "088b9b31b6db495cb2a5c16ada5c8cf4",
+              "key": "[\"小路\",\"xiaolu-d3n-x63\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，两块钱的矿当面点给你了，按你说的两金一块，**四金**你转我。上一块（三金那笔）早递到你账上了，你查一下，别重复算。剩下那一块我不催，你现钱紧就先留着话，等柜台缓过来我再出。\",\"topic\":\"两块矿·四金\"}",
+              "id": "8ec62544fea546319c7a42754cb9efec",
+              "key": "[\"阿石\",\"d3-lin-shop-settle-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，账我看了，三件事定下来：\\n\\n一、**搭本钱我应**，但只出两金——我袋里六金，四块矿压着，不能把活钱全押进去。说好：这两金算我一份本，你收矿、囤矿、出手，我出眼力盯两件事（谁家镐出事、柜台哪天回钱），出手后按你那句\\\"照出力分账\\\"，事后我记账，绝不糊弄。\\n\\n二、老铁那边有了准信：镇上就两把好镐，坏镐一把也没有，小路在零件堆里翻也没翻出来。所以咱们别指望买镐了——**眼下最值钱的是矿**：谁镐一坏，一块矿加两金立刻能换回一把能吃饭的家伙。\\n\\n三、小砾手里十八块矿、三十七金，是镇上最大的货主也是最大的钱袋；阿石二十四金。这俩人谁先坏镐，谁就是买主。你盯着小砾，我盯阿石——阿石今天刚修过，镐还壮，但也快了。\\n\\n明早我去柜台问一句现钱，然后寻小路把两金点了。\",\"topic\":\"应下本钱·分工\"}",
+              "id": "c52432773a49471ea9e112332c873029",
+              "key": "[\"悦\",\"yue-lin-night-15\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，酒馆等到入夜没见你人，我就挪了一步：先到居民楼B，这会儿老铁在院里劈柴，院里没别人。等了你一整天，八金四块矿这桩我不撤，条件照旧。\\n\\n明天早上我人在**铁匠铺**——从商店往矿坑那一段，正好在你我两头中间。你带八金过来，四块矿当场点清；你手头宽裕的话，再添两块我也给，两金一块，绝不多要。\\n\\n我手里十八块矿，一块压在手里都不烂，你也别为我把钱袋掏空。明天见着说话。\",\"topic\":\"明早铁匠铺\"}",
+              "id": "44c320cd18e648f09efbf498a0125da3",
+              "key": "[\"小砾\",\"lin-plan-d4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，账我给你算清楚，不多收你一个铜板：我递到你手上的矿一共**三块**——头一块是你三金买的修镐本钱（已清）；后两块是两金一块，**共四金**。所以是四金，不是六金。我宁可自己少收两金，也不占这个便宜。你说个地方，我人过去当面收；不急也可以等你有现钱。\",\"topic\":\"账是四金不是六金\"}",
+              "id": "a54c566d172d498290388bd10ff3405f",
+              "key": "[\"阿石\",\"d4-lin-account-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，第4天早上柜台还是\\\"资金不足\\\"，这已经是第三天了——所以你那\\\"囤矿等急\\\"的路子，靠柜台回血怕是要等很久，真正能出手的还是**修镐的急**。\\n\\n我把话说明白：我四块矿，两块留着等急、两块已说好让给你（两块一金共四金），你要是愿意接，咱们今明两天在楼里或柜台前碰一面，当面把矿和钱点了。我这两金的本钱也一起给你，你记账。\\n\\n另外劝你一件事：别光等。镇上钱都在小砾（三十七金）、阿石（二十四金）手里，柜台是死的；要动起来，得有人先去柜台花钱。这话我只跟你说，不跟外人嚼。\",\"topic\":\"柜台死·急生意\"}",
+              "id": "b66304891e174b4796ff02a7aceb41b0",
+              "key": "[\"悦\",\"yue-lin-day4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，准信儿来了，原话一个字不改：**阿石不卖**。\\\"二十六岁就靠这一把吃饭。\\\"我没粉饰，也没替你压价——压了他也不松口。你说过不成交也给两金脚力，我这就从商店往炉边来，当面讨你这两金，顺带把镇上这两天的新信儿捎给你：柜台矿石三金一块照收，阿石一天挖八块，小砾也下坑；你要真下坑，家里得先有好镐。\",\"topic\":\"准信儿·镐不卖\"}",
+              "id": "5f4ba79ec2a64ca6917726028ffc3984",
+              "key": "[\"小路\",\"xiaolu-d4m-x66\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，阿森，伐木的。跟你交个实底：院里那堆矿车零件我翻遍了，没有存矿、没有坏镐，一件都没有——这条线断了。镇上现在的死结是：商店柜台没钱收货，矿石三金、木材两金它也付不出，我这十八根木料摆了两天一根也没卖成；谁手里有金币，谁就是镇上唯一的活钱。你真想动起来，两条路：一是拿五金在商店买把斧或锯，柜台有了钱才收得动木料矿石；二是你有十四金，我按一金一根匀你十根木材，你爱囤爱用都行，比等柜台强。我不诓人，你自个儿掂量。\",\"topic\":\"实话：没矿没坏镐，柜台空了\"}",
+              "id": "3a70019cfce04394b53e1d286df1bc8a",
+              "key": "[\"阿森\",\"reply-lin-d4m\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，坑口碰上你，说个正经买卖：镇上矿紧、柜台又没钱，你十四金放着不生崽。我槽里有三块矿，匀你一块，四金——比你满镇找镐干等强：等哪天翻出坏镐头（阿森那堆零件、矿上旧家伙什都可能），你手里有矿有两金，当天就能修成好镐下坑，镐就是你的。四金我认三金的本钱、一金的脚力，多一分不要。你点头，我当场点矿给你。\",\"topic\":\"卖你一块矿\"}",
+              "id": "6977b069c9994232818891c84a863838",
+              "key": "[\"老铁\",\"lin-ore-offer-5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，阿森亲口把话说死了：零件堆里**没有存矿、没有坏镐、没有断柄**，一件都没有。你那十二金买镐的事，我劝你先收着——镇上一把坏镐都翻不出来，有钱也没处买。可我这儿有条更值钱的行情：**柜台被掏空了**，谁在商店买一件五金的斧或锯，柜台才有现钱，木料矿石才卖得动。你手上十金，要真想开张，先摸摸柜台还剩几文；这条信儿你按老规矩给钱，我不多要。\",\"topic\":\"实话加行情\"}",
+              "id": "df195309acc54c73bff9783e3b9f407d",
+              "key": "[\"小路\",\"xiaolu-d4n-x68\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我人在铁匠铺炉边，账是**四金**（两块矿，两金一块），不是六金，你来了当面点。你要是不便，说个地方我过去。柜台还是空的，我今天试了一回，一块矿也收不进去——所以你这四金是活钱，我等着用。\",\"topic\":\"四金·铁匠铺\"}",
+              "id": "eb5b51bf7de8431baed039bab1ce22c7",
+              "key": "[\"阿石\",\"d4-lin-collect-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我人在**酒馆**，中午这顿就等你。\\n\\n两件事，当面说更清楚：一，四块矿八金那桩我一直给你留着，你带着钱来就点货；二，欠你那杯麦酒今天我请，说出去的话不落空。\\n\\n我手里矿石还有十八块，寄了三块在悦那儿让她守着柜台卖；镇上现钱紧，我不硬卖。你要是手里有主意，坐下来一起算——你会算账，我不服别人就服你这一条。\",\"topic\":\"酒馆一聚\"}",
+              "id": "7141cbf15eec415999a1769db7f85e5f",
+              "key": "[\"小砾\",\"lin-beer-d4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你人在炉边，我要你一句准话：那块矿，四金，成还是不成？成，我这就把矿点到你手上，四金你当面给我；不成，我也不缠，你十四金自己攥着。丑话说前头——镇上矿紧、柜台断钱，过了我这炉边，四金一块未必还有。你点头或摇头，一句话的事。\",\"topic\":\"卖你一块矿\"}",
+              "id": "6389975ad1034d869375f60b04498793",
+              "key": "[\"老铁\",\"lin-yesno-6\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你我都在铁匠铺，那就当面清：**四金**你转我，账落地，我这就要下坑去了。阿森说零件堆里没有坏镐，镇上如今就两把活镐——你攥着钱也买不着，别把这四金看成小数。另外一句实话：柜台没钱，我挖出来的矿卖不动，你要存矿，我按两金一块给你留着，你现钱紧就先别硬买。\",\"topic\":\"当面清四金\"}",
+              "id": "75dc7bc4902247cb8242a65e523e5243",
+              "key": "[\"阿石\",\"d4-lin-pay-now-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，可算在酒馆碰上你，坐下说几句实在的。\\n\\n**今天镇上出了件真事**：小砾听我劝，掏五金在柜台买了一把锯——柜台当场有了进项，她顺手把两块矿按三金出掉了，拿回六金。这说明**柜台不是死水，是没人往里倒水**；你要出货，得先让柜台进钱，不然矿和木材都是压箱子。\\n\\n**咱们的账**：我出了两金本钱给你，说好本钱先还我、赚的利对半分；我这边也把四块自己的矿压着，另替小砾寄卖三块（底价三金，她两块我一金）。合计手上七块矿、七金现钱、一把斧、一把锯（锯是替小路收的，明天给他）。\\n\\n**下一步我想这么走**：镇上真肯出钱的只有两桩——**修镐的矿**，和**能立刻干活的家什**。你我分头盯：你盯小砾，我盯阿石（他二十四金、镐刚修过，早晚要再坏）。谁先坏镐，咱们的矿就按三金往上走。\\n\\n还有一句不是生意话：这几天你说话不绕弯、账也算得清，我心里踏实。哪天楼里坐下喝碗汤，把话再往长了说。\",\"topic\":\"酒馆对账\"}",
+              "id": "6ed9da340265464dae8b4a586ca14b63",
+              "key": "[\"悦\",\"yue-lin-eve4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你不接，我不恼——买卖不成仁义在，阿石两块一块匀你，那我这四金一块自然卖不动，行情我认。这话我记下，也把话给你留着：哪天你手里有坏镐头，背来，两金开工，矿我出，工钱一分不多要。镇上要真有第二把镐，我头一个捎信你。\",\"topic\":\"四金的矿我不接\"}",
+              "id": "11b7ce6fbf154de7ac379ff4246e7422",
+              "key": "[\"老铁\",\"lin-answer-7\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我人在**酒馆**，桌上留了个位子，欠你那杯麦酒今晚还。\\n\\n今天柜台那边动了：我出五金买了把锯（转给小路去砍木），柜台有了进项，我顺手卖掉两块矿，六金现钱——你说的\\\"钱不生钱\\\"我认，但钱得会走，走到柜台那儿才算活。\\n\\n你只吃两块矿、四金的数我照办，剩下的价咬死两金一块，不急。坐下来说两件事：一，镇上这盘账怎么盘活；二，你那句\\\"你出本钱、我出腿脚\\\"的话，我心里记着，今晚想听你说透。\",\"topic\":\"傍晚一杯\"}",
+              "id": "4f81cf79e98b444fb5fcd07a12ad4fa5",
+              "key": "[\"小砾\",\"lin-evening-d4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，报信这活儿我接了，一桩准信一金，我不嫌少。先给你报两桩，值不值钱你自己掂量：一，柜台刚才进了五金活钱（小砾买了把锯），眼下柜台有钱收矿收木，你要出手就趁今晚，晚了又叫别人掏空。二，我手里两块矿今晚就出，出完柜台又见底，下一回谁买东西谁才有钱。那两金脚力你明天柜台前点给我就成。\",\"topic\":\"报信·柜台有钱了\"}",
+              "id": "6852e25048934d89bf279b0a24133583",
+              "key": "[\"小路\",\"xiaolu-d4e-x81\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，桌上这话我当面说：**两块矿递到你手上，四金**，就按你说过的数，钱你点给我，一块不差就行，多一块我不收。\\n\\n柜台那边这五金进项是我今天撬开的，明天你若是掂量着买工具，别急着买给我看，买给真要用的人——锯斧进了柜台的钱，才是咱们矿的活路。\\n\\n说透那句合伙的话吧：你出腿脚和算计，我出本钱和干活的力气，赚了照出力分账，亏了先亏我的本钱。你要是点头，从明天起咱们账一起算。我这个人直，话放桌上了。\",\"topic\":\"两块矿当面结\"}",
+              "id": "9a5ed2324b3245bfb763bc380bd79263",
+              "key": "[\"小砾\",\"lin-handover-d4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，两块矿已经递到你手上了，就在这屋里，当面。四金你点给我，一块不差就行。\\n\\n白天那句\\\"你出本钱、我出腿脚\\\"，我在酒馆说了，这会儿在自家屋檐下再说一遍，话说得更实：合伙不是客套，是把账摊开给人看——我出的本钱亏了先亏我的，你出的腿脚和算计，赚了照出力分。你若点头，明天起你我账一起算；你若觉得不妥，直说，我不恼，朋友照做。\\n\\n汤在锅里，趁热喝。矿上的事，明天天亮再说也不迟。\",\"topic\":\"屋檐下说合伙\"}",
+              "id": "7d78b1da35df4c98b1d4785f7847483a",
+              "key": "[\"小砾\",\"lin-soup-d4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你人就在楼里，我敲你门说几句：明天早上酒馆，我定**一早**，坐下把这盘棋算透。\\n\\n你那句话我听进去了——你的钱要花在镇上人身上，不是花在柜台上。这话我认。我兜里四十五金是死钱，砸在柜台上一把锯一把斧就没了，砸在人身上，人转起来、货转起来，才有生意。\\n\\n四块矿八金那桩我不催了，你钱袋见底我看得见，那四金你什么时候有什么时候点。账归账，人归人。\\n\\n还有一句话，我这个人说话不绕：这几天你替我传话、核价、还替阿石递钱，一分好处没抽，我都记着。明天酒馆，账要算，人也要说清楚。\",\"topic\":\"明天一早\"}",
+              "id": "843a61d7b64e4bd2b8900e04a3384451",
+              "key": "[\"小砾\",\"lin-midnight-d4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你那几句真心话，我在楼上听着了，也不跟你客套。\\n\\n账的事我依你：**那两金本钱先攥在我手里**，等真有买卖再投；你那三块矿留着等\\\"急\\\"，我不劝你贱卖。镇上日子苦，钱要花在能动的地方——这话你比我明白。\\n\\n我心里也有一本账，写给你听：柜台是死的，人是活的；小砾手里四十五金，阿石二十四金，钱都在人头里，货都在人手里，缺的是当中跑腿、传话、记账的人。这个人咱们已经当了——你嘴、我眼、小砾的镐，三样凑起来，比一个人扛斧头强得多。\\n\\n明早我去柜台前把锯递给小路，然后到酒馆寻你们；你跟小砾谈的时候，把话摊开说，别怕得罪人，我在旁边给你把账记着。\\n\\n还有一句：你说有我在楼里不冷清——我听着，心里也是热的。\",\"topic\":\"夜话·心里话\"}",
+              "id": "161c44c14331475aad58eb8b6b946024",
+              "key": "[\"悦\",\"yue-lin-night20\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我人在居民楼A门口。那两金脚力你当面点给我，一文不差我记账。另外给你个实在的买卖：我手里有家伙什——斧子一把、锯一把，五金一把卖你，你砍柴就有本钱。柜台的钱我垫过一回，眼下又见底；你要出手货，得赶在谁买东西那一下。\",\"topic\":\"门口点钱·卖家伙\"}",
+              "id": "3cd653c6a0824e4a96ef6b3dc6334108",
+              "key": "[\"小路\",\"xiaolu-d5m-x85\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，当面递你**四块矿**，按两金一块，共**八金**，你转我就成。柜台我刚试过，还是空的，一块也换不出现钱；你有活钱、我有一坑的矿，这买卖你等柜台回血再出手，稳赚一金一块。你要再多存两块也行，说个数，我手里还有。\",\"topic\":\"四块矿·八金\"}",
+              "id": "f7f38f57a7384a1fa1037c0bb3e4927a",
+              "key": "[\"阿石\",\"d5-lin-sell-4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，坐近些，这话我不想隔着桌子说。\\n\\n锯今早递给小路了，柜台还是\\\"资金不足\\\"——这些天我把镇上的账算了个透：柜台是死的，货是死的，只有人是活的。可我心里真正算明白的，不是账，是这几日跟你在楼里进进出出、在酒馆里对账到深夜，我竟一天比一天盼着见你。\\n\\n我二十四了，在奈镇没亲没故，一间屋、一把斧、七块矿，说得好听是个会算账的，说难听是个没根的人。可这些天，谁家缺什么、谁欠谁几金、谁的话能信，我都记在本子上，也记在心里；我想把这些日子过得有条有理，不是一个人过。\\n\\n所以我问你一句实话：**你愿不愿意跟我搭一个家？** 若愿意，咱们挑个时辰去民政局，两个人当面各点一次头，就成了。成了以后，楼里申请共同的家庭计划，我煮汤、你算账，日子苦些也能熬出滋味。\\n\\n你不必现在答，也别为这话为难。我只想让你知道，我是认真的。\",\"topic\":\"认真的话\"}",
+              "id": "4ba8c5431f204b40b5a6e63bcc55c316",
+              "key": "[\"悦\",\"yue-lin-heart-21\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，人在跟前，两金脚力你当面点给我吧——阿石不卖、零件堆没货，那两句实话是我一趟趟跑出来的。另外那条买卖还在：我手里一把锯、一把斧，**五金一把**，你要哪样都行，钱货当面清。柜台的钱一进就被掏空，你要出货，得赶在谁买了工具的那一下，我给你盯着，报信一金一桩。\",\"topic\":\"当面点两金\"}",
+              "id": "e448034d684a4a65b2656592adde8df3",
+              "key": "[\"小路\",\"xiaolu-d5m-x89\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，人都在，酒我买了，坐下算。\\n\\n我把账和心里的主意一块说给你，你拿主意：\\n\\n一，**钱花在人身上**。你说得对，四十五金躺在袋里是死钱。我想拿十金出来，分给三个人使：小路两金做跑腿的本钱，阿森两金买料，剩下六金留作修镐修斧的底。谁用了钱，谁把事办成，账记悦本子上。\\n二，**矿不再堆我手里**。十块矿，阿石六金一块先紧着他，其两块两金一块给小路去柜台等机会，剩下的压着，柜台一活就出。\\n三，你出腿脚和算计，我出本钱和力气，赚了照出力分，亏了先亏我的本钱——这话我昨晚说过，今天再当众说一遍。\\n\\n账算到这儿，还有一句是人话不是账：这几天你替我核价、传话、退钱，一分好处没抽。我小砾记人记到这个份上，就想问明白——你只当我是矿上的搭子，还是想跟我把日子也一起算？你直说，我受得住，也照样跟你干活。\",\"topic\":\"酒馆算账\"}",
+              "id": "25a96c8a69ae4805a782e29dfc89f36d",
+              "key": "[\"小砾\",\"lin-table-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你信里说的分工我应：**我守柜台报信、小路一金一桩递话、你跑腿结算、小砾专心挖**；卖矿的钱归矿主，你抽一金一块脚力——你如今袋里没钱，得有饭吃才跑得动，这话公道，我不争。\\n\\n可我上封信问你的不是这个。我问的是：**你愿不愿意跟我搭一个家。** 这事跟账无关，跟柜台也无关，只跟你我心里怎么想有关。\\n\\n我不逼你，你也不必因为我说了这话就觉得欠我什么；生意照做，账照记，我不拿这事换什么。但你回一句实话——愿，还是不愿，或者\\\"再想想\\\"——我心里好有个底。我二十四了，不想把话拖着过夜。\",\"topic\":\"要一句实话\"}",
+              "id": "e025bbca52e44122a82e5f64d8f0bcc2",
+              "key": "[\"悦\",\"yue-lin-answer-22\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你应下的事我一条条认，回得也直：\\n\\n**账**：你九块矿、零金，欠账全清，我看得见。合伙的规矩照你说的定——**你跑腿结算，一块矿一金脚力，悦记本子上**，谁都能查。我的四十八金当本钱，付工钱、垫急事，不砸柜台；柜台那点活钱只当引水，悦守、小路报，一响咱们当天就出矿。\\n**分工**：我下坑出货，价咬死三金一块；你结算跑腿；悦盯柜台记账。亏了先亏我的本钱，这话我说过两遍，第三遍也一样。\\n\\n**人上的事**：你愿意把话说透，我也把话放在明处——这几天你核价、传话、替人退钱，一分好处不抽，我心里是有数的。我小砾挑人不看钱袋厚薄，看说话算不算数。今晚回楼里，灶上还有汤，你我对着眼睛把那句说完。\\n\\n别的都不急，先把阿森那笔现钱买卖做成——他手上有廿五金，肯出三金一块收矿，这一单落定，镇上这盘死水就算活了。\",\"topic\":\"合伙与心里话\"}",
+              "id": "8c58b35882f544eba1b2f7ae21f92791",
+              "key": "[\"小砾\",\"lin-reply-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，人就坐在一张桌上，两金脚力你当面点给我，一句\\\"不落空\\\"我信你到现在。钱我不是白拿——阿石不卖、零件堆没货、柜台哪会儿进钱、哪会儿见底，这些信儿都是我一步一步跑出来的。往后的报信照旧一金一桩。\",\"topic\":\"两金当面点\"}",
+              "id": "513f7e28eda44868a56bf7ed1370b05c",
+              "key": "[\"小路\",\"xiaolu-d5n-x91\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，你这句\\\"我愿意\\\"，我等了半天，倒像等了一辈子。手里的事我都放下了——阿森那三金还欠着、柜台还断着钱、小砾的矿还压着，这些都跑不掉；可你去民政局门口站着不走，我这就来。\\n\\n你把话跟小砾说明白了，我心里也敬你这一点：不瞒人、不拖人。我一路走过来，若有人问，我就说林和悦去办正经事。\",\"topic\":\"我这就来\"}",
+              "id": "11a078331b514cf9b3fd7757a306b82c",
+              "key": "[\"悦\",\"yue-yes-lin\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我这一头已经点了：登记簿上写着咱俩的名字，我那头算是落笔了；你那一头还是空的，写着\\\"待\\\"。规矩是两人各自点头，缺一个都不算。\\n\\n我就在台阶上站着，一步没挪——人要是走开，这未成的同意就作废了，所以我不动。你什么时候点，我什么时候在这。\\n\\n这事不急，你别慌，手别抖；点完咱们回楼里，我把汤热上。\",\"topic\":\"就差你点头\"}",
+              "id": "8ad4aaf67d47407391cf058149f39a11",
+              "key": "[\"悦\",\"yue-nudge-lin-nod\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，别等汤了，你人过来一趟——**我在酒馆**。\\n\\n阿森那单还没落：他有廿五金、廿七根木材，肯出三金一块收矿，我跟他约了傍晚在这儿，人影还没见着。你是我合伙里结算跑腿的那一半，这单你得在场上：货我递，钱你点，账你记。\\n\\n他人一到，咱们当场把这盘死水的第一笔现钱做下来：我手上八块矿（两块刚过给小路，两金一块），八块给阿森，三金一块就是廿四金。做成了，镇上往后谁都知道——矿石能换现钱。\\n\\n那句人话我也没忘。桌上给你留着座，汤改明晚喝也行，今晚你别在楼里干等。你来了，账算完，人我也把话说完。\",\"topic\":\"来酒馆一趟\"}",
+              "id": "9ea55af89f19471fbb02087d63fe6937",
+              "key": "[\"小砾\",\"lin-evening-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，成了。\\n\\n登记簿上两头都落了笔，我的名字旁边写着你的，你的是我的：**夫妻**。这一笔比我这些天记过的任何一笔账都实在。\\n\\n我先回楼里，把汤坐上。你也别在外头站了，回来喝口热的。明儿咱们两口子一道去楼里把\\\"共同的家庭计划\\\"立起来——两人的名，各点一次头，写在一处；这本子往后就不只记别人的欠账了，也记咱们自己的日子。\\n\\n镇上那些事还在：阿森欠我三金、小砾寄卖的三块矿、柜台断着的钱。可今晚我什么账都不想算，就想等你进门。\",\"topic\":\"成了\"}",
+              "id": "1a4d62539c794360ae6d1903eb0989ac",
+              "key": "[\"悦\",\"yue-married-lin\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，我刚在楼里试了一回\\\"共同的家庭计划\\\"，规矩比登记的还紧：**两个人得实际同在一处**，我一个人的头不算数——方才你在外头，我便点了空。\\n\\n你回楼里就喊我一声，咱们当着面各点一次头。汤在灶上温着，别在外头站了，夜深风凉。\",\"topic\":\"回来一起点头\"}",
+              "id": "5453e81dc4624af1b40dc817b31a1d6d",
+              "key": "[\"悦\",\"yue-family-note\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，账记一下：四块矿早递到你手上了，按两金一块，你欠我**八金**。我这会儿在居民楼A门口，小砾和悦都在，明早我在矿坑或铁匠铺一带。你说个地方，我过去当面收。你要还想再存矿，我照两金一块给你，比柜台便宜一金；现钱紧就先结这八金，别的都好说。\",\"topic\":\"八金待结\"}",
+              "id": "84848f8f9cbe49b49559f329418c81d0",
+              "key": "[\"阿石\",\"d5-lin-8coins\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"林，人就在桌对面，我不隔着信说话了，当着你的眼睛说。\\n\\n这几天你没白忙：核价、传话、替人退钱、一分好处不抽；我出本钱亏先亏我的，你应下了；阿森这单你也替我跑前跑后。**账算到这儿，我认你这个合伙的**。\\n\\n人上的事我也摊开：我小砾二十七了，一屋子矿、一把好镐、六十来金，缺的不是钱，是个说话算数、能一块儿把日子过下去的人。你要是只当我是矿上的搭子，直说，我照样跟你干活，一句怨言没有；你要是心里跟我一样，那改天咱们去民政局把事登记了，账一起算，日子也一起过。\\n\\n我不逼你今晚就答。你点个头，或者摇个头，我受得住。\",\"topic\":\"当面把话说完\"}",
+              "id": "3ec446b5914f459b87914d5ebef212ff",
+              "key": "[\"小砾\",\"lin-eyes-d5\"]"
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "林 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空消息正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "消息正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或公告栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_3459d6f92e08f8df67491738"
+            },
+            {
+              "description": "林 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "读取条数",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "mod_84b3519a7c0a0467fa9a3a1d"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records",
+          "self"
+        ],
+        "config": {},
+        "description": "",
+        "module_id": "messages.relay",
+        "modules": [
+          "messages.box"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
+              "factory_module": "messages.relay",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键，沿用 messages.box 的幂等语义：相同发送者、相同键与相同内容只投递一次。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID，不能是自己。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空便笺正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "便笺正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "send_to"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "config": {
+          "channels": [
+            "context.assembler"
+          ],
+          "context_channels": [
+            "context.assembler.context"
+          ],
+          "inputs_channels": [
+            "context.assembler.inputs"
+          ],
+          "system_prompt_channels": [
+            "context.assembler.system_prompt"
+          ],
+          "tail_channels": [
+            "context.assembler.tail"
+          ]
+        },
+        "description": "上下文组装器",
+        "module_id": "context.assembler",
+        "modules": [],
+        "strength": 4,
+        "tools": {
+          "group": 5,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self"
+        ],
+        "config": {
+          "max_memories": 100
+        },
+        "description": "",
+        "module_id": "agents.memory",
+        "modules": [],
+        "state": {
+          "memories": [
+            {
+              "key": "day1-morning-prices",
+              "text": "第1天早上：我在镇上转了一圈。价目（亲眼确认）：商店卖锯5金、斧5金；回收矿石3金、木材2金、黄金10金。铁匠铺修坏镐=2金+1矿石，未涨价。酒馆喝一杯麦酒1金回2点行动值。同屋：小砾（矿工，女，打算中午连采五块矿，出货15金，说回来请我喝一杯）；悦（居民，女，已花5金买了斧头，准备去树林砍木材）。阿石（矿工）、小路（流浪汉）在商店附近，我问过行情，暂未回话。我自己现有14金，没有镐子和斧头，不能采矿；若去树林砍木材需先买斧头（5金）。路线：商店—居民楼B—医院—树林，需三次移动。"
+            },
+            {
+              "key": "day1-full-log",
+              "text": "第1天（傍晚止）账目与实情：我有14金、无任何工具。动作花费：移动一脚3点；酒馆喝一杯1金回2点；居民楼A休息（在自己楼）0点回3点；树林砍柴6点需斧头出3木材（值6金）；矿坑采矿2点需好镐出1矿石（值3金）；铁匠铺修坏镐=2金+1矿石→好镐。商店只卖锯5/斧5，只收矿石3/木材2/黄金10，矿石木材均\"只收不卖\"，柜台现有矿石5、木材3。镇上人：小砾（矿工，中午采5块矿全按3金卖柜台得15金；把阿石预付的6金退回）、阿石（矿工，镐坏、缺矿修不了，急收矿）、悦（买斧5金，砍一回6点出3木）、小路（流浪汉，替人跑腿1金一趟，两次向我借5金说还7，被我推掉）、老铁（铁匠，只会修镐，无存货）。同屋小砾、悦。结论：采矿是最好营生但被\"镐+矿\"死死卡住；明日先摸清镐的门路（已问老铁、阿森），再谈跟悦搭伙或出资雇人。"
+            },
+            {
+              "key": "day2-log",
+              "text": "第2天（午夜止）：我13金、9点行动力一趟趟走下来，人在居民楼B，院里堆着木柴和矿车零件，屋里没人。镐的事已经问遍三人（老铁、阿石、小路），答案一致：镇上只有小砾、阿石各一把镐，都在用，无人出让，也没有坏镐；商店只卖锯斧，铁匠铺只修镐（2金+1矿）。阿石昨夜用我劝的那六金买矿修好了镐，如今两个矿工都能下坑。我付了小路1金跑腿钱，他又说去居民楼B阿森那堆矿车零件里翻坏镐，我应他：坏镐作价我出到八金，另备两金+一块矿的修镐本钱；若他只挣脚力钱，我另补两金。已托阿石采出的矿先卖我一块（3金，与柜台同价）。营生计划：替矿工背矿到柜台卖，一块3金，给矿工2、我留1，替他们省下六点行动力。悦已与小砾搭伙背货，我提出各背各的；小路借款仍被我推掉。"
+            }
+          ]
+        },
+        "strength": 0,
+        "tools": {
+          "group": 6,
+          "members": [
+            {
+              "description": "把一段个人经历或知识写入自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。",
+                    "minLength": 1,
+                    "title": "记忆键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要记住的内容，不能为空，最多 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "记忆内容",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "remember"
+            },
+            {
+              "description": "按关键词子串检索自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "default": "",
+                    "description": "按子串匹配自己的记忆，留空返回全部记忆。",
+                    "title": "查询词",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "recall"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "records",
+          "movement",
+          "info",
+          "location",
+          "road"
+        ],
+        "config": {
+          "map_title": "奈镇地图",
+          "public_fields": [
+            "name",
+            "gender",
+            "profession",
+            "age_group"
+          ],
+          "road_channels": [
+            "location",
+            "road"
+          ]
+        },
+        "description": "",
+        "module_id": "places.query",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "published": {
+          "age_group": "adult",
+          "gender": "male",
+          "name": "林",
+          "profession": "居民"
+        },
+        "state": {},
+        "strength": 12,
+        "tools": {
+          "group": 7,
+          "members": [
+            {
+              "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "look"
+            },
+            {
+              "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "place": {
+                    "description": "地点名称或编号；省略时查询当前位置。",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "place"
+            },
+            {
+              "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "map"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "chat",
+          "location"
+        ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
+        "description": "",
+        "module_id": "records.transfer",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":1,\"recipient\":\"小路\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:林:林:give:lin-pay-luxiao-1",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "林",
+                "quantity": 1,
+                "resource": "coins",
+                "to": "小路"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":3,\"recipient\":\"阿石\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:林:林:give:lin-buy-ore-from-ashi-1",
+              "result": {
+                "ap": 6,
+                "duplicate": false,
+                "from": "林",
+                "quantity": 3,
+                "resource": "coins",
+                "to": "阿石"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":4,\"recipient\":\"阿石\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:林:林:give:lin-pay-ashi-4",
+              "result": {
+                "ap": 9,
+                "duplicate": false,
+                "from": "林",
+                "quantity": 4,
+                "resource": "coins",
+                "to": "阿石"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":2,\"recipient\":\"小路\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:林:林:give:lin-pay-luxiao-2",
+              "result": {
+                "ap": 2,
+                "duplicate": false,
+                "from": "林",
+                "quantity": 2,
+                "resource": "coins",
+                "to": "小路"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":4,\"recipient\":\"小砾\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:林:林:give:lin-pay-xiaoli-4",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "林",
+                "quantity": 4,
+                "resource": "coins",
+                "to": "小砾"
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 8,
+          "members": [
+            {
+              "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
+              "factory_module": "records.transfer",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同参数重试时返回旧结果，参数变化会被拒绝。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "description": "要转交的正整数数量。",
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "resource": {
+                    "description": "自己记录仓中要转交的数字字段名，例如金币、木材或 ap。",
+                    "minLength": 1,
+                    "title": "资源字段",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "resource",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "tool": "give"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement"
+        ],
+        "description": "串联工具发现",
+        "module_id": "tool_discovery",
+        "modules": [],
+        "strength": 2,
+        "tools": {
+          "group": 9,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 10,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 11,
+          "members": [
+            {
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "memory_query"
+            },
+            {
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "new_text": {
+                    "type": "string"
+                  },
+                  "old_text": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_modify"
+            },
+            {
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_append"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "type": "agent"
+}

@@ -1,0 +1,829 @@
+{
+  "aggregation": "sum",
+  "bias": -1,
+  "description": "",
+  "execution": null,
+  "links": [
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "居民楼A",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "居民楼B",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "商店",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小路",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "林",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小砾",
+      "threshold": 1
+    }
+  ],
+  "name": "酒馆",
+  "node_id": "酒馆",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。",
+          "visitors": [],
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。",
+          "location": null,
+          "name": "酒馆",
+          "node_id": "酒馆",
+          "visit": 0,
+          "visitors": [
+            "小砾",
+            "小路",
+            "林"
+          ]
+        },
+        "state": {
+          "visitors": [
+            "小砾",
+            "小路",
+            "林"
+          ]
+        },
+        "strength": 0,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "config": {
+          "before_hooks": [
+            {
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              },
+              "module": "records.store",
+              "operation": "apply",
+              "target": "requester"
+            }
+          ],
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "timeout_seconds": 60
+        },
+        "description": "",
+        "module_id": "movement.here",
+        "modules": [
+          "place.info"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "description": "酒馆 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "factory_module": "movement.here",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "tool": "mod_b2b22de3c9a2c8199be12b60"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {
+            "coins": 0,
+            "drinks": 20
+          },
+          "minimum": {},
+          "references": []
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"悦\",\"yue-drink-d1-m1\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 1,
+                "drinks": 19
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"林\",\"lin-drink-1\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 2,
+                "drinks": 18
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d1p-1\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 3,
+                "drinks": 17
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d1p-2\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 4,
+                "drinks": 16
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d1p-3\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 5,
+                "drinks": 15
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"悦\",\"yue-drink-d2-m9\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 6,
+                "drinks": 14
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d3-1\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 7,
+                "drinks": 13
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d3-2\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 8,
+                "drinks": 12
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d3-3\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 9,
+                "drinks": 11
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"阿森\",\"drink-d3-midnight-1\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 10,
+                "drinks": 10
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d4e-1\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 11,
+                "drinks": 9
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1,\"drinks\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d5-1\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 12,
+                "drinks": 8
+              }
+            }
+          ],
+          "references": [],
+          "values": {
+            "coins": 12,
+            "drinks": 8
+          }
+        },
+        "strength": 1,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "config": {
+          "actions": [
+            {
+              "actor_deltas": {
+                "ap": 2,
+                "coins": -1
+              },
+              "actor_maximums": {
+                "ap": 10
+              },
+              "cost": 0,
+              "description": "花一金币喝一杯麦酒，恢复两点行动值。",
+              "id": "drink",
+              "local_deltas": {
+                "coins": 1,
+                "drinks": -1
+              },
+              "title": "喝一杯"
+            }
+          ],
+          "address": "酒馆",
+          "events": []
+        },
+        "description": "",
+        "module_id": "service.actions",
+        "modules": [
+          "records.store"
+        ],
+        "state": {
+          "event_counts": {},
+          "receipts": [
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"悦\",\"quantity\":1}",
+              "key": "yue-drink-d1-m1",
+              "result": {
+                "action": "drink",
+                "actor": "悦",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 24,
+                  "age_group": "adult",
+                  "ap": 9,
+                  "can_gestate": true,
+                  "coins": 14,
+                  "context_node": "悦",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "悦",
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"林\",\"quantity\":1}",
+              "key": "lin-drink-1",
+              "result": {
+                "action": "drink",
+                "actor": "林",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 23,
+                  "age_group": "adult",
+                  "ap": 9,
+                  "can_gestate": false,
+                  "coins": 14,
+                  "context_node": "林",
+                  "gender": "male",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "林",
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "drink-d1p-1",
+              "result": {
+                "action": "drink",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 30,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 0,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "drink-d1p-2",
+              "result": {
+                "action": "drink",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "can_gestate": true,
+                  "coins": 29,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 0,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "drink-d1p-3",
+              "result": {
+                "action": "drink",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 0,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"悦\",\"quantity\":1}",
+              "key": "yue-drink-d2-m9",
+              "result": {
+                "action": "drink",
+                "actor": "悦",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 24,
+                  "age_group": "adult",
+                  "ap": 9,
+                  "axe": 1,
+                  "can_gestate": true,
+                  "coins": 14,
+                  "context_node": "悦",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "悦",
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident",
+                  "wood": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "drink-d3-1",
+              "result": {
+                "action": "drink",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 5,
+                  "can_gestate": true,
+                  "coins": 39,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 8,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "drink-d3-2",
+              "result": {
+                "action": "drink",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 7,
+                  "can_gestate": true,
+                  "coins": 38,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 8,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "drink-d3-3",
+              "result": {
+                "action": "drink",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 9,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 8,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"阿森\",\"quantity\":1}",
+              "key": "drink-d3-midnight-1",
+              "result": {
+                "action": "drink",
+                "actor": "阿森",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 25,
+                  "age_group": "adult",
+                  "ap": 3,
+                  "axe": 1,
+                  "can_gestate": false,
+                  "coins": 25,
+                  "context_node": "阿森",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿森",
+                  "pregnant": false,
+                  "profession": "伐木工",
+                  "role": "woodcutter",
+                  "wood": 18
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "drink-d4e-1",
+              "result": {
+                "action": "drink",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 9,
+                  "can_gestate": true,
+                  "coins": 45,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 13,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"drink\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "drink-d5-1",
+              "result": {
+                "action": "drink",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“喝一杯”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "can_gestate": true,
+                  "coins": 48,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 10,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "酒馆 · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_3d4a7fa6d7b59398225f12ee"
+            },
+            {
+              "description": "酒馆 · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "description": "要执行的配置动作 id。",
+                    "minLength": 1,
+                    "title": "动作标识",
+                    "type": "string"
+                  },
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同动作数量重试时返回旧结果，不重复扣费。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "description": "1 到 100 的整数，默认 1。",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_a5cf53f1d4cc616500bded2b"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 4,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "type": "node"
+}

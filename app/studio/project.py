@@ -21,6 +21,8 @@ class WorkbenchProject(Project):
         self.saver.node_types.update(value=ValueNode,csv=CsvNode,sqlite=SqliteNode,knowledge_collection=CollectionNode,llamaindex=LlamaIndexNode)
         root=Path(__file__).resolve().parents[2]
         standards={'tool_discovery':root/'modules/tool_discovery','context.assembler':root/'modules/context_assembler',
+                   'metadata.fields':root/'projects/workbench/modules/metadata_fields',
+                   'records.store':root/'projects/npc_town/modules/records_store',
                    'data.local':root/'projects/knowledge_archive/modules/data_local','data.knowledge':root/'projects/knowledge_archive/modules/data_knowledge'}
         for name,folder in standards.items():
             if name not in self.module_folders:

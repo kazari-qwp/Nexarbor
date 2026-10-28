@@ -1,0 +1,483 @@
+{
+  "type": "node",
+  "node_id": "居民楼A",
+  "name": "居民楼A",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "place.info",
+        "description": "",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "visitors_from_edges": false,
+          "description": "两层木屋，住着小砾、林和悦；门廊挂着住户名牌。",
+          "visitors": [
+            "小砾",
+            "林",
+            "悦"
+          ]
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "movement.here",
+        "description": "",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
+        ],
+        "config": {
+          "timeout_seconds": 60,
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "before_hooks": [
+            {
+              "target": "requester",
+              "module": "records.store",
+              "operation": "apply",
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              }
+            }
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "tool": "mod_7c5cb0983cd1492ff535a64a",
+              "description": "居民楼A · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "movement.here"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "records.store",
+        "description": "",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "initial": {},
+          "references": [],
+          "minimum": {}
+        },
+        "state": {},
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "module_id": "agreements.pair",
+        "description": "",
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ],
+        "strength": 3,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "address": null,
+          "rules": [
+            {
+              "id": "family_plan",
+              "title": "共同家庭计划",
+              "cost": 1,
+              "require_values": {
+                "adult": true
+              },
+              "equal_fields": [
+                "home"
+              ],
+              "set_values": {
+                "planning": true
+              }
+            }
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "tool": "mod_0797b8f837787f8da1d20516",
+              "description": "居民楼A · 查看协议 · 查看本地点的协议规则和自己参与的协议。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "modules": [],
+              "factory_module": "agreements.pair"
+            },
+            {
+              "tool": "mod_7fd1e8b8f65e11dbef66445b",
+              "description": "居民楼A · 同意协议 · 双方在场时，以自己的身份登记同意。双方分别同意后立即完成；离场使未完成的旧同意失效。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "partner",
+                  "rule",
+                  "key"
+                ],
+                "properties": {
+                  "partner": {
+                    "type": "string",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "协议对方",
+                    "description": "另一位当前可达的真实 Agent 节点 ID；不能代替请求者身份。"
+                  },
+                  "rule": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "规则标识",
+                    "description": "要同意的配置规则 id。"
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "description": "请求者在当前模块实例内使用的非空幂等键；相同键与相同对象重试不会重复扣费。"
+                  }
+                }
+              },
+              "modules": [],
+              "factory_module": "agreements.pair"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "service.actions",
+        "description": "",
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "address": "居民楼A",
+          "actions": [
+            {
+              "id": "rest",
+              "title": "休息",
+              "description": "在自己的居民楼休息，恢复一些行动点。",
+              "cost": 0,
+              "required_home": "居民楼A",
+              "actor_deltas": {
+                "ap": 3
+              },
+              "actor_maximums": {
+                "ap": 10
+              }
+            }
+          ],
+          "events": []
+        },
+        "state": {},
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "tool": "mod_5d1de1e02ebca30f3cff61f1",
+              "description": "居民楼A · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "service.actions"
+            },
+            {
+              "tool": "mod_98bd04f4fd005c5fcac937e3",
+              "description": "居民楼A · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "action": {
+                    "type": "string",
+                    "title": "动作标识",
+                    "description": "要执行的配置动作 id。",
+                    "minLength": 1
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "title": "数量",
+                    "description": "1 到 100 的整数，默认 1。",
+                    "minimum": 1,
+                    "maximum": 100,
+                    "default": 1
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "幂等键",
+                    "description": "可选非空字符串；相同键和相同动作数量重试时返回旧结果，不重复扣费。",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "service.actions"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "family.household",
+        "description": "",
+        "channels": [
+          "road",
+          "agreements",
+          "time",
+          "family.pregnancy",
+          "context.assembler.context",
+          "location",
+          "records"
+        ],
+        "strength": 12,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "time_channels": [
+            "time"
+          ],
+          "pregnancy_channels": [
+            "family.pregnancy"
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 5,
+          "members": [
+            {
+              "tool": "mod_25961859358c545437c07cd8",
+              "description": "居民楼A · 查看家庭计划 · 查看本居民楼的双方同意登记。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "family.household"
+            },
+            {
+              "tool": "mod_32d5c583aea1136b815d0aee",
+              "description": "居民楼A · 同意家庭计划 · 夫妻须同时在自己的居民楼，各自同意后写入怀孕起始时间；不要求同 tick。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "partner": {
+                    "type": "string",
+                    "format": "node-id",
+                    "minLength": 1
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "partner",
+                  "key"
+                ]
+              },
+              "modules": [],
+              "factory_module": "family.household"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 6,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "酒馆",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "商店",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "民政局",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "time"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "怀孕须知",
+      "channels": [
+        "family.pregnancy"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "小砾",
+      "channels": [
+        "location"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    },
+    {
+      "target_id": "林",
+      "channels": [
+        "location"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    },
+    {
+      "target_id": "悦",
+      "channels": [
+        "location"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    }
+  ]
+}

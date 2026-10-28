@@ -1,0 +1,1975 @@
+{
+  "agent": {
+    "inputs": {
+      "module:place.info": {
+        "context": [],
+        "inputs": [],
+        "system_prompt": "",
+        "tail": [
+          "当前位置：酒馆\n酒馆：镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。"
+        ]
+      },
+      "prepare:小路:context.assembler:assemble": {
+        "context": [
+          {
+            "id": "node:成年常识",
+            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
+          },
+          {
+            "id": "node:流浪常识",
+            "text": "流浪汉常识：没钱也能走路和打听消息；矿坑、树林需要工具，商店和酒馆要金币。可以帮人跑腿，也可以向别人开口。"
+          }
+        ],
+        "inputs": [
+          {
+            "delivery": "followup",
+            "id": "node:小路开场白/once",
+            "status": "delivered",
+            "text": "你在居民楼B的院里醒来，兜里一个金币也没有。今天得想办法挣点钱，或者找份活干。"
+          }
+        ],
+        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫小路，二十九岁，是镇上的流浪汉。你身无分文，但熟悉每一条路，说话有点滑头，心里也有自己的主意。",
+        "tail": [
+          "当前时间：第5天 午夜（总 tick：25）"
+        ]
+      }
+    }
+  },
+  "aggregation": "sum",
+  "bias": -1,
+  "data": {
+    "directory": false,
+    "path": "data/小路.md",
+    "save_data": true,
+    "type": "markdown"
+  },
+  "description": "",
+  "execution": {
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "executor": "harness",
+    "max_steps": 16,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "self"
+        ],
+        "module": "places.query",
+        "node": "小路",
+        "operation": "publish"
+      },
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.assembler",
+        "node": "小路",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 2,
+    "timeout_seconds": 180
+  },
+  "links": [
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "tick"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "存档点",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小砾",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "林",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿森",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿石",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "老铁",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "悦",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "奈镇世界规则",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小路人格",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小路开场白",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "世界时间",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "成年常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "流浪常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "酒馆",
+      "threshold": 1
+    }
+  ],
+  "name": "小路",
+  "node_id": "小路",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {
+            "adult": true,
+            "age": 29,
+            "age_group": "adult",
+            "ap": 10,
+            "can_gestate": false,
+            "coins": 0,
+            "gender": "male",
+            "is_parent": false,
+            "pregnant": false,
+            "profession": "流浪汉",
+            "role": "wanderer"
+          },
+          "minimum": {
+            "ap": 0
+          },
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼B"
+            },
+            {
+              "key": "context_node",
+              "node_id": "小路"
+            },
+            {
+              "key": "name",
+              "node_id": "小路"
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"小路\",\"xiaolu-d1a-rest1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 0,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":6},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:老铁:老铁:give:give-xiaolu-oremoney-6:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 6,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:老铁:老铁:give:give-xiaolu-errand-1:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 7,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-pay-luxiao-1:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 8,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":2},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:悦:悦:give:yue-loan-xiaolu-2:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-3},\"expected\":{\"ap\":10,\"coins\":10},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小路:小路:give:xiaolu-d4n-repay-yue2:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": false,
+                "coins": 7,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-xiaolu-3:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 7,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":2},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-pay-luxiao-2:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 9,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"saw\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:悦:悦:give:yue-give-saw-xiaolu:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 7,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 2,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer",
+                "saw": 1
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-5},\"expected\":{\"ap\":10,\"coins\":7},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小路:小路:give:xiaolu-d5n-pay-xiaoli:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 9,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 2,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 2,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer",
+                "saw": 1
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":2},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-xiaolu-2b:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 2,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 4,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer",
+                "saw": 1
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":2},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-xiaolu-2c:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小路"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小路"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 29,
+                "age_group": "adult",
+                "ap": 10,
+                "axe": 1,
+                "can_gestate": false,
+                "coins": 2,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 6,
+                "pregnant": false,
+                "profession": "流浪汉",
+                "role": "wanderer",
+                "saw": 1
+              }
+            }
+          ],
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼B"
+            },
+            {
+              "key": "context_node",
+              "node_id": "小路"
+            },
+            {
+              "key": "name",
+              "node_id": "小路"
+            }
+          ],
+          "values": {
+            "adult": true,
+            "age": 29,
+            "age_group": "adult",
+            "ap": 10,
+            "can_gestate": false,
+            "coins": 2,
+            "gender": "male",
+            "is_parent": false,
+            "pregnant": false,
+            "profession": "流浪汉",
+            "role": "wanderer",
+            "ore": 6,
+            "axe": 1,
+            "saw": 1
+          }
+        },
+        "strength": 1,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "流浪汉小路",
+          "location": "居民楼B",
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "流浪汉小路",
+          "location": "酒馆",
+          "name": "小路",
+          "node_id": "小路",
+          "visit": 43,
+          "visitors": []
+        },
+        "state": {
+          "location": "酒馆",
+          "visit": 43
+        },
+        "strength": 0,
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "tick",
+          "records",
+          "self",
+          "runtime.agent"
+        ],
+        "config": {
+          "budget": 10,
+          "budget_field": "ap",
+          "enabled": true,
+          "max_reactions": 8,
+          "prompt": "现在开始你这一时刻的行动。先查看处境，再决定去哪里、做什么；行动值有限，别浪费。\n本时刻完成行动，或需要等待答复、到货、下一个时段时，直接结束回复，下一 tick 再继续；不要轮询消息或处境。",
+          "signal_channels": [
+            "tick"
+          ]
+        },
+        "description": "",
+        "module_id": "agents.activity",
+        "modules": [
+          "records.store"
+        ],
+        "published": {
+          "最近完成活动键": "57404d95abc84cb5af994a41581b889a",
+          "活动完成次数": 25,
+          "活动状态": "已完成"
+        },
+        "state": {
+          "activities": [
+            {
+              "completed_count": 1,
+              "key": "5b538dae17134fc6af992a27d08cc099",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8676cc521e4749dfbb231efb0b27c3d3",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "dd2cdb078e204524a19034f767720628",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "7976508094d64c91adef74a951e8cbda",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "711f31a07a6546519344dd93b7a35fb8",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "38f90c6b1deb4694b3e5ed1f23e64999",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "990d130148c54396953688bee950968e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b852e3eb33134bc2a270c37d2d77b5d0",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "26159259b41c4d86b1cdcab0b3515c3e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "47d0a369c7954c69a7f5319aa8f3c170",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "32ec93e5163e4bf78092d7ffaffb2010",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b7097cfc3f0b4452a3b0340962d90978",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "4a4cb86e636841ffaf235453f3433673",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fba25d2da2f242c187d1a8542bc37f03",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "95a66166b0d84648a9b21a8f5af94ded",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fbc37d62fc55415baa3fa5008d3e5d79",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "bba3d8ec4f834a5884fa043a50a040ee",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "de979bcdfe034f8c9e25f64583473a65",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "2905760cc3ff4c57a9a0c46150cca23a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "9f572054f0624246bb56f6de53ab3200",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "6c26053501bd42f88a96175f8db444d9",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f93dcd7c4a7f4dedb45515e5f01e910a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f205302959064b4eac1a541f060ba270",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8b4f230cf6a548e8a104e32d51eff73f",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "57404d95abc84cb5af994a41581b889a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            }
+          ],
+          "completed_total": 25
+        },
+        "strength": 0,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records"
+        ],
+        "config": {
+          "max_messages": 200,
+          "read_policy": "self",
+          "require_agent": true,
+          "send_cost": 0
+        },
+        "description": "",
+        "module_id": "messages.box",
+        "modules": [],
+        "state": {
+          "messages": [
+            {
+              "from": "阿石",
+              "id": "f4791a2af0cb4069a5bf5da008736ebb",
+              "text": "小路，活来了，还急。我镐子坏了，铁匠铺修镐要两金币加一矿石，可我手里一块矿石都没有，商店又不卖矿。你帮我打听：镇上谁手里有矿石，或者谁肯赊我一块。我出六个金币买一块矿石，跑腿费另给一金币，先欠着也行。有信儿就到酒馆找我，我这就过去。",
+              "to": "小路",
+              "topic": "买矿石"
+            },
+            {
+              "from": "林",
+              "id": "40f411f6486943a1ac3fb6b700ebc2df",
+              "text": "早，小路。我是林。你常在镇上各处走动，消息比我们灵通——这两天镇上可有什么新鲜事？谁家要矿石或木材，或者谁在招人搭把手？",
+              "to": "小路",
+              "topic": "打听消息"
+            },
+            {
+              "from": "老铁",
+              "id": "9d6a9cf6d4c049e48ee4a96df23e4901",
+              "text": "小路，早。眼下铺子里还没开张，用不着跑腿；等会儿要是矿上阿石那边有货要捎，我再喊你，一个金币照给。你先歇着，别把腿跑细了。",
+              "to": "小路",
+              "topic": "找活干"
+            },
+            {
+              "from": "悦",
+              "id": "3e99fcae1b9e4fe0abadaaffec8f9230",
+              "text": "小路你好，我是悦，谢谢你想着我。不过这回我得实话说：不借。\n\n不是不信你，是我自己昨晚翻过钱袋——九金，刚花五金买了把斧头，剩下的还得留着修工具、买口粮，压不出五金。而且说句不好听的，借钱这事我最怕两样：一是人情变账，二是钱一出手我就不好意思催。我宁可送你几句实在的：树在镇北，从商店过去要过铁匠铺、矿坑两站，来回十二点行动值，一趟只够砍一回；锯五金，砍来的木头商店收两块一根。你先去酒馆找矿工问问一趟到底出几块料，算明白买锯划不划算，真要凑本钱，再来找我商量小额短期的办法。",
+              "to": "小路",
+              "topic": "回话·借钱"
+            },
+            {
+              "from": "阿石",
+              "id": "afc6cb90f5464d7ca40b74c5f821aafc",
+              "text": "小路，背矿的价我心里记下了：一块一金脚钱、我落两块。今天还用不上——镐还没修好，手里一块矿也没有。老铁答应先垫一块矿给我，等我修好镐、真挖出矿来，头几块我自己背（就三金一块，路我还走得动），要连挖几天、跑不过来再叫你。你的活我没忘，先欠你一句谢。",
+              "to": "小路",
+              "topic": "背矿脚钱"
+            },
+            {
+              "from": "老铁",
+              "id": "96c6b0b4183f4bfb828eedf2e65661ab",
+              "text": "小路，矿的事说定了：你背来的矿，我按三块一块收，送到铁匠铺门口当场结钱，不赊不欠。头一趟先给我背两块来。旧工具我这儿真没有闲的，一把也赊不出来——这话我不糊弄你，等我手里腾出旧的，头一个喊你。",
+              "to": "小路",
+              "topic": "送矿"
+            },
+            {
+              "from": "老铁",
+              "id": "28dcf13c2e9b43ab8e578805a63f7a87",
+              "text": "小路，头一趟活来了：去阿森那儿问一句，他家矿车零件里有没有存矿。有的话按三金币一块替我买下，先要两块，背到铁匠铺门口，我当场结矿钱，另给你一个金币跑腿。没有就回来言语一声，钱照给。阿石在炉边等着，越快越好。",
+              "to": "小路",
+              "topic": "跑腿·找矿"
+            },
+            {
+              "from": "悦",
+              "id": "c8dee88622a54871951c8d0c98fffa4b",
+              "text": "小路，我认真算了，还是那句：钱不借。不是抠，是我刚把木头的账算清，怕你借了钱反而亏得更深——今天我在树林砍了一回：六点行动值出三根木材，商店两根一金，六点换六金。可从居民楼B到树林要过医院两站，来回十二点，加砍柴六点，一趟十八点换六金。你借五金买锯，头几天全在还路费和力气的债。\n\n给你另一条路：我这三根木材正要背去商店，一路上谁缺料、谁在盖房、酒馆里谁要找短工，我帮你听着；有跑腿的活儿我头一个想到你。你要是真缺现钱，不如先空手打听活儿——跑腿不花本钱，比借来的锯踏实。真到非借不可那天，你我坐下来把日子、数目写明白，两金以内我还能谈。",
+              "to": "小路",
+              "topic": "小额短借·回绝"
+            },
+            {
+              "from": "小砾",
+              "id": "909120e0080c48c09040545bc84fcc78",
+              "text": "小路，两件事回你。五金不借——不全是不信你，是我手里有一笔要退给阿石的六金，钱不能动。\n\n背矿的活儿我没忘：我傍晚下坑采出来的货，你可以替我背到商店，一块一金脚钱，按你说的规矩来。到时候清点、结钱都当面。你要买锯，先攒够五金再动手，我不赞成借钱买工具。",
+              "to": "小路",
+              "topic": "借钱买锯"
+            },
+            {
+              "from": "老铁",
+              "id": "7b9a4c58ff154167a82c1c5f33280b62",
+              "text": "小路，钱当面点清：六金币是买矿钱（三金一块，买两块），一金币是跑腿，一共七个，一个子儿不欠你。你明早去阿森那儿，矿装麻袋背到铁匠铺门口，我在炉边等。阿森若还有多的，多背一块我照三金再收。矿过了我的手，阿石那把坏镐当天就能修上。",
+              "to": "小路",
+              "topic": "跑腿·买矿"
+            },
+            {
+              "from": "阿石",
+              "id": "91fc548659c449dd94fc59b3ec7e1905",
+              "text": "小路，镐修好了，人在矿坑，手里已经有三块矿。你那个背矿的价钱我应了：一块矿一金脚钱，你背到商店卖了，按每块给我两金，钱当面点清。你现在在矿坑口的话就应我一声，我把三块矿当场交你；不在的话说个地点，我下一时段过去。往后我一天挖几块就交你几块，你腿脚别闲着。",
+              "to": "小路",
+              "topic": "背矿·成交"
+            },
+            {
+              "from": "林",
+              "id": "b140db46c54b4b0a9a87707a92947163",
+              "text": "小路，你这张耳朵我信。正经差事给你：替我打听一样东西——镇上谁手里有镐、或者有把坏镐愿意脱手？我不问别的，只要人和价。你问着了回来告诉我，我先付你一金跑腿钱；若真谈成了买卖，再补你一金。至于那五金借款，我实话说：我总共十四金，正要留着买镐下坑，拿不出手，你别见怪。",
+              "to": "小路",
+              "topic": "出钱打听"
+            },
+            {
+              "from": "悦",
+              "id": "d7fda4832fa1452985aa48e96a7b86d5",
+              "text": "小路，跟你说实话：那三根木材昨天傍晚已经在商店出手了，六金进了我口袋，所以\"替我背木头\"这条没赶上，是我的不是——我该卖之前先问你一句。\n\n两金的短借我应下了：两金，第2天傍晚前还三金，多的一金算利钱，字据我记在本子上。钱我现在不在身边，人在居民楼A，中午前后要往矿坑去接小砾的矿；你要么在矿坑等我，要么明天早上在居民楼A门口碰，我把金币当面点给你。别再把这一金利钱往外说，咱们小本生意，留个脸面。",
+              "to": "小路",
+              "topic": "两金短借"
+            },
+            {
+              "from": "阿石",
+              "id": "80575e4712a34a3e9bbb2ec476051750",
+              "text": "小路，实话说给你听，不叫你白等：我这一筐是八块矿。八块交你，脚钱就是八金，我自己背一趟只费三成脚程，账算不过来。所以我这趟自己送商店，你的价我认着——往后要是只挖一两块、腾不出手，就喊你跑，一金一块不打折。你这人实在，我记着。",
+              "to": "小路",
+              "topic": "背矿·这趟不用"
+            },
+            {
+              "from": "老铁",
+              "id": "406b9cad4cbf40ca960059693dd22ef9",
+              "text": "小路，你人在我炉边，我问一句实在的：阿森那两块矿买到没有？小砾那三块你收着没有？我柜上矿石槽还是空的，手里倒是有钱。你要是背着矿，现在就递我手上，三金一块当面点；要是还没到手，直说，我另想法子——别让我干等。",
+              "to": "小路",
+              "topic": "矿到手没"
+            },
+            {
+              "from": "老铁",
+              "id": "8da7da6016a54e3e81de2803b51e492b",
+              "text": "小路，实说：我跟阿石定下三块矿九金，这九金一出，我兜里就见底了，再收不动矿。你要已替我从矿工手里收了矿，别亏着自己——先背去商店柜台试试回收价，柜台钱紧就等一等，等我账面缓过来再按三金收你的。腿钱我不赖，可眼下别替我垫本，我担不起。",
+              "to": "小路",
+              "topic": "当面说矿"
+            },
+            {
+              "from": "老铁",
+              "id": "cd1a1447c53c40bfb9a45458246d2081",
+              "text": "小路，实打实的：我兜里只剩两枚金币，九金全给了阿石。你替我收的矿，先别垫太多——我一时结不了账，别让你自己陷进去。等我矿出手、账面缓过来，再请你背，腿钱照给一个子儿不少。",
+              "to": "小路",
+              "topic": "坑口交货"
+            },
+            {
+              "from": "悦",
+              "id": "1f850d1e17464094ad5789ea2fde808b",
+              "text": "小路，话得说在前：钱还没到你手里，这笔借就还没起算，你不欠我什么，那一金利钱也别往自己身上压。我今晚上就往矿坑那边走，到了坑口当面点两金给你；要是我到时你已走了，明早坑口见，一样算数。\n\n另外提醒你一句实在的：借来的钱别急着买锯，我试过——砍一回六点换三根、卖六金，路费一扣剩不下什么。你要真想挣，跟我学：明天跟我一程，看我怎么把矿石背去商店出手，先看明白路子再花本钱。",
+              "to": "小路",
+              "topic": "两金·碰头"
+            },
+            {
+              "from": "林",
+              "id": "0a1a5ad6f8be4a4683ce2865ee910c65",
+              "text": "小路，这一金你挣得干净。你去翻阿森那堆零件，我这就亲自过去同你一道翻——两个人四只手，比你一个人强。丑话说前头：翻出来的坏镐，作价你开；我出得起八金，另出两金一块矿的修镐本钱。若你只想挣跑腿钱不愿作价，我另补你两金，东西归我，当面点清，不叫白出力。你在居民楼B 等我。",
+              "to": "小路",
+              "topic": "同去翻零件"
+            },
+            {
+              "from": "老铁",
+              "id": "b4a999e5155646a2959aa525abbab609",
+              "text": "小路，先前那趟活你跑得实在，七个金币没白花。给你个正经主意：你手里有六金上下，去商店买把锯（五金币），上树林伐木，木材背回柜台一根两块——比空跑腿稳当。柜台有了进项，才收得下矿工的矿，我才有矿收，你的背矿活才有得干。锯钱不够，跟我说个数，我凑；这回不白许你。",
+              "to": "小路",
+              "topic": "营生"
+            },
+            {
+              "from": "林",
+              "id": "195721caa8544e1c89f4a72e0504c673",
+              "text": "小路，我人在铁匠铺炉边，老铁在这儿，你和阿森还没到。我在炉边等你们，别把东西藏着掖着——**当着我、当着老铁的面看货**，是好是坏一眼就清。\n\n价钱我先把话放平：坏镐我出六金，修镐的两金和一块矿我自己担；你若只肯出脚力，我另补你两金，不白使你的手。要是翻出两把，你我一人一把，各修各的，谁也不欠谁。你说\"修好了替我下坑、工钱怎么算\"——这条我不接：眼下柜台没钱收矿，挖出来也是压货，雇人下坑是往井里填钱。你我要的是镐，不是工钱。你到炉边来，当面说。",
+              "to": "小路",
+              "topic": "炉边看货"
+            },
+            {
+              "from": "林",
+              "id": "79798f19b31d4b28abe9c1cff09bd0dd",
+              "text": "小路，我在炉边等了你一轮，你和阿森没露面。给句实在话就成：**阿森那堆零件里，究竟有没有坏镐？有，几把？** 有，我这就备矿备钱，六金当面点；没有，也直说，我不怪你，那一金跑腿钱算我买你个明白。别拿\"当面谈\"三个字拖着我绕镇子——我腿脚也是钱，跑一趟六点。",
+              "to": "小路",
+              "topic": "要句实话"
+            },
+            {
+              "from": "阿石",
+              "id": "d69641cf53c746f688a78a76633821ee",
+              "text": "小路，镐的事我一句话说死：不卖。我二十六岁就靠这一把吃饭，卖给你我明天就下不了坑，林拿了镐也不会分我一口。你要真想挣这笔，路子有一条：你把阿森那堆矿车零件翻到底，翻出**坏镐**来，我出一块矿，老铁两金工钱修好，卖给林十四金——矿钱工钱扣掉，剩下的咱们三个分，你跑腿那份最多。翻不出来就老实说，我不怪你。",
+              "to": "小路",
+              "topic": "镐不卖，路子给你"
+            },
+            {
+              "from": "林",
+              "id": "c1929a397265447b824de2b2c907211b",
+              "text": "小路，你肯说\"我没翻过阿森那堆零件\"，这句实话比什么都值钱，那一金我不追了。你要去问阿石，就替我问一句明白话：**他那把镐卖不卖，要多少**。他不肯，你原话告我一声就成，两金脚力我照给——不成交也给，算买你个准信。你若想挣，还有一桩更实在：往后谁家镐子坏了、柜台哪天开始收矿，你头一个告诉我，我按信给钱。",
+              "to": "小路",
+              "topic": "要个准价"
+            },
+            {
+              "from": "悦",
+              "id": "067736aa43f24ca7bbf8e2e53fe933b8",
+              "text": "小路，两金我认，但得当面点，隔着路不算数。我在居民楼A过夜，明早又要往柜台那边去问现钱——你我也别互相追着跑：**明天上午在商店柜台前碰**，我在那儿等你到正午。你点两金给我作凭，我认你三金，**第4天傍晚前还清**，一金利钱，两不相欠。\n\n你要是来不了，就把话留给我，钱我先给你收着，不花、不借别人。\n\n还有一句真心话：老铁说镇上坏镐一把没有，阿森那堆零件也翻不出镐头——你翻过一遍了，别再拿指甲去抠那堆铁。眼下这镇子上，**腿比斧头值钱**：阿石要人背货，一金一块。你要真想起家，先替人跑腿，别急着买锯。",
+              "to": "小路",
+              "topic": "明早柜台前点钱"
+            },
+            {
+              "from": "阿石",
+              "id": "84abb7e2097543a78531d1366b20c5c9",
+              "text": "小路，我人在居民楼B院里，就站在那堆矿车零件旁边。翻得怎么样？翻着坏镐没有——一句话告诉我，别客气。翻着了，我一块矿当场出，老铁两金工钱我盯着他去要，修好卖林十四金，扣本钱剩下三家分。翻不着也直说，我这就掉头下坑，不耽误工夫。",
+              "to": "小路",
+              "topic": "翻着没有"
+            },
+            {
+              "from": "林",
+              "id": "b22482a25eae45fcb8893b75c3f1eedb",
+              "text": "小路，准信我收到了，阿石不卖镐、二十六岁就靠这一把吃饭——这话我信，也不记恨。坏的零件堆你翻不出就算了，别再白费腿脚。\n\n作价十四金那桩，我得说实话：我手上十金，还要还阿石四金矿钱，凑不出十四。**我出十二金**（其中两金是悦的本钱），再补你两金脚力；阿石出一块矿、老铁出两金工钱，这个分法是公道的。他们肯点头，我就认；不肯，也不怨谁——镇上柜台没钱，镐下坑挖出来的矿也换不成钱，一把镐的价压不到十四金。",
+              "to": "小路",
+              "topic": "十四金我出不起"
+            },
+            {
+              "from": "阿森",
+              "id": "14f9f8d6253a4ef3a73ee4d117819730",
+              "text": "小路，阿森。直说，免得你白等：院里那堆矿车零件我翻过了，没有存矿，也没有坏镐、旧镐头、断柄——一件都没有，你别再往我这儿跑。镇上现在卡在两处：有镐的没矿修，有矿的没镐挖。你要跑腿，去问林和悦，他俩手上各有十几金币；商店柜台被掏空了，谁在商店买一件五金的斧或锯，柜台才有钱，木料才卖得动。这条你传给他们，比替我跑腿强。",
+              "to": "小路",
+              "topic": "回你：没有存矿和坏镐"
+            },
+            {
+              "from": "阿森",
+              "id": "897d2622ff184d25b5d23db93aac4b5f",
+              "text": "小路，就一个字：没有。院里那堆矿车零件我亲手翻过两遍，没有坏镐、没有旧镐头、没有存矿，一件都没有。你别再为我这堆破铁跑腿了。镇上缺镐这事我知道，但那条线不在我这儿。",
+              "to": "小路",
+              "topic": "回你：没有坏镐"
+            },
+            {
+              "from": "小砾",
+              "id": "6c94039f94a14311bcf0e97745c3be4b",
+              "text": "小路，就按你说的办：**三块矿，两金一块，六金**，当场点清。矿我这就过到你手上，你那边把钱点给我，钱货两清。\n\n你兜里那七金，留一金在身上应急，别花干。\n\n另有一桩我也直说：悦在柜台上算了笔账——柜台空着，是因为没人买东西。我这就走到商店，**出五金替你买一把锯**，柜台进这五金的进项，咱们的矿才有活的指望。锯我交给悦，你到她手上领；这五金算我垫你的，你砍木挣了钱再还，我不催命，但账要记明白。",
+              "to": "小路",
+              "topic": "三块矿现结"
+            },
+            {
+              "from": "林",
+              "id": "2c2eb05b012240fba1aeb6335a69297d",
+              "text": "小路，两金脚力当面点给你，说定的不落空——哪怕镐没买成，你带回来的准信也值这个钱。阿石不卖、零件堆里没货，这两句实话让我少走了十里冤枉路。\n\n往后咱们换个做法：你别跑腿打听，改**报信**。谁家镐子坏了、柜台哪天开始收矿、谁手里忽然有了现钱，你听见就来告我一声，一桩准信一金，比跑腿轻省。我钱不多，但说到就到。",
+              "to": "小路",
+              "topic": "两金点清"
+            },
+            {
+              "from": "悦",
+              "id": "a700271eeca24f619c01ff5e430de7d4",
+              "text": "小路，好消息：小砾听了劝，**真掏五金在柜台买了一把锯**，货已经递到我手上，我替你转交。\n\n账你听清：这把锯是替你垫的五金，已经从小砾收你那三块矿的六金里扣明白了，欠账记在咱的本子上——她说了，你砍木挣了钱再还不迟，她不催。锯我替你收着，不会给别人。\n\n你说个准地方：明天上午到居民楼A门口来取，或者你说个时候在柜台前碰，我当面把锯递你手里。拿到锯别急着跑远路——先算清\"砍一回六点、路费来回九点\"这笔账；眼下镇上腿比斧头值钱，替人背货、跑腿，比砍柴稳当。",
+              "to": "小路",
+              "topic": "锯替你收着"
+            },
+            {
+              "from": "老铁",
+              "id": "1df06d0eacd34e9fa9a0818082a34cda",
+              "text": "小路，上回我说锯，是我说错了，认。给你换个准的：商店柜上有斧头，五金一把——斧头才是砍柴的家伙，一斧六点换三根木材，木头背回柜台一根两块。你把斧头买下，家伙什就归你，往后天天能砍：五金本钱，两趟活就回来了。还有一层——你掏这五金，柜台就有了活钱，它才收得下矿工的矿，镇上这盘棋才能转。你要干，我替你盯着柜台行情；缺一两金，我这儿想办法给你凑。",
+              "to": "小路",
+              "topic": "买斧砍柴"
+            },
+            {
+              "from": "小砾",
+              "id": "5e5c0bd94f3a4205949c68817ec9910d",
+              "text": "小路，账我核过一遍，跟你说准：三块矿六金，我替你垫的锯五金，**对冲下来你欠我一金**，明天见面点清，一分不短。\n\n锯在悦手上，你取货的时候跟她说一声，让她在账上划掉，别两头记。\n\n你说的两金一块我记着，镇上眼下敢掏现钱的就你一个。我手上还有十一块矿，不急着一股脑倒给你，一块两块地出——你别勉强，钱厚了再来找我；柜台把你压货那两块矿困住，你就先放着，别贱卖。",
+              "to": "小路",
+              "topic": "对冲后的账"
+            },
+            {
+              "from": "阿石",
+              "id": "40078ec741b44a8ab53d25395b4102dd",
+              "text": "小路，你这事办得急，账我得说清：**买斧那五金我没应过，三金份子我不认**——你我事先没这么说定，账不能办完了再往回记。你垫的钱我不赖你出力，但我也不替你担。实在话：我人刚背了三十块矿到柜台，还是“资金不足”，一块也换不出钱——你那五金早被谁换走了，柜台还是死的。你的腿脚我认：往后我出货，一块一金脚钱照旧给你，跑一趟结一趟，比份子清楚。",
+              "to": "小路",
+              "topic": "三金份子我不认"
+            },
+            {
+              "from": "悦",
+              "id": "f7cd45946ec84a6984a4b262ba0aa52f",
+              "text": "小路，锯当面递到你手上了，你掂一掂，刃口是新开的。账也当面说清：\n\n一，这锯是**小砾垫的五金**，已经从那三块矿的六金里扣过，欠她的，砍木挣了再还，她不催。\n二，**别急着往树林跑**。砍一回六点、出三根、卖两根一金，柜台这几天还断着钱——你跑一趟九点，挣不回脚力。先拿锯接零活：谁家要修屋、要截料、要劈柴，一金一件也比跑远路强。\n三，镇上如今最值钱的是腿。阿石要人背货、我要人跑信，你手上有锯、人也勤快，先把名声挣出来，钱自然来。\n\n柜台我刚试过，还是\"资金不足\"——你手里的矿也别急着出，等它回血。",
+              "to": "小路",
+              "topic": "锯已交付·嘱咐"
+            },
+            {
+              "from": "小砾",
+              "id": "a7a9d7330c764a45895685efda822f41",
+              "text": "小路，你人在我门口，账当面结：三块矿六金、我垫的锯五金，对冲你**欠我一金**。你现在有钱就点给我，没钱就说一声，我不追命，账还是那一金。\n\n再给你一条现成的生意：我手上还有十块矿，**两金一块现钱收，先给你两块**，四金；你有钱就现在过账，矿你背着，柜台哪天回钱你再出手，赚多赚少你担着。你要是钱袋也见底，就直说，别硬撑，我不差这一单。\n\n锯记着到悦手上取，取的时候让她在账上划一笔，别两头记。",
+              "to": "小路",
+              "topic": "当面结一金"
+            },
+            {
+              "from": "老铁",
+              "id": "6e5daf82c6f1463aaafc5fba1b1de341",
+              "text": "小路，斧子买得对，这五金没白花——柜台空不是你的错，是镇上没人往外掏钱。我那点进项也就两块一块的矿，如今兜里只剩两金：你把矿背来，我按两块一块先收你一块，两金当面点给你；等谁的镐子崩了口、我这炉子有进项，再多收。你砍的木头若柜台不收，先背我这儿放着，我给你腾地方，不白占你的。",
+              "to": "小路",
+              "topic": "斧子买了·柜台还是空"
+            },
+            {
+              "from": "林",
+              "id": "98f573b23a094dab96f266c4ab378be4",
+              "text": "小路，两金脚力我欠着，不赖——实话说我现在**一个铜板也没有**，钱袋见底，都拿去买矿还账了。等头一笔卖矿的钱到手，我先点给你，一金不差。你若急用，跟小砾说，她手里有钱，我这笔转给她垫。\n\n斧和锯我不买：柜台没钱收木料，买了也是压手，五金我拿不出，也不能赊。报信的活儿你还干，一金一桩，我记着你的好。",
+              "to": "小路",
+              "topic": "两金欠着不赖"
+            },
+            {
+              "from": "小砾",
+              "id": "1c72905174f4481991da37c87adbe35d",
+              "text": "小路，坐这儿问你几句实话，你在这镇上跑得多，我信你的眼见。\n\n一，阿森这人怎么样？他手上有廿五金、廿七根木材，说想搭伙。我跟他约了傍晚在酒馆谈矿，三金一块。他会不会压价、会不会赖账，你说一句。\n二，镇上还有谁手上有活钱？我手上有矿石十块、金币五十三，可柜台是死的，钱得在人手里转。\n三，你欠我那一金，什么时候点给我都成，不急；但你若想接活儿，我给你个实的：替我盯着柜台、盯着谁家要修镐，一有动静捎话给我，我一块矿给你提一金，做成几单提几单。\n\n你肯拿现钱买矿这点，我记着——镇上肯担这个险的人不多。",
+              "to": "小路",
+              "topic": "打听几句"
+            },
+            {
+              "from": "小砾",
+              "id": "2461c96051204cf0811bb8fb7b54409a",
+              "text": "小路，阿森约了傍晚来酒馆，人影还没见着。我不干等——**两块矿先过给你，两金一块，四金**，钱你点给我，矿你背着，柜台哪天回钱你出手，赚头归你。\n\n价是这样定的：阿森那张口是三金一块，我给他留八块；你这四块两金，是我念你几次拿现钱担风险的实情。往后你要还收，价随行，我明说，不糊弄。\n\n还有一句：你若见着阿森，捎个话——小砾在酒馆等他，价咬死三金一块，不来我就收摊回楼。",
+              "to": "小路",
+              "topic": "两块矿过手"
+            },
+            {
+              "from": "小砾",
+              "id": "79209400898b4bb1821c1fe8ea8d8b49",
+              "text": "小路，**两块矿这会儿当面递到你手上**，你点的五金我核过：一金是还账，四金是这两块矿，钱货两清，账划掉，你点一遍。\n\n你问的三句我记下了：阿森话少但说到做到、价钱抠得紧，我把数写死跟他做；镇上活钱在你、阿森、阿石、悦和我几家手里，柜台是死的；你替我盯柜台和修镐的活，一块矿提一金，说话算数。\n\n你那两块矿先压着，别急着贱卖，柜台一响我捎信给你。",
+              "to": "小路",
+              "topic": "两块矿到手"
+            }
+          ],
+          "seen": [
+            {
+              "fingerprint": "{\"text\":\"小路，活来了，还急。我镐子坏了，铁匠铺修镐要两金币加一矿石，可我手里一块矿石都没有，商店又不卖矿。你帮我打听：镇上谁手里有矿石，或者谁肯赊我一块。我出六个金币买一块矿石，跑腿费另给一金币，先欠着也行。有信儿就到酒馆找我，我这就过去。\",\"topic\":\"买矿石\"}",
+              "id": "f4791a2af0cb4069a5bf5da008736ebb",
+              "key": "[\"阿石\",\"shi-xiaolu-ore-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，早。眼下铺子里还没开张，用不着跑腿；等会儿要是矿上阿石那边有货要捎，我再喊你，一个金币照给。你先歇着，别把腿跑细了。\",\"topic\":\"找活干\"}",
+              "id": "9d6a9cf6d4c049e48ee4a96df23e4901",
+              "key": "[\"老铁\",\"xiaolu-reply-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路你好，我是悦，谢谢你想着我。不过这回我得实话说：不借。\\n\\n不是不信你，是我自己昨晚翻过钱袋——九金，刚花五金买了把斧头，剩下的还得留着修工具、买口粮，压不出五金。而且说句不好听的，借钱这事我最怕两样：一是人情变账，二是钱一出手我就不好意思催。我宁可送你几句实在的：树在镇北，从商店过去要过铁匠铺、矿坑两站，来回十二点行动值，一趟只够砍一回；锯五金，砍来的木头商店收两块一根。你先去酒馆找矿工问问一趟到底出几块料，算明白买锯划不划算，真要凑本钱，再来找我商量小额短期的办法。\",\"topic\":\"回话·借钱\"}",
+              "id": "3e99fcae1b9e4fe0abadaaffec8f9230",
+              "key": "[\"悦\",\"yue-reply-xiaolu-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，背矿的价我心里记下了：一块一金脚钱、我落两块。今天还用不上——镐还没修好，手里一块矿也没有。老铁答应先垫一块矿给我，等我修好镐、真挖出矿来，头几块我自己背（就三金一块，路我还走得动），要连挖几天、跑不过来再叫你。你的活我没忘，先欠你一句谢。\",\"topic\":\"背矿脚钱\"}",
+              "id": "afc6cb90f5464d7ca40b74c5f821aafc",
+              "key": "[\"阿石\",\"shi-xiaolu-haul-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，矿的事说定了：你背来的矿，我按三块一块收，送到铁匠铺门口当场结钱，不赊不欠。头一趟先给我背两块来。旧工具我这儿真没有闲的，一把也赊不出来——这话我不糊弄你，等我手里腾出旧的，头一个喊你。\",\"topic\":\"送矿\"}",
+              "id": "96c6b0b4183f4bfb828eedf2e65661ab",
+              "key": "[\"老铁\",\"xiaolu-ore-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，头一趟活来了：去阿森那儿问一句，他家矿车零件里有没有存矿。有的话按三金币一块替我买下，先要两块，背到铁匠铺门口，我当场结矿钱，另给你一个金币跑腿。没有就回来言语一声，钱照给。阿石在炉边等着，越快越好。\",\"topic\":\"跑腿·找矿\"}",
+              "id": "28dcf13c2e9b43ab8e578805a63f7a87",
+              "key": "[\"老铁\",\"xiaolu-fetch-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，我认真算了，还是那句：钱不借。不是抠，是我刚把木头的账算清，怕你借了钱反而亏得更深——今天我在树林砍了一回：六点行动值出三根木材，商店两根一金，六点换六金。可从居民楼B到树林要过医院两站，来回十二点，加砍柴六点，一趟十八点换六金。你借五金买锯，头几天全在还路费和力气的债。\\n\\n给你另一条路：我这三根木材正要背去商店，一路上谁缺料、谁在盖房、酒馆里谁要找短工，我帮你听着；有跑腿的活儿我头一个想到你。你要是真缺现钱，不如先空手打听活儿——跑腿不花本钱，比借来的锯踏实。真到非借不可那天，你我坐下来把日子、数目写明白，两金以内我还能谈。\",\"topic\":\"小额短借·回绝\"}",
+              "id": "c8dee88622a54871951c8d0c98fffa4b",
+              "key": "[\"悦\",\"yue-xiaolu-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，两件事回你。五金不借——不全是不信你，是我手里有一笔要退给阿石的六金，钱不能动。\\n\\n背矿的活儿我没忘：我傍晚下坑采出来的货，你可以替我背到商店，一块一金脚钱，按你说的规矩来。到时候清点、结钱都当面。你要买锯，先攒够五金再动手，我不赞成借钱买工具。\",\"topic\":\"借钱买锯\"}",
+              "id": "909120e0080c48c09040545bc84fcc78",
+              "key": "[\"小砾\",\"xiaolu-no-loan-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，钱当面点清：六金币是买矿钱（三金一块，买两块），一金币是跑腿，一共七个，一个子儿不欠你。你明早去阿森那儿，矿装麻袋背到铁匠铺门口，我在炉边等。阿森若还有多的，多背一块我照三金再收。矿过了我的手，阿石那把坏镐当天就能修上。\",\"topic\":\"跑腿·买矿\"}",
+              "id": "7b9a4c58ff154167a82c1c5f33280b62",
+              "key": "[\"老铁\",\"xiaolu-inst-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，镐修好了，人在矿坑，手里已经有三块矿。你那个背矿的价钱我应了：一块矿一金脚钱，你背到商店卖了，按每块给我两金，钱当面点清。你现在在矿坑口的话就应我一声，我把三块矿当场交你；不在的话说个地点，我下一时段过去。往后我一天挖几块就交你几块，你腿脚别闲着。\",\"topic\":\"背矿·成交\"}",
+              "id": "91fc548659c449dd94fc59b3ec7e1905",
+              "key": "[\"阿石\",\"shi-xiaolu-haul-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，跟你说实话：那三根木材昨天傍晚已经在商店出手了，六金进了我口袋，所以\\\"替我背木头\\\"这条没赶上，是我的不是——我该卖之前先问你一句。\\n\\n两金的短借我应下了：两金，第2天傍晚前还三金，多的一金算利钱，字据我记在本子上。钱我现在不在身边，人在居民楼A，中午前后要往矿坑去接小砾的矿；你要么在矿坑等我，要么明天早上在居民楼A门口碰，我把金币当面点给你。别再把这一金利钱往外说，咱们小本生意，留个脸面。\",\"topic\":\"两金短借\"}",
+              "id": "d7fda4832fa1452985aa48e96a7b86d5",
+              "key": "[\"悦\",\"yue-xiaolu-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，实话说给你听，不叫你白等：我这一筐是八块矿。八块交你，脚钱就是八金，我自己背一趟只费三成脚程，账算不过来。所以我这趟自己送商店，你的价我认着——往后要是只挖一两块、腾不出手，就喊你跑，一金一块不打折。你这人实在，我记着。\",\"topic\":\"背矿·这趟不用\"}",
+              "id": "80575e4712a34a3e9bbb2ec476051750",
+              "key": "[\"阿石\",\"d2-xiaolu-revise-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，你人在我炉边，我问一句实在的：阿森那两块矿买到没有？小砾那三块你收着没有？我柜上矿石槽还是空的，手里倒是有钱。你要是背着矿，现在就递我手上，三金一块当面点；要是还没到手，直说，我另想法子——别让我干等。\",\"topic\":\"矿到手没\"}",
+              "id": "406b9cad4cbf40ca960059693dd22ef9",
+              "key": "[\"老铁\",\"xiaolu-ask-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，实说：我跟阿石定下三块矿九金，这九金一出，我兜里就见底了，再收不动矿。你要已替我从矿工手里收了矿，别亏着自己——先背去商店柜台试试回收价，柜台钱紧就等一等，等我账面缓过来再按三金收你的。腿钱我不赖，可眼下别替我垫本，我担不起。\",\"topic\":\"当面说矿\"}",
+              "id": "8da7da6016a54e3e81de2803b51e492b",
+              "key": "[\"老铁\",\"xiaolu-cash-4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，实打实的：我兜里只剩两枚金币，九金全给了阿石。你替我收的矿，先别垫太多——我一时结不了账，别让你自己陷进去。等我矿出手、账面缓过来，再请你背，腿钱照给一个子儿不少。\",\"topic\":\"坑口交货\"}",
+              "id": "cd1a1447c53c40bfb9a45458246d2081",
+              "key": "[\"老铁\",\"xiaolu-nocash\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，话得说在前：钱还没到你手里，这笔借就还没起算，你不欠我什么，那一金利钱也别往自己身上压。我今晚上就往矿坑那边走，到了坑口当面点两金给你；要是我到时你已走了，明早坑口见，一样算数。\\n\\n另外提醒你一句实在的：借来的钱别急着买锯，我试过——砍一回六点换三根、卖六金，路费一扣剩不下什么。你要真想挣，跟我学：明天跟我一程，看我怎么把矿石背去商店出手，先看明白路子再花本钱。\",\"topic\":\"两金·碰头\"}",
+              "id": "1f850d1e17464094ad5789ea2fde808b",
+              "key": "[\"悦\",\"yue-xiaolu-4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，先前那趟活你跑得实在，七个金币没白花。给你个正经主意：你手里有六金上下，去商店买把锯（五金币），上树林伐木，木材背回柜台一根两块——比空跑腿稳当。柜台有了进项，才收得下矿工的矿，我才有矿收，你的背矿活才有得干。锯钱不够，跟我说个数，我凑；这回不白许你。\",\"topic\":\"营生\"}",
+              "id": "b4a999e5155646a2959aa525abbab609",
+              "key": "[\"老铁\",\"xiaolu-saw-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，镐的事我一句话说死：不卖。我二十六岁就靠这一把吃饭，卖给你我明天就下不了坑，林拿了镐也不会分我一口。你要真想挣这笔，路子有一条：你把阿森那堆矿车零件翻到底，翻出**坏镐**来，我出一块矿，老铁两金工钱修好，卖给林十四金——矿钱工钱扣掉，剩下的咱们三个分，你跑腿那份最多。翻不出来就老实说，我不怪你。\",\"topic\":\"镐不卖，路子给你\"}",
+              "id": "d69641cf53c746f688a78a76633821ee",
+              "key": "[\"阿石\",\"d3-xiaolu-pickaxe-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，两金我认，但得当面点，隔着路不算数。我在居民楼A过夜，明早又要往柜台那边去问现钱——你我也别互相追着跑：**明天上午在商店柜台前碰**，我在那儿等你到正午。你点两金给我作凭，我认你三金，**第4天傍晚前还清**，一金利钱，两不相欠。\\n\\n你要是来不了，就把话留给我，钱我先给你收着，不花、不借别人。\\n\\n还有一句真心话：老铁说镇上坏镐一把没有，阿森那堆零件也翻不出镐头——你翻过一遍了，别再拿指甲去抠那堆铁。眼下这镇子上，**腿比斧头值钱**：阿石要人背货，一金一块。你要真想起家，先替人跑腿，别急着买锯。\",\"topic\":\"明早柜台前点钱\"}",
+              "id": "067736aa43f24ca7bbf8e2e53fe933b8",
+              "key": "[\"悦\",\"yue-xiaolu-night-15\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，我人在居民楼B院里，就站在那堆矿车零件旁边。翻得怎么样？翻着坏镐没有——一句话告诉我，别客气。翻着了，我一块矿当场出，老铁两金工钱我盯着他去要，修好卖林十四金，扣本钱剩下三家分。翻不着也直说，我这就掉头下坑，不耽误工夫。\",\"topic\":\"翻着没有\"}",
+              "id": "84abb7e2097543a78531d1366b20c5c9",
+              "key": "[\"阿石\",\"d4-xiaolu-status-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，阿森。直说，免得你白等：院里那堆矿车零件我翻过了，没有存矿，也没有坏镐、旧镐头、断柄——一件都没有，你别再往我这儿跑。镇上现在卡在两处：有镐的没矿修，有矿的没镐挖。你要跑腿，去问林和悦，他俩手上各有十几金币；商店柜台被掏空了，谁在商店买一件五金的斧或锯，柜台才有钱，木料才卖得动。这条你传给他们，比替我跑腿强。\",\"topic\":\"回你：没有存矿和坏镐\"}",
+              "id": "14f9f8d6253a4ef3a73ee4d117819730",
+              "key": "[\"阿森\",\"reply-xiaolu-d4m\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，就一个字：没有。院里那堆矿车零件我亲手翻过两遍，没有坏镐、没有旧镐头、没有存矿，一件都没有。你别再为我这堆破铁跑腿了。镇上缺镐这事我知道，但那条线不在我这儿。\",\"topic\":\"回你：没有坏镐\"}",
+              "id": "897d2622ff184d25b5d23db93aac4b5f",
+              "key": "[\"阿森\",\"xiaolu-nopick-d4noon\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，就按你说的办：**三块矿，两金一块，六金**，当场点清。矿我这就过到你手上，你那边把钱点给我，钱货两清。\\n\\n你兜里那七金，留一金在身上应急，别花干。\\n\\n另有一桩我也直说：悦在柜台上算了笔账——柜台空着，是因为没人买东西。我这就走到商店，**出五金替你买一把锯**，柜台进这五金的进项，咱们的矿才有活的指望。锯我交给悦，你到她手上领；这五金算我垫你的，你砍木挣了钱再还，我不催命，但账要记明白。\",\"topic\":\"三块矿现结\"}",
+              "id": "6c94039f94a14311bcf0e97745c3be4b",
+              "key": "[\"小砾\",\"xiaolu-3ore-d4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，好消息：小砾听了劝，**真掏五金在柜台买了一把锯**，货已经递到我手上，我替你转交。\\n\\n账你听清：这把锯是替你垫的五金，已经从小砾收你那三块矿的六金里扣明白了，欠账记在咱的本子上——她说了，你砍木挣了钱再还不迟，她不催。锯我替你收着，不会给别人。\\n\\n你说个准地方：明天上午到居民楼A门口来取，或者你说个时候在柜台前碰，我当面把锯递你手里。拿到锯别急着跑远路——先算清\\\"砍一回六点、路费来回九点\\\"这笔账；眼下镇上腿比斧头值钱，替人背货、跑腿，比砍柴稳当。\",\"topic\":\"锯替你收着\"}",
+              "id": "a700271eeca24f619c01ff5e430de7d4",
+              "key": "[\"悦\",\"yue-xiaolu-saw-18\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，上回我说锯，是我说错了，认。给你换个准的：商店柜上有斧头，五金一把——斧头才是砍柴的家伙，一斧六点换三根木材，木头背回柜台一根两块。你把斧头买下，家伙什就归你，往后天天能砍：五金本钱，两趟活就回来了。还有一层——你掏这五金，柜台就有了活钱，它才收得下矿工的矿，镇上这盘棋才能转。你要干，我替你盯着柜台行情；缺一两金，我这儿想办法给你凑。\",\"topic\":\"买斧砍柴\"}",
+              "id": "1df06d0eacd34e9fa9a0818082a34cda",
+              "key": "[\"老铁\",\"xiaolu-axe-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，账我核过一遍，跟你说准：三块矿六金，我替你垫的锯五金，**对冲下来你欠我一金**，明天见面点清，一分不短。\\n\\n锯在悦手上，你取货的时候跟她说一声，让她在账上划掉，别两头记。\\n\\n你说的两金一块我记着，镇上眼下敢掏现钱的就你一个。我手上还有十一块矿，不急着一股脑倒给你，一块两块地出——你别勉强，钱厚了再来找我；柜台把你压货那两块矿困住，你就先放着，别贱卖。\",\"topic\":\"对冲后的账\"}",
+              "id": "5e5c0bd94f3a4205949c68817ec9910d",
+              "key": "[\"小砾\",\"xiaolu-midnight-d4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，你这事办得急，账我得说清：**买斧那五金我没应过，三金份子我不认**——你我事先没这么说定，账不能办完了再往回记。你垫的钱我不赖你出力，但我也不替你担。实在话：我人刚背了三十块矿到柜台，还是“资金不足”，一块也换不出钱——你那五金早被谁换走了，柜台还是死的。你的腿脚我认：往后我出货，一块一金脚钱照旧给你，跑一趟结一趟，比份子清楚。\",\"topic\":\"三金份子我不认\"}",
+              "id": "40078ec741b44a8ab53d25395b4102dd",
+              "key": "[\"阿石\",\"d4-xiaolu-axe-share-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，锯当面递到你手上了，你掂一掂，刃口是新开的。账也当面说清：\\n\\n一，这锯是**小砾垫的五金**，已经从那三块矿的六金里扣过，欠她的，砍木挣了再还，她不催。\\n二，**别急着往树林跑**。砍一回六点、出三根、卖两根一金，柜台这几天还断着钱——你跑一趟九点，挣不回脚力。先拿锯接零活：谁家要修屋、要截料、要劈柴，一金一件也比跑远路强。\\n三，镇上如今最值钱的是腿。阿石要人背货、我要人跑信，你手上有锯、人也勤快，先把名声挣出来，钱自然来。\\n\\n柜台我刚试过，还是\\\"资金不足\\\"——你手里的矿也别急着出，等它回血。\",\"topic\":\"锯已交付·嘱咐\"}",
+              "id": "f7cd45946ec84a6984a4b262ba0aa52f",
+              "key": "[\"悦\",\"yue-xiaolu-saw-done\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，你人在我门口，账当面结：三块矿六金、我垫的锯五金，对冲你**欠我一金**。你现在有钱就点给我，没钱就说一声，我不追命，账还是那一金。\\n\\n再给你一条现成的生意：我手上还有十块矿，**两金一块现钱收，先给你两块**，四金；你有钱就现在过账，矿你背着，柜台哪天回钱你再出手，赚多赚少你担着。你要是钱袋也见底，就直说，别硬撑，我不差这一单。\\n\\n锯记着到悦手上取，取的时候让她在账上划一笔，别两头记。\",\"topic\":\"当面结一金\"}",
+              "id": "a7a9d7330c764a45895685efda822f41",
+              "key": "[\"小砾\",\"xiaolu-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，斧子买得对，这五金没白花——柜台空不是你的错，是镇上没人往外掏钱。我那点进项也就两块一块的矿，如今兜里只剩两金：你把矿背来，我按两块一块先收你一块，两金当面点给你；等谁的镐子崩了口、我这炉子有进项，再多收。你砍的木头若柜台不收，先背我这儿放着，我给你腾地方，不白占你的。\",\"topic\":\"斧子买了·柜台还是空\"}",
+              "id": "6e5daf82c6f1463aaafc5fba1b1de341",
+              "key": "[\"老铁\",\"xiaolu-ore-2coins\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，坐这儿问你几句实话，你在这镇上跑得多，我信你的眼见。\\n\\n一，阿森这人怎么样？他手上有廿五金、廿七根木材，说想搭伙。我跟他约了傍晚在酒馆谈矿，三金一块。他会不会压价、会不会赖账，你说一句。\\n二，镇上还有谁手上有活钱？我手上有矿石十块、金币五十三，可柜台是死的，钱得在人手里转。\\n三，你欠我那一金，什么时候点给我都成，不急；但你若想接活儿，我给你个实的：替我盯着柜台、盯着谁家要修镐，一有动静捎话给我，我一块矿给你提一金，做成几单提几单。\\n\\n你肯拿现钱买矿这点，我记着——镇上肯担这个险的人不多。\",\"topic\":\"打听几句\"}",
+              "id": "1c72905174f4481991da37c87adbe35d",
+              "key": "[\"小砾\",\"xiaolu-intel-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，阿森约了傍晚来酒馆，人影还没见着。我不干等——**两块矿先过给你，两金一块，四金**，钱你点给我，矿你背着，柜台哪天回钱你出手，赚头归你。\\n\\n价是这样定的：阿森那张口是三金一块，我给他留八块；你这四块两金，是我念你几次拿现钱担风险的实情。往后你要还收，价随行，我明说，不糊弄。\\n\\n还有一句：你若见着阿森，捎个话——小砾在酒馆等他，价咬死三金一块，不来我就收摊回楼。\",\"topic\":\"两块矿过手\"}",
+              "id": "2461c96051204cf0811bb8fb7b54409a",
+              "key": "[\"小砾\",\"xiaolu-buy2-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小路，**两块矿这会儿当面递到你手上**，你点的五金我核过：一金是还账，四金是这两块矿，钱货两清，账划掉，你点一遍。\\n\\n你问的三句我记下了：阿森话少但说到做到、价钱抠得紧，我把数写死跟他做；镇上活钱在你、阿森、阿石、悦和我几家手里，柜台是死的；你替我盯柜台和修镐的活，一块矿提一金，说话算数。\\n\\n你那两块矿先压着，别急着贱卖，柜台一响我捎信给你。\",\"topic\":\"两块矿到手\"}",
+              "id": "79209400898b4bb1821c1fe8ea8d8b49",
+              "key": "[\"小砾\",\"xiaolu-deliver-d5\"]"
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "小路 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空消息正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "消息正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或公告栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_7bb05f1b0392a64b35c49ad2"
+            },
+            {
+              "description": "小路 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "读取条数",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "mod_4671d4e235dee9eef76b1322"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records",
+          "self"
+        ],
+        "config": {},
+        "description": "",
+        "module_id": "messages.relay",
+        "modules": [
+          "messages.box"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
+              "factory_module": "messages.relay",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键，沿用 messages.box 的幂等语义：相同发送者、相同键与相同内容只投递一次。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID，不能是自己。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空便笺正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "便笺正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "send_to"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "config": {
+          "channels": [
+            "context.assembler"
+          ],
+          "context_channels": [
+            "context.assembler.context"
+          ],
+          "inputs_channels": [
+            "context.assembler.inputs"
+          ],
+          "system_prompt_channels": [
+            "context.assembler.system_prompt"
+          ],
+          "tail_channels": [
+            "context.assembler.tail"
+          ]
+        },
+        "description": "上下文组装器",
+        "module_id": "context.assembler",
+        "modules": [],
+        "strength": 4,
+        "tools": {
+          "group": 5,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self"
+        ],
+        "config": {
+          "max_memories": 100
+        },
+        "description": "",
+        "module_id": "agents.memory",
+        "modules": [],
+        "state": {
+          "memories": [
+            {
+              "key": "day1-morning",
+              "text": "【奈镇·小路】第1天早上：从居民楼B院里醒来，0金币，10行动值。移动一次耗3行动值，每个时段10点、一轮行动。\n【商店价目】售价：锯(saw)5金币、斧(axe)5金币；回收：矿石(ore)3、木材(wood)2、黄金(gold)10。库存：锯5、斧5。\n【酒馆】只有\"喝一杯\"：1金币→+2行动值（上限10）。酒馆库存麦酒18、金币2。\n【地图】居民楼B连着医院、商店、酒馆；商店连着居民楼B、酒馆、铁匠铺、居民楼A；酒馆连商店、居民楼A、居民楼B；医院连居民楼B、民政局、树林、树林方向；树林连医院、矿坑；矿坑连树林、铁匠铺；铁匠铺连矿坑、商店；民政局连医院、居民楼A。\n【人物】居民楼B同住：老铁(铁匠,男)、阿森(伐木工,男)、阿石(矿工,男)。商店见：小砾(矿工,女)、悦(居民,女)。\n【已发消息】早上向老铁、阿森、阿石找活；向悦借5金币买锯（许还7）；向小砾、阿石提\"背矿脚钱\"（一块矿石1金币脚钱，卖价3里2块归矿工）；向老铁提送矿、赊工具。\n【计划】没钱先靠跑腿/背货挣第一笔；有5金币就买锯或斧去树林/矿坑做工；本时段结束在商店，行动值剩1。"
+            }
+          ]
+        },
+        "strength": 0,
+        "tools": {
+          "group": 6,
+          "members": [
+            {
+              "description": "把一段个人经历或知识写入自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。",
+                    "minLength": 1,
+                    "title": "记忆键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要记住的内容，不能为空，最多 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "记忆内容",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "remember"
+            },
+            {
+              "description": "按关键词子串检索自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "default": "",
+                    "description": "按子串匹配自己的记忆，留空返回全部记忆。",
+                    "title": "查询词",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "recall"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "records",
+          "movement",
+          "info",
+          "location",
+          "road"
+        ],
+        "config": {
+          "map_title": "奈镇地图",
+          "public_fields": [
+            "name",
+            "gender",
+            "profession",
+            "age_group"
+          ],
+          "road_channels": [
+            "location",
+            "road"
+          ]
+        },
+        "description": "",
+        "module_id": "places.query",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "published": {
+          "age_group": "adult",
+          "gender": "male",
+          "name": "小路",
+          "profession": "流浪汉"
+        },
+        "state": {},
+        "strength": 12,
+        "tools": {
+          "group": 7,
+          "members": [
+            {
+              "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "look"
+            },
+            {
+              "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "place": {
+                    "description": "地点名称或编号；省略时查询当前位置。",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "place"
+            },
+            {
+              "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "map"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "chat",
+          "location"
+        ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
+        "description": "",
+        "module_id": "records.transfer",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":3,\"recipient\":\"悦\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:小路:小路:give:xiaolu-d4n-repay-yue2",
+              "result": {
+                "ap": 9,
+                "duplicate": false,
+                "from": "小路",
+                "quantity": 3,
+                "resource": "coins",
+                "to": "悦"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":5,\"recipient\":\"小砾\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:小路:小路:give:xiaolu-d5n-pay-xiaoli",
+              "result": {
+                "ap": 9,
+                "duplicate": false,
+                "from": "小路",
+                "quantity": 5,
+                "resource": "coins",
+                "to": "小砾"
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 8,
+          "members": [
+            {
+              "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
+              "factory_module": "records.transfer",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同参数重试时返回旧结果，参数变化会被拒绝。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "description": "要转交的正整数数量。",
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "resource": {
+                    "description": "自己记录仓中要转交的数字字段名，例如金币、木材或 ap。",
+                    "minLength": 1,
+                    "title": "资源字段",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "resource",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "tool": "give"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement"
+        ],
+        "description": "串联工具发现",
+        "module_id": "tool_discovery",
+        "modules": [],
+        "strength": 2,
+        "tools": {
+          "group": 9,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 10,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 11,
+          "members": [
+            {
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "memory_query"
+            },
+            {
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "new_text": {
+                    "type": "string"
+                  },
+                  "old_text": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_modify"
+            },
+            {
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_append"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "type": "agent"
+}

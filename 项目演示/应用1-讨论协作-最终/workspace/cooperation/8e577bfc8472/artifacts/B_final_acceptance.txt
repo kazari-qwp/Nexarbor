@@ -1,0 +1,114 @@
+== repo: E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\6fe0f5dd8699d140
+== head: 59d81758355bf1e5035d798eae2c6f720e5e462c
+hone acceptance harness
+repo root : E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\6fe0f5dd8699d140
+python    : 3.14.7
+mode      : full
+------------------------------------------------------------------------
+PASS AC1  - hone.Hone is Hone; DEFAULT_DELIMITERS ok
+PASS AC2  - column names/data rows/empty filter/cache/stdin ok
+PASS AC3  - small_cats auto schema equals nested_schema.json
+PASS AC4  - comma_test/quotes_test/small_cats auto conversion ok
+PASS AC5  - dict/JSON-str/generated schema conversions ok
+PASS AC6  - no second unescaping; exact fixture output
+PASS AC7  - quotes, N/A, empty cell -> ''
+PASS AC8  - b.c.{d,e}, b.d.{e,f}; row2 b.d.f == '12'
+PASS AC9  - example_a/c match examples/README; examples/demo.py runs
+PASS AC10 - CLI file output equals API; indent=2/sort_keys/trailing newline
+PASS AC11 - stdout and stdin ('- -') round-trips ok
+PASS AC12 - help exit 0 and documents positionals/-d/-s
+PASS AC13 - 1 for missing file; 2 for bad -d/-s; single-line hone: error:
+PASS AC14 - wheel builds/installs; import + hone --help + python -m hone ok; dist=['hone-0.1.0-py3-none-any.whl']
+PASS AC15 - unittest all green (['OK']); demo ok; samples untouched; git clean
+------------------------------------------------------------------------
+RESULT: 15 passed, 0 failed, 0 skipped (of 15 executed)
+
+== unittest ==
+test_bad_delimiters_exits_two (tests.test_cli.TestCliErrors.test_bad_delimiters_exits_two) ... ok
+test_bad_schema_json_exits_two (tests.test_cli.TestCliErrors.test_bad_schema_json_exits_two) ... ok
+test_missing_input_file_exits_one_without_traceback (tests.test_cli.TestCliErrors.test_missing_input_file_exits_one_without_traceback) ... ok
+test_schema_list_exits_two (tests.test_cli.TestCliErrors.test_schema_list_exits_two) ... ok
+test_file_output_equals_convert_and_is_sorted_indented (tests.test_cli.TestCliFileOutput.test_file_output_equals_convert_and_is_sorted_indented) ... ok
+test_schema_and_delimiters_options (tests.test_cli.TestCliFileOutput.test_schema_and_delimiters_options) ... ok
+test_help_exit_zero_and_mentions_options (tests.test_cli.TestCliHelp.test_help_exit_zero_and_mentions_options) ... ok
+test_stdin_and_stdout_dash (tests.test_cli.TestCliStandardStreams.test_stdin_and_stdout_dash) ... ok
+test_stdin_only (tests.test_cli.TestCliStandardStreams.test_stdin_only) ... ok
+test_stdout_dash (tests.test_cli.TestCliStandardStreams.test_stdout_dash) ... ok
+test_main_returns_one_for_runtime_error (tests.test_cli.TestMainFunction.test_main_returns_one_for_runtime_error) ... hone: error: [Errno 2] No such file or directory: 'E:\\项目_手动重构\\build\\final-hone-dh1b_5mf\\runtime\\temp\\tmp_2tqdfct\\missing.csv'
+ok
+test_main_returns_zero_for_success (tests.test_cli.TestMainFunction.test_main_returns_zero_for_success) ... ok
+test_ac4_every_dataset_matches_expected_json (tests.test_convert.AutomaticConversionTests.test_ac4_every_dataset_matches_expected_json) ... ok
+test_ac8_example_b_full_result (tests.test_convert.AutomaticConversionTests.test_ac8_example_b_full_result) ... ok
+test_example_a_matches_small_cats_fixture (tests.test_convert.AutomaticConversionTests.test_example_a_matches_small_cats_fixture) ... ok
+test_example_c_matches_readme (tests.test_convert.AutomaticConversionTests.test_example_c_matches_readme) ... ok
+test_csv_utils_instance_is_reused (tests.test_convert.PopulationTests.test_csv_utils_instance_is_reused) ... ok
+test_empty_cells_and_missing_values (tests.test_convert.PopulationTests.test_empty_cells_and_missing_values) ... ok
+test_no_data_rows_yields_empty_list (tests.test_convert.PopulationTests.test_no_data_rows_yields_empty_list) ... ok
+test_populate_structure_with_data (tests.test_convert.PopulationTests.test_populate_structure_with_data) ... ok
+test_stdin_schema_then_convert_reads_only_once (tests.test_convert.PopulationTests.test_stdin_schema_then_convert_reads_only_once) ... ok
+test_ac5_explicit_schema_file (tests.test_convert.SchemaDrivenConversionTests.test_ac5_explicit_schema_file) ... ok
+test_ac5_schema_returned_by_get_schema_round_trips (tests.test_convert.SchemaDrivenConversionTests.test_ac5_schema_returned_by_get_schema_round_trips) ... ok
+test_custom_delimiters (tests.test_convert.SchemaDrivenConversionTests.test_custom_delimiters) ... ok
+test_invalid_schema_raises (tests.test_convert.SchemaDrivenConversionTests.test_invalid_schema_raises) ... ok
+test_schema_accepted_as_json_string (tests.test_convert.SchemaDrivenConversionTests.test_schema_accepted_as_json_string) ... ok
+test_blank_rows_are_filtered (tests.test_csv_utils.CSVUtilsBlankAndCacheTest.test_blank_rows_are_filtered) ... ok
+test_open_csv_context_manager (tests.test_csv_utils.CSVUtilsBlankAndCacheTest.test_open_csv_context_manager) ... ok
+test_stdin_is_read_only_once (tests.test_csv_utils.CSVUtilsBlankAndCacheTest.test_stdin_is_read_only_once) ... ok
+test_all_rows_equals_split_files (tests.test_csv_utils.CSVUtilsColumnNamesTest.test_all_rows_equals_split_files) ... ok
+test_data_rows_file_alone_has_no_data_rows (tests.test_csv_utils.CSVUtilsColumnNamesTest.test_data_rows_file_alone_has_no_data_rows) ... ok
+test_get_column_names_quotes (tests.test_csv_utils.CSVUtilsColumnNamesTest.test_get_column_names_quotes) ... ok
+test_get_column_names_small_cats (tests.test_csv_utils.CSVUtilsColumnNamesTest.test_get_column_names_small_cats) ... ok
+test_get_data_rows_small_cats (tests.test_csv_utils.CSVUtilsColumnNamesTest.test_get_data_rows_small_cats) ... ok
+test_parse_csv_file_helper (tests.test_csv_utils.CSVUtilsColumnNamesTest.test_parse_csv_file_helper) ... ok
+test_demo_script_runs (tests.test_examples.DemoTest.test_demo_script_runs) ... ok
+test_example_a_matches_readme (tests.test_examples.ExampleConversionTest.test_example_a_matches_readme) ... ok
+test_example_b_matches_expected_structure (tests.test_examples.ExampleConversionTest.test_example_b_matches_expected_structure) ... ok
+test_example_c_matches_readme (tests.test_examples.ExampleConversionTest.test_example_c_matches_readme) ... ok
+test_readme_covers_required_topics (tests.test_examples.ReadmeTest.test_readme_covers_required_topics) ... ok
+test_public_samples_and_docs_are_untouched (tests.test_examples.SampleFilesUnchangedTest.test_public_samples_and_docs_are_untouched) ... ok
+test_wheel_build_install_and_entrypoints (tests.test_packaging.TestPackaging.test_wheel_build_install_and_entrypoints) ... ok
+test_ac3_small_cats_schema_matches_fixture (tests.test_schema.AutoSchemaTests.test_ac3_small_cats_schema_matches_fixture) ... ok
+test_ac8_example_b_schema (tests.test_schema.AutoSchemaTests.test_ac8_example_b_schema) ... ok
+test_custom_delimiters_nest_recursively (tests.test_schema.AutoSchemaTests.test_custom_delimiters_nest_recursively) ... ok
+test_empty_column_names (tests.test_schema.AutoSchemaTests.test_empty_column_names) ... ok
+test_example_a_schema (tests.test_schema.AutoSchemaTests.test_example_a_schema) ... ok
+test_example_c_schema (tests.test_schema.AutoSchemaTests.test_example_c_schema) ... ok
+test_get_leaves (tests.test_schema.AutoSchemaTests.test_get_leaves) ... ok
+test_get_nested_structure_returns_dict (tests.test_schema.AutoSchemaTests.test_get_nested_structure_returns_dict) ... ok
+test_head_that_is_also_a_column_blocks_split (tests.test_schema.AutoSchemaTests.test_head_that_is_also_a_column_blocks_split) ... ok
+test_no_nesting_without_delimiter (tests.test_schema.AutoSchemaTests.test_no_nesting_without_delimiter) ... ok
+test_single_column_is_not_over_split (tests.test_schema.AutoSchemaTests.test_single_column_is_not_over_split) ... ok
+test_ac1_package_imports (tests.test_schema.HoneImportTests.test_ac1_package_imports) ... ok
+test_default_delimiters (tests.test_schema.HoneImportTests.test_default_delimiters) ... ok
+test_rejects_bad_delimiters (tests.test_schema.HoneImportTests.test_rejects_bad_delimiters) ... ok
+test_clean_split_and_prefix (tests.test_schema.SplitHelperTests.test_clean_split_and_prefix) ... ok
+test_escape_quotes_compatibility (tests.test_schema.SplitHelperTests.test_escape_quotes_compatibility) ... ok
+test_get_split_suffix (tests.test_schema.SplitHelperTests.test_get_split_suffix) ... ok
+test_get_valid_splits_order (tests.test_schema.SplitHelperTests.test_get_valid_splits_order) ... ok
+test_get_valid_splits_returns_all_candidates_in_order (tests.test_schema.SplitHelperTests.test_get_valid_splits_returns_all_candidates_in_order) ... ok
+test_comma_conversion_matches_fixture (tests.test_special_csv.CommaTest.test_comma_conversion_matches_fixture) ... ok
+test_exact_comma_fixture_values (tests.test_special_csv.CommaTest.test_exact_comma_fixture_values) ... ok
+test_output_json_dash_writes_stdout (tests.test_special_csv.JsonOutputTest.test_output_json_dash_writes_stdout) ... ok
+test_output_json_formatting_and_roundtrip (tests.test_special_csv.JsonOutputTest.test_output_json_formatting_and_roundtrip) ... ok
+test_empty_cell_outputs_empty_string (tests.test_special_csv.QuotesTest.test_empty_cell_outputs_empty_string) ... ok
+test_quoted_header_field (tests.test_special_csv.QuotesTest.test_quoted_header_field) ... ok
+test_quotes_conversion_matches_fixture (tests.test_special_csv.QuotesTest.test_quotes_conversion_matches_fixture) ... ok
+test_quotes_fields_are_not_unescaped_twice (tests.test_special_csv.QuotesTest.test_quotes_fields_are_not_unescaped_twice) ... ok
+
+----------------------------------------------------------------------
+Ran 69 tests in 7.294s
+
+OK
+
+== sample diff (expect 0) ==
+diff_exit=0
+
+== git status (expect empty) ==
+
+== wheel ==
+
+Name                        Length
+----                        ------
+hone-0.1.0-py3-none-any.whl  12197
+
+

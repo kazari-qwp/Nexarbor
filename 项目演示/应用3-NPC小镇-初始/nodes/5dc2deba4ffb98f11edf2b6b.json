@@ -1,0 +1,854 @@
+{
+  "type": "agent",
+  "node_id": "小砾",
+  "name": "小砾",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "records.store",
+        "description": "",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "initial": {
+            "gender": "female",
+            "profession": "矿工",
+            "role": "miner",
+            "age": 27,
+            "age_group": "adult",
+            "adult": true,
+            "can_gestate": true,
+            "pregnant": false,
+            "is_parent": false,
+            "coins": 10,
+            "ap": 10,
+            "pickaxe": 1
+          },
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼A"
+            },
+            {
+              "key": "context_node",
+              "node_id": "小砾"
+            },
+            {
+              "key": "name",
+              "node_id": "小砾"
+            }
+          ],
+          "minimum": {
+            "ap": 0
+          }
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "place.info",
+        "description": "",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "visitors_from_edges": false,
+          "description": "矿工小砾",
+          "location": "居民楼A"
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "module_id": "agents.activity",
+        "description": "",
+        "channels": [
+          "tick",
+          "records",
+          "self",
+          "runtime.agent"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store"
+        ],
+        "config": {
+          "signal_channels": [
+            "tick"
+          ],
+          "budget_field": "ap",
+          "budget": 10,
+          "prompt": "现在开始你这一时刻的行动。先查看处境，再决定去哪里、做什么；行动值有限，别浪费。\n本时刻完成行动，或需要等待答复、到货、下一个时段时，直接结束回复，下一 tick 再继续；不要轮询消息或处境。",
+          "enabled": true,
+          "max_reactions": 8
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "module_id": "messages.box",
+        "description": "",
+        "channels": [
+          "chat",
+          "records"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "read_policy": "self",
+          "send_cost": 0,
+          "max_messages": 200,
+          "require_agent": true
+        },
+        "state": {},
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "tool": "mod_de2e61c361b8b400958baa75",
+              "description": "小砾 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "title": "消息正文",
+                    "description": "要发送的非空消息正文，最长 4000 个字符。",
+                    "minLength": 1,
+                    "maxLength": 4000
+                  },
+                  "topic": {
+                    "type": "string",
+                    "title": "话题",
+                    "description": "可选的话题或公告栏目，省略时为空字符串。",
+                    "default": ""
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "去重键",
+                    "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "messages.box"
+            },
+            {
+              "tool": "mod_82ed7502f259702586b7a0a1",
+              "description": "小砾 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "title": "读取条数",
+                    "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+                    "minimum": 1,
+                    "maximum": 200,
+                    "default": 20
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "messages.box"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "messages.relay",
+        "description": "",
+        "channels": [
+          "chat",
+          "records",
+          "self"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "messages.box"
+        ],
+        "config": {},
+        "state": {},
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "tool": "send_to",
+              "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "recipient",
+                  "text"
+                ],
+                "properties": {
+                  "recipient": {
+                    "type": "string",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "description": "另一位当前可达的真实 Agent 节点 ID，不能是自己。"
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000,
+                    "title": "便笺正文",
+                    "description": "要发送的非空便笺正文，最长 4000 个字符。"
+                  },
+                  "topic": {
+                    "type": "string",
+                    "default": "",
+                    "title": "话题",
+                    "description": "可选的话题或栏目，省略时为空字符串。"
+                  },
+                  "key": {
+                    "type": "string",
+                    "title": "去重键",
+                    "description": "可选的发送方请求键，沿用 messages.box 的幂等语义：相同发送者、相同键与相同内容只投递一次。"
+                  }
+                }
+              },
+              "modules": [],
+              "factory_module": "messages.relay"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "context.assembler",
+        "description": "上下文组装器",
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "strength": 4,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "channels": [
+            "context.assembler"
+          ],
+          "system_prompt_channels": [
+            "context.assembler.system_prompt"
+          ],
+          "context_channels": [
+            "context.assembler.context"
+          ],
+          "inputs_channels": [
+            "context.assembler.inputs"
+          ],
+          "tail_channels": [
+            "context.assembler.tail"
+          ]
+        },
+        "tools": {
+          "group": 5,
+          "members": []
+        }
+      },
+      {
+        "module_id": "agents.memory",
+        "description": "",
+        "channels": [
+          "self"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "max_memories": 100
+        },
+        "state": {},
+        "tools": {
+          "group": 6,
+          "members": [
+            {
+              "tool": "remember",
+              "description": "把一段个人经历或知识写入自己的私人记忆。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "text": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4000,
+                    "title": "记忆内容",
+                    "description": "要记住的内容，不能为空，最多 4000 个字符。"
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "记忆键",
+                    "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。"
+                  }
+                },
+                "required": [
+                  "text"
+                ]
+              },
+              "modules": [],
+              "factory_module": "agents.memory"
+            },
+            {
+              "tool": "recall",
+              "description": "按关键词子串检索自己的私人记忆。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "default": "",
+                    "title": "查询词",
+                    "description": "按子串匹配自己的记忆，留空返回全部记忆。"
+                  }
+                }
+              },
+              "modules": [],
+              "factory_module": "agents.memory"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "places.query",
+        "description": "",
+        "channels": [
+          "self",
+          "records",
+          "movement",
+          "info",
+          "location",
+          "road"
+        ],
+        "strength": 12,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "config": {
+          "public_fields": [
+            "name",
+            "gender",
+            "profession",
+            "age_group"
+          ],
+          "map_title": "奈镇地图",
+          "road_channels": [
+            "location",
+            "road"
+          ]
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 7,
+          "members": [
+            {
+              "tool": "look",
+              "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "modules": [],
+              "factory_module": "places.query"
+            },
+            {
+              "tool": "place",
+              "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "place": {
+                    "type": "string",
+                    "description": "地点名称或编号；省略时查询当前位置。"
+                  }
+                }
+              },
+              "modules": [],
+              "factory_module": "places.query"
+            },
+            {
+              "tool": "map",
+              "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {}
+              },
+              "modules": [],
+              "factory_module": "places.query"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "records.transfer",
+        "description": "",
+        "channels": [
+          "self",
+          "chat",
+          "location"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
+        "state": {},
+        "tools": {
+          "group": 8,
+          "members": [
+            {
+              "tool": "give",
+              "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
+              "parameters": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "recipient",
+                  "resource",
+                  "quantity"
+                ],
+                "properties": {
+                  "recipient": {
+                    "type": "string",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "description": "另一位当前可达的真实 Agent 节点 ID。"
+                  },
+                  "resource": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "资源字段",
+                    "description": "自己记录仓中要转交的数字字段名，例如金币、木材或 ap。"
+                  },
+                  "quantity": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "title": "数量",
+                    "description": "要转交的正整数数量。"
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "description": "可选非空字符串；相同键和相同参数重试时返回旧结果，参数变化会被拒绝。"
+                  }
+                }
+              },
+              "modules": [],
+              "factory_module": "records.transfer"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "tool_discovery",
+        "description": "串联工具发现",
+        "channels": [
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [],
+        "tools": {
+          "group": 9,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 10,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 11,
+          "members": [
+            {
+              "tool": "memory_query",
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_modify",
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "old_text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "new_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_append",
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "每刻",
+      "channels": [
+        "tick"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "居民楼A",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "location"
+      }
+    },
+    {
+      "target_id": "存档点",
+      "channels": [
+        "tick"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "林",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "小路",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "阿森",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "阿石",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "老铁",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "悦",
+      "channels": [
+        "chat"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "social"
+      }
+    },
+    {
+      "target_id": "奈镇世界规则",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "小砾人格",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "小砾开场白",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "成年常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "可怀孕常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "矿工常识",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "agent": {
+    "inputs": {}
+  },
+  "data": {
+    "type": "markdown",
+    "path": "data/小砾.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": {
+    "executor": "harness",
+    "strength": 2,
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "prepare": [
+      {
+        "node": "小砾",
+        "module": "places.query",
+        "operation": "publish",
+        "arguments": {},
+        "channels": [
+          "self"
+        ]
+      },
+      {
+        "node": "小砾",
+        "module": "context.assembler",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      }
+    ],
+    "max_steps": 16,
+    "timeout_seconds": 180
+  }
+}

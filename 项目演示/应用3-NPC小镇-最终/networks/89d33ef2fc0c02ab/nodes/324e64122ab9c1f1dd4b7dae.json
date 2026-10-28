@@ -1,0 +1,1768 @@
+{
+  "agent": {
+    "inputs": {
+      "module:place.info": {
+        "context": [],
+        "inputs": [],
+        "system_prompt": "",
+        "tail": [
+          "当前位置：铁匠铺\n铁匠铺：炉火通明的铁匠铺，能修好坏掉的镐子。"
+        ]
+      },
+      "prepare:老铁:context.assembler:assemble": {
+        "context": [
+          {
+            "id": "node:成年常识",
+            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
+          },
+          {
+            "id": "node:铁匠常识",
+            "text": "铁匠常识：铁匠铺能把坏镐修好，收两金币加一矿石；修好的镐可以下矿。矿石可从矿坑采，也可向矿工买。"
+          }
+        ],
+        "inputs": [
+          {
+            "delivery": "followup",
+            "id": "node:老铁开场白/once",
+            "status": "delivered",
+            "text": "炉火已经生好。你从居民楼B走到铁匠铺，等今天第一个来修工具的客人。"
+          }
+        ],
+        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫老铁，二十八岁，是镇上的铁匠。你嗓门大、心肠热，讲价钱时却一分不让，最看重手艺和信用。",
+        "tail": [
+          "当前时间：第5天 午夜（总 tick：25）"
+        ]
+      }
+    }
+  },
+  "aggregation": "sum",
+  "bias": -1,
+  "data": {
+    "directory": false,
+    "path": "data/老铁.md",
+    "save_data": true,
+    "type": "markdown"
+  },
+  "description": "",
+  "execution": {
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "executor": "harness",
+    "max_steps": 16,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "self"
+        ],
+        "module": "places.query",
+        "node": "老铁",
+        "operation": "publish"
+      },
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.assembler",
+        "node": "老铁",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 2,
+    "timeout_seconds": 180
+  },
+  "links": [
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "tick"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "存档点",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小砾",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "林",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小路",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿森",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿石",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "悦",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "奈镇世界规则",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "老铁人格",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "老铁开场白",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "世界时间",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "成年常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "铁匠常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "铁匠铺",
+      "threshold": 1
+    }
+  ],
+  "name": "老铁",
+  "node_id": "老铁",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {
+            "adult": true,
+            "age": 28,
+            "age_group": "adult",
+            "ap": 10,
+            "can_gestate": false,
+            "coins": 18,
+            "gender": "male",
+            "iron": 2,
+            "is_parent": false,
+            "pregnant": false,
+            "profession": "铁匠",
+            "role": "smith"
+          },
+          "minimum": {
+            "ap": 0
+          },
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼B"
+            },
+            {
+              "key": "context_node",
+              "node_id": "老铁"
+            },
+            {
+              "key": "name",
+              "node_id": "老铁"
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-6},\"expected\":{\"ap\":10,\"coins\":18},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:老铁:老铁:give:give-xiaolu-oremoney-6:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "老铁"
+                },
+                {
+                  "key": "name",
+                  "node_id": "老铁"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 28,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": false,
+                "coins": 12,
+                "gender": "male",
+                "iron": 2,
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "铁匠",
+                "role": "smith"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-1},\"expected\":{\"ap\":9,\"coins\":12},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:老铁:老铁:give:give-xiaolu-errand-1:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "老铁"
+                },
+                {
+                  "key": "name",
+                  "node_id": "老铁"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 28,
+                "age_group": "adult",
+                "ap": 8,
+                "can_gestate": false,
+                "coins": 11,
+                "gender": "male",
+                "iron": 2,
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "铁匠",
+                "role": "smith"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-9},\"expected\":{\"ap\":4,\"coins\":11},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:老铁:老铁:give:give-ashi-9coins:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "老铁"
+                },
+                {
+                  "key": "name",
+                  "node_id": "老铁"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 28,
+                "age_group": "adult",
+                "ap": 3,
+                "can_gestate": false,
+                "coins": 2,
+                "gender": "male",
+                "iron": 2,
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "铁匠",
+                "role": "smith"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d2-ore-repay-laotie-3:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "老铁"
+                },
+                {
+                  "key": "name",
+                  "node_id": "老铁"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 28,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": false,
+                "coins": 2,
+                "gender": "male",
+                "iron": 2,
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "铁匠",
+                "role": "smith"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"老铁\",\"rest-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "老铁"
+                },
+                {
+                  "key": "name",
+                  "node_id": "老铁"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 28,
+                "age_group": "adult",
+                "ap": 7,
+                "can_gestate": false,
+                "coins": 2,
+                "gender": "male",
+                "iron": 2,
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "铁匠",
+                "role": "smith"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"老铁\",\"rest-afternoon-d5\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "老铁"
+                },
+                {
+                  "key": "name",
+                  "node_id": "老铁"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 28,
+                "age_group": "adult",
+                "ap": 7,
+                "can_gestate": false,
+                "coins": 2,
+                "gender": "male",
+                "iron": 2,
+                "is_parent": false,
+                "ore": 3,
+                "pregnant": false,
+                "profession": "铁匠",
+                "role": "smith"
+              }
+            }
+          ],
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼B"
+            },
+            {
+              "key": "context_node",
+              "node_id": "老铁"
+            },
+            {
+              "key": "name",
+              "node_id": "老铁"
+            }
+          ],
+          "values": {
+            "adult": true,
+            "age": 28,
+            "age_group": "adult",
+            "ap": 10,
+            "can_gestate": false,
+            "coins": 2,
+            "gender": "male",
+            "iron": 2,
+            "is_parent": false,
+            "ore": 3,
+            "pregnant": false,
+            "profession": "铁匠",
+            "role": "smith"
+          }
+        },
+        "strength": 1,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "铁匠老铁",
+          "location": "居民楼B",
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "铁匠老铁",
+          "location": "铁匠铺",
+          "name": "老铁",
+          "node_id": "老铁",
+          "visit": 29,
+          "visitors": []
+        },
+        "state": {
+          "location": "铁匠铺",
+          "visit": 29
+        },
+        "strength": 0,
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "tick",
+          "records",
+          "self",
+          "runtime.agent"
+        ],
+        "config": {
+          "budget": 10,
+          "budget_field": "ap",
+          "enabled": true,
+          "max_reactions": 8,
+          "prompt": "现在开始你这一时刻的行动。先查看处境，再决定去哪里、做什么；行动值有限，别浪费。\n本时刻完成行动，或需要等待答复、到货、下一个时段时，直接结束回复，下一 tick 再继续；不要轮询消息或处境。",
+          "signal_channels": [
+            "tick"
+          ]
+        },
+        "description": "",
+        "module_id": "agents.activity",
+        "modules": [
+          "records.store"
+        ],
+        "published": {
+          "最近完成活动键": "57404d95abc84cb5af994a41581b889a",
+          "活动完成次数": 25,
+          "活动状态": "已完成"
+        },
+        "state": {
+          "activities": [
+            {
+              "completed_count": 1,
+              "key": "5b538dae17134fc6af992a27d08cc099",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8676cc521e4749dfbb231efb0b27c3d3",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "dd2cdb078e204524a19034f767720628",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "7976508094d64c91adef74a951e8cbda",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "711f31a07a6546519344dd93b7a35fb8",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "38f90c6b1deb4694b3e5ed1f23e64999",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "990d130148c54396953688bee950968e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b852e3eb33134bc2a270c37d2d77b5d0",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "26159259b41c4d86b1cdcab0b3515c3e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "47d0a369c7954c69a7f5319aa8f3c170",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "32ec93e5163e4bf78092d7ffaffb2010",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b7097cfc3f0b4452a3b0340962d90978",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "4a4cb86e636841ffaf235453f3433673",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fba25d2da2f242c187d1a8542bc37f03",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "95a66166b0d84648a9b21a8f5af94ded",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fbc37d62fc55415baa3fa5008d3e5d79",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "bba3d8ec4f834a5884fa043a50a040ee",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "de979bcdfe034f8c9e25f64583473a65",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "2905760cc3ff4c57a9a0c46150cca23a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "9f572054f0624246bb56f6de53ab3200",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "6c26053501bd42f88a96175f8db444d9",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f93dcd7c4a7f4dedb45515e5f01e910a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f205302959064b4eac1a541f060ba270",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8b4f230cf6a548e8a104e32d51eff73f",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "57404d95abc84cb5af994a41581b889a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            }
+          ],
+          "completed_total": 25
+        },
+        "strength": 0,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records"
+        ],
+        "config": {
+          "max_messages": 200,
+          "read_policy": "self",
+          "require_agent": true,
+          "send_cost": 0
+        },
+        "description": "",
+        "module_id": "messages.box",
+        "modules": [],
+        "state": {
+          "messages": [
+            {
+              "from": "小路",
+              "id": "eac59766f2ce4a33ad5b252ae9824442",
+              "text": "老铁，早啊。我是小路，住你楼下的院里。今儿个起得早，腿脚闲着也是闲着——你要是有什么跑腿的活（送东西、传话、取货都行），喊我一声，给我一个金币就成。我路熟，镇上哪条道通哪条道，闭着眼都走得。要不要我帮你跑一趟铁匠铺？",
+              "to": "老铁",
+              "topic": "找活干"
+            },
+            {
+              "from": "阿石",
+              "id": "9a489fa9d8854bde9b064c7f1582a52f",
+              "text": "老铁，我是阿石。今早镐子坏了。规矩我记着：修镐要两金币加一矿石，可我手里只有十二金币、一块矿石也没有——没镐就下不了矿，没矿又修不了镐，绕死了。你那儿还有没有存着的矿石？或者能不能先给我修上，回头挖出矿来补你？我马上往铁匠铺走。",
+              "to": "老铁",
+              "topic": "修镐"
+            },
+            {
+              "from": "悦",
+              "id": "03eb1ca6204f4c0d95b809ec1f736a60",
+              "text": "老铁你好，我是悦，居民楼A的新面孔。听说修镐得去你的铁匠铺，我记下了。铁匠铺最近忙不忙？有什么我能帮上忙、或者值得凑热闹的事吗？",
+              "to": "老铁",
+              "topic": "打招呼"
+            },
+            {
+              "from": "小砾",
+              "id": "202352051ab546829e2838d02294f4f6",
+              "text": "老铁，我是小砾，矿工。这会儿我路过你铺子，直说了：我这把镐子现在是好的，先不动它。今天下矿出的矿石，一块给你留着——你修镐要矿石，我修镐时你按两金一矿的老规矩就行。等下个时段我就钻矿坑，出多少货我到这儿来跟你报个数。",
+              "to": "老铁",
+              "topic": "镐子和矿石"
+            },
+            {
+              "from": "小路",
+              "id": "bf9d3ba4af984ad895751b3a2c24248c",
+              "text": "老铁，又是我。打听一句：你打铁缺矿不缺？矿坑阿石、小砾挖的矿石，我能替他们背。你要矿，我按商店回收价三块给你送到铁匠铺门口，省得你自己跑。另外我这边缺把趁手工具，你要是肯赊我一把旧的，我头一趟活的钱先还你。",
+              "to": "老铁",
+              "topic": "送矿"
+            },
+            {
+              "from": "阿石",
+              "id": "9d50e5dd6fdb43c38db58391653547f0",
+              "text": "老铁，我到过铁匠铺门口看了，修镐的规矩是死的一手交矿一手修，你铺子里矿石也是空的。那就绕开：你镇上人头熟，谁手里会有矿石？阿森家堆着矿车零件，说不定有存货。你要听说谁有，替我留一块，我出六个金币。我回居民楼B了，明天一早就往你铺子去。",
+              "to": "老铁",
+              "topic": "修镐·打听矿石"
+            },
+            {
+              "from": "悦",
+              "id": "352ddad000694519804bb9ce4727b30b",
+              "text": "老铁，我追到铁匠铺来了，正好当面问：你这里修镐是两金币加一块矿石吧？那新的镐、或者坏镐，该上哪儿弄？我想学挖矿，可手里只有刚买的一把斧头。你要是知道门路，给我指条明道，回头我砍了木材分你一些。",
+              "to": "老铁",
+              "topic": "打听门路"
+            },
+            {
+              "from": "悦",
+              "id": "6d2d80b3e8cc42578fdc4c9eea7e5685",
+              "text": "那我就不客气啦，站边上看你打铁——不碍事吧？两金加一矿石修一把坏镐，这价我记在心里了。阿石今天头一个上门，看来矿上活儿不轻。我问一句：镇上谁是卖新镐的？还是说只有矿坑那边发工具？我手里只有斧头，想下矿总得有个家伙什。",
+              "to": "老铁",
+              "topic": "看炉问话"
+            },
+            {
+              "from": "阿石",
+              "id": "9ec6fa7042f64d53b26bed80d781d546",
+              "text": "老铁，够意思。就这么定：你垫的那块矿我记着，挖出第一块就还你。我这会儿在居民楼B，本时段的脚程已经走干净了，走不动——下一个时段一到，我头一件事就是 居民楼B→商店→铁匠铺，把坏镐和两枚金币一并带到，你先把炉子生上。要是等得急，你托小路把垫的矿捎到居民楼B也行，我拿到矿就先过去。放心，我不磨蹭。",
+              "to": "老铁",
+              "topic": "修镐"
+            },
+            {
+              "from": "阿石",
+              "id": "a8456cd49d01445f908f882419c2fc41",
+              "text": "老铁，我人已经站在你炉边了，坏镐和两枚金币都带着。可修镐的手续是死的：得我本人手里先有一块矿石，我才能下锤。你铺面的存货栏我看了，是空的，你说的那两块得当面递到我手上才行——你把垫的那块矿转交给我（一块就够），我这就交两金修镐，欠你的那块，等我下坑挖出第一块就还。我在这儿等着，不挪窝。",
+              "to": "老铁",
+              "topic": "修镐·当面交矿"
+            },
+            {
+              "from": "小路",
+              "id": "217dfc5f3bae49e182dce9da1a821ea7",
+              "text": "老铁，活我接了，这就往阿森那儿去。就一件事得先说明白：我兜里一个铜板也没有，\"按三块一块买下\"这话我办不到——你得先把六金币的买矿钱交到我手上，或者给我一句话，让我先赊着矿、背到铁匠铺你再连矿钱带跑腿费一块儿结给我，我再把钱给阿森送去。两条路你挑一条，别让我空着手去跟人讨矿。",
+              "to": "老铁",
+              "topic": "跑腿·找矿"
+            },
+            {
+              "from": "小路",
+              "id": "ea049908f7c94847829d0a7c90868699",
+              "text": "老铁，我人已经站在你铺子门口了。阿森那堆矿车零件里有没有矿，还得他本人回话，我早上就捎了信儿过去。我这会儿来是三件事：一，把差事当面回一声，你说\"没有也钱照给\"，这一金币我就厚着脸皮受了；二，你要是肯先支我六金币买矿钱，我明儿一早就去阿森那儿把两块矿买下来背回来，一块不落；三，铺子里要是有零碎活——拉风箱、搬料、扫炉灰——我一分力气不值钱，给口饭就干。",
+              "to": "老铁",
+              "topic": "当面回话"
+            },
+            {
+              "from": "林",
+              "id": "60c459f46fab4c2d92a93dbabaa5ef1e",
+              "text": "老铁，我是林，住居民楼A，傍晚在你这炉子边上。有件事想请教你这位行家：镇上想下矿的人，除了拿坏镐来修，还有别的门路弄到一把好镐吗？阿石说\"一镐两金\"，我听着像是有处能买，可我在柜台和铁匠铺都没见到卖的。你若是能打，价钱怎么算、要什么料？我手里十四金，想把账算明白再动手。",
+              "to": "老铁",
+              "topic": "打听镐子"
+            },
+            {
+              "from": "小路",
+              "id": "0374abf5400d44049cba72ceae8bafb7",
+              "text": "老铁，我人也到了矿坑。阿森那边还没回话，差事我算跑了一半。你说过\"没有也钱照给\"，这一金币你现在给我，我立马接着替你跑。还有一句实在话：你要矿石，我这两条腿就是替你背矿的——阿石、小砾挖出来的，我一金一块背到你铺子门口，你只管收。你要是肯先支我五金本钱，我买了锯，往后砍的柴、背的矿都先紧着你。",
+              "to": "老铁",
+              "topic": "当面结跑腿钱"
+            },
+            {
+              "from": "阿石",
+              "id": "a6db95d4b6e14ca094d610c6d17c7b5e",
+              "text": "老铁，我不怪你把话说满，肯当面认账的才是好搭伙。小砾的六金退了，我现在十二金在身上，人在你炉边坐着。阿森那边三金一块收来的矿，你一到手就转我一块，我按六金给你（多的算是谢你跑这趟腿），剩下两金正好交你的老规矩。你要是今晚弄不到，也捎句话，我另想法子。",
+              "to": "老铁",
+              "topic": "等你递矿"
+            },
+            {
+              "from": "小路",
+              "id": "38c8fc9b6b194787a18e3a772914eba1",
+              "text": "老铁，七个金币我当面点过了，一个子儿不短，谢你信我。明早我先去阿森那儿买两块矿送到你炉边；另外我今晚就在矿坑盯着小砾出货，她采出来的矿我也一并收，多背几块到你门口，你照三金收，我分文不多要你的。阿石的坏镐今晚能修上就别拖到明早，矿一到我就送。",
+              "to": "老铁",
+              "topic": "送货安排"
+            },
+            {
+              "from": "林",
+              "id": "c5bb562138b94c7e879a2005db697629",
+              "text": "老铁，我就站在你炉子边上，话说得直些。你收矿的事我记下了，可眼下镇上没处买矿，我手里一块也没有，倒是同屋的小砾刚采了三块，正往铁匠铺来。我更想问的是这个：**你这里除了修坏镐，能不能替人打一把好镐？** 要多少工钱、要什么料，你开个价——我手里十四金，若能成，我出钱出料，当场立字据。若你手上就有现成的镐卖，也请报个实价，我绝不还价还赖账。这是我明天的营生，所以问得细。",
+              "to": "老铁",
+              "topic": "求一把镐"
+            },
+            {
+              "from": "林",
+              "id": "0692693ce597497b8d0500aa2fcda684",
+              "text": "老铁，谢你实说，我不钻牛角尖了。既然只有\"出让旧镐\"和\"修坏镐\"两条道，那就问你这个知情的人：镇上谁手里有镐？谁又撂着一把坏镐？你在炉子边修了这么多年，谁的家伙什坏了、谁想脱手，你心里该有数。我出个价买旧镐，坏镐也收——坏的我照规矩拿两金加一块矿来求你修。你若肯点个名，我这人情记在账上，往后炉子边有什么力气活，喊我。",
+              "to": "老铁",
+              "topic": "问镐的下落"
+            },
+            {
+              "from": "小路",
+              "id": "24b7d6ffa1ce4ed49993235cdd7761e6",
+              "text": "老铁，你也到矿坑了？正好当面说：阿森那边到现在没回话，矿车零件里的存矿指望不上。我不空着手回去——这就从矿工手里收矿，两金一块收进来，三金一块给你送到铺子门口，我赚个腿脚钱，矿钱我一分不多要。你要几块？说个数，我收够了就背过去。",
+              "to": "老铁",
+              "topic": "当面说矿"
+            },
+            {
+              "from": "阿石",
+              "id": "3697686814914782abe48e01d79e361a",
+              "text": "老铁，说个实在事：我这一筐七块矿背到商店，柜台没钱，八块只收得下一块（三金），剩下的全压在手里——镇上柜台是真缺现钱。你先前说备着九金按三金一块收矿，这话还算不算？算的话，我在你铺子门口，先给你三块，九金当面点；你修镐也要矿，这买卖你不亏。不算就直说，我不磨你。",
+              "to": "老铁",
+              "topic": "卖你三块矿"
+            },
+            {
+              "from": "小路",
+              "id": "03b17a2b86034ee682f9242caa6a6de2",
+              "text": "老铁，不瞒你：阿森两块矿没到手，小砾的矿我正跟她当面过手——我两金一块收进来，三金一块给你，就在这坑口交货，不叫你干等。你钱带在身上就好，矿一到我手上，我立马递你，九金一块儿点清。你要是还想多要，我收多少给你多少，你不嫌多我就收。",
+              "to": "老铁",
+              "topic": "坑口交货"
+            },
+            {
+              "from": "阿石",
+              "id": "f05b7896d0994acbb8855775063c1ec5",
+              "text": "老铁，三块矿当面点给你了，按你说的三金一块，九金你转我账上就成。往后我挖出来先问你，你炉子别熄。我手里还压着几块，柜台吃不下的都留着等你收。",
+              "to": "老铁",
+              "topic": "三块矿已交"
+            },
+            {
+              "from": "阿石",
+              "id": "e56341b72a884edcbaae5a24881ddb11",
+              "text": "老铁，我刚要当面把三块矿点给你，你人已经离开矿坑了，没递成。眼下我手里压着十块矿，柜台只吃得下一块，就指望你收。你下回说个准地方，我背过去，三金一块当面结；你修镐要矿，我这矿最合适，镇上就缺这个。",
+              "to": "老铁",
+              "topic": "十块矿等你收"
+            },
+            {
+              "from": "阿石",
+              "id": "f525138cf79c43c8b7fcbd08e5303672",
+              "text": "老铁，九金我收到了，账我认：三块矿还欠你手上，我这轮行动值已经走干，递不出去。下个时段头一件事就是把三块矿当面点给你，一文不差。你要等得急，就还在矿坑这边等我；你要回铺子，也捎个话说个地方，我背过去。矿在我手里稳当，你我不必猜。",
+              "to": "老铁",
+              "topic": "欠你三块矿"
+            },
+            {
+              "from": "阿石",
+              "id": "39c3abd9c34f43819bef9782e92251b3",
+              "text": "老铁，三块矿当面点给你了，先前那笔勾销，账清。我手里还压着七块，你要收，我照旧三金一块给你，现钱结，你要几块给个数；柜台那边现钱紧，与其等它回血，不如先紧着你的炉子——镇上修镐的都要矿，你手里有矿才接得下活。我这就在坑里继续下镐，你说数，我攒够了一块儿递你。",
+              "to": "老铁",
+              "topic": "余下的矿要不要"
+            },
+            {
+              "from": "小砾",
+              "id": "1f11ee32a3934b27834a20e0d1f3bd96",
+              "text": "老铁，实情说给你：我手里压着十块矿，刚才到商店柜台卖，卖了头两块就被告知\"资金不足\"，柜台没现钱了。\n\n你早先放话三金一块在炉边收，我照这个价给你。你手里能结几块就报几块，我明早把矿送到炉边，一手点货一手结钱，不赊不欠。你要是也没现钱，就直说，我不缠人——我去问阿石，他修好了镐下坑，手里该有活钱。",
+              "to": "老铁",
+              "topic": "矿石收购"
+            },
+            {
+              "from": "老铁",
+              "id": "01e1eef93dcd4ef7aa96ad7a6bda6f5f",
+              "text": "铁匠铺开炉公告：坏镐拿来修，两金币加一矿石，我当天下锤，镐立等可取——手艺我担保，修不好不收钱。手上缺矿的，我槽里新进三块，三金币一块，先到先得，不赊不欠。工具坏了别硬撑，砸了镐就砸了营生。老铁在炉边等，嗓门大，人在。",
+              "to": "老铁",
+              "topic": "开炉·修镐"
+            },
+            {
+              "from": "阿石",
+              "id": "72f064f4b84b4875b6a3a998d98e2970",
+              "text": "老铁，账我说清，不催你：我手里压着十一块矿，柜台吃不下，你口袋也得缓，这我明白。你今晚要是能拿出几金的闲钱，就说个数——三金一块，我当面点给你；拿不出也不打紧，我这轮照旧下镐，矿攒在手里不烂。镇上修镐的都缺矿，你这买卖迟早要开张，我这份先紧着你。",
+              "to": "老铁",
+              "topic": "矿留着等你"
+            },
+            {
+              "from": "小路",
+              "id": "c03ad4a3af824331a66856d5c29f3c99",
+              "text": "老铁，你那个主意我先记下，可我得跟你说句实话：树林砍柴用的是斧子，不是锯——我去看过那儿的规矩，一斧六点换三根木材。锯子买回来恐怕只能压箱底，这五金我不乱花。你放心，我手里八个金币一个子儿没动，等你柜台缓过来，我替你跑的背矿活照旧，腿钱你说多少就多少。",
+              "to": "老铁",
+              "topic": "锯子的事"
+            },
+            {
+              "from": "悦",
+              "id": "9525d9a0ad0e4dd7bd6985bdaa8a2105",
+              "text": "老铁，炉火正好，我问两句实在的：方才那把镐是谁拿来修的？镇上如今有几把镐在转、几把是坏的？\n\n我手上压着四块矿，暂时出不了手（柜台断钱，一块也不收）。你铺子里要是收矿、或者拿矿换活儿，你说个价，我照办；你案上那块矿要是没急用，匀给我也成。还有：谁家要出让旧镐、坏镐，你头一个知道，千万替我留着——我手里有矿、有两金，就等一把镐下坑。",
+              "to": "老铁",
+              "topic": "铺子问话"
+            },
+            {
+              "from": "阿石",
+              "id": "8087b812e5834cc8a036469f1982af8e",
+              "text": "老铁，你问坏镐——我手里没有：坏的那把早修成手里这把了，镇上也没见谁撂下第二把。林攥着钱满镇买镐，小路又在阿森那堆矿车零件里翻，真翻出镐头，两金一矿的修工就是你的。你要是能从别处弄到坏铁件，我帮你出矿，修成了卖林，钱咱们分——秤你出，我出力。",
+              "to": "老铁",
+              "topic": "坏镐的下落"
+            },
+            {
+              "from": "阿石",
+              "id": "63ac6a705194442fbbd5497de0153232",
+              "text": "老铁，你说人在院里，我出门一看院里空的，你怕是又挪脚了。我不傻等：我这就往商店、铁匠铺那头走，一来看看柜台回血没有，二来跟你、林碰头。零件堆那事——那堆铁疙瘩就在居民楼B院角，你哪会儿到，我就哪会儿陪你翻，矿和工钱都按先前说的分，不反悔。你若先到了，就在铺子炉边等我，别让炉子凉了。",
+              "to": "老铁",
+              "topic": "院里没人，我往铺子去"
+            },
+            {
+              "from": "林",
+              "id": "a85e2fd9cb8f44f488cb67ac113fbac6",
+              "text": "老铁，四金一块矿这价我谢过了，可我这轮不能应：阿石按两金一块匀我，你也知道这数。你的手艺我认，将来修镐我头一个找你，工钱一分不少。眼下柜台一个铜板也掏不出，矿再多也是压手，我要留着现钱还账、办事。\n\n还有一句实在话：镇上没坏镐，我也不打算满镇找镐了。你要真有路子翻出个旧镐头，我按你说的两金加一矿来求你开炉，绝不还价。",
+              "to": "老铁",
+              "topic": "四金的矿我不接"
+            },
+            {
+              "from": "林",
+              "id": "77ba0ab73a4841bc875a42743626168b",
+              "text": "老铁，那句准话我给你：**不成**。不是我嫌你的矿，是我钱袋见底——今天还了阿石四金、小路两金，手上只剩四金，这三块矿已经够我压箱底。你的手艺我照旧认，将来修镐头一个找你，两金加一矿，一分不还价。\n\n有一句你留着听：镇上要活，得有人往柜台里送钱；可眼下谁送谁亏，我不劝人送，也不送。",
+              "to": "老铁",
+              "topic": "摇头·四金的矿"
+            },
+            {
+              "from": "小路",
+              "id": "312bd75051ed4ad2b5d2595e34591845",
+              "text": "老铁，斧子的事我照你说的办了——五金已经花下去，斧子在我手里，柜台也进过一回活钱。可你也看见了：柜台的钱刚进去就被人掏空，货出不动。这盘棋不是一个人垫五金就转得起来的。你柜台要是有进项，先收我一两块矿，我给你留货；我这斧子在手，砍柴的事我认，缺一两金我再来找你凑。",
+              "to": "老铁",
+              "topic": "斧子买了·柜台还是空"
+            },
+            {
+              "from": "悦",
+              "id": "8e747548a6a1476da21c33554559e3ad",
+              "text": "老铁，这买卖我应，法子你定得公道，我一句不改：\n\n一，翻出坏镐头那天，**我出两金，你出矿石**，你下锤修成好镐，镐归我；\n二，我下坑挖出的**头三块矿给你顶料钱**，之后挖的归我自己；\n三，镐子往后归我使，坏了还来你这儿，工钱按老规矩两金加一矿，我不赊不欠。\n\n只加一句实在话：坏镐头什么时候有，谁也说不准。你要是在阿森那堆零件里、或者谁家旧物里翻到镐头，先告诉我一声，两金我随时备着，不让你白等。\n\n另外你那句\"炉子闲着也是闲着\"我记着——我明儿要是得空，还来炉边看你捶铁，学一分是一分。",
+              "to": "老铁",
+              "topic": "应下修镐之约"
+            },
+            {
+              "from": "老铁",
+              "id": "580793c0de9e4a2d9201f032883b1be4",
+              "text": "铁匠铺改价公告：坏镐拿来修，两金币加一矿石，当天取，手艺我担保。手上没矿的，我槽里还有三块，按两块一块匀——跟矿上一个价，我不赚你差价，只求镇上的镐子都别撂着。另外给个明白话：我只会修、不会打新镐，镇上想弄镐的，先找一把坏镐头来。老铁在炉边，火不熄。",
+              "to": "老铁",
+              "topic": "修镐·矿价随行"
+            },
+            {
+              "from": "小路",
+              "id": "384bfc671f5644a48bbd58091f54e7c0",
+              "text": "老铁，你肯收我的矿，我记这份人情。价我认：两块一块，先卖你一块，两金当面点。等小砾把我那两块矿过到手，我立马背到你炉边。柜台那头一进活钱，我头一个捎信给你；你哪天有进项，剩下的矿还给我留着价。",
+              "to": "老铁",
+              "topic": "矿给你留着"
+            }
+          ],
+          "seen": [
+            {
+              "fingerprint": "{\"text\":\"老铁，早啊。我是小路，住你楼下的院里。今儿个起得早，腿脚闲着也是闲着——你要是有什么跑腿的活（送东西、传话、取货都行），喊我一声，给我一个金币就成。我路熟，镇上哪条道通哪条道，闭着眼都走得。要不要我帮你跑一趟铁匠铺？\",\"topic\":\"找活干\"}",
+              "id": "eac59766f2ce4a33ad5b252ae9824442",
+              "key": "[\"小路\",\"xiaolu-d1m-x1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，我是阿石。今早镐子坏了。规矩我记着：修镐要两金币加一矿石，可我手里只有十二金币、一块矿石也没有——没镐就下不了矿，没矿又修不了镐，绕死了。你那儿还有没有存着的矿石？或者能不能先给我修上，回头挖出矿来补你？我马上往铁匠铺走。\",\"topic\":\"修镐\"}",
+              "id": "9a489fa9d8854bde9b064c7f1582a52f",
+              "key": "[\"阿石\",\"shi-repair-pickaxe-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁你好，我是悦，居民楼A的新面孔。听说修镐得去你的铁匠铺，我记下了。铁匠铺最近忙不忙？有什么我能帮上忙、或者值得凑热闹的事吗？\",\"topic\":\"打招呼\"}",
+              "id": "03eb1ca6204f4c0d95b809ec1f736a60",
+              "key": "[\"悦\",\"yue-hello-laotie-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，我是小砾，矿工。这会儿我路过你铺子，直说了：我这把镐子现在是好的，先不动它。今天下矿出的矿石，一块给你留着——你修镐要矿石，我修镐时你按两金一矿的老规矩就行。等下个时段我就钻矿坑，出多少货我到这儿来跟你报个数。\",\"topic\":\"镐子和矿石\"}",
+              "id": "202352051ab546829e2838d02294f4f6",
+              "key": "[\"小砾\",\"laotie-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，又是我。打听一句：你打铁缺矿不缺？矿坑阿石、小砾挖的矿石，我能替他们背。你要矿，我按商店回收价三块给你送到铁匠铺门口，省得你自己跑。另外我这边缺把趁手工具，你要是肯赊我一把旧的，我头一趟活的钱先还你。\",\"topic\":\"送矿\"}",
+              "id": "bf9d3ba4af984ad895751b3a2c24248c",
+              "key": "[\"小路\",\"xiaolu-d1m-x7\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，我到过铁匠铺门口看了，修镐的规矩是死的一手交矿一手修，你铺子里矿石也是空的。那就绕开：你镇上人头熟，谁手里会有矿石？阿森家堆着矿车零件，说不定有存货。你要听说谁有，替我留一块，我出六个金币。我回居民楼B了，明天一早就往你铺子去。\",\"topic\":\"修镐·打听矿石\"}",
+              "id": "9d50e5dd6fdb43c38db58391653547f0",
+              "key": "[\"阿石\",\"shi-laotie-note-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，我追到铁匠铺来了，正好当面问：你这里修镐是两金币加一块矿石吧？那新的镐、或者坏镐，该上哪儿弄？我想学挖矿，可手里只有刚买的一把斧头。你要是知道门路，给我指条明道，回头我砍了木材分你一些。\",\"topic\":\"打听门路\"}",
+              "id": "352ddad000694519804bb9ce4727b30b",
+              "key": "[\"悦\",\"yue-laotie-pick-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"那我就不客气啦，站边上看你打铁——不碍事吧？两金加一矿石修一把坏镐，这价我记在心里了。阿石今天头一个上门，看来矿上活儿不轻。我问一句：镇上谁是卖新镐的？还是说只有矿坑那边发工具？我手里只有斧头，想下矿总得有个家伙什。\",\"topic\":\"看炉问话\"}",
+              "id": "6d2d80b3e8cc42578fdc4c9eea7e5685",
+              "key": "[\"悦\",\"yue-laotie-watch-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，够意思。就这么定：你垫的那块矿我记着，挖出第一块就还你。我这会儿在居民楼B，本时段的脚程已经走干净了，走不动——下一个时段一到，我头一件事就是 居民楼B→商店→铁匠铺，把坏镐和两枚金币一并带到，你先把炉子生上。要是等得急，你托小路把垫的矿捎到居民楼B也行，我拿到矿就先过去。放心，我不磨蹭。\",\"topic\":\"修镐\"}",
+              "id": "9ec6fa7042f64d53b26bed80d781d546",
+              "key": "[\"阿石\",\"shi-laotie-repair-confirm-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，我人已经站在你炉边了，坏镐和两枚金币都带着。可修镐的手续是死的：得我本人手里先有一块矿石，我才能下锤。你铺面的存货栏我看了，是空的，你说的那两块得当面递到我手上才行——你把垫的那块矿转交给我（一块就够），我这就交两金修镐，欠你的那块，等我下坑挖出第一块就还。我在这儿等着，不挪窝。\",\"topic\":\"修镐·当面交矿\"}",
+              "id": "a8456cd49d01445f908f882419c2fc41",
+              "key": "[\"阿石\",\"shi-laotie-ore-handover-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，活我接了，这就往阿森那儿去。就一件事得先说明白：我兜里一个铜板也没有，\\\"按三块一块买下\\\"这话我办不到——你得先把六金币的买矿钱交到我手上，或者给我一句话，让我先赊着矿、背到铁匠铺你再连矿钱带跑腿费一块儿结给我，我再把钱给阿森送去。两条路你挑一条，别让我空着手去跟人讨矿。\",\"topic\":\"跑腿·找矿\"}",
+              "id": "217dfc5f3bae49e182dce9da1a821ea7",
+              "key": "[\"小路\",\"xiaolu-d1a-x16\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，我人已经站在你铺子门口了。阿森那堆矿车零件里有没有矿，还得他本人回话，我早上就捎了信儿过去。我这会儿来是三件事：一，把差事当面回一声，你说\\\"没有也钱照给\\\"，这一金币我就厚着脸皮受了；二，你要是肯先支我六金币买矿钱，我明儿一早就去阿森那儿把两块矿买下来背回来，一块不落；三，铺子里要是有零碎活——拉风箱、搬料、扫炉灰——我一分力气不值钱，给口饭就干。\",\"topic\":\"当面回话\"}",
+              "id": "ea049908f7c94847829d0a7c90868699",
+              "key": "[\"小路\",\"xiaolu-d1a-x18\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，我人也到了矿坑。阿森那边还没回话，差事我算跑了一半。你说过\\\"没有也钱照给\\\"，这一金币你现在给我，我立马接着替你跑。还有一句实在话：你要矿石，我这两条腿就是替你背矿的——阿石、小砾挖出来的，我一金一块背到你铺子门口，你只管收。你要是肯先支我五金本钱，我买了锯，往后砍的柴、背的矿都先紧着你。\",\"topic\":\"当面结跑腿钱\"}",
+              "id": "0374abf5400d44049cba72ceae8bafb7",
+              "key": "[\"小路\",\"xiaolu-d1e-x20\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，我不怪你把话说满，肯当面认账的才是好搭伙。小砾的六金退了，我现在十二金在身上，人在你炉边坐着。阿森那边三金一块收来的矿，你一到手就转我一块，我按六金给你（多的算是谢你跑这趟腿），剩下两金正好交你的老规矩。你要是今晚弄不到，也捎句话，我另想法子。\",\"topic\":\"等你递矿\"}",
+              "id": "a6db95d4b6e14ca094d610c6d17c7b5e",
+              "key": "[\"阿石\",\"shi-laotie-wait-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，七个金币我当面点过了，一个子儿不短，谢你信我。明早我先去阿森那儿买两块矿送到你炉边；另外我今晚就在矿坑盯着小砾出货，她采出来的矿我也一并收，多背几块到你门口，你照三金收，我分文不多要你的。阿石的坏镐今晚能修上就别拖到明早，矿一到我就送。\",\"topic\":\"送货安排\"}",
+              "id": "38c8fc9b6b194787a18e3a772914eba1",
+              "key": "[\"小路\",\"xiaolu-d1e-x24\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，你也到矿坑了？正好当面说：阿森那边到现在没回话，矿车零件里的存矿指望不上。我不空着手回去——这就从矿工手里收矿，两金一块收进来，三金一块给你送到铺子门口，我赚个腿脚钱，矿钱我一分不多要。你要几块？说个数，我收够了就背过去。\",\"topic\":\"当面说矿\"}",
+              "id": "24b7d6ffa1ce4ed49993235cdd7761e6",
+              "key": "[\"小路\",\"xiaolu-d2n-x33\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，说个实在事：我这一筐七块矿背到商店，柜台没钱，八块只收得下一块（三金），剩下的全压在手里——镇上柜台是真缺现钱。你先前说备着九金按三金一块收矿，这话还算不算？算的话，我在你铺子门口，先给你三块，九金当面点；你修镐也要矿，这买卖你不亏。不算就直说，我不磨你。\",\"topic\":\"卖你三块矿\"}",
+              "id": "3697686814914782abe48e01d79e361a",
+              "key": "[\"阿石\",\"d2-laotie-ore-sell-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，不瞒你：阿森两块矿没到手，小砾的矿我正跟她当面过手——我两金一块收进来，三金一块给你，就在这坑口交货，不叫你干等。你钱带在身上就好，矿一到我手上，我立马递你，九金一块儿点清。你要是还想多要，我收多少给你多少，你不嫌多我就收。\",\"topic\":\"坑口交货\"}",
+              "id": "03b17a2b86034ee682f9242caa6a6de2",
+              "key": "[\"小路\",\"xiaolu-d2a-x36\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，三块矿当面点给你了，按你说的三金一块，九金你转我账上就成。往后我挖出来先问你，你炉子别熄。我手里还压着几块，柜台吃不下的都留着等你收。\",\"topic\":\"三块矿已交\"}",
+              "id": "f05b7896d0994acbb8855775063c1ec5",
+              "key": "[\"阿石\",\"d2-laotie-ore-note-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，我刚要当面把三块矿点给你，你人已经离开矿坑了，没递成。眼下我手里压着十块矿，柜台只吃得下一块，就指望你收。你下回说个准地方，我背过去，三金一块当面结；你修镐要矿，我这矿最合适，镇上就缺这个。\",\"topic\":\"十块矿等你收\"}",
+              "id": "e56341b72a884edcbaae5a24881ddb11",
+              "key": "[\"阿石\",\"d2-laotie-ore-hold-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，九金我收到了，账我认：三块矿还欠你手上，我这轮行动值已经走干，递不出去。下个时段头一件事就是把三块矿当面点给你，一文不差。你要等得急，就还在矿坑这边等我；你要回铺子，也捎个话说个地方，我背过去。矿在我手里稳当，你我不必猜。\",\"topic\":\"欠你三块矿\"}",
+              "id": "f525138cf79c43c8b7fcbd08e5303672",
+              "key": "[\"阿石\",\"d2-laotie-owe-ore-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，三块矿当面点给你了，先前那笔勾销，账清。我手里还压着七块，你要收，我照旧三金一块给你，现钱结，你要几块给个数；柜台那边现钱紧，与其等它回血，不如先紧着你的炉子——镇上修镐的都要矿，你手里有矿才接得下活。我这就在坑里继续下镐，你说数，我攒够了一块儿递你。\",\"topic\":\"余下的矿要不要\"}",
+              "id": "39c3abd9c34f43819bef9782e92251b3",
+              "key": "[\"阿石\",\"d2-laotie-more-ore-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，实情说给你：我手里压着十块矿，刚才到商店柜台卖，卖了头两块就被告知\\\"资金不足\\\"，柜台没现钱了。\\n\\n你早先放话三金一块在炉边收，我照这个价给你。你手里能结几块就报几块，我明早把矿送到炉边，一手点货一手结钱，不赊不欠。你要是也没现钱，就直说，我不缠人——我去问阿石，他修好了镐下坑，手里该有活钱。\",\"topic\":\"矿石收购\"}",
+              "id": "1f11ee32a3934b27834a20e0d1f3bd96",
+              "key": "[\"小砾\",\"laotie-ore-d2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"铁匠铺开炉公告：坏镐拿来修，两金币加一矿石，我当天下锤，镐立等可取——手艺我担保，修不好不收钱。手上缺矿的，我槽里新进三块，三金币一块，先到先得，不赊不欠。工具坏了别硬撑，砸了镐就砸了营生。老铁在炉边等，嗓门大，人在。\",\"topic\":\"开炉·修镐\"}",
+              "id": "01e1eef93dcd4ef7aa96ad7a6bda6f5f",
+              "key": "[\"老铁\",\"notice-forge-open-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，账我说清，不催你：我手里压着十一块矿，柜台吃不下，你口袋也得缓，这我明白。你今晚要是能拿出几金的闲钱，就说个数——三金一块，我当面点给你；拿不出也不打紧，我这轮照旧下镐，矿攒在手里不烂。镇上修镐的都缺矿，你这买卖迟早要开张，我这份先紧着你。\",\"topic\":\"矿留着等你\"}",
+              "id": "72f064f4b84b4875b6a3a998d98e2970",
+              "key": "[\"阿石\",\"d2-mid-laotie-offer-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，你那个主意我先记下，可我得跟你说句实话：树林砍柴用的是斧子，不是锯——我去看过那儿的规矩，一斧六点换三根木材。锯子买回来恐怕只能压箱底，这五金我不乱花。你放心，我手里八个金币一个子儿没动，等你柜台缓过来，我替你跑的背矿活照旧，腿钱你说多少就多少。\",\"topic\":\"锯子的事\"}",
+              "id": "c03ad4a3af824331a66856d5c29f3c99",
+              "key": "[\"小路\",\"xiaolu-d3n-x50\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，炉火正好，我问两句实在的：方才那把镐是谁拿来修的？镇上如今有几把镐在转、几把是坏的？\\n\\n我手上压着四块矿，暂时出不了手（柜台断钱，一块也不收）。你铺子里要是收矿、或者拿矿换活儿，你说个价，我照办；你案上那块矿要是没急用，匀给我也成。还有：谁家要出让旧镐、坏镐，你头一个知道，千万替我留着——我手里有矿、有两金，就等一把镐下坑。\",\"topic\":\"铺子问话\"}",
+              "id": "9525d9a0ad0e4dd7bd6985bdaa8a2105",
+              "key": "[\"悦\",\"yue-laotie-ask-13\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，你问坏镐——我手里没有：坏的那把早修成手里这把了，镇上也没见谁撂下第二把。林攥着钱满镇买镐，小路又在阿森那堆矿车零件里翻，真翻出镐头，两金一矿的修工就是你的。你要是能从别处弄到坏铁件，我帮你出矿，修成了卖林，钱咱们分——秤你出，我出力。\",\"topic\":\"坏镐的下落\"}",
+              "id": "8087b812e5834cc8a036469f1982af8e",
+              "key": "[\"阿石\",\"d3-laotie-nobroken-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，你说人在院里，我出门一看院里空的，你怕是又挪脚了。我不傻等：我这就往商店、铁匠铺那头走，一来看看柜台回血没有，二来跟你、林碰头。零件堆那事——那堆铁疙瘩就在居民楼B院角，你哪会儿到，我就哪会儿陪你翻，矿和工钱都按先前说的分，不反悔。你若先到了，就在铺子炉边等我，别让炉子凉了。\",\"topic\":\"院里没人，我往铺子去\"}",
+              "id": "63ac6a705194442fbbd5497de0153232",
+              "key": "[\"阿石\",\"d4-laotie-search-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，斧子的事我照你说的办了——五金已经花下去，斧子在我手里，柜台也进过一回活钱。可你也看见了：柜台的钱刚进去就被人掏空，货出不动。这盘棋不是一个人垫五金就转得起来的。你柜台要是有进项，先收我一两块矿，我给你留货；我这斧子在手，砍柴的事我认，缺一两金我再来找你凑。\",\"topic\":\"斧子买了·柜台还是空\"}",
+              "id": "312bd75051ed4ad2b5d2595e34591845",
+              "key": "[\"小路\",\"xiaolu-d4n-x83\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，这买卖我应，法子你定得公道，我一句不改：\\n\\n一，翻出坏镐头那天，**我出两金，你出矿石**，你下锤修成好镐，镐归我；\\n二，我下坑挖出的**头三块矿给你顶料钱**，之后挖的归我自己；\\n三，镐子往后归我使，坏了还来你这儿，工钱按老规矩两金加一矿，我不赊不欠。\\n\\n只加一句实在话：坏镐头什么时候有，谁也说不准。你要是在阿森那堆零件里、或者谁家旧物里翻到镐头，先告诉我一声，两金我随时备着，不让你白等。\\n\\n另外你那句\\\"炉子闲着也是闲着\\\"我记着——我明儿要是得空，还来炉边看你捶铁，学一分是一分。\",\"topic\":\"应下修镐之约\"}",
+              "id": "8e747548a6a1476da21c33554559e3ad",
+              "key": "[\"悦\",\"yue-laotie-deal-20\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"铁匠铺改价公告：坏镐拿来修，两金币加一矿石，当天取，手艺我担保。手上没矿的，我槽里还有三块，按两块一块匀——跟矿上一个价，我不赚你差价，只求镇上的镐子都别撂着。另外给个明白话：我只会修、不会打新镐，镇上想弄镐的，先找一把坏镐头来。老铁在炉边，火不熄。\",\"topic\":\"修镐·矿价随行\"}",
+              "id": "580793c0de9e4a2d9201f032883b1be4",
+              "key": "[\"老铁\",\"notice-price-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"老铁，你肯收我的矿，我记这份人情。价我认：两块一块，先卖你一块，两金当面点。等小砾把我那两块矿过到手，我立马背到你炉边。柜台那头一进活钱，我头一个捎信给你；你哪天有进项，剩下的矿还给我留着价。\",\"topic\":\"矿给你留着\"}",
+              "id": "384bfc671f5644a48bbd58091f54e7c0",
+              "key": "[\"小路\",\"xiaolu-d5a-x95\"]"
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "老铁 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空消息正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "消息正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或公告栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_2544c9e93d271c248abbc811"
+            },
+            {
+              "description": "老铁 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "读取条数",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "mod_f4dc2d55cb7c8716e2aa559d"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records",
+          "self"
+        ],
+        "config": {},
+        "description": "",
+        "module_id": "messages.relay",
+        "modules": [
+          "messages.box"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
+              "factory_module": "messages.relay",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键，沿用 messages.box 的幂等语义：相同发送者、相同键与相同内容只投递一次。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID，不能是自己。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空便笺正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "便笺正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "send_to"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "config": {
+          "channels": [
+            "context.assembler"
+          ],
+          "context_channels": [
+            "context.assembler.context"
+          ],
+          "inputs_channels": [
+            "context.assembler.inputs"
+          ],
+          "system_prompt_channels": [
+            "context.assembler.system_prompt"
+          ],
+          "tail_channels": [
+            "context.assembler.tail"
+          ]
+        },
+        "description": "上下文组装器",
+        "module_id": "context.assembler",
+        "modules": [],
+        "strength": 4,
+        "tools": {
+          "group": 5,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self"
+        ],
+        "config": {
+          "max_memories": 100
+        },
+        "description": "",
+        "module_id": "agents.memory",
+        "modules": [],
+        "state": {
+          "memories": [
+            {
+              "key": "day1-morning-deal",
+              "text": "第1天早上（tick 1）：我把铺子开在铁匠铺，炉火生好。个人仓：金币18、铁/矿料2。铺面库存：矿石0、金币0。修坏镐的规矩：两金币加一矿石（修一次1行动点），铺子进账两金币一矿石。\n今日头一个客人应是矿工阿石：他手里12金币、0矿石、坏镐一把。我已回信答应先垫一块矿石，他带坏镐和两金币过来，挖出矿后还我一块。小路想接跑腿活（一金币一趟），悦是居民楼A新来的，问铺子忙不忙。"
+            }
+          ]
+        },
+        "strength": 0,
+        "tools": {
+          "group": 6,
+          "members": [
+            {
+              "description": "把一段个人经历或知识写入自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。",
+                    "minLength": 1,
+                    "title": "记忆键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要记住的内容，不能为空，最多 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "记忆内容",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "remember"
+            },
+            {
+              "description": "按关键词子串检索自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "default": "",
+                    "description": "按子串匹配自己的记忆，留空返回全部记忆。",
+                    "title": "查询词",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "recall"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "records",
+          "movement",
+          "info",
+          "location",
+          "road"
+        ],
+        "config": {
+          "map_title": "奈镇地图",
+          "public_fields": [
+            "name",
+            "gender",
+            "profession",
+            "age_group"
+          ],
+          "road_channels": [
+            "location",
+            "road"
+          ]
+        },
+        "description": "",
+        "module_id": "places.query",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "published": {
+          "age_group": "adult",
+          "gender": "male",
+          "name": "老铁",
+          "profession": "铁匠"
+        },
+        "state": {},
+        "strength": 12,
+        "tools": {
+          "group": 7,
+          "members": [
+            {
+              "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "look"
+            },
+            {
+              "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "place": {
+                    "description": "地点名称或编号；省略时查询当前位置。",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "place"
+            },
+            {
+              "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "map"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "chat",
+          "location"
+        ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
+        "description": "",
+        "module_id": "records.transfer",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":6,\"recipient\":\"小路\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:老铁:老铁:give:give-xiaolu-oremoney-6",
+              "result": {
+                "ap": 9,
+                "duplicate": false,
+                "from": "老铁",
+                "quantity": 6,
+                "resource": "coins",
+                "to": "小路"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":1,\"recipient\":\"小路\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:老铁:老铁:give:give-xiaolu-errand-1",
+              "result": {
+                "ap": 8,
+                "duplicate": false,
+                "from": "老铁",
+                "quantity": 1,
+                "resource": "coins",
+                "to": "小路"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":9,\"recipient\":\"阿石\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:老铁:老铁:give:give-ashi-9coins",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "老铁",
+                "quantity": 9,
+                "resource": "coins",
+                "to": "阿石"
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 8,
+          "members": [
+            {
+              "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
+              "factory_module": "records.transfer",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同参数重试时返回旧结果，参数变化会被拒绝。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "description": "要转交的正整数数量。",
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "resource": {
+                    "description": "自己记录仓中要转交的数字字段名，例如金币、木材或 ap。",
+                    "minLength": 1,
+                    "title": "资源字段",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "resource",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "tool": "give"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement"
+        ],
+        "description": "串联工具发现",
+        "module_id": "tool_discovery",
+        "modules": [],
+        "strength": 2,
+        "tools": {
+          "group": 9,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 10,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 11,
+          "members": [
+            {
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "memory_query"
+            },
+            {
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "new_text": {
+                    "type": "string"
+                  },
+                  "old_text": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_modify"
+            },
+            {
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_append"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "type": "agent"
+}

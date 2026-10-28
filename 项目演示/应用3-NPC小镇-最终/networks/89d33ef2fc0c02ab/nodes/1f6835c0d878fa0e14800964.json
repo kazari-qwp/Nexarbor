@@ -1,0 +1,278 @@
+{
+  "aggregation": "sum",
+  "bias": -1,
+  "description": "",
+  "execution": null,
+  "links": [
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "居民楼B",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "树林",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "民政局",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "time"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "世界时间",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "family.parent"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "育儿须知",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "family.pregnancy"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "怀孕须知",
+      "threshold": 1
+    }
+  ],
+  "name": "医院",
+  "node_id": "医院",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "安静的医院，待产者在这里办理生产。",
+          "visitors": [],
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "安静的医院，待产者在这里办理生产。",
+          "location": null,
+          "name": "医院",
+          "node_id": "医院",
+          "visit": 0,
+          "visitors": []
+        },
+        "state": {
+          "visitors": []
+        },
+        "strength": 0,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "config": {
+          "before_hooks": [
+            {
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              },
+              "module": "records.store",
+              "operation": "apply",
+              "target": "requester"
+            }
+          ],
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "timeout_seconds": 60
+        },
+        "description": "",
+        "module_id": "movement.here",
+        "modules": [
+          "place.info"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "description": "医院 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "factory_module": "movement.here",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "tool": "mod_72a304f53a05ace47d516625"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "service",
+          "time",
+          "family.pregnancy",
+          "family.parent",
+          "context.assembler.context",
+          "runtime.template",
+          "records",
+          "location"
+        ],
+        "config": {
+          "cost": 1,
+          "duration": 10,
+          "parent_channels": [
+            "family.parent"
+          ],
+          "pregnancy_channels": [
+            "family.pregnancy"
+          ],
+          "templates": [
+            {
+              "home": "居民楼A",
+              "template": "newborn-a"
+            },
+            {
+              "home": "居民楼B",
+              "template": "newborn-b"
+            }
+          ],
+          "time_channels": [
+            "time"
+          ]
+        },
+        "description": "",
+        "module_id": "family.birth",
+        "modules": [],
+        "state": {},
+        "strength": 12,
+        "tools": {
+          "group": 2,
+          "members": [
+            {
+              "description": "医院 · 查看待产状态 · 查看自己的怀孕起始 tick、经过时间和是否到期。",
+              "factory_module": "family.birth",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_34f0d5c6742ff22103b5f8bd"
+            },
+            {
+              "description": "医院 · 办理生产 · 待产者本人到医院，满足等待时间后创建儿童；不需要伴侣同时到场，同请求重试不会重复创建。",
+              "factory_module": "family.birth",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "name": {
+                    "maxLength": 50,
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "key"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_7330cc7e9ef9b2c3d5e7cf31"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 3,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "type": "node"
+}

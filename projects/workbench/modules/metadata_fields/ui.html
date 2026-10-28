@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>元数据字段</title>
+<style>
+  :root {
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  [hidden] {
+    display: none !important;
+  }
+  body {
+    margin: 0;
+    padding: 10px;
+    background: #15171c;
+    color: #e8eaf0;
+    font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-size: 12px;
+    line-height: 1.5;
+    min-width: 0;
+  }
+  h1 {
+    margin: 0 0 2px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #f2f4f8;
+  }
+  .hint {
+    margin: 2px 0 8px;
+    color: #8b93a7;
+    font-size: 11px;
+    word-break: break-word;
+  }
+  .readonly {
+    color: #e6c079;
+  }
+  .row {
+    margin: 0 0 8px;
+    padding: 8px;
+    background: #1d2027;
+    border: 1px solid #2c3140;
+    border-radius: 8px;
+  }
+  .row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    min-height: 24px;
+  }
+  .row-title {
+    color: #a9b2c6;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .delete {
+    width: auto;
+    flex: 0 0 auto;
+    padding: 2px 6px;
+    border-color: #4a3338;
+    background: transparent;
+    color: #ff9b9b;
+    font-size: 11px;
+  }
+  .field-label {
+    display: block;
+    margin: 6px 0 3px;
+    color: #9aa3b5;
+    font-size: 11px;
+  }
+  input,
+  select,
+  textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    padding: 5px 7px;
+    border: 1px solid #333a4a;
+    border-radius: 6px;
+    background: #11141a;
+    color: #e8eaf0;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  textarea {
+    min-height: 40px;
+    resize: vertical;
+    font-family: ui-monospace, Consolas, "Cascadia Mono", monospace;
+    font-size: 11px;
+  }
+  input:focus,
+  select:focus,
+  textarea:focus {
+    outline: 2px solid #5b8cff;
+    outline-offset: 1px;
+  }
+  input:disabled,
+  select:disabled,
+  textarea:disabled {
+    opacity: 0.65;
+  }
+  .bool-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    color: #cfd5e2;
+  }
+  .bool-row input {
+    width: auto;
+  }
+  .null-value {
+    padding: 4px 0;
+    color: #8b93a7;
+  }
+  .empty {
+    margin: 4px 0 8px;
+    padding: 10px 0;
+    color: #8b93a7;
+    font-size: 11px;
+    text-align: center;
+  }
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  button {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #3a4254;
+    border-radius: 6px;
+    background: #262b36;
+    color: #e8eaf0;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  #add {
+    border-style: dashed;
+    background: transparent;
+    color: #a8baff;
+  }
+  #save {
+    border-color: #3b6cf0;
+    background: #3b6cf0;
+    color: #ffffff;
+    font-weight: 600;
+  }
+  button:hover:not(:disabled) {
+    filter: brightness(1.12);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .status {
+    min-height: 1.5em;
+    margin: 8px 0 0;
+    font-size: 11px;
+    word-break: break-word;
+  }
+  .status.ok {
+    color: #7ddca4;
+  }
+  .status.err {
+    color: #ff9b9b;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>元数据字段</h1>
+    <p class="hint">保存后写入网络草稿；应用网络后，字段会在 read 操作或 metadata.refresh 信号时发布。</p>
+    <p id="readonly-hint" class="hint readonly" hidden>当前为只读模式，只能查看已有字段。</p>
+  </header>
+
+  <div id="rows"></div>
+  <p id="empty" class="empty">暂无字段，点击“＋ 添加元数据”开始。</p>
+
+  <div class="actions">
+    <button id="add" type="button">＋ 添加元数据</button>
+    <button id="save" type="button">保存配置</button>
+  </div>
+  <p id="status" class="status" role="status" aria-live="polite"></p>
+
+<script>
+(function () {
+  'use strict';
+
+  var host = window.NexarborModule;
+  var rowsRoot = document.getElementById('rows');
+  var emptyHint = document.getElementById('empty');
+  var addButton = document.getElementById('add');
+  var saveButton = document.getElementById('save');
+  var statusEl = document.getElementById('status');
+  var readonlyHint = document.getElementById('readonly-hint');
+
+  var TYPE_OPTIONS = [
+    { value: 'string', label: '字符串' },
+    { value: 'number', label: '数字' },
+    { value: 'boolean', label: '布尔' },
+    { value: 'object', label: '对象' },
+    { value: 'array', label: '数组' },
+    { value: 'null', label: '空值' }
+  ];
+
+  var current = null;
+  var readOnly = false;
+  var saving = false;
+  var lastSignature = null;
+  var rowSeq = 0;
+  var resizeTimer = null;
+
+  function createElement(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) {
+      node.className = className;
+    }
+    if (text !== undefined) {
+      node.textContent = text;
+    }
+    return node;
+  }
+
+  function clearStatus() {
+    statusEl.textContent = '';
+    statusEl.className = 'status';
+  }
+
+  function showStatus(text, kind) {
+    statusEl.textContent = text;
+    statusEl.className = 'status ' + kind;
+    scheduleResize();
+  }
+
+  function scheduleResize() {
+    if (resizeTimer !== null) {
+      clearTimeout(resizeTimer);
+    }
+    resizeTimer = setTimeout(function () {
+      resizeTimer = null;
+      if (!host || typeof host.resize !== 'function') {
+        return;
+      }
+      var height = Math.ceil(document.body.getBoundingClientRect().height) + 4;
+      height = Math.min(900, Math.max(160, height));
+      host.resize(height);
+    }, 40);
+  }
+
+  function inferType(value) {
+    if (value === null) {
+      return 'null';
+    }
+    if (Array.isArray(value)) {
+      return 'array';
+    }
+    if (typeof value === 'number') {
+      return 'number';
+    }
+    if (typeof value === 'boolean') {
+      return 'boolean';
+    }
+    if (typeof value === 'object') {
+      return 'object';
+    }
+    return 'string';
+  }
+
+  function valueToRaw(value, type) {
+    if (type === 'string') {
+      return String(value);
+    }
+    if (type === 'number') {
+      return String(value);
+    }
+    if (type === 'object' || type === 'array') {
+      try {
+        return JSON.stringify(value);
+      } catch (error) {
+        return '';
+      }
+    }
+    return '';
+  }
+
+  function markDirty() {
+    clearStatus();
+  }
+
+  function updateEmpty() {
+    var empty = rowsRoot.children.length === 0;
+    emptyHint.hidden = !empty;
+    emptyHint.textContent = readOnly
+      ? '暂无字段。'
+      : '暂无字段，点击“＋ 添加元数据”开始。';
+  }
+
+  function renumber() {
+    var rows = Array.prototype.slice.call(rowsRoot.children);
+    rows.forEach(function (row, index) {
+      row._title.textContent = '字段 ' + (index + 1);
+      row._delete.setAttribute('aria-label', '删除字段 ' + (index + 1));
+    });
+  }
+
+  function applyReadOnly() {
+    addButton.disabled = readOnly;
+    saveButton.disabled = readOnly || saving;
+    readonlyHint.hidden = !readOnly;
+    Array.prototype.forEach.call(rowsRoot.children, function (row) {
+      Array.prototype.forEach.call(
+        row.querySelectorAll('input, select, textarea, button'),
+        function (control) {
+          control.disabled = readOnly;
+        }
+      );
+    });
+    updateEmpty();
+  }
+
+  function buildValueControl(row) {
+    var wrap = row._valueWrap;
+    var label = row._valueLabel;
+    var state = row._state;
+    var valueId = row._valueId;
+
+    wrap.replaceChildren();
+    label.htmlFor = '';
+
+    if (state.type === 'null') {
+      wrap.appendChild(createElement('div', 'null-value', 'null（空值，无需填写）'));
+      return;
+    }
+
+    if (state.type === 'boolean') {
+      var boolLabel = createElement('label', 'bool-row');
+      var checkbox = createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = valueId;
+      checkbox.checked = state.bool;
+      checkbox.addEventListener('change', function () {
+        state.bool = checkbox.checked;
+        markDirty();
+      });
+      boolLabel.appendChild(checkbox);
+      boolLabel.appendChild(createElement('span', '', '勾选表示 true'));
+      wrap.appendChild(boolLabel);
+      label.htmlFor = valueId;
+      checkbox.disabled = readOnly;
+      return;
+    }
+
+    var input;
+    if (state.type === 'object' || state.type === 'array') {
+      input = createElement('textarea', 'value-input');
+      input.rows = 2;
+      input.spellcheck = false;
+      input.placeholder = state.type === 'object'
+        ? '{"键": "值"}'
+        : '["值"]';
+    } else {
+      input = createElement('input', 'value-input');
+      input.type = 'text';
+      input.autocomplete = 'off';
+      if (state.type === 'number') {
+        input.inputMode = 'decimal';
+        input.placeholder = '例如 42';
+      } else {
+        input.placeholder = '输入文本';
+      }
+    }
+
+    input.id = valueId;
+    input.value = state.raw;
+    input.disabled = readOnly;
+    input.addEventListener('input', function () {
+      state.raw = input.value;
+      markDirty();
+    });
+    wrap.appendChild(input);
+    label.htmlFor = valueId;
+  }
+
+  function createRow(initial) {
+    var row = document.createElement('div');
+    row.className = 'row';
+    row._state = {
+      name: initial.name,
+      type: initial.type,
+      raw: initial.raw,
+      bool: initial.bool
+    };
+    row._valueId = 'field-value-' + (++rowSeq);
+
+    var head = createElement('div', 'row-head');
+    var title = createElement('span', 'row-title', '字段');
+    var deleteButton = createElement('button', 'delete', '删除字段');
+    deleteButton.type = 'button';
+    deleteButton.setAttribute('aria-label', '删除字段');
+    head.appendChild(title);
+    head.appendChild(deleteButton);
+    row.appendChild(head);
+
+    var nameLabel = createElement('label', 'field-label', '字段名称');
+    nameLabel.htmlFor = row._valueId + '-name';
+    row.appendChild(nameLabel);
+
+    var nameInput = createElement('input');
+    nameInput.type = 'text';
+    nameInput.id = row._valueId + '-name';
+    nameInput.autocomplete = 'off';
+    nameInput.spellcheck = false;
+    nameInput.placeholder = '例如 author';
+    nameInput.value = initial.name;
+    nameInput.addEventListener('input', function () {
+      row._state.name = nameInput.value;
+      markDirty();
+    });
+    row.appendChild(nameInput);
+
+    var typeLabel = createElement('label', 'field-label', '字段类型');
+    typeLabel.htmlFor = row._valueId + '-type';
+    row.appendChild(typeLabel);
+
+    var typeSelect = createElement('select');
+    typeSelect.id = row._valueId + '-type';
+    TYPE_OPTIONS.forEach(function (option) {
+      var optionNode = createElement('option', '', option.label);
+      optionNode.value = option.value;
+      typeSelect.appendChild(optionNode);
+    });
+    typeSelect.value = initial.type;
+    typeSelect.addEventListener('change', function () {
+      row._state.type = typeSelect.value;
+      buildValueControl(row);
+      markDirty();
+      scheduleResize();
+    });
+    row.appendChild(typeSelect);
+
+    var valueLabel = createElement('label', 'field-label', '字段值');
+    row.appendChild(valueLabel);
+
+    var valueWrap = createElement('div');
+    row.appendChild(valueWrap);
+
+    row._title = title;
+    row._delete = deleteButton;
+    row._nameInput = nameInput;
+    row._typeSelect = typeSelect;
+    row._valueLabel = valueLabel;
+    row._valueWrap = valueWrap;
+
+    deleteButton.addEventListener('click', function () {
+      row.remove();
+      markDirty();
+      renumber();
+      updateEmpty();
+      scheduleResize();
+    });
+
+    buildValueControl(row);
+    return row;
+  }
+
+  function renderRows(fields) {
+    rowsRoot.replaceChildren();
+    rowSeq = 0;
+    Object.keys(fields).forEach(function (name) {
+      var value = fields[name];
+      var type = inferType(value);
+      var row = createRow({
+        name: name,
+        type: type,
+        raw: valueToRaw(value, type),
+        bool: value === true
+      });
+      rowsRoot.appendChild(row);
+    });
+    renumber();
+    updateEmpty();
+  }
+
+  function applyContext(context) {
+    if (!context) {
+      return;
+    }
+    current = context;
+    readOnly = Boolean(context.readOnly);
+
+    var config = context.config || {};
+    var rawFields = config.fields;
+    var hasFields = rawFields !== undefined;
+    var validFields = !hasFields ||
+      (rawFields !== null && typeof rawFields === 'object' && !Array.isArray(rawFields));
+    var fields = hasFields && validFields ? rawFields : {};
+    var serialized = JSON.stringify(fields);
+    var signature = (validFields ? 'ok:' : 'bad:') + serialized;
+    var firstRender = lastSignature === null;
+
+    if (firstRender || signature !== lastSignature) {
+      renderRows(fields);
+      lastSignature = signature;
+      if (!firstRender) {
+        clearStatus();
+      }
+      if (hasFields && !validFields) {
+        showStatus('配置中的 fields 不是对象，已按空字段显示。', 'err');
+      }
+    }
+
+    applyReadOnly();
+    scheduleResize();
+  }
+
+  function fieldError(index, name, message) {
+    return '第 ' + index + ' 行“' + name + '”的' + message;
+  }
+
+  function collectFields() {
+    var rows = Array.prototype.slice.call(rowsRoot.children);
+    var fields = {};
+    var seen = Object.create(null);
+
+    rows.forEach(function (row, rowIndex) {
+      var index = rowIndex + 1;
+      var state = row._state;
+      var name = state.name.trim();
+
+      if (!name) {
+        throw new Error('第 ' + index + ' 行的字段名称不能为空。');
+      }
+      if (seen[name]) {
+        throw new Error('字段名称“' + name + '”重复，请修改后再保存。');
+      }
+      seen[name] = true;
+
+      var value;
+      if (state.type === 'string') {
+        value = state.raw;
+      } else if (state.type === 'number') {
+        var numberText = state.raw.trim();
+        if (!numberText) {
+          throw new Error(fieldError(index, name, '字段值不能为空，请填写数字。'));
+        }
+        var numberValue = Number(numberText);
+        if (!Number.isFinite(numberValue)) {
+          throw new Error(fieldError(index, name, '字段值不是有效数字。'));
+        }
+        value = numberValue;
+      } else if (state.type === 'boolean') {
+        value = Boolean(state.bool);
+      } else if (state.type === 'null') {
+        value = null;
+      } else {
+        var jsonText = state.raw.trim();
+        if (!jsonText) {
+          throw new Error(fieldError(index, name, 'JSON 不能为空。'));
+        }
+        var parsed;
+        try {
+          parsed = JSON.parse(jsonText);
+        } catch (error) {
+          throw new Error(fieldError(index, name, 'JSON 格式不正确，请检查引号、逗号和括号。'));
+        }
+        if (state.type === 'object') {
+          if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error(fieldError(index, name, '字段值需要是 JSON 对象，例如 {"键": "值"}。'));
+          }
+        } else if (!Array.isArray(parsed)) {
+          throw new Error(fieldError(index, name, '字段值需要是 JSON 数组，例如 ["值"]。'));
+        }
+        value = parsed;
+      }
+
+      Object.defineProperty(fields, name, {
+        value: value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
+    });
+
+    return fields;
+  }
+
+  async function handleSave() {
+    if (readOnly) {
+      showStatus('当前为只读模式，无法修改配置。', 'err');
+      return;
+    }
+    if (!current) {
+      showStatus('尚未取得模块配置，请稍后重试。', 'err');
+      return;
+    }
+
+    var fields;
+    try {
+      fields = collectFields();
+    } catch (error) {
+      showStatus(error.message, 'err');
+      scheduleResize();
+      return;
+    }
+
+    Array.prototype.forEach.call(rowsRoot.children, function (row) {
+      var trimmed = row._state.name.trim();
+      if (trimmed !== row._state.name) {
+        row._state.name = trimmed;
+        row._nameInput.value = trimmed;
+      }
+    });
+
+    var next = Object.assign({}, current.config || {}, { fields: fields });
+
+    saving = true;
+    saveButton.disabled = true;
+    saveButton.textContent = '正在保存…';
+    try {
+      await host.setConfig(next);
+      lastSignature = 'ok:' + JSON.stringify(fields);
+      showStatus('已写入网络草稿，应用网络后生效', 'ok');
+    } catch (error) {
+      var detail = error && error.message ? String(error.message) : '未知错误';
+      showStatus('保存失败：' + detail, 'err');
+    } finally {
+      saving = false;
+      saveButton.textContent = '保存配置';
+      applyReadOnly();
+      scheduleResize();
+    }
+  }
+
+  addButton.addEventListener('click', function () {
+    if (readOnly) {
+      return;
+    }
+    var row = createRow({ name: '', type: 'string', raw: '', bool: false });
+    rowsRoot.appendChild(row);
+    renumber();
+    updateEmpty();
+    markDirty();
+    row._nameInput.focus();
+    scheduleResize();
+  });
+
+  saveButton.addEventListener('click', handleSave);
+
+  if (!host ||
+      typeof host.onContext !== 'function' ||
+      typeof host.setConfig !== 'function') {
+    addButton.disabled = true;
+    saveButton.disabled = true;
+    showStatus('未检测到客户端接口，无法编辑配置。', 'err');
+    return;
+  }
+
+  if (typeof host.getContext === 'function') {
+    var initial = host.getContext();
+    if (initial) {
+      applyContext(initial);
+    }
+  }
+
+  host.onContext(applyContext);
+})();
+</script>
+</body>
+</html>

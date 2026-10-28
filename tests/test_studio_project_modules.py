@@ -40,3 +40,8 @@ class ProjectModuleTests(unittest.TestCase):
         self.library.manifests['counter']['requires']=['counter']
         with self.assertRaises(ValueError):self.library.mount(self.backend.network.get('a'),'counter')
         self.assertEqual(list(self.backend.network.get('a').modules),[])
+
+    def test_module_folder_keeps_relative_imports_to_project_shared_helpers(self):
+        helper=self.root/'shared';helper.mkdir();(helper/'__init__.py').write_text('',encoding='utf8');(helper/'values.py').write_text('OFFSET=7\n',encoding='utf8')
+        (self.module/'module.py').write_text('from ..shared.values import OFFSET\n'+SOURCE.replace("self.state.get('count',0)+amount","self.state.get('count',0)+amount+OFFSET"),encoding='utf8')
+        module=self.library.mount(self.backend.network.get('a'),'counter');self.assertEqual(module.increment(amount=3),{'count':10})

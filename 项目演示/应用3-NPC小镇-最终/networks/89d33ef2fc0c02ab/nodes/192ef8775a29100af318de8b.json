@@ -1,0 +1,3343 @@
+{
+  "aggregation": "sum",
+  "bias": -1,
+  "description": "",
+  "execution": null,
+  "links": [
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "铁匠铺",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "树林",
+      "threshold": 1
+    }
+  ],
+  "name": "矿坑",
+  "node_id": "矿坑",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "镇外的矿坑，岩壁里有矿石，也能碰运气挖到黄金。",
+          "visitors": [],
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "镇外的矿坑，岩壁里有矿石，也能碰运气挖到黄金。",
+          "location": null,
+          "name": "矿坑",
+          "node_id": "矿坑",
+          "visit": 0,
+          "visitors": []
+        },
+        "state": {
+          "visitors": []
+        },
+        "strength": 0,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "config": {
+          "before_hooks": [
+            {
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              },
+              "module": "records.store",
+              "operation": "apply",
+              "target": "requester"
+            }
+          ],
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "timeout_seconds": 60
+        },
+        "description": "",
+        "module_id": "movement.here",
+        "modules": [
+          "place.info"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "description": "矿坑 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "factory_module": "movement.here",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "tool": "mod_c287b98ad43f72abb83c0cd9"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {},
+          "minimum": {},
+          "references": []
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-4\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-5\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1e-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1e-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1e-3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"shi-mine-1a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"shi-mine-1b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"shi-mine-1c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-d\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2m-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2m-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-e\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-4\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-5\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-4\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-5\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-pm-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-pm-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-pm-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-eve-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-eve-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-eve-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-eve-mine-d\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n8-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n8-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-d\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-e\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-4\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-5\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-noon-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-noon-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-noon-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-4\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-5\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-d\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-e\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-eve-mine-f\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d4m-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d4m-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d4m-3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-pm-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-pm-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-pm-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-d\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-e\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-c\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-d\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-e\",\"local\"]",
+              "references": [],
+              "values": {}
+            }
+          ],
+          "references": [],
+          "values": {}
+        },
+        "strength": 1,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "config": {
+          "actions": [
+            {
+              "actor_deltas": {
+                "ore": 1
+              },
+              "cost": 2,
+              "description": "带着镐子下矿，采一块矿石，消耗两点行动值。",
+              "id": "mine",
+              "require_items": {
+                "pickaxe": 1
+              },
+              "title": "采矿"
+            }
+          ],
+          "address": "矿坑",
+          "events": []
+        },
+        "description": "",
+        "module_id": "service.actions",
+        "modules": [
+          "records.store"
+        ],
+        "state": {
+          "event_counts": {},
+          "receipts": [
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d1n-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "can_gestate": true,
+                  "coins": 10,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 1,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d1n-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "can_gestate": true,
+                  "coins": 10,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 2,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d1n-3",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "can_gestate": true,
+                  "coins": 10,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 3,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d1n-4",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 10,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 4,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d1n-5",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 10,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 5,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d1e-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "can_gestate": true,
+                  "coins": 22,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 1,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d1e-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 22,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 2,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d1e-3",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 22,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 3,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "shi-mine-1a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 1,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "shi-mine-1b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 2,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "shi-mine-1c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 3,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 4,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 5,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 6,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-mine-d",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 7,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2m-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 1,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2m-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 2,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-mine-e",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 8,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2n-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 3,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2n-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 4,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2n-3",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 5,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2n-4",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 6,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2n-5",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 7,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2a-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 8,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2a-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 9,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2a-3",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 10,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2a-4",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 11,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2a-5",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 28,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 12,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-pm-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 7,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 8,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-pm-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 7,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 9,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-pm-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 7,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 10,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-eve-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 7,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 8,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-eve-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 5,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 9,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-eve-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 3,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 10,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-eve-mine-d",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 1,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 11,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-night-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 12,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-night-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 13,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2n8-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 40,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 11,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d2n8-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 40,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 12,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-night-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 14,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-night-mine-d",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 15,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d2-night-mine-e",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 16,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3n-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 9,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3n-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 10,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3n-3",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 11,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3n-4",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 12,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3n-5",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 13,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d3-noon-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 5,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 17,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d3-noon-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 3,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 18,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d3-noon-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 1,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 16,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 19,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3a-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 14,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3a-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 15,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3a-3",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 16,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3a-4",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 17,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d3a-5",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "can_gestate": true,
+                  "coins": 37,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 18,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d3-pm-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 19,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 20,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d3-pm-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 19,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 21,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d3-pm-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 19,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 22,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d3-pm-mine-d",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 19,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 23,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d3-pm-mine-e",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 19,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 24,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d3-eve-mine-f",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 1,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 19,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 24,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d4m-1",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 5,
+                  "can_gestate": true,
+                  "coins": 45,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 19,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d4m-2",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 3,
+                  "can_gestate": true,
+                  "coins": 45,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 20,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"小砾\",\"quantity\":1}",
+              "key": "mine-d4m-3",
+              "result": {
+                "action": "mine",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 1,
+                  "can_gestate": true,
+                  "coins": 45,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 21,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d4-pm-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 5,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 23,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d4-pm-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 3,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 24,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d4-pm-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 1,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 25,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d4-eve-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 26,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d4-eve-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 27,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d4-eve-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 28,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d4-eve-mine-d",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 29,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d4-eve-mine-e",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 30,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d5-pm-mine-a",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 8,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 28,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d5-pm-mine-b",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 6,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 29,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d5-pm-mine-c",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 30,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d5-pm-mine-d",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 2,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 31,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"mine\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d5-pm-mine-e",
+              "result": {
+                "action": "mine",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“采矿”×1",
+                  "消耗行动点2"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 0,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 32,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "矿坑 · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_d8bc161ea7e4a435bfb56cab"
+            },
+            {
+              "description": "矿坑 · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "description": "要执行的配置动作 id。",
+                    "minLength": 1,
+                    "title": "动作标识",
+                    "type": "string"
+                  },
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同动作数量重试时返回旧结果，不重复扣费。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "description": "1 到 100 的整数，默认 1。",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_4518b4705531f6a9d966295c"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 4,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "type": "node"
+}

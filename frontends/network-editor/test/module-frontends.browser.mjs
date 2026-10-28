@@ -1,14 +1,10 @@
+import {setModule,moduleTable} from '../../shared/graph/node-records.js';
 // 实际 Python 后端、Electron 客户端与 Agent 制作页面；不调用模型。
 import {_electron,expect} from '@playwright/test';
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url));
-const source=path.resolve(process.argv[2]),directory=path.join(root,'build/module-frontends-e2e-'+Date.now());
-await fs.mkdir(path.join(directory,'studio'),{recursive:true});
-const library=JSON.parse(await fs.readFile(path.join(source,'studio/library.json'),'utf8'));
-const release=library['metadata.fields'];if(!release)throw Error('先完成 metadata.fields 的制作与验证');
-await fs.cp(path.join(source,'studio',release.folder),path.join(directory,'studio',release.folder),{recursive:true});
-await fs.writeFile(path.join(directory,'studio/library.json'),JSON.stringify({'metadata.fields':release}));
+const directory=path.join(root,'build/module-frontends-current-'+Date.now());
 let host=await startStudio({directory}),client;
 const api=async(operation,params={})=>{
  const response=await fetch('http://'+host.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(host.url).hash.slice(7)},body:JSON.stringify({operation,params})});
@@ -18,12 +14,12 @@ try{
  const catalog=await api('catalog');expect(catalog.toolError).toBeNull();expect(catalog.tools.length).toBeGreaterThan(0);
  const initial=await api('state');
  const document=await api('template',{kind:'node',options:{id:'other',name:'另一节点'},document:initial.live.document});
- for(const node of document.network.nodes)node.modules['metadata.fields']={config:{fields:node.node_id==='root'?{}:{住户:['甲','乙']}},state:{},access:{strength:0,channels:[]}};
+ for(const node of document.network.nodes)setModule(node,'metadata.fields',{config:{fields:node.node_id==='root'?{}:{住户:['甲','乙']}},state:{},strength:0,channels:[]});
  await api('apply',{document,base_commit:initial.live.commit,layout:{root:{x:0,y:0},other:{x:210,y:0}}});
  const env={...process.env};delete env.ELECTRON_RUN_AS_NODE;
  client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});
  const page=await client.firstWindow(),errors=[];page.on('pageerror',error=>errors.push(error.message));
- await expect(page.getByRole('button',{name:'保存',exact:true})).toBeVisible({timeout:20000});
+ await expect(page.getByRole('button',{name:'Commit',exact:true})).toBeVisible({timeout:20000});
  await page.locator('.react-flow__node[data-id="root"]').click();
  await page.getByRole('button',{name:'模块',exact:true}).click();
  const section=page.locator('.module-section').filter({has:page.locator('summary').filter({hasText:'metadata.fields'})}).first();
@@ -35,13 +31,13 @@ try{
  await frame.getByLabel('字段类型').selectOption('number');
  await frame.getByLabel('字段值').fill('12');
  await frame.getByRole('button',{name:'保存配置',exact:true}).click();
- await expect(frame.getByText('已写入网络草稿，校验并更新网络后生效',{exact:true})).toBeVisible();
+ await expect(frame.getByText('已写入网络草稿，应用网络后生效',{exact:true})).toBeVisible();
  await frame.getByRole('button',{name:'＋ 添加元数据',exact:true}).click();
  await frame.getByLabel('字段名称').nth(1).fill('住户');
  await frame.getByLabel('字段类型').nth(1).selectOption('array');
  await frame.getByLabel('字段值').nth(1).fill('["阿青","阿白"]');
  await frame.getByRole('button',{name:'保存配置',exact:true}).click();
- await expect(frame.getByText('已写入网络草稿，校验并更新网络后生效',{exact:true})).toBeVisible();
+ await expect(frame.getByText('已写入网络草稿，应用网络后生效',{exact:true})).toBeVisible();
  const child=page.frames().find(f=>f.url().includes('/module-frontend/'));
  const invalid=await child.evaluate(async()=>{try{await window.NexarborModule.setConfig({fields:[],network:'越权字段'});return null;}catch(error){return error.message;}});
  expect(invalid).toContain('配置不符合模块声明');
@@ -55,7 +51,7 @@ try{
  await expect(frame.getByText(/字段名称“材料”重复/)).toBeVisible();
  await frame.getByLabel('字段名称').nth(1).fill('住户');
  await frame.getByRole('button',{name:'保存配置',exact:true}).click();
- await expect(frame.getByText('已写入网络草稿，校验并更新网络后生效',{exact:true})).toBeVisible();
+ await expect(frame.getByText('已写入网络草稿，应用网络后生效',{exact:true})).toBeVisible();
  await frame.getByRole('button',{name:'＋ 添加元数据',exact:true}).click();
  await expect(frame.getByLabel('字段名称')).toHaveCount(3);
  await frame.getByRole('button',{name:/删除.*字段/}).last().click();
@@ -64,23 +60,25 @@ try{
  await page.getByRole('button',{name:'校验并更新网络',exact:true}).click();
  await expect(page.getByRole('button',{name:'校验并更新网络',exact:true})).toBeDisabled({timeout:10000});
  const expected={材料:12,住户:['阿青','阿白']};
- let state=await api('state');expect(state.live.document.network.nodes.find(n=>n.node_id==='root').modules['metadata.fields'].config.fields).toEqual(expected);
- expect(state.live.document.network.nodes.find(n=>n.node_id==='other').modules['metadata.fields'].config.fields).toEqual({住户:['甲','乙']});
- expect((await host.rpc('module_access',{node:'root',module:'metadata.fields',operation:'read',arguments:{}})).data).toEqual({fields:expected});
+ await expect.poll(async()=>moduleTable((await api('state')).live.document.network.nodes.find(n=>n.node_id==='root'))['metadata.fields'].config.fields,{timeout:15000}).toEqual(expected);
+ let state=await api('state');
+ expect(moduleTable(state.live.document.network.nodes.find(n=>n.node_id==='other'))['metadata.fields'].config.fields).toEqual({住户:['甲','乙']});
+ expect((await host.rpc('module_call',{node_id:'root',module_id:'metadata.fields',operation:'read',arguments:{}}))).toEqual({fields:expected});
  await section.getByRole('button',{name:'切换到通用表单',exact:true}).click();
  await expect(section.locator('form')).toBeVisible();
  await section.getByRole('button',{name:'使用模块页面',exact:true}).click();
  await expect(frame.getByLabel('字段值').first()).toHaveValue('12');
  await section.getByRole('button',{name:'查看模块源码',exact:true}).click();
  const studio=page.getByRole('dialog',{name:'组件工作室',exact:true});
+ await studio.getByRole('button',{name:'展开源码栏',exact:true}).click();
  await studio.getByRole('button',{name:'页面预览',exact:true}).click();
  await expect(studio.locator('.studio-page-preview').frameLocator('iframe').getByRole('button',{name:'＋ 添加元数据',exact:true})).toBeEnabled();
  await page.screenshot({path:path.join(directory,'studio-page-preview.png')});
  await studio.getByRole('button',{name:'关闭组件工作室',exact:true}).click();
  expect(errors).toEqual([]);
  await client.close();client=null;await host.close();host=await startStudio({directory});
- state=await api('state');expect(state.live.document.network.nodes.find(n=>n.node_id==='root').modules['metadata.fields'].config.fields).toEqual(expected);
- expect((await host.rpc('module_access',{node:'root',module:'metadata.fields',operation:'read',arguments:{}})).data).toEqual({fields:expected});
+ state=await api('state');expect(moduleTable(state.live.document.network.nodes.find(n=>n.node_id==='root'))['metadata.fields'].config.fields).toEqual(expected);
+ expect((await host.rpc('module_call',{node_id:'root',module_id:'metadata.fields',operation:'read',arguments:{}}))).toEqual({fields:expected});
  await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify({passed:true,desktop:true,addEditDelete:true,genericFallback:true,studioPreview:true,typesPreserved:true,foldRestores:true,invalidRejected:true,sourceSpoofRejected:true,sandbox:true,instancesIsolated:true,restartRestores:true,modelCalls:0,errors},null,2));
  console.log('PASS 可选模块页面、隔离、草稿应用和重启恢复：'+directory);
-}finally{if(client)await client.close();await host.close();}
+}catch(error){if(client){const p=await client.firstWindow();await p.screenshot({path:path.join(directory,'failure.png')});await fs.writeFile(path.join(directory,'failure.txt'),await p.locator('body').innerText());}throw error;}finally{if(client)await client.close();await host.close();}

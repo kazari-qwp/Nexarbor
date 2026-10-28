@@ -1,0 +1,83 @@
+{
+  "format": "nexarbor-module/v4",
+  "id": "tool_discovery",
+  "version": "0.4.0",
+  "entry": "module.py:ToolDiscoveryModule",
+  "node_types": [
+    "node",
+    "agent",
+    "markdown",
+    "pulse"
+  ],
+  "requires": [],
+  "config_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "title": "工具收集配置",
+    "properties": {
+      "channels": {
+        "type": "array",
+        "title": "收集与串联频道",
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniqueItems": true,
+        "default": [
+          "tools"
+        ]
+      },
+      "channel_modes": {
+        "type": "object",
+        "title": "频道匹配模式",
+        "additionalProperties": {
+          "enum": [
+            "allow",
+            "deny"
+          ]
+        }
+      }
+    }
+  },
+  "state_schema": {
+    "type": "object",
+    "additionalProperties": false
+  },
+  "signals": [],
+  "operations": [
+    {
+      "name": "discover",
+      "parameters": {
+        "type": "object",
+        "additionalProperties": false
+      },
+      "result": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "required": [
+            "name",
+            "description",
+            "parameters"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "object"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "description": "返回可达节点的真实工具对象组成的 Tools；宿主预览仅序列化工具声明。"
+    }
+  ],
+  "name": "工具收集器",
+  "description": "按可达范围收集工具，支持串联与来源去重。",
+  "agent_tools": []
+}

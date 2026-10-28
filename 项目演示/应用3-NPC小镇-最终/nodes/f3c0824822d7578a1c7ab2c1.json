@@ -1,0 +1,57 @@
+{
+  "type": "node",
+  "node_id": "存档点",
+  "name": "存档点",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "runtime.periodic_checkpoint",
+        "description": "",
+        "channels": [
+          "tick",
+          "runtime.checkpoint"
+        ],
+        "strength": 1,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "every": 5,
+          "signal_channels": [
+            "tick"
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 1,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "max",
+  "links": [
+    {
+      "target_id": "每刻",
+      "channels": [
+        "tick"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ]
+}

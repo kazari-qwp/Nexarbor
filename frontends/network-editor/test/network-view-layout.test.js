@@ -1,3 +1,5 @@
+import {fileURLToPath} from 'node:url';
+import {readProjectBundle} from '../../../adapt/harness/studio/project.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';
 import ELK from 'elkjs/lib/elk.bundled.js';
 import {placeNetwork} from '../src/network-view-layout.js';
@@ -10,7 +12,7 @@ test('a long chain folds into a compact picture without changing IDs or topology
  const nodes=await placeNetwork(scene,new ELK()),bounds=envelope(nodes);assert.ok(bounds[2]/bounds[3]>.6&&bounds[2]/bounds[3]<2.1);assertClear(nodes);assert.deepEqual(scene,before);assert.equal(new Set(nodes.map(n=>n.ref)).size,30);
 });
 test('full town is compact and completely covered by useful, differently colored windows',async()=>{
- const snapshot=JSON.parse(await fs.readFile(new URL('../../../build/network-observer/fixture.json',import.meta.url),'utf8')),scene=new NetworkObserver(snapshot,'layout-test').view({include_subnodes:true,include_text:true}).scene;
+ const snapshot={document:(await readProjectBundle(fileURLToPath(new URL('../../../resources/examples/npc-town/',import.meta.url)))).document},scene=new NetworkObserver(snapshot,'layout-test').view({include_subnodes:true,include_text:true}).scene;
  const nodes=await placeNetwork(scene,new ELK()),bounds=envelope(nodes),plan=planRegions(bounds,{width:1500,height:1250},{nodes});
  assertClear(nodes);assert.ok(bounds[2]/bounds[3]>.6&&bounds[2]/bounds[3]<1.8);assert.ok(plan.regions.length>=2&&plan.regions.length<=4);
  const union=new Set(plan.regions.flatMap(r=>completeRefs(nodes,r.bounds)));assert.equal(union.size,nodes.length);assert.ok(plan.regions.every(r=>r.complete.length>=15));

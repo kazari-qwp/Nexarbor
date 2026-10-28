@@ -47,6 +47,10 @@ class Project:
             service=Studio(backend,self.module_folders,project_directory=self.project,agent_run=backend.execute_agent,instantiate=instantiate,
                            ports=getattr(getattr(self,'host_tools',None),'definitions',{}),catalog_changed=self.sync_modules,register_properties=self.register_properties)
             service.graph_changed=self.graph_changed
+            if initial is not None and any('tools' not in record.get('tables',{}) or any('tools' not in item for item in record.get('tables',{}).get('modules',[])) for record in records) and backend.store.latest() is None:
+                from app.studio.assembly import assemble_document
+                document=assemble_document(dict(network={**initial['network'],'properties':initial['node_properties']},files=initial['files']),backend,service.library,port_definitions=service.ports)
+                initial['network']=document['network'];initial['files']=document['files']
         self.backend = Backend(directory,saver=self.saver,initial_document=initial,configure=configure if studio else None)
         self.module_signals = None
         self.templates = TemplateService(self,self.backend.extension_state.get('runtime',{}).get('templates',[]))

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "inspect",
+    "name": "查看待产状态",
+    "description": "查看自己的怀孕起始 tick、经过时间和是否到期。",
+    "operation": "inspect",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "deliver",
+    "name": "办理生产",
+    "description": "待产者本人到医院，满足等待时间后创建儿童；不需要伴侣同时到场，同请求重试不会重复创建。",
+    "operation": "deliver",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 50
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "key"
+      ]
+    }
+  }
+]

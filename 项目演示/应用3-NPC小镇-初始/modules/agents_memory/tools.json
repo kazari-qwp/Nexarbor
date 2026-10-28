@@ -1,0 +1,44 @@
+[
+  {
+    "name": "remember",
+    "description": "把一段个人经历或知识写入自己的私人记忆。",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000,
+          "title": "记忆内容",
+          "description": "要记住的内容，不能为空，最多 4000 个字符。"
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1,
+          "title": "记忆键",
+          "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。"
+        }
+      },
+      "required": [
+        "text"
+      ]
+    }
+  },
+  {
+    "name": "recall",
+    "description": "按关键词子串检索自己的私人记忆。",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "query": {
+          "type": "string",
+          "default": "",
+          "title": "查询词",
+          "description": "按子串匹配自己的记忆，留空返回全部记忆。"
+        }
+      }
+    }
+  }
+]

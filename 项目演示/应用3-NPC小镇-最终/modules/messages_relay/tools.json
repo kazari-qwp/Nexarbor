@@ -1,0 +1,43 @@
+[
+  {
+    "id": "send_to",
+    "operation": "send_to",
+    "name": "发送私信",
+    "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
+    "parameters": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "recipient",
+        "text"
+      ],
+      "properties": {
+        "recipient": {
+          "type": "string",
+          "format": "node-id",
+          "minLength": 1,
+          "title": "收件人",
+          "description": "另一位当前可达的真实 Agent 节点 ID，不能是自己。"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000,
+          "title": "便笺正文",
+          "description": "要发送的非空便笺正文，最长 4000 个字符。"
+        },
+        "topic": {
+          "type": "string",
+          "default": "",
+          "title": "话题",
+          "description": "可选的话题或栏目，省略时为空字符串。"
+        },
+        "key": {
+          "type": "string",
+          "title": "去重键",
+          "description": "可选的发送方请求键，沿用 messages.box 的幂等语义：相同发送者、相同键与相同内容只投递一次。"
+        }
+      }
+    }
+  }
+]

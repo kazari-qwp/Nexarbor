@@ -25,7 +25,10 @@ class ProjectModules:
         if spec['format']!='nexarbor-module/v4':raise ValueError('模块必须使用 nexarbor-module/v4')
         relative,name=spec['entry'].split(':',1);file=(folder/relative).resolve()
         if not file.is_relative_to(folder) or file.suffix!='.py':raise ValueError('模块入口必须位于自己的目录中')
-        package='_nexarbor_project_'+sha256(str(folder).encode()).hexdigest();parent=ModuleType(package);parent.__path__=[str(folder)];sys.modules[package]=parent
+        group='_nexarbor_project_'+sha256(str(folder.parent).encode()).hexdigest()
+        if group not in sys.modules:
+            parent=ModuleType(group);parent.__path__=[str(folder.parent)];sys.modules[group]=parent
+        package=group+'.module_'+sha256(str(folder).encode()).hexdigest();parent=ModuleType(package);parent.__path__=[str(folder)];sys.modules[package]=parent
         entry=importlib.util.spec_from_file_location(package+'.entry',file);loaded=importlib.util.module_from_spec(entry);sys.modules[entry.name]=loaded;entry.loader.exec_module(loaded)
         cls=getattr(loaded,name)
         if not isinstance(cls,type) or not issubclass(cls,Module):raise TypeError('v4 入口必须是 Module 子类')

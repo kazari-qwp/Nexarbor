@@ -1,0 +1,73 @@
+[
+  {
+    "id": "inspect",
+    "name": "查看价目表",
+    "description": "查看商品售价、回收价和当前库存。",
+    "operation": "inspect",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "buy",
+    "name": "购买商品",
+    "description": "按售价购买指定商品和数量，须本人在商店。",
+    "operation": "buy",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 1
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "item",
+        "key"
+      ]
+    }
+  },
+  {
+    "id": "sell",
+    "name": "出售商品",
+    "description": "按回收价出售指定商品和数量，须本人在商店。",
+    "operation": "sell",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000,
+          "default": 1
+        },
+        "key": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "item",
+        "key"
+      ]
+    }
+  }
+]

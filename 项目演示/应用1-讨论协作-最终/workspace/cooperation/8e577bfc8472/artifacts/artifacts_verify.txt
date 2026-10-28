@@ -1,0 +1,295 @@
+Traceback (most recent call last):
+  File "E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\6fe0f5dd8699d140\scripts\verify_acceptance.py", line 36, in report
+    detail = fn()
+  File "E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\6fe0f5dd8699d140\scripts\verify_acceptance.py", line 359, in ac14_packaging
+    assert proc.returncode == 0 and b"True" in proc.stdout, proc.stderr.decode("utf-8", "replace")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Traceback (most recent call last):
+
+  File "<string>", line 1, in <module>
+
+    import hone; from hone.hone import Hone; print(hone.Hone is Hone)
+
+    ^^^^^^^^^^^
+
+ModuleNotFoundError: No module named 'hone'
+
+
+Traceback (most recent call last):
+  File "E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\6fe0f5dd8699d140\scripts\verify_acceptance.py", line 36, in report
+    detail = fn()
+  File "E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\6fe0f5dd8699d140\scripts\verify_acceptance.py", line 375, in ac15_full
+    assert proc.returncode == 0, "unittest failed:\n" + out[-4000:]
+           ^^^^^^^^^^^^^^^^^^^^
+AssertionError: unittest failed:
+_split) ... ok
+
+test_no_nesting_without_delimiter (tests.test_schema.AutoSchemaTests.test_no_nesting_without_delimiter) ... ok
+
+test_single_column_is_not_over_split (tests.test_schema.AutoSchemaTests.test_single_column_is_not_over_split) ... ok
+
+test_ac1_package_imports (tests.test_schema.HoneImportTests.test_ac1_package_imports) ... ok
+
+test_default_delimiters (tests.test_schema.HoneImportTests.test_default_delimiters) ... ok
+
+test_rejects_bad_delimiters (tests.test_schema.HoneImportTests.test_rejects_bad_delimiters) ... ok
+
+test_clean_split_and_prefix (tests.test_schema.SplitHelperTests.test_clean_split_and_prefix) ... ok
+
+test_escape_quotes_compatibility (tests.test_schema.SplitHelperTests.test_escape_quotes_compatibility) ... ok
+
+test_get_split_suffix (tests.test_schema.SplitHelperTests.test_get_split_suffix) ... ok
+
+test_get_valid_splits_order (tests.test_schema.SplitHelperTests.test_get_valid_splits_order) ... ok
+
+test_get_valid_splits_returns_all_candidates_in_order (tests.test_schema.SplitHelperTests.test_get_valid_splits_returns_all_candidates_in_order) ... ok
+
+test_comma_conversion_matches_fixture (tests.test_special_csv.CommaTest.test_comma_conversion_matches_fixture) ... ok
+
+test_exact_comma_fixture_values (tests.test_special_csv.CommaTest.test_exact_comma_fixture_values) ... ok
+
+test_output_json_dash_writes_stdout (tests.test_special_csv.JsonOutputTest.test_output_json_dash_writes_stdout) ... ok
+
+test_output_json_formatting_and_roundtrip (tests.test_special_csv.JsonOutputTest.test_output_json_formatting_and_roundtrip) ... ok
+
+test_empty_cell_outputs_empty_string (tests.test_special_csv.QuotesTest.test_empty_cell_outputs_empty_string) ... ok
+
+test_quoted_header_field (tests.test_special_csv.QuotesTest.test_quoted_header_field) ... ok
+
+test_quotes_conversion_matches_fixture (tests.test_special_csv.QuotesTest.test_quotes_conversion_matches_fixture) ... ok
+
+test_quotes_fields_are_not_unescaped_twice (tests.test_special_csv.QuotesTest.test_quotes_fields_are_not_unescaped_twice) ... ok
+
+
+
+======================================================================
+
+ERROR: test_wheel_build_install_and_entrypoints (tests.test_packaging.TestPackaging.test_wheel_build_install_and_entrypoints)
+
+----------------------------------------------------------------------
+
+Traceback (most recent call last):
+
+  File "E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\6fe0f5dd8699d140\tests\test_packaging.py", line 119, in test_wheel_build_install_and_entrypoints
+
+    help_script = subprocess.run(
+
+        [str(_venv_script(venv, "hone")), "--help"],
+
+    ...<2 lines>...
+
+        stderr=subprocess.STDOUT,
+
+    )
+
+  File "E:\miniconda3\Lib\subprocess.py", line 555, in run
+
+    with Popen(*popenargs, **kwargs) as process:
+
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+
+  File "E:\miniconda3\Lib\subprocess.py", line 1039, in __init__
+
+    self._execute_child(args, executable, preexec_fn, close_fds,
+
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+                        pass_fds, cwd, env,
+
+                        ^^^^^^^^^^^^^^^^^^^
+
+    ...<5 lines>...
+
+                        gid, gids, uid, umask,
+
+                        ^^^^^^^^^^^^^^^^^^^^^^
+
+                        start_new_session, process_group)
+
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "E:\miniconda3\Lib\subprocess.py", line 1553, in _execute_child
+
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+
+                       ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+
+                             # no special security
+
+                             ^^^^^^^^^^^^^^^^^^^^^
+
+    ...<4 lines>...
+
+                             cwd,
+
+                             ^^^^
+
+                             startupinfo)
+
+                             ^^^^^^^^^^^^
+
+FileNotFoundError: [WinError 2] 系统找不到指定的文件。
+
+
+
+----------------------------------------------------------------------
+
+Ran 68 tests in 6.692s
+hone acceptance harness
+repo root : E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\6fe0f5dd8699d140
+python    : 3.14.7
+mode      : full
+------------------------------------------------------------------------
+PASS AC1  - hone.Hone is Hone; DEFAULT_DELIMITERS ok
+PASS AC2  - column names/data rows/empty filter/cache/stdin ok
+PASS AC3  - small_cats auto schema equals nested_schema.json
+PASS AC4  - comma_test/quotes_test/small_cats auto conversion ok
+PASS AC5  - dict/JSON-str/generated schema conversions ok
+PASS AC6  - no second unescaping; exact fixture output
+PASS AC7  - quotes, N/A, empty cell -> ''
+PASS AC8  - b.c.{d,e}, b.d.{e,f}; row2 b.d.f == '12'
+PASS AC9  - example_a/c match examples/README; examples/demo.py runs
+PASS AC10 - CLI file output equals API; indent=2/sort_keys/trailing newline
+
+PASS AC11 - stdout and stdin ('- -') round-trips ok
+
+PASS AC12 - help exit 0 and documents positionals/-d/-s
+
+FAILED (errors=1)
+
+
+PASS AC13 - 1 for missing file; 2 for bad -d/-s; single-line hone: error:
+FAIL AC14 AssertionError: Traceback (most recent call last):
+
+  File "<string>", line 1, in <module>
+
+    import hone; from hone.hone import Hone; print(hone.Hone is Hone)
+
+    ^^^^^^^^^^^
+
+ModuleNotFoundError: No module named 'hone'
+
+
+FAIL AC15 AssertionError: unittest failed:
+_split) ... ok
+
+test_no_nesting_without_delimiter (tests.test_schema.AutoSchemaTests.test_no_nesting_without_delimiter) ... ok
+
+test_single_column_is_not_over_split (tests.test_schema.AutoSchemaTests.test_single_column_is_not_over_split) ... ok
+
+test_ac1_package_imports (tests.test_schema.HoneImportTests.test_ac1_package_imports) ... ok
+
+test_default_delimiters (tests.test_schema.HoneImportTests.test_default_delimiters) ... ok
+
+test_rejects_bad_delimiters (tests.test_schema.HoneImportTests.test_rejects_bad_delimiters) ... ok
+
+test_clean_split_and_prefix (tests.test_schema.SplitHelperTests.test_clean_split_and_prefix) ... ok
+
+test_escape_quotes_compatibility (tests.test_schema.SplitHelperTests.test_escape_quotes_compatibility) ... ok
+
+test_get_split_suffix (tests.test_schema.SplitHelperTests.test_get_split_suffix) ... ok
+
+test_get_valid_splits_order (tests.test_schema.SplitHelperTests.test_get_valid_splits_order) ... ok
+
+test_get_valid_splits_returns_all_candidates_in_order (tests.test_schema.SplitHelperTests.test_get_valid_splits_returns_all_candidates_in_order) ... ok
+
+test_comma_conversion_matches_fixture (tests.test_special_csv.CommaTest.test_comma_conversion_matches_fixture) ... ok
+
+test_exact_comma_fixture_values (tests.test_special_csv.CommaTest.test_exact_comma_fixture_values) ... ok
+
+test_output_json_dash_writes_stdout (tests.test_special_csv.JsonOutputTest.test_output_json_dash_writes_stdout) ... ok
+
+test_output_json_formatting_and_roundtrip (tests.test_special_csv.JsonOutputTest.test_output_json_formatting_and_roundtrip) ... ok
+
+test_empty_cell_outputs_empty_string (tests.test_special_csv.QuotesTest.test_empty_cell_outputs_empty_string) ... ok
+
+test_quoted_header_field (tests.test_special_csv.QuotesTest.test_quoted_header_field) ... ok
+
+test_quotes_conversion_matches_fixture (tests.test_special_csv.QuotesTest.test_quotes_conversion_matches_fixture) ... ok
+
+test_quotes_fields_are_not_unescaped_twice (tests.test_special_csv.QuotesTest.test_quotes_fields_are_not_unescaped_twice) ... ok
+
+
+
+======================================================================
+
+ERROR: test_wheel_build_install_and_entrypoints (tests.test_packaging.TestPackaging.test_wheel_build_install_and_entrypoints)
+
+----------------------------------------------------------------------
+
+Traceback (most recent call last):
+
+  File "E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\6fe0f5dd8699d140\tests\test_packaging.py", line 119, in test_wheel_build_install_and_entrypoints
+
+    help_script = subprocess.run(
+
+        [str(_venv_script(venv, "hone")), "--help"],
+
+    ...<2 lines>...
+
+        stderr=subprocess.STDOUT,
+
+    )
+
+  File "E:\miniconda3\Lib\subprocess.py", line 555, in run
+
+    with Popen(*popenargs, **kwargs) as process:
+
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+
+  File "E:\miniconda3\Lib\subprocess.py", line 1039, in __init__
+
+    self._execute_child(args, executable, preexec_fn, close_fds,
+
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+                        pass_fds, cwd, env,
+
+                        ^^^^^^^^^^^^^^^^^^^
+
+    ...<5 lines>...
+
+                        gid, gids, uid, umask,
+
+                        ^^^^^^^^^^^^^^^^^^^^^^
+
+                        start_new_session, process_group)
+
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  File "E:\miniconda3\Lib\subprocess.py", line 1553, in _execute_child
+
+    hp, ht, pid, tid = _winapi.CreateProcess(executable, args,
+
+                       ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+
+                             # no special security
+
+                             ^^^^^^^^^^^^^^^^^^^^^
+
+    ...<4 lines>...
+
+                             cwd,
+
+                             ^^^^
+
+                             startupinfo)
+
+                             ^^^^^^^^^^^^
+
+FileNotFoundError: [WinError 2] 系统找不到指定的文件。
+
+
+
+----------------------------------------------------------------------
+
+Ran 68 tests in 6.692s
+
+
+
+FAILED (errors=1)
+
+
+------------------------------------------------------------------------
+RESULT: 13 passed, 2 failed, 0 skipped (of 15 executed)
+FAILED CHECKS: AC14, AC15

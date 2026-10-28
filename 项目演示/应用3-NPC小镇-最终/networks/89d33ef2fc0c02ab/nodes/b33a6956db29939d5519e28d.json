@@ -1,0 +1,341 @@
+{
+  "aggregation": "sum",
+  "bias": -1,
+  "description": "",
+  "execution": null,
+  "links": [
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "商店",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "矿坑",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "老铁",
+      "threshold": 1
+    }
+  ],
+  "name": "铁匠铺",
+  "node_id": "铁匠铺",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "炉火通明的铁匠铺，能修好坏掉的镐子。",
+          "visitors": [],
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "炉火通明的铁匠铺，能修好坏掉的镐子。",
+          "location": null,
+          "name": "铁匠铺",
+          "node_id": "铁匠铺",
+          "visit": 0,
+          "visitors": [
+            "老铁"
+          ]
+        },
+        "state": {
+          "visitors": [
+            "老铁"
+          ]
+        },
+        "strength": 0,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "config": {
+          "before_hooks": [
+            {
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              },
+              "module": "records.store",
+              "operation": "apply",
+              "target": "requester"
+            }
+          ],
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "timeout_seconds": 60
+        },
+        "description": "",
+        "module_id": "movement.here",
+        "modules": [
+          "place.info"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "description": "铁匠铺 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "factory_module": "movement.here",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "tool": "mod_6b6b0ce5262696e60d108477"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {
+            "coins": 0,
+            "ore": 0,
+            "repairs": 0
+          },
+          "minimum": {},
+          "references": []
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":2,\"ore\":1,\"repairs\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"铁匠铺\",\"阿石\",\"shi-repair-do-1\",\"local\"]",
+              "references": [],
+              "values": {
+                "coins": 2,
+                "ore": 1,
+                "repairs": 1
+              }
+            }
+          ],
+          "references": [],
+          "values": {
+            "coins": 2,
+            "ore": 1,
+            "repairs": 1
+          }
+        },
+        "strength": 1,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "config": {
+          "actions": [
+            {
+              "actor_deltas": {
+                "broken_pickaxe": -1,
+                "coins": -2,
+                "ore": -1,
+                "pickaxe": 1
+              },
+              "actor_set": {
+                "pickaxe_state": "良好"
+              },
+              "cost": 1,
+              "description": "用两金币和一矿石把坏镐修成可用的镐。",
+              "id": "repair",
+              "local_deltas": {
+                "coins": 2,
+                "ore": 1,
+                "repairs": 1
+              },
+              "require_items": {
+                "broken_pickaxe": 1,
+                "ore": 1
+              },
+              "title": "修坏镐"
+            }
+          ],
+          "address": "铁匠铺",
+          "events": []
+        },
+        "description": "",
+        "module_id": "service.actions",
+        "modules": [
+          "records.store"
+        ],
+        "state": {
+          "event_counts": {},
+          "receipts": [
+            {
+              "fingerprint": "{\"action\":\"repair\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "shi-repair-do-1",
+              "result": {
+                "action": "repair",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“修坏镐”×1",
+                  "消耗行动点1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 9,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 0,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "铁匠铺 · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_03568e2ca09bfeed612a201e"
+            },
+            {
+              "description": "铁匠铺 · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "description": "要执行的配置动作 id。",
+                    "minLength": 1,
+                    "title": "动作标识",
+                    "type": "string"
+                  },
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同动作数量重试时返回旧结果，不重复扣费。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "description": "1 到 100 的整数，默认 1。",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_80697685dab949109a4146ef"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 4,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "type": "node"
+}

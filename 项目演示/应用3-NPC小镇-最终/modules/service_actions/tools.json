@@ -1,0 +1,48 @@
+[
+  {
+    "id": "inspect",
+    "name": "查看服务",
+    "description": "查看本业务场所可执行的动作和当前场所库存。",
+    "operation": "inspect",
+    "parameters": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "id": "perform",
+    "name": "执行业务",
+    "description": "执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
+    "operation": "perform",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "action": {
+          "type": "string",
+          "title": "动作标识",
+          "description": "要执行的配置动作 id。",
+          "minLength": 1
+        },
+        "quantity": {
+          "type": "integer",
+          "title": "数量",
+          "description": "1 到 100 的整数，默认 1。",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 1
+        },
+        "key": {
+          "type": "string",
+          "title": "幂等键",
+          "description": "可选非空字符串；相同键和相同动作数量重试时返回旧结果，不重复扣费。",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "additionalProperties": false
+    }
+  }
+]

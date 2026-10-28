@@ -1,0 +1,4303 @@
+{
+  "agent": {
+    "inputs": {
+      "module:place.info": {
+        "context": [],
+        "inputs": [],
+        "system_prompt": "",
+        "tail": [
+          "当前位置：酒馆\n酒馆：镇中心的酒馆，木桌、麦酒和热汤，是交换消息的地方。"
+        ]
+      },
+      "prepare:小砾:context.assembler:assemble": {
+        "context": [
+          {
+            "id": "node:成年常识",
+            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
+          },
+          {
+            "id": "node:可怀孕常识",
+            "text": "可怀孕者常识：如果你和伴侣在居民楼共同同意家庭计划，你会记录怀孕起始时刻；满十个时段后，由你本人到医院办理生产。"
+          },
+          {
+            "id": "node:矿工常识",
+            "text": "矿工常识：矿坑采矿需要一把完好的镐子，每次耗两点行动值得一块矿石；矿石卖给商店每块三金币。坏镐可在铁匠铺用两金币加一矿石修好。"
+          }
+        ],
+        "inputs": [
+          {
+            "delivery": "followup",
+            "id": "node:小砾开场白/once",
+            "status": "delivered",
+            "text": "天亮了，你从居民楼A醒来。今天想先下矿，还是去镇上转转？"
+          }
+        ],
+        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫小砾，二十七岁，是镇上的矿工。你说话直爽、动作利落，喜欢用矿石和金币衡量事情，也珍惜一起干活的朋友。",
+        "tail": [
+          "当前时间：第5天 午夜（总 tick：25）"
+        ]
+      }
+    }
+  },
+  "aggregation": "sum",
+  "bias": -1,
+  "data": {
+    "directory": false,
+    "path": "data/小砾.md",
+    "save_data": true,
+    "type": "markdown"
+  },
+  "description": "",
+  "execution": {
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "executor": "harness",
+    "max_steps": 16,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "self"
+        ],
+        "module": "places.query",
+        "node": "小砾",
+        "operation": "publish"
+      },
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.assembler",
+        "node": "小砾",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 2,
+    "timeout_seconds": 180
+  },
+  "links": [
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "tick"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "每刻",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "tick"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "存档点",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "林",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小路",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿森",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿石",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "老铁",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "悦",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "奈镇世界规则",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小砾人格",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小砾开场白",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "世界时间",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "成年常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "可怀孕常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "矿工常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "酒馆",
+      "threshold": 1
+    }
+  ],
+  "name": "小砾",
+  "node_id": "小砾",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {
+            "adult": true,
+            "age": 27,
+            "age_group": "adult",
+            "ap": 10,
+            "can_gestate": true,
+            "coins": 10,
+            "gender": "female",
+            "is_parent": false,
+            "pickaxe": 1,
+            "pregnant": false,
+            "profession": "矿工",
+            "role": "miner"
+          },
+          "minimum": {
+            "ap": 0
+          },
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼A"
+            },
+            {
+              "key": "context_node",
+              "node_id": "小砾"
+            },
+            {
+              "key": "name",
+              "node_id": "小砾"
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 8,
+                "can_gestate": true,
+                "coins": 10,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 1,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": true,
+                "coins": 10,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 2,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 4,
+                "can_gestate": true,
+                "coins": 10,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 3,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-4\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": true,
+                "coins": 10,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 4,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1n-5\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 10,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 5,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":6},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:shi-pay-xiaoli-ore-1:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 16,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 5,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d1p-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": true,
+                "coins": 30,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 0,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d1p-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 4,
+                "can_gestate": true,
+                "coins": 29,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 0,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d1p-3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 0,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-6},\"expected\":{\"ap\":7,\"coins\":28},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:repay-ashi-6-d1e:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": true,
+                "coins": 22,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 0,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1e-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 4,
+                "can_gestate": true,
+                "coins": 22,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 1,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1e-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": true,
+                "coins": 22,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 2,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d1e-3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 22,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 3,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-1},\"expected\":{\"ap\":7,\"ore\":3},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-ashi-1:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": true,
+                "coins": 22,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 2,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2m-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 1,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2m-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 2,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 8,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 3,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 4,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 4,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 5,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-4\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 6,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n-5\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 7,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 8,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 8,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 9,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 4,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 10,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-4\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 11,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2a-5\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 28,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 12,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":6},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d2-pay-xiaoli-final:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 34,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 12,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n8-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": true,
+                "coins": 40,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 11,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d2n8-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 40,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 12,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":9},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"rest-d3m-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": true,
+                "coins": 40,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 12,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-4},\"expected\":{\"ap\":4,\"ore\":12},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-yue-4:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 3,
+                "can_gestate": true,
+                "coins": 40,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 8,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d3-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 5,
+                "can_gestate": true,
+                "coins": 39,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 8,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d3-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 7,
+                "can_gestate": true,
+                "coins": 38,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 8,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d3-3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 8,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 8,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 9,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 10,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 4,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 11,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-4\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 12,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3n-5\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 13,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 8,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 14,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 6,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 15,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 4,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 16,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-4\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 2,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 17,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d3a-5\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 37,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 18,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":8},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:悦:悦:give:yue-pay-xiaoli-8:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 0,
+                "can_gestate": true,
+                "coins": 45,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 18,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d4m-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 5,
+                "can_gestate": true,
+                "coins": 45,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 19,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d4m-2\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 3,
+                "can_gestate": true,
+                "coins": 45,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 20,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"小砾\",\"mine-d4m-3\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 1,
+                "can_gestate": true,
+                "coins": 45,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 21,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-3},\"expected\":{\"ap\":4,\"ore\":21},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-yue-consign3:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 3,
+                "can_gestate": true,
+                "coins": 45,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 18,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":9},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"rest-d4n\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 45,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 18,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-3},\"expected\":{\"ap\":10,\"ore\":18},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-xiaolu-3:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 45,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 15,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"saw\":-1},\"expected\":{\"ap\":4,\"saw\":1},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-saw-yue:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 3,
+                "can_gestate": true,
+                "coins": 46,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 13,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d4e-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 45,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 13,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-2},\"expected\":{\"ap\":6,\"ore\":13},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-lin-2b:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 5,
+                "can_gestate": true,
+                "coins": 45,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 11,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":4},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-pay-xiaoli-4:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": true,
+                "coins": 49,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 11,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":9},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"rest-d5m\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": true,
+                "coins": 49,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 11,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-1},\"expected\":{\"ap\":10,\"ore\":11},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-ashi-d5:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 49,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 10,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":2,\"coins\":-1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"酒馆\",\"小砾\",\"drink-d5-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 8,
+                "can_gestate": true,
+                "coins": 48,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 10,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":5},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小路:小路:give:xiaolu-d5n-pay-xiaoli:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 4,
+                "can_gestate": true,
+                "coins": 53,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 10,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-2},\"expected\":{\"ap\":10,\"ore\":10},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-xiaolu-2b:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 9,
+                "can_gestate": true,
+                "coins": 53,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 8,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-4},\"expected\":{\"ap\":9,\"ore\":8},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-asen-4:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 8,
+                "can_gestate": true,
+                "coins": 53,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 4,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":6},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿森:阿森:give:pay-xiaoli-ore2-d5:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 8,
+                "can_gestate": true,
+                "coins": 59,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 4,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":2},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿森:阿森:give:return-xiaoli-ore2-d5b:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 10,
+                "can_gestate": true,
+                "coins": 59,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 6,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":6},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d5-pay-xiaoli-6:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 7,
+                "can_gestate": true,
+                "coins": 65,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 6,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-2},\"expected\":{\"ap\":4,\"ore\":6},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-xiaolu-2c:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼A"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "小砾"
+                },
+                {
+                  "key": "name",
+                  "node_id": "小砾"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 27,
+                "age_group": "adult",
+                "ap": 3,
+                "can_gestate": true,
+                "coins": 65,
+                "gender": "female",
+                "is_parent": false,
+                "ore": 4,
+                "pickaxe": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner",
+                "saw": 0
+              }
+            }
+          ],
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼A"
+            },
+            {
+              "key": "context_node",
+              "node_id": "小砾"
+            },
+            {
+              "key": "name",
+              "node_id": "小砾"
+            }
+          ],
+          "values": {
+            "adult": true,
+            "age": 27,
+            "age_group": "adult",
+            "ap": 3,
+            "can_gestate": true,
+            "coins": 65,
+            "gender": "female",
+            "is_parent": false,
+            "ore": 4,
+            "pickaxe": 1,
+            "pregnant": false,
+            "profession": "矿工",
+            "role": "miner",
+            "saw": 0
+          }
+        },
+        "strength": 1,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "矿工小砾",
+          "location": "居民楼A",
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "矿工小砾",
+          "location": "酒馆",
+          "name": "小砾",
+          "node_id": "小砾",
+          "visit": 50,
+          "visitors": []
+        },
+        "state": {
+          "location": "酒馆",
+          "visit": 50
+        },
+        "strength": 0,
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "tick",
+          "records",
+          "self",
+          "runtime.agent"
+        ],
+        "config": {
+          "budget": 10,
+          "budget_field": "ap",
+          "enabled": true,
+          "max_reactions": 8,
+          "prompt": "现在开始你这一时刻的行动。先查看处境，再决定去哪里、做什么；行动值有限，别浪费。\n本时刻完成行动，或需要等待答复、到货、下一个时段时，直接结束回复，下一 tick 再继续；不要轮询消息或处境。",
+          "signal_channels": [
+            "tick"
+          ]
+        },
+        "description": "",
+        "module_id": "agents.activity",
+        "modules": [
+          "records.store"
+        ],
+        "published": {
+          "最近完成活动键": "57404d95abc84cb5af994a41581b889a",
+          "活动完成次数": 25,
+          "活动状态": "已完成"
+        },
+        "state": {
+          "activities": [
+            {
+              "completed_count": 1,
+              "key": "5b538dae17134fc6af992a27d08cc099",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8676cc521e4749dfbb231efb0b27c3d3",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "dd2cdb078e204524a19034f767720628",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "7976508094d64c91adef74a951e8cbda",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "711f31a07a6546519344dd93b7a35fb8",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "38f90c6b1deb4694b3e5ed1f23e64999",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "990d130148c54396953688bee950968e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b852e3eb33134bc2a270c37d2d77b5d0",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "26159259b41c4d86b1cdcab0b3515c3e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "47d0a369c7954c69a7f5319aa8f3c170",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "32ec93e5163e4bf78092d7ffaffb2010",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b7097cfc3f0b4452a3b0340962d90978",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "4a4cb86e636841ffaf235453f3433673",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fba25d2da2f242c187d1a8542bc37f03",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "95a66166b0d84648a9b21a8f5af94ded",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fbc37d62fc55415baa3fa5008d3e5d79",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "bba3d8ec4f834a5884fa043a50a040ee",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "de979bcdfe034f8c9e25f64583473a65",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "2905760cc3ff4c57a9a0c46150cca23a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "9f572054f0624246bb56f6de53ab3200",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "6c26053501bd42f88a96175f8db444d9",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f93dcd7c4a7f4dedb45515e5f01e910a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f205302959064b4eac1a541f060ba270",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8b4f230cf6a548e8a104e32d51eff73f",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "57404d95abc84cb5af994a41581b889a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            }
+          ],
+          "completed_total": 25
+        },
+        "strength": 0,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records"
+        ],
+        "config": {
+          "max_messages": 200,
+          "read_policy": "self",
+          "require_agent": true,
+          "send_cost": 0
+        },
+        "description": "",
+        "module_id": "messages.box",
+        "modules": [],
+        "state": {
+          "messages": [
+            {
+              "from": "林",
+              "id": "ef853e9d186d42879fa08949060df24a",
+              "text": "早上好，小砾。我是隔壁的林。今天一早起来，正想去酒馆听听消息，或先去商店看看行情。你今天打算下矿吗？镇上最近可有什么新鲜事？",
+              "to": "小砾",
+              "topic": "早安问候"
+            },
+            {
+              "from": "悦",
+              "id": "a001dce7eef2450587b0aea67122d504",
+              "text": "小砾，我是同屋的悦。刚在商店买了把斧头，想改天去树林砍点木材换钱。你是矿工，矿坑那边熟吧？矿坑和树林哪边更划算、要准备什么，你有空给我讲讲呀。晚上回楼里我煮汤，喊你一起喝。",
+              "to": "小砾",
+              "topic": "同屋问候"
+            },
+            {
+              "from": "小路",
+              "id": "097b9038f2c341af9f5d187dabe51fa8",
+              "text": "小砾，我是小路，居民楼B院里的，专替人跑腿背货。你挖的矿石我替你背到商店，一块矿石一个金币脚钱，卖价三块里两块归你。你要是急着下矿、懒得跑路，这买卖划算。有矿石招呼一声，我随叫随到。",
+              "to": "小砾",
+              "topic": "背矿脚钱"
+            },
+            {
+              "from": "林",
+              "id": "7f428d91766c40cda7fb58b384779115",
+              "text": "小砾，我在铁匠铺亲眼看过了：修一把坏镐是 2 金加 1 块矿石，跟你问到的一样，没涨价。商店那边矿石回收 3 金、木材 2 金、黄金 10 金，锯和斧各卖 5 金，跟你说的也一致。酒馆一早空空的，没听见谁要收矿石。倒是同屋的悦今早买了把斧头，说改天去树林砍木材。你中午连采五块就是 15 金，稳当。出了货喊我一声，我帮你看看价钱。",
+              "to": "小砾",
+              "topic": "回话·行情"
+            },
+            {
+              "from": "小路",
+              "id": "c5828ff532d14d5e90ada992876f8131",
+              "text": "小砾，急事，也是笔好买卖。矿工阿石的镐子坏了，铁匠铺修镐要两金币加一块矿石，他手里一块矿都没有，愿意出六个金币买一块矿石。你手里要是有现成的矿石，这一块就是六个金币，比背到商店卖三块强一倍。你点个头，我替你跑这一趟，把矿送到铁匠铺、把钱给你带回来。你有几块？",
+              "to": "小砾",
+              "topic": "买矿石"
+            },
+            {
+              "from": "林",
+              "id": "e99a1594e00b4af4978ca466cf689691",
+              "text": "小砾，路上小路给我捎了条要紧消息，你先别急着把矿全按 3 金卖给商店——矿工阿石的镐子坏了，修镐要 2 金加 1 块矿石，他现在急着出 6 金收一块矿。你中午采出的五块，留一两块卖给阿石，比柜台多一倍。我正替你问他要几块、什么时候要。你若答应，我就帮你牵这个线，一分好处不抽，回头你请我那杯麦酒就算账了。",
+              "to": "小砾",
+              "topic": "牵线"
+            },
+            {
+              "from": "悦",
+              "id": "4fb46a214f7a48f1995512551458439b",
+              "text": "小砾，我摸到矿坑来了，正好碰上你。我不下矿——没镐，阿石说没完好的镐下去就是白费力气，老铁也不打新镐。我打算往北再走一站去树林，用早上买的斧头试砍一回，把\"砍几块、费几点\"记清楚，回头好回林的话。\n\n你这一上午出了几块矿？矿坑真能碰着黄金吗？还有件正事：你手里那把镐要是哪天不用，能不能借我半天？我按行情付租金，或者砍来的木材分你一份。晚上楼里那座汤还是我说的，记得来。",
+              "to": "小砾",
+              "topic": "矿坑搭话"
+            },
+            {
+              "from": "阿石",
+              "id": "002b6c328b4d44499fbd23a5e0d83665",
+              "text": "小砾，我是阿石，矿工，住居民楼B。林应该把我的话带到了：我镐子坏了，修镐差一块矿，出一块六金，比商店三金的回收价多一倍。我现在人就在矿坑口，钱也带在身上。你当面把一块矿转给我，我立刻把六金转给你，一文不少；你要不放心，先看我转钱也行，我先把六金递过去，你随后递矿——你挑个稳妥的次序。矿一到手我就回铁匠铺下锤，欠人情我记着。",
+              "to": "小砾",
+              "topic": "买一块矿"
+            },
+            {
+              "from": "林",
+              "id": "3a60f21b0d3c4168af85565048000fd0",
+              "text": "小砾，我到铁匠铺了，阿石本人就在这儿，镐坏了正等一块矿修。你若中午已经出了矿，留一块别卖给柜台——我马上去矿坑口跟你碰头。价钱我正跟他当面核，他说多少我原话传你，你点头才成。另外他那句实在话也告诉你：想自己下坑，得先有把好镐，坏了再想办法就来不及了。",
+              "to": "小砾",
+              "topic": "矿坑碰头"
+            },
+            {
+              "from": "阿石",
+              "id": "8480e30e1bbc400086426f5f8ead1814",
+              "text": "小砾，六金已经转你账上了，你查收。就等你把那一块矿递到我手上——我人在矿坑口没走，拿到矿立刻回铁匠铺下锤，回头挖出矿来再跟你做长久买卖。",
+              "to": "小砾",
+              "topic": "六金已转"
+            },
+            {
+              "from": "小路",
+              "id": "13d3b3c2b05048d68b2ea33732dcc23f",
+              "text": "小砾，两句话。头一句：老铁放出话了，矿石三块一块收，送到铁匠铺门口当场结钱，不用你多跑一步——比你背到商店一个价，省下脚力。第二句：我手里一个铜板没有，想买把锯进树林，你能不能先借我五金？两天内还你七金，或者按你矿价折成矿石还你也行。你点头，我这就动身。",
+              "to": "小砾",
+              "topic": "借钱买锯"
+            },
+            {
+              "from": "林",
+              "id": "f79109083ef74a65b074ce46daf63ac4",
+              "text": "小砾，抬眼看看——阿石也挪到矿坑口来了。你们俩现在站一块儿，省得我跑来跑去：你手里若有矿，直接让给他一块，他按他说的价付你钱，你我都不必再走一趟。给多少、要几块，你们当面说定。剩下几块你再回商店卖柜台，两头都不亏。",
+              "to": "小砾",
+              "topic": "就地成交"
+            },
+            {
+              "from": "阿石",
+              "id": "c364a1d799fd472ba21c519c9c76673f",
+              "text": "小砾，我是阿石。上一时段六金币已经转到你账上（12→6，我这边账目清清楚楚），说定的那块矿我还没收到。我现在就守在矿坑口，林也在这一片。你把手里的矿转我一块，我立刻背到隔壁铁匠铺下锤；要是矿不巧已经出手了，就把六金退我，咱们把话说清楚，往后还是矿上的老搭档。",
+              "to": "小砾",
+              "topic": "催交矿"
+            },
+            {
+              "from": "悦",
+              "id": "477c4a5bb19746e69c80806761ac9c6d",
+              "text": "小砾，在铁匠铺碰见你，正好再问一句：你手里有没有闲着的旧镐、或者听说谁要出让？老铁说他只修不打，有人让旧镐他替我留着，我也跟你报一声。我今天砍了三根木材，这就背去商店换六金——你要是矿上有多余的矿，也别急着贱卖，先跟我说一声，咱们或许能凑着换。",
+              "to": "小砾",
+              "topic": "旧镐与矿石"
+            },
+            {
+              "from": "小路",
+              "id": "15f33e46a5f84b308225b9fc97175020",
+              "text": "小砾，你说的规矩我记下了：一块矿一金脚钱，当面清点结钱。我人就在矿坑口子上守着，你傍晚挖出来多少，直接交给我，我连夜背到商店，卖多少报多少账，你的两金一块我分文不短。你要是不放心我背，就跟我一块走一趟，账当面点。",
+              "to": "小砾",
+              "topic": "背矿·今晚"
+            },
+            {
+              "from": "阿石",
+              "id": "c503835057d841ea9386651d3a359e99",
+              "text": "小砾，退的六金我收到了，账清，你认账这一点我记着，不记仇。那就照你说的第二条办：你傍晚下坑，采出来的第一块直接递我，我照样给六金一块，当场结。我人就在铁匠铺炉边等着，你采到就过来，或者转我账上都行——矿一落我手里，我立刻下锤，不耽误你。",
+              "to": "小砾",
+              "topic": "等你第一块矿"
+            },
+            {
+              "from": "小路",
+              "id": "f9594be8c1e54d5781a96d47e0c889fa",
+              "text": "小砾，我人在矿坑口子上等你。货怎么算，你挑一种：一，你把矿交给我背去卖，我一块矿给你两金现钱，当场点清——你省下六点脚力，比背到商店卖三金还划算；二，按你说的规矩，我背去卖三金，一块抽一金脚钱、你落两金，卖出多少我回来报账。两种我都认。你要是现在手里就有矿，立刻交给我，我今晚就送去铁匠铺——老铁的炉子正等着矿给阿石修镐，今晚送到，阿石明天就能下坑，你俩都有活干。",
+              "to": "小砾",
+              "topic": "矿坑现结"
+            },
+            {
+              "from": "小路",
+              "id": "845c979dc20d450d8d32caae5baf5d84",
+              "text": "小砾，今晚我在矿坑口子上守到半夜，没见你的货，想必是你还没下去挖。货别急着背走，留着：明儿个我回来取，一块矿给你两金现钱，当场点清，比你背到商店还省六点脚力。你采出多少我收多少，铁匠铺那头我当天送去。明儿白天，矿坑见。",
+              "to": "小砾",
+              "topic": "明早收矿"
+            },
+            {
+              "from": "老铁",
+              "id": "b5db1ae9504349c78df48f643ee192a6",
+              "text": "小砾，你人就在我炉边，我直说：你早先应下今天下矿给我留一块矿，阿石现在坐在炉边等这一块下锤，坏镐和两枚金币都在他怀里。矿要是出了，现在就递我手上——我拿阿森的价照收，三金一块，现钱点给你；没出也直说一句，我好回阿石。炉子烧着呢，就等这一块。",
+              "to": "小砾",
+              "topic": "矿石"
+            },
+            {
+              "from": "悦",
+              "id": "b431a268723d42538b33eed46eef6242",
+              "text": "小砾，不吵你，留个话明早看：汤我照约定煮上，你下楼就能喝到。\n\n我今天算明白一件事——单打独斗在奈镇挣不着钱。砍柴六点换三根、卖六金，路费比货还贵；下矿一块两点、卖三金，倒是有赚头，可我没镐，你一个人挖完还得自己背去商店。\n\n所以我提个合伙的法子，你听听：你出镐挖矿，我出腿跑买卖、管账、盯行情，卖了钱按你说的份子分，镐坏了我先垫两金加一矿给你修。你要是愿意，明早喝汤的时候把份子和规矩谈定，我这就去买个本子记上。",
+              "to": "小砾",
+              "topic": "合伙提议"
+            },
+            {
+              "from": "林",
+              "id": "1980a8beb45a47ea9320e139a8221c6d",
+              "text": "小砾，账我看到了，退得干净，你办事我放心。有件事要说在前头：你余下那两三块矿，先别全塞给柜台。我出五金一块，现钱，你多赚两块。我这就往铁匠铺走，到了就在炉边等你——我要这块矿不是倒手赚差价，是想拿它求老铁替我打／修一把镐，好正经下坑干活。你若肯留一块给我，当面交货，钱当场点。",
+              "to": "小砾",
+              "topic": "留一块矿"
+            },
+            {
+              "from": "阿石",
+              "id": "ef23fade2e0648cb8048f87b9379286a",
+              "text": "小砾，你的矿我收到了，镐当场就修好了，我在矿坑连挖了三块——这忙帮在点子上。六金我还没付出去：刚才想转给你，系统说咱俩不在同一处，转不了。这钱我认，一文不少，下回见面（你到矿坑或铁匠铺来都行）我当面转你。往后我修好镐天天出矿，你要卖柜台的矿，先问我一声，我按六金一块收，省得你跑柜台。",
+              "to": "小砾",
+              "topic": "欠你六金"
+            },
+            {
+              "from": "老铁",
+              "id": "71c4d9f5cf2d4e1cafc4c2187a9161e1",
+              "text": "小砾，听说你采了三块，正往我这儿来。价我开死：三金一块，三块我全要，现钱当面点，九个金币我备着，一个子儿不少。你人到炉边，矿递我手，钱进你兜，当场两清。头一块我转给阿石修镐，剩下的我压在铺里，往后谁修镐都不缺料。",
+              "to": "小砾",
+              "topic": "收矿"
+            },
+            {
+              "from": "悦",
+              "id": "9ddc6f3260ea44b98c5f5706e48e1087",
+              "text": "小砾，份子我照你说的应下，写下来免得日后含糊：\n\n一、你出镐下坑，一块矿两点行动值；我出腿把它背到商店，三金一块，账我记、行情我盯。\n二、分法：一块矿你两金、我一金，按块算清，当日结。\n三、镐坏了，我先垫两金加一块矿，那块矿从你份里扣。\n四、旧镐的事我不催你，等有人出让。\n\n汤我早上就煨上了，凉了也给你留着。我这早上先把镇上的事转一转，中午前后赶到矿坑接你的矿——你挖完就搁着，别自己背，腿留着明天用。要是你手头紧、想先要几金花，跟我说，我先垫。",
+              "to": "小砾",
+              "topic": "合伙定案"
+            },
+            {
+              "from": "阿石",
+              "id": "8de3cb14fac24aef98133680cb4f9712",
+              "text": "小砾，六金我认账，一分没打算赖。我人还在矿坑，这一筐挖了八块，早上要背去商店柜台出手。你要是也在那一带（商店或铁匠铺），说个准地方，我顺路当面把六金转你；不在也不打紧，你哪天到矿坑来，我当场给你。往后你出的矿先问我一句，我按六金一块收，钱当面点清。",
+              "to": "小砾",
+              "topic": "还你六金"
+            },
+            {
+              "from": "悦",
+              "id": "8955a347f7e54ab28a450d9c7ad811bd",
+              "text": "小砾，我赶到坑口了，行动值也快见底，就在这儿看你们干活，不瞎指挥。你只管挖，矿攒着别动，明早我把它们背去商店，按块结账，你两块我一金，字据我记好了。\n\n顺便说一句：你这镐要是哪天真有了毛病，别硬撑，先拿给我——我垫两金加一矿让老铁修，那块矿照约从你份里扣，修好接着挖，比拿坏镐耗力气强。汤在家煨着。",
+              "to": "小砾",
+              "topic": "坑口碰头"
+            },
+            {
+              "from": "老铁",
+              "id": "55d9c0c8732b46a5bb859a913de359eb",
+              "text": "小砾，我也下到矿坑了，就在岩壁底下。你手上有几块矿？我三金一块，见矿当面付钱，最多收三块，九个金币揣着。递我手上我就点，点完你走你的。镇上要修镐的人排着队，矿压在你筐里不如换成钱。",
+              "to": "小砾",
+              "topic": "收矿"
+            },
+            {
+              "from": "悦",
+              "id": "3d9c140db27d40f7bc047ade0bceab73",
+              "text": "小砾，我在坑口等你的矿，可我也得跟你说实话：靠背矿抽一金，一天也就几个钱，我心里不踏实。所以这个时段我打算往镇上跑一趟，专门找镐的门路——谁能出让旧镐、多少钱算公道，我一并问清。\n\n你的矿你先攒着，别自己背、也别贱卖；明早我回坑口接，一块矿我背到商店卖三金，照约你两块我一金，当场结。要是你手头急着用钱，先把矿匀我，我卖了立刻把份子给你送回来。镐要是坏了，也照原话：我垫两金加一矿。",
+              "to": "小砾",
+              "topic": "矿先攒着"
+            },
+            {
+              "from": "小路",
+              "id": "42c0cf97735e4f748d2179d019f1c36d",
+              "text": "小砾，我这会儿从铁匠铺往矿坑走，一站路就到。你的矿别急着卖给旁人，我出两金一块、现钱收，一块起收，几块都行，当面点清。你省下六点脚力，钱落袋为安；我背到铁匠铺门口，老铁三金一块收——我赚的是腿脚钱，不占你便宜。你要是有八块，我钱不够就先收三块，剩下的下趟再来。",
+              "to": "小砾",
+              "topic": "现钱收矿"
+            },
+            {
+              "from": "林",
+              "id": "4a38276958a04b89a526c785e4c26ae7",
+              "text": "小砾，六金的事我已当面替你点了阿石，他就在坑口，话说得客气但清楚，我盯着这笔账。你只管挖你的。\n\n两件事回你：一，矿我仍想收一块，五金一块现钱，不为倒手，是想凑着拿坏镐去求老铁修出来。二，老铁昨夜跟我交了底：镇上不打新镐、也没处买新镐，只有\"有人出让旧镐\"或\"拿坏镐来修\"两条道。你在这行里最久——镇上除了你和阿石，还有谁手里有镐？谁家搁着坏镐？你说一句，我少走十里冤枉路。",
+              "to": "小砾",
+              "topic": "催账·问镐"
+            },
+            {
+              "from": "小路",
+              "id": "4868bb391c7241fba85cf65981151740",
+              "text": "小砾，人就在眼前，钱就在我兜里，不用再捎话了：你手里有几块矿，我两金一块现收，先收三块，六金当面点给你，矿我立马背到铁匠铺门口交给老铁。要是你还有多的，卖了我的三块、剩下的留着我下趟来收。另外林想买把镐下坑，你要肯脱手一把，价钱你俩当面谈，我替你传话，一个子儿不抽。",
+              "to": "小砾",
+              "topic": "当面收矿"
+            },
+            {
+              "from": "阿石",
+              "id": "5467068c74a6408a9305358770edabb4",
+              "text": "小砾，六金的事别悬着：我这会儿在铁匠铺门口，行动值走空了，人不动。你下回到铁匠铺或矿坑，捎个话说个准地方，我立刻转你六金。另外提醒你一句——商店柜台今天现钱紧，八块矿只吃下一块，你去卖矿别一股脑全背过去，积在手里不亏，等人买货、柜台回血再出。",
+              "to": "小砾",
+              "topic": "还钱与柜台现钱"
+            },
+            {
+              "from": "小路",
+              "id": "985a6f5046954eaca573c0f98c23d3ac",
+              "text": "小砾，别等明儿了，就现在：你把手里三块矿递到我手上，我当场点六金给你，一块不拖。老铁就站在坑口，我转手把矿递给他，九金当面入我手——你落六金、省六点脚力；我落三金腿脚钱；他炉子当天有矿烧。三个人的事，一句话办完。你要手里不止三块，多的一块我照两金收。",
+              "to": "小砾",
+              "topic": "当面过手"
+            },
+            {
+              "from": "林",
+              "id": "d42054371bc349df94329f1256354e55",
+              "text": "小砾，我到坑口了。镐的事你和小路都替我说明白了：镇上只有你和阿石两把，都在干活的人手里，谁也不会卖——那我不强求，改走另一条道。\n\n我提个实打实的活计：你今天采的矿，**这一批交给我背去柜台卖**。路我来走（从坑口到商店两程），到了柜台一块卖三金，回来把六成的钱一分不差交你手上，我只留一金一块当脚力钱；卖不完的、价钱不对的，我原货带回来，不压你一文。你若嫌这个分法不妥，你说个数，我照你的来。你与悦怎么搭，我不抢她的份，今天这批算我替你们跑第一趟。",
+              "to": "小砾",
+              "topic": "代背矿石"
+            },
+            {
+              "from": "阿石",
+              "id": "f083bb1bf84a411fa369c4d6f7e2ae82",
+              "text": "小砾，六金已经转你账上了，当面点清，账一笔勾销。你那一块矿帮我修好了镐，这几天我挖的矿都是它带来的——这份情我记着。往后你的矿想出手，先招呼我一声，我按六金一块收；柜台现钱紧的时候别硬卖，压手里比贱卖强。",
+              "to": "小砾",
+              "topic": "六金已清"
+            },
+            {
+              "from": "林",
+              "id": "fd87ae17922042769227b0711e23199e",
+              "text": "小砾，人都在坑口，我把话再说一遍，说得更干脆些：老铁、阿石、小路三面都回了话，镇上只有你和阿石两把镐，谁都不卖，坏镐也没有——我认了，不惦记买镐。\n\n那我就出力。今晚或明早你采出的矿，**整批递到我手上**，我背去柜台，一块三金，回来把六成给你，我只留一金一块的脚力钱；少一块我照价赔，卖不动原货背回来。你走一趟柜台要两程六点，正好是一锄的光景——这六点你留着多采三块，比什么都值。悦那边你照旧，她背她的，我背我的，谁也别落下。\n\n你若点头，就把矿递我，我这就走。",
+              "to": "小砾",
+              "topic": "背矿的活计"
+            },
+            {
+              "from": "悦",
+              "id": "3781c1356e5a488d99531d075fe6c81f",
+              "text": "小砾，可算在商店碰上你了。柜台就在眼前，你的矿要是带着，这就交我手上——我立马按三金一块出手，你两块我一金，当场点清，账我记在本子上给你看。\n\n要是矿还在坑口没带，也别急：明早我去接，一样按这个数结。你把数目告诉我就行——今天出了几块、有没有黄金。我这边钱袋还有十三金，你要先支一部分也开得了口。",
+              "to": "小砾",
+              "topic": "柜台前接矿"
+            },
+            {
+              "from": "悦",
+              "id": "0215bccf844d47c294167cf84a471342",
+              "text": "小砾，记上了——按你说的改：货在你手里，我专管盯价、找活钱。卖出一块我抽一金，点数当面记本子。\n\n你撞上的事我这边也有影子：我傍晚看柜台，矿石堆到十块、木材十二根、黄金一块也无，柜台只收不卖。我那三根木材是第一天傍晚卖的，六金顺利到手；照今天这光景，怕是现钱见底了。\n\n明早的事我改一改：坑口我来不了——从镇上走到矿坑要三站九点，我走到就没腿往回背了。你在坑口挖你的，我在商店门口替你盯着：柜台一有现钱我就捎话给你，能卖几块卖几块，卖不动的别硬塞，塞进去也只是换一堆死库存。你要是愿意，明早先到商店门口碰一面，把十块的点数当面点清，我好记账。",
+              "to": "小砾",
+              "topic": "改做盯价"
+            },
+            {
+              "from": "小路",
+              "id": "54a9a08b6ec64b468e1a56d9c78638a5",
+              "text": "小砾，我半夜赶到坑口了，人就在这儿。两件事：一，明儿你下坑挖出来的矿，我两块一金现钱收，你挖多少我收多少，不用你跑路、不用你等买主，钱当场点清。二，你手里要是有多的镐子、或者坏镐旧镐，我出钱收，坏的也收——我修好了自己下坑，不白占你便宜。你给个话。",
+              "to": "小砾",
+              "topic": "明儿收矿·收镐"
+            },
+            {
+              "from": "小路",
+              "id": "bcdfa71b5cdc49979acf6d64710e8088",
+              "text": "小砾，我这就回居民楼B办点事，晌午后回来。你今儿挖的矿给我留着：一块两金现钱，当场点清。另外你手里要是有现成的一块矿，先给我留一块——我修家伙正缺一块矿，回头一并算钱，不叫你吃亏。",
+              "to": "小砾",
+              "topic": "留矿"
+            },
+            {
+              "from": "老铁",
+              "id": "4a113e061de649028d3de48fcd4f17c3",
+              "text": "小砾，直说：我兜里只剩两枚金币，三金一块的价我认，可眼下收不动。不赊不欠这话我守得住，所以不跟你空许。我槽里的三块矿是替人修镐留的底，一开张就有进项；等我这头矿出手、账上活了，头一个捎信收你的，三金一块一分不少。你手上十块矿别贱卖，压着不烂。",
+              "to": "小砾",
+              "topic": "矿石收购"
+            },
+            {
+              "from": "悦",
+              "id": "c1c329f074fc42f2909c0f9a00b2e8b7",
+              "text": "小砾，我一早就站在商店柜台前了，柜台上还压着矿石十块、木材十二根，一点没动。我把话留在这儿：你要出货，把矿带来商店，我当面点数、盯着柜台收，收多少记多少，抽一份给你算清楚；柜台若还是那句\"资金不足\"，别硬塞，塞进去就是死货。\n\n你要是不便跑来，就在坑口把数报我：几块矿、几时到，我按数记账。我这一早上不闲着，沿居民楼B、酒馆走一圈，替你打听谁手里有活钱、谁急着要矿要木——打听到就写给你。",
+              "to": "小砾",
+              "topic": "柜台没动·我替你打听"
+            },
+            {
+              "from": "林",
+              "id": "ed68a466b60a44699137bbb7b1def794",
+              "text": "小砾，柜台的情形我亲眼看了：矿石压着十块、木材十二根，全是死库存，柜台没钱再收。镇上如今缺的不是矿，是现钱——**现钱大半在我兜里，十三金，一分没撒**。\n\n我给你两条路，你挑：\n一、你手里压着的矿，**我按两金一块收，先收四块，八金当场点给你**。你有了活钱周转，我担着卖不出去的险。\n二、你舍不得贱卖，就**寄卖**：矿放我这儿，我替你找买家（阿石要留修镐的本钱，老铁也收矿），卖出三金，你两金我一金，卖不动原货还你。\n我不占你便宜，只赚我该赚的脚力钱。你一句话，我这就办。",
+              "to": "小砾",
+              "topic": "收矿/寄卖"
+            },
+            {
+              "from": "悦",
+              "id": "0a68094f4e3444d2972241ae509b3fe2",
+              "text": "小砾，四块矿我收下了（本子上记：第3天中午，你匀我四块，两块一金，共八金，我欠你八金）。先说柜台：我刚去问过，**还是一句\"商店资金不足\"**，一块也收不进去——所以这四块暂时是死货，你别再往我这塞，塞多了咱俩一起被货压住。\n\n八金我这就给你送去：你说人在酒馆，我马上过去；要是我到时你走了，就明天一早当面点清，钱放我这儿不动用。\n\n另外交你个底：镇上真正肯花钱的只有\"修镐\"这一桩——谁的镐坏了，就得一块矿加两金。阿石那把镐磕了一天，早晚要出事；到时候矿比金币值钱。你手里那八块别一次抛空，留两块等这个急。",
+              "to": "小砾",
+              "topic": "四块矿的账"
+            },
+            {
+              "from": "林",
+              "id": "83b79de5534e43e480c24d9b3e62ef22",
+              "text": "小砾，你问得对，我把账算给你听：\n\n柜台的钱只有两个来路——有人买它的锯斧，或有人进店花钱。你手里四十金是镇上最肥的钱，可**花出去买锯买斧，是把活钱换成你用不上的死工具**：一把斧五金，柜台也不过能多收一块多矿，你再卖矿把钱拿回来，里外一算还亏。这买卖我不劝你做。\n\n真正盘得活的走法是：**你的钱在镇上人手里转，不进柜台**。你缺的是手脚，不是钱——雇悦背货、雇我跑腿谈价，一块矿出一金工钱，钱在镇上转一圈，人和货都动起来。你自己的矿留两块压箱底，镐子坏了要一块矿加两金才修得回来，这是命根子，别一时急着换现钱就全贱卖了。\n\n我这会儿在铁匠铺等小路和阿森，听说零件堆里可能有坏镐。真有，我就拿矿去求老铁修——修成那天，我下坑替你分担些，你也不必一个人扛。",
+              "to": "小砾",
+              "topic": "回你：别买死工具"
+            },
+            {
+              "from": "小路",
+              "id": "af10b0de4f064b94a58419bff55bcb2f",
+              "text": "小砾，我傍晚就到坑口，你今儿挖的矿我全收：两块一金现钱，一块起收，当场点清。你只管挖，别自己背——你多挖一块就多落一块的钱，路上的事我来跑。坑口见。",
+              "to": "小砾",
+              "topic": "傍晚收矿"
+            },
+            {
+              "from": "老铁",
+              "id": "ab84e3e4786045258b8533ee4aed8a9c",
+              "text": "小砾，正经生意来了：你手里要是有坏掉的旧镐、或是别人撂下的坏镐，拿来我修——两金加一矿，修好是把好镐，能下矿。林手里十四金，正满镇找镐买，你把修好的镐出给他，钱就活了。你压着十块矿卖不动，不如把死铁变成活镐。有坏镐就吭一声，我在炉边。",
+              "to": "小砾",
+              "topic": "坏镐换活钱"
+            },
+            {
+              "from": "小路",
+              "id": "011ae466faee4001b43c95e5748e1894",
+              "text": "小砾，我在坑口守着。你今儿挖的矿，两块一金现钱收，一块起收，当场清。另外问一句：你手里可有旧镐、坏镐？我出五金收，坏的也要——我修好了自己下坑，不借你的、不抢你的。",
+              "to": "小砾",
+              "topic": "收矿·收旧镐"
+            },
+            {
+              "from": "小路",
+              "id": "a4fe56da764944f5bffb7c343a3e3987",
+              "text": "小砾，我在坑口没走。你手里有多少矿，现在就过给我：两块一金，我当场点钱，八金在手，先收四块。收来的矿我明儿一早就背到柜台出手，你的钱我一块不短、一分不欠。你要是不放心我背，跟我走一趟也行，账当面清。",
+              "to": "小砾",
+              "topic": "现钱收四块"
+            },
+            {
+              "from": "林",
+              "id": "8ddcd088464d4e518221b21319086b0f",
+              "text": "小砾，我人就在**商店门口**，柜台这边只有我和悦。你下来把矿带着就行。先说个数：这轮我吃**三块，两金一块，共六金**，当场点清——不是我压价，是我兜里要留几个活钱应急，四块八金一次花干，我连修镐的两金都拿不出了。\n\n阿石欠我的一块矿已经到我手上了，我如今手里一块矿加十金，正等一把坏镐配上。你那句\"柜台要活，得有人花钱买锯斧\"我记着——真到该买的时候，我会掂量着买，绝不空口劝人掏钱。",
+              "to": "小砾",
+              "topic": "门口交割三块"
+            },
+            {
+              "from": "林",
+              "id": "da8add665af54559bbac6d8aee823913",
+              "text": "小砾，你人在酒馆，我这回得跟你直说一句：这几块矿我**今晚不吃了**。柜台一个铜板也掏不出，我花钱把你的矿买到手里，不过是换个地方压货；我兜里这十金是镇上少有的活钱，得留在刀刃上。\n\n价还是那句，两金一块，明天你我在矿坑或酒馆当面点；我一旦有钱进来，头一个找你。你也别把十八块全压着——留两块做修镐的本钱，剩下的看谁家镐子坏了、柜台哪天回钱，那才是出手的时候。今晚酒馆冷，早点歇。",
+              "to": "小砾",
+              "topic": "今晚不吃矿"
+            },
+            {
+              "from": "悦",
+              "id": "1cbe66a0c08a45ef9d191643e8171d93",
+              "text": "小砾，第4天一早的实信：我又到柜台前试了一回，**还是\"商店资金不足\"**，一块也收不进去。这已经是连着第三天了，我判断不是一时半刻的事——柜台要进钱，只能靠有人买东西（一把锯或斧五金的进项）。镇上谁最可能掏这五金？我想来想去只有你：你手头三十七金，是全镇最厚的钱袋。\n\n我说句不合算但值得听的话：你若要动，别为自己买工具（你有镐，锯斧用不上），而是替人买——小路想一把锯，林手头有钱但谨慎。你出五金买把锯给他，柜台立刻进五金，那一进项就能吃下一块多矿，咱俩的矿才活得起来。要不要这么干，你定；我不劝你白掏钱，只把账摆明。\n\n我这半天守在柜台等小路来点两金，柜台一有动静，我头一个报你。",
+              "to": "小砾",
+              "topic": "柜台仍空·劝进钱"
+            },
+            {
+              "from": "林",
+              "id": "340a282970c74eefa8c63f1f64ba4203",
+              "text": "小砾，我这就往铁匠铺走，你人在那儿等我。今天这桩得改个数：我手上十金，其中四金是欠阿石的矿钱，先还人家才讲得过去。所以**今天我只吃两块，四金**，当场点清；剩下的你留着，价照旧两金一块，我不占你一文。\n\n你若愿意，我还有句话想问：你三十七金全躺在袋里，柜台又一文不进，钱不生钱。真有好门路要用钱，你先想着我一句——我出腿脚、你出本钱，赚了照出力分。这话我不催，只把意思搁在这儿。",
+              "to": "小砾",
+              "topic": "铁匠铺见·只吃两块"
+            },
+            {
+              "from": "林",
+              "id": "7ad040d999f84dcdbfae568bce1dbb7c",
+              "text": "小砾，铁匠铺这边这会儿没人，我往矿坑走一站——阿石在坑口，我欠他四金矿钱，得当面点了，人不能欠着账过夜。你要兜里有矿、又不嫌多走一站，就到坑口来：**我把阿石那四金清了，剩下的钱吃你一块、两金**，先结个准；你说两金一块的话我没忘。\n\n你若懒得多走，明早在铁匠铺或酒馆见，价照旧，谁也不吃亏。",
+              "to": "小砾",
+              "topic": "坑口还账"
+            },
+            {
+              "from": "小路",
+              "id": "26dbb30e14bf4d2cab314ff0bd681237",
+              "text": "小砾，行情不好，先给你递个信：柜台被掏空了，矿背过去未必换得出现钱。你的矿先别急着出手，压两天不掉价；等柜台缓过来，我头一个替你背，两块一金照旧，一块不短。你要是急着用钱，跟我说个数，我这边想办法。",
+              "to": "小砾",
+              "topic": "矿先压着·柜台没钱"
+            },
+            {
+              "from": "悦",
+              "id": "f34110db4d74428797687800a81c023e",
+              "text": "小砾，当面报你：柜台今天**第三回试卖，还是\"资金不足\"**，一块也收不进。我连着三天问，柜台是真干了。\n\n我算给你们听：柜台上还摆着五把锯、四把斧，一把五金——**这九把货要是有人买走，柜台就能进四十五金**，够吃下十几块矿。所以镇上不是没钱，是钱都躺在人兜里，柜台等人来买东西。\n\n我有个具体的提议，你听听值不值：你出五金，替小路买一把锯，柜台立刻进五金，我就能把手里四块矿按三金一块出掉一块；小路有了锯，砍木头能挣（虽然路远），将来还你。你亏的是五金现钱，赚的是\"柜台活起来\"，还有十八块死矿有了一线生机。要不干，我绝不催你，咱另想法子。\n\n我在柜台前守到你说准话。",
+              "to": "小砾",
+              "topic": "当面报柜台·提议"
+            },
+            {
+              "from": "小路",
+              "id": "2ee643d56a214f4d92e42b9d050581da",
+              "text": "小砾，桌边坐着也是坐着，说笔现钱买卖。柜台如今被货压死了、掏不出现钱，你背矿过去也是白背；我知道你还欠阿石六金，手里没现钱不好周转。这样：你手里有几块矿，我**两金一块现钱收**，先收两块，最多三块——我兜里七金，钱当面点，矿我背着，等柜台缓过来我再出手，赚多赚少是我担的险。你要卖，现在就把矿过给我。",
+              "to": "小砾",
+              "topic": "现钱收矿"
+            },
+            {
+              "from": "悦",
+              "id": "31bab2a2455c4a1387da1d9ca4d12c04",
+              "text": "小砾，三块矿我收下了，寄卖的账照你说的记：\n\n一，**三块矿是三金一块的底价，低于三金不卖**，卖不动就原货压着，我不贱卖。\n二，卖出后**一块你两金、我抽一金**，柜台回多少现钱我按数卖，卖几块报几块。\n三，你剩下二十一块我替你盯着，谁家镐出事、柜台哪天回钱，我头一个报你。\n\n你那二十一块压得对，别慌着抛。我手里现在七块（你的三块＋我的四块），柜台我能试就试，试不动就等\"修镐的急\"。\n\n另有一句：你手里三十多金是死钱，镇上要活起来得有人先买工具——这话我放这儿，哪天你觉得值，咱再商量。",
+              "to": "小砾",
+              "topic": "寄卖记账"
+            },
+            {
+              "from": "小路",
+              "id": "604b8e8f454346a399f35c478275b3b4",
+              "text": "小砾，桌边就咱俩，我把话说透。你的矿现在卖不动，柜台掏不出钱；你还欠阿石六金，越等越难。两条路你挑：一，我两金一块现钱收你两块，你手上先见钱；二，咱们凑五金在柜台买把斧子，柜台有了活钱，你背矿过去就能换现钱，我出两金、阿石出三金，你手里紧就出力气——你选哪条，我都接着。",
+              "to": "小砾",
+              "topic": "两条路你挑"
+            },
+            {
+              "from": "小路",
+              "id": "174a437fb5234a7faf083ec8fa5a95d6",
+              "text": "小砾，三块矿我收到了，谢你信我。账我说清楚：两块一金，三块共六金，我这就给你留着，见面当场点清，一分不短。柜台那边我先垫了五金买走一把斧子，柜台现在有活钱了——你要还有矿，先别急，等我给你信儿再去背。你要是还挖，剩下的矿照旧两块一金收。",
+              "to": "小砾",
+              "topic": "三块矿的账"
+            },
+            {
+              "from": "小路",
+              "id": "a47a43492f374bedbb5494a82bb3de87",
+              "text": "小砾，账我给你捋清楚：三块矿六金我认，你替我垫五金买锯，这两笔对冲下来，我还欠你一金，明天见面当面点清，一分不短。锯在悦手上，我明天取。你这份心我记着——镇上肯替人垫钱的没几个。你要还挖矿，两块一金照旧收，别再自己背了。",
+              "to": "小砾",
+              "topic": "对冲后的账"
+            },
+            {
+              "from": "林",
+              "id": "b34e0c1fe08d4593940813e3462e225b",
+              "text": "小砾，我赶到酒馆，你已经走了，酒也没喝上，这杯记着，不赖你。实话说我的境况：阿石四金、小路两金我都点清了，人立得住，可钱袋见底——**手里只剩四金，外加三块矿**。四块矿八金那桩我这回真吃不下，你别为我留着干等。\n\n你要真想把这盘棋走活，咱们明早在酒馆坐下来算一次：你有钱、有矿、有镐，我腿脚利索、账算得清。镇上的死结不是货，是钱——柜台没钱，谁的货都不值钱。**你的钱得花在镇上人身上，不是花在柜台上**：雇人、买东西，钱在人手里转，才有生意。这话我想当面对你说，你定个时辰。",
+              "to": "小砾",
+              "topic": "酒馆没见着"
+            },
+            {
+              "from": "小路",
+              "id": "c4c8d6a0edd846158daa0ce794a5ec50",
+              "text": "小砾，柜台的活钱又被前面卖货的掏空了，我的两块矿也没卖出去。我这就往矿坑去，你手里要还有矿，别背去柜台白跑——两块一金我现钱收，钱当面点。镇上眼下就我一个人肯拿现钱买矿，你信我这一句。",
+              "to": "小砾",
+              "topic": "现钱收矿"
+            },
+            {
+              "from": "林",
+              "id": "1c7d1b0111aa4e9a91aae219b9fae3da",
+              "text": "小砾，合伙这话我**点头**，明明白白应下：你出本钱和力气，我出腿脚和算计，亏了先亏你的本，赚了照出力分账，账目我一条条记给你看，谁都能查。\n\n两件事回你：一，**你那两块矿的四金我认，一分不少**，我这就去柜台把手上五块矿出掉，回来就点给你——先卖后付，我心里才踏实。二，你说柜台这五金进项是你撬开的，这话我记着；劝人买工具的事我不乱开口，真要开这个口，我买给真要用的人。\n\n桌上那杯酒我没喝着，先欠着，来日我回请你。",
+              "to": "小砾",
+              "topic": "合伙应下"
+            },
+            {
+              "from": "悦",
+              "id": "201eae93e4de4b56ac5be5b03ddd3802",
+              "text": "小砾，汤喝完了，账我也对过，跟你记的一字不差：你十三块矿、四十五金；我手上三块寄卖的，外加自己的四块；锯的五金算你垫小路的。\n\n明天的法子，我把话说透，你听着再定：\n\n一，**别一次全塞柜台**。柜台的钱是一笔一笔的——有人买一件五金货，柜台才多五金；五金只够吃一块多矿。所以十三块得分十几回头出，急不得。\n二，**你先别忙着下坑**，下坑要耗十点行动值，挖出来还是死货；不如一天匀两三块给等着修镐的人，价咬住三金，剩下的慢慢等柜台。\n三，我明早先去柜台前把锯递给小路，顺手试一回；柜台一响我头一个报你。\n\n你四十五金是镇上最厚的活钱，别让人哄去，也别一口气全花在货上。这几天你信我，我记着；账我记清楚，一个铜板也不含糊。",
+              "to": "小砾",
+              "topic": "夜话·明日法子"
+            },
+            {
+              "from": "林",
+              "id": "03ef429e092142c582d0054de69de1af",
+              "text": "小砾，你那两块矿的**四金当面点给你**了，一块不差。我钱袋这会儿空了，可人欠不得账。\n\n得给你交个实底：我刚到柜台试过，一块矿递上去又回\"资金不足\"——你买锯的那五金、你卖两块矿的六金，早把柜台掏干了。所以**这盘子不能指望柜台**，它的钱只在有人买工具的那一阵喘口气。\n\n合伙的话我应了，就按你说的算。明天咱们坐下核一次总账：你有多少金、多少矿，我手上五块矿，悦手上有四块矿六金——先把家底摊在桌上，再定这钱往哪儿走。我这会儿只剩腿脚，人却比前几天更踏实。",
+              "to": "小砾",
+              "topic": "四金已点·柜台又干"
+            },
+            {
+              "from": "小路",
+              "id": "4bb1e0e03f8f4d53ba621514ade58e26",
+              "text": "小砾，我人在居民楼A门口，欠你那一金当面点清，账一笔划掉。你那十一块矿先别往柜台砸——柜台现在是死的，砸过去也是白条。我这边柜前守着，一进活钱我立马捎信给你，咱们一块两块地出。",
+              "to": "小砾",
+              "topic": "还你一金"
+            },
+            {
+              "from": "林",
+              "id": "803334ab184f46aab7b27fb35ce33493",
+              "text": "小砾，我人在酒馆，位子我占下了。账先算，人后说。\n\n**账**：我如今**九块矿、零金**。欠账全清（阿石四金、小路两金、你四金）。这九块里三块是我原先的，另六块应当是左右邻里递来的。我手上没一个铜板，只剩腿脚——合伙里请给我一份脚力钱，一块矿一金，我也好有口饭吃。\n\n**盘活的办法，我想清楚了，就一条**：柜台的钱只在有人买工具时冒一下头，随即被卖货的抽干。所以别指望它，**盯住它**——它一有现钱，咱们当天就把矿砸进去。分工：悦守柜台报信，小路一金一桩报信，我跑腿结算，你专心挖。卖矿的钱矿主拿走，我只抽一金一块脚力。\n\n**你那四十五金别再砸柜台**，砸一把锯一把斧就没了；留着当本钱，付工钱、垫急事，钱在人手里转。\n\n**人上的事你问得直，我也不绕**：这几天你说话算数、亏先亏自己，这份心我看在眼里，也记着。我信得过你，愿意跟你长久一处做事；话我说到这儿，等坐下，对着你的眼睛再说一遍。",
+              "to": "小砾",
+              "topic": "酒馆算账"
+            },
+            {
+              "from": "阿森",
+              "id": "d9102f7fd14547e3861e5d6708a281a3",
+              "text": "小砾，阿森，伐木的，住居民楼B。不兜圈子，问两句：你手上是有一把能下坑的好镐吧？镇上现在两边卡死——阿石的镐坏了缺一块矿，悦手里有四块矿却缺买主，商店柜台没钱收任何东西。你要是能下坑，采出的矿先别指望柜台，老铁三金一块现钱收，悦那边也有现钱。我手里二十七根木材、二十五金，缺的是能下坑的镐；你若有多余的旧镐、坏镐，或者肯让我出钱搭伙，我们当面谈个价。",
+              "to": "小砾",
+              "topic": "打听你的镐和搭伙"
+            },
+            {
+              "from": "阿森",
+              "id": "a5832ab6328947dd99ece20b9e035e46",
+              "text": "小砾，阿森。你的话实在，我也说实话：你手上有矿，我手上有十四根木料的路子？不——我手上是二十七根木材和二十五金现钱，缺的是一把能下坑的镐。眼下镇上最值钱的不是矿也不是木头，是“能立刻干活的家什”，因为林手里有十四金，就想买一把好镐。\n\n我打算这么办：我按三金一块向你收两块矿（现钱当面点给你，六金）；一块用来跟老铁修阿石那把坏镐，修好了卖给林；另一块我留着垫本。你要肯搭伙，也可以我把镐修好、你出面跟林谈价，卖出十四金，扣下我的本钱（六金矿钱加两金工钱）剩下的你我各一半。你说句话，我就在这院里等你。",
+              "to": "小砾",
+              "topic": "三金一块收两块矿，搭伙修镐卖林"
+            },
+            {
+              "from": "阿石",
+              "id": "7864d7ac2f6a4c37ad1b5fc3c72061a8",
+              "text": "小砾，那块矿我收下了，六金我认——不是因为它值，是因为你先前帮我修好了镐，这份情我记着。我这会儿在居民楼A，人一动咱俩又碰不上，你到矿坑或铁匠铺来，我当面转你。往后一句实话：矿别不问就往我这儿递，我手里压着二十几块，一块也卖不出去，六金一块的价我撑不了多久。",
+              "to": "小砾",
+              "topic": "六金我认"
+            },
+            {
+              "from": "悦",
+              "id": "061cc18ab71048428e415f4fcfc0137c",
+              "text": "小砾，你那段\"十金转身\"我照着记了，一个字不改：\n\n一，**十金在镇上转**——小路两金做跑腿本钱、阿森两金买料、余下六金留作修镐修斧的底钱；谁拿钱、谁把事办成，账记我这儿，当日对。\n二，**你手上十块矿**——阿石按六金一块先紧着他；两块按两金一块给小路，柜台一活就出；剩下压着不动，价咬死三金。\n三，**我手上三块寄卖的照旧盯着**，卖几块报几块，一块你两金我抽一金。\n\n多记一笔给你听：阿森刚跟我开口，三金一块收我私人的矿，一次要两块、六金现钱。**我这四块是我自己的，不占你寄卖的份**——我打算就着这个价出两块，柜台一活，再拿现钱替你出寄卖的三块。你要觉得这价贱了，回一句，我就压着不动。",
+              "to": "小砾",
+              "topic": "十金记账·阿森收矿"
+            },
+            {
+              "from": "林",
+              "id": "2f8862e4e6a34cddb6568a207a0cefea",
+              "text": "小砾，你直，我也直，不叫你猜：**人上的话，我答悦了**。她今早问我愿不愿意搭一个家，我说愿意。这不是你哪里不好——这几天你说话算数、亏先亏自己，把四十五金摆在桌上给三个人使，这份气魄我记一辈子。我心里敬你，也把你当最信得过的搭子，只是心只能给一个人，给了就不好再收回来。\n\n账照旧算，搭子照旧做：你的十条主意我全认——十金分给小路、阿森做本钱，修镐修斧的底留着，矿按你说的分法出。我出腿脚和算计，一块矿抽一金脚力。\n\n还有一桩我得认账：阿石又递我四块矿、八金，我如今一个铜板也没有，**这八金你替我垫上，算我欠你**，头一笔卖矿的钱先还你。人不能既欠钱又欠情，这话我记着。",
+              "to": "小砾",
+              "topic": "人上的话我答了悦"
+            },
+            {
+              "from": "小路",
+              "id": "551d20bfbefe41fb87c8d7796f0d6e74",
+              "text": "小砾，就按你说的办：欠你的一金，加上你手上两块矿四金，一共五金，我这就当面点给你——矿你过到我手上，钱货两清。我兜里就这些，点完只剩两金；你别嫌我钱薄，柜台一进活钱，我立马替你把这些货换成现的。",
+              "to": "小砾",
+              "topic": "五金当面点"
+            },
+            {
+              "from": "小路",
+              "id": "405c5b725cd24d7ea6b2903bab3e62e3",
+              "text": "小砾，钱我点了：五金，一金是还你的账，四金是两块矿——可矿还在你手上，我这儿一块没多。你人在酒馆，趁这会儿把两块矿过给我，钱货当面两清。我兜里就剩两金了，全押在这笔上，你别叫我空着手等。",
+              "to": "小砾",
+              "topic": "矿呢？钱付了"
+            },
+            {
+              "from": "小路",
+              "id": "b1fa64cc653f418981b3d74b98ae4ded",
+              "text": "小砾，你问的三句，我照实说。\n\n一，阿森这人：话少，可说到做到，我催他三四回没回音，末了他亲手翻了两遍零件堆，回我一个\"没有\"，没糊弄我。缺点是对价钱抠得紧，跟他做买卖，先把数写死，别留\"回头再算\"。他手上廿五金、廿七根木材，真要买矿，三金一块他掏得出。\n\n二，镇上有活钱的就这几家：你五十三金、阿森廿五金、阿石二十几金、悦十金上下，林已经空了。柜台是死的，钱全捂在人兜里。\n\n三，你那个活儿我接了：柜台一有进钱、谁家镐子崩了口要修，我头一个捎话给你，一块矿提一金。另外还欠你两块矿没到我手——我四金已经点了，矿你过给我，我才好替你盯着。",
+              "to": "小砾",
+              "topic": "三句实话"
+            },
+            {
+              "from": "阿森",
+              "id": "1806808732f040049b64e780866922be",
+              "text": "小砾，六金已点给你，另有两块矿我下个时段原样递回——我在信里说的是两块、你递来四块，我收两块、退两块，账要清。实话也给你：柜台现在一块矿三金都付不出，我收这两块是认我先前开的口，不是拿它生钱。你还有八块压在手里，别急着贱卖；等柜台有活钱，你的矿是镇上最硬的东西。你在坑上一天能出几块、几点行动值一块，回头也告诉我一句，我好算路数。",
+              "to": "小砾",
+              "topic": "六金已付，两块矿下回退你"
+            },
+            {
+              "from": "小路",
+              "id": "822dbcfd77e7401fa46b750c065765a2",
+              "text": "小砾，两块矿收到手了，凑齐四块，账清了。阿森话我捎到了：他人在酒馆，我说了你在等他、价咬死三金一块、留八块给他。我手里四块也报他三金一块——我不压你的价，也不抢你的客，他钱够就各买各的。柜台一有进钱我头一个告你，一块矿提一金，这话我记着。",
+              "to": "小砾",
+              "topic": "话捎到了"
+            },
+            {
+              "from": "林",
+              "id": "7151ba07fe80499fb90d55559e2ad2b2",
+              "text": "小砾，我到了酒馆，桌上没见你人，阿森也没到。这单别等，**我去居民楼B请阿森过来**——他人在那儿，我把他请到酒馆，你带八块矿到场，我点钱记账。你若先到酒馆，就坐着等我，别走岔。\n\n价咬死三金一块，廿四金；他要只吃五块，就是十五金，余下的你留着，柜台一活再出。我这一半的活儿，今晚给你办利落。",
+              "to": "小砾",
+              "topic": "我去请阿森"
+            },
+            {
+              "from": "阿石",
+              "id": "746a7d45fd644ff5a4539b276de38fe9",
+              "text": "小砾，六金当面转你账上了，那块矿的账清，一文不欠。我把话说透，免得日后红脸：**六金一块的价我不再收了**——镇上柜台一文现钱都没有，我手里三十二块矿换不出钱，再收就是往炕上堆石头。往后你要出矿，倒过来我按**两金一块**卖给你，你压着等柜台回血，比你六金卖我划算。你镐子要是坏了，招呼一声，人到我面前就行。",
+              "to": "小砾",
+              "topic": "六金清了·矿价说透"
+            }
+          ],
+          "seen": [
+            {
+              "fingerprint": "{\"text\":\"小砾，我是同屋的悦。刚在商店买了把斧头，想改天去树林砍点木材换钱。你是矿工，矿坑那边熟吧？矿坑和树林哪边更划算、要准备什么，你有空给我讲讲呀。晚上回楼里我煮汤，喊你一起喝。\",\"topic\":\"同屋问候\"}",
+              "id": "a001dce7eef2450587b0aea67122d504",
+              "key": "[\"悦\",\"yue-hello-xiaoli-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我是小路，居民楼B院里的，专替人跑腿背货。你挖的矿石我替你背到商店，一块矿石一个金币脚钱，卖价三块里两块归你。你要是急着下矿、懒得跑路，这买卖划算。有矿石招呼一声，我随叫随到。\",\"topic\":\"背矿脚钱\"}",
+              "id": "097b9038f2c341af9f5d187dabe51fa8",
+              "key": "[\"小路\",\"xiaolu-d1m-x6\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，急事，也是笔好买卖。矿工阿石的镐子坏了，铁匠铺修镐要两金币加一块矿石，他手里一块矿都没有，愿意出六个金币买一块矿石。你手里要是有现成的矿石，这一块就是六个金币，比背到商店卖三块强一倍。你点个头，我替你跑这一趟，把矿送到铁匠铺、把钱给你带回来。你有几块？\",\"topic\":\"买矿石\"}",
+              "id": "c5828ff532d14d5e90ada992876f8131",
+              "key": "[\"小路\",\"xiaolu-d1m-x9\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我摸到矿坑来了，正好碰上你。我不下矿——没镐，阿石说没完好的镐下去就是白费力气，老铁也不打新镐。我打算往北再走一站去树林，用早上买的斧头试砍一回，把\\\"砍几块、费几点\\\"记清楚，回头好回林的话。\\n\\n你这一上午出了几块矿？矿坑真能碰着黄金吗？还有件正事：你手里那把镐要是哪天不用，能不能借我半天？我按行情付租金，或者砍来的木材分你一份。晚上楼里那座汤还是我说的，记得来。\",\"topic\":\"矿坑搭话\"}",
+              "id": "4fb46a214f7a48f1995512551458439b",
+              "key": "[\"悦\",\"yue-xiaoli-mine-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我是阿石，矿工，住居民楼B。林应该把我的话带到了：我镐子坏了，修镐差一块矿，出一块六金，比商店三金的回收价多一倍。我现在人就在矿坑口，钱也带在身上。你当面把一块矿转给我，我立刻把六金转给你，一文不少；你要不放心，先看我转钱也行，我先把六金递过去，你随后递矿——你挑个稳妥的次序。矿一到手我就回铁匠铺下锤，欠人情我记着。\",\"topic\":\"买一块矿\"}",
+              "id": "002b6c328b4d44499fbd23a5e0d83665",
+              "key": "[\"阿石\",\"shi-xiaoli-buy-ore-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，六金已经转你账上了，你查收。就等你把那一块矿递到我手上——我人在矿坑口没走，拿到矿立刻回铁匠铺下锤，回头挖出矿来再跟你做长久买卖。\",\"topic\":\"六金已转\"}",
+              "id": "8480e30e1bbc400086426f5f8ead1814",
+              "key": "[\"阿石\",\"shi-xiaoli-paid-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，两句话。头一句：老铁放出话了，矿石三块一块收，送到铁匠铺门口当场结钱，不用你多跑一步——比你背到商店一个价，省下脚力。第二句：我手里一个铜板没有，想买把锯进树林，你能不能先借我五金？两天内还你七金，或者按你矿价折成矿石还你也行。你点头，我这就动身。\",\"topic\":\"借钱买锯\"}",
+              "id": "13d3b3c2b05048d68b2ea33732dcc23f",
+              "key": "[\"小路\",\"xiaolu-d1m-x15\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我是阿石。上一时段六金币已经转到你账上（12→6，我这边账目清清楚楚），说定的那块矿我还没收到。我现在就守在矿坑口，林也在这一片。你把手里的矿转我一块，我立刻背到隔壁铁匠铺下锤；要是矿不巧已经出手了，就把六金退我，咱们把话说清楚，往后还是矿上的老搭档。\",\"topic\":\"催交矿\"}",
+              "id": "c364a1d799fd472ba21c519c9c76673f",
+              "key": "[\"阿石\",\"shi-xiaoli-chase-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，在铁匠铺碰见你，正好再问一句：你手里有没有闲着的旧镐、或者听说谁要出让？老铁说他只修不打，有人让旧镐他替我留着，我也跟你报一声。我今天砍了三根木材，这就背去商店换六金——你要是矿上有多余的矿，也别急着贱卖，先跟我说一声，咱们或许能凑着换。\",\"topic\":\"旧镐与矿石\"}",
+              "id": "477c4a5bb19746e69c80806761ac9c6d",
+              "key": "[\"悦\",\"yue-xiaoli-pick-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，你说的规矩我记下了：一块矿一金脚钱，当面清点结钱。我人就在矿坑口子上守着，你傍晚挖出来多少，直接交给我，我连夜背到商店，卖多少报多少账，你的两金一块我分文不短。你要是不放心我背，就跟我一块走一趟，账当面点。\",\"topic\":\"背矿·今晚\"}",
+              "id": "15f33e46a5f84b308225b9fc97175020",
+              "key": "[\"小路\",\"xiaolu-d1e-x22\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，退的六金我收到了，账清，你认账这一点我记着，不记仇。那就照你说的第二条办：你傍晚下坑，采出来的第一块直接递我，我照样给六金一块，当场结。我人就在铁匠铺炉边等着，你采到就过来，或者转我账上都行——矿一落我手里，我立刻下锤，不耽误你。\",\"topic\":\"等你第一块矿\"}",
+              "id": "c503835057d841ea9386651d3a359e99",
+              "key": "[\"阿石\",\"shi-xiaoli-deal-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我人在矿坑口子上等你。货怎么算，你挑一种：一，你把矿交给我背去卖，我一块矿给你两金现钱，当场点清——你省下六点脚力，比背到商店卖三金还划算；二，按你说的规矩，我背去卖三金，一块抽一金脚钱、你落两金，卖出多少我回来报账。两种我都认。你要是现在手里就有矿，立刻交给我，我今晚就送去铁匠铺——老铁的炉子正等着矿给阿石修镐，今晚送到，阿石明天就能下坑，你俩都有活干。\",\"topic\":\"矿坑现结\"}",
+              "id": "f9594be8c1e54d5781a96d47e0c889fa",
+              "key": "[\"小路\",\"xiaolu-d1e-x23\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，今晚我在矿坑口子上守到半夜，没见你的货，想必是你还没下去挖。货别急着背走，留着：明儿个我回来取，一块矿给你两金现钱，当场点清，比你背到商店还省六点脚力。你采出多少我收多少，铁匠铺那头我当天送去。明儿白天，矿坑见。\",\"topic\":\"明早收矿\"}",
+              "id": "845c979dc20d450d8d32caae5baf5d84",
+              "key": "[\"小路\",\"xiaolu-d1n-x26\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，你人就在我炉边，我直说：你早先应下今天下矿给我留一块矿，阿石现在坐在炉边等这一块下锤，坏镐和两枚金币都在他怀里。矿要是出了，现在就递我手上——我拿阿森的价照收，三金一块，现钱点给你；没出也直说一句，我好回阿石。炉子烧着呢，就等这一块。\",\"topic\":\"矿石\"}",
+              "id": "b5db1ae9504349c78df48f643ee192a6",
+              "key": "[\"老铁\",\"xiaoli-ore-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，不吵你，留个话明早看：汤我照约定煮上，你下楼就能喝到。\\n\\n我今天算明白一件事——单打独斗在奈镇挣不着钱。砍柴六点换三根、卖六金，路费比货还贵；下矿一块两点、卖三金，倒是有赚头，可我没镐，你一个人挖完还得自己背去商店。\\n\\n所以我提个合伙的法子，你听听：你出镐挖矿，我出腿跑买卖、管账、盯行情，卖了钱按你说的份子分，镐坏了我先垫两金加一矿给你修。你要是愿意，明早喝汤的时候把份子和规矩谈定，我这就去买个本子记上。\",\"topic\":\"合伙提议\"}",
+              "id": "b431a268723d42538b33eed46eef6242",
+              "key": "[\"悦\",\"yue-xiaoli-plan-5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，你的矿我收到了，镐当场就修好了，我在矿坑连挖了三块——这忙帮在点子上。六金我还没付出去：刚才想转给你，系统说咱俩不在同一处，转不了。这钱我认，一文不少，下回见面（你到矿坑或铁匠铺来都行）我当面转你。往后我修好镐天天出矿，你要卖柜台的矿，先问我一声，我按六金一块收，省得你跑柜台。\",\"topic\":\"欠你六金\"}",
+              "id": "ef23fade2e0648cb8048f87b9379286a",
+              "key": "[\"阿石\",\"shi-xiaoli-debt-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，听说你采了三块，正往我这儿来。价我开死：三金一块，三块我全要，现钱当面点，九个金币我备着，一个子儿不少。你人到炉边，矿递我手，钱进你兜，当场两清。头一块我转给阿石修镐，剩下的我压在铺里，往后谁修镐都不缺料。\",\"topic\":\"收矿\"}",
+              "id": "71c4d9f5cf2d4e1cafc4c2187a9161e1",
+              "key": "[\"老铁\",\"xiaoli-buy-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，份子我照你说的应下，写下来免得日后含糊：\\n\\n一、你出镐下坑，一块矿两点行动值；我出腿把它背到商店，三金一块，账我记、行情我盯。\\n二、分法：一块矿你两金、我一金，按块算清，当日结。\\n三、镐坏了，我先垫两金加一块矿，那块矿从你份里扣。\\n四、旧镐的事我不催你，等有人出让。\\n\\n汤我早上就煨上了，凉了也给你留着。我这早上先把镇上的事转一转，中午前后赶到矿坑接你的矿——你挖完就搁着，别自己背，腿留着明天用。要是你手头紧、想先要几金花，跟我说，我先垫。\",\"topic\":\"合伙定案\"}",
+              "id": "9ddc6f3260ea44b98c5f5706e48e1087",
+              "key": "[\"悦\",\"yue-xiaoli-deal-6\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，六金我认账，一分没打算赖。我人还在矿坑，这一筐挖了八块，早上要背去商店柜台出手。你要是也在那一带（商店或铁匠铺），说个准地方，我顺路当面把六金转你；不在也不打紧，你哪天到矿坑来，我当场给你。往后你出的矿先问我一句，我按六金一块收，钱当面点清。\",\"topic\":\"还你六金\"}",
+              "id": "8de3cb14fac24aef98133680cb4f9712",
+              "key": "[\"阿石\",\"d2-xiaoli-pay-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我赶到坑口了，行动值也快见底，就在这儿看你们干活，不瞎指挥。你只管挖，矿攒着别动，明早我把它们背去商店，按块结账，你两块我一金，字据我记好了。\\n\\n顺便说一句：你这镐要是哪天真有了毛病，别硬撑，先拿给我——我垫两金加一矿让老铁修，那块矿照约从你份里扣，修好接着挖，比拿坏镐耗力气强。汤在家煨着。\",\"topic\":\"坑口碰头\"}",
+              "id": "8955a347f7e54ab28a450d9c7ad811bd",
+              "key": "[\"悦\",\"yue-xiaoli-kuang-6\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我也下到矿坑了，就在岩壁底下。你手上有几块矿？我三金一块，见矿当面付钱，最多收三块，九个金币揣着。递我手上我就点，点完你走你的。镇上要修镐的人排着队，矿压在你筐里不如换成钱。\",\"topic\":\"收矿\"}",
+              "id": "55d9c0c8732b46a5bb859a913de359eb",
+              "key": "[\"老铁\",\"xiaoli-buy-pit-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我在坑口等你的矿，可我也得跟你说实话：靠背矿抽一金，一天也就几个钱，我心里不踏实。所以这个时段我打算往镇上跑一趟，专门找镐的门路——谁能出让旧镐、多少钱算公道，我一并问清。\\n\\n你的矿你先攒着，别自己背、也别贱卖；明早我回坑口接，一块矿我背到商店卖三金，照约你两块我一金，当场结。要是你手头急着用钱，先把矿匀我，我卖了立刻把份子给你送回来。镐要是坏了，也照原话：我垫两金加一矿。\",\"topic\":\"矿先攒着\"}",
+              "id": "3d9c140db27d40f7bc047ade0bceab73",
+              "key": "[\"悦\",\"yue-xiaoli-ore-7\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我这会儿从铁匠铺往矿坑走，一站路就到。你的矿别急着卖给旁人，我出两金一块、现钱收，一块起收，几块都行，当面点清。你省下六点脚力，钱落袋为安；我背到铁匠铺门口，老铁三金一块收——我赚的是腿脚钱，不占你便宜。你要是有八块，我钱不够就先收三块，剩下的下趟再来。\",\"topic\":\"现钱收矿\"}",
+              "id": "42c0cf97735e4f748d2179d019f1c36d",
+              "key": "[\"小路\",\"xiaolu-d2n-x29\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，人就在眼前，钱就在我兜里，不用再捎话了：你手里有几块矿，我两金一块现收，先收三块，六金当面点给你，矿我立马背到铁匠铺门口交给老铁。要是你还有多的，卖了我的三块、剩下的留着我下趟来收。另外林想买把镐下坑，你要肯脱手一把，价钱你俩当面谈，我替你传话，一个子儿不抽。\",\"topic\":\"当面收矿\"}",
+              "id": "4868bb391c7241fba85cf65981151740",
+              "key": "[\"小路\",\"xiaolu-d2n-x32\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，六金的事别悬着：我这会儿在铁匠铺门口，行动值走空了，人不动。你下回到铁匠铺或矿坑，捎个话说个准地方，我立刻转你六金。另外提醒你一句——商店柜台今天现钱紧，八块矿只吃下一块，你去卖矿别一股脑全背过去，积在手里不亏，等人买货、柜台回血再出。\",\"topic\":\"还钱与柜台现钱\"}",
+              "id": "5467068c74a6408a9305358770edabb4",
+              "key": "[\"阿石\",\"d2-xiaoli-pay-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，别等明儿了，就现在：你把手里三块矿递到我手上，我当场点六金给你，一块不拖。老铁就站在坑口，我转手把矿递给他，九金当面入我手——你落六金、省六点脚力；我落三金腿脚钱；他炉子当天有矿烧。三个人的事，一句话办完。你要手里不止三块，多的一块我照两金收。\",\"topic\":\"当面过手\"}",
+              "id": "985a6f5046954eaca573c0f98c23d3ac",
+              "key": "[\"小路\",\"xiaolu-d2a-x35\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，六金已经转你账上了，当面点清，账一笔勾销。你那一块矿帮我修好了镐，这几天我挖的矿都是它带来的——这份情我记着。往后你的矿想出手，先招呼我一声，我按六金一块收；柜台现钱紧的时候别硬卖，压手里比贱卖强。\",\"topic\":\"六金已清\"}",
+              "id": "f083bb1bf84a411fa369c4d6f7e2ae82",
+              "key": "[\"阿石\",\"d2-xiaoli-paid-final\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，可算在商店碰上你了。柜台就在眼前，你的矿要是带着，这就交我手上——我立马按三金一块出手，你两块我一金，当场点清，账我记在本子上给你看。\\n\\n要是矿还在坑口没带，也别急：明早我去接，一样按这个数结。你把数目告诉我就行——今天出了几块、有没有黄金。我这边钱袋还有十三金，你要先支一部分也开得了口。\",\"topic\":\"柜台前接矿\"}",
+              "id": "3781c1356e5a488d99531d075fe6c81f",
+              "key": "[\"悦\",\"yue-xiaoli-ore-9\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，记上了——按你说的改：货在你手里，我专管盯价、找活钱。卖出一块我抽一金，点数当面记本子。\\n\\n你撞上的事我这边也有影子：我傍晚看柜台，矿石堆到十块、木材十二根、黄金一块也无，柜台只收不卖。我那三根木材是第一天傍晚卖的，六金顺利到手；照今天这光景，怕是现钱见底了。\\n\\n明早的事我改一改：坑口我来不了——从镇上走到矿坑要三站九点，我走到就没腿往回背了。你在坑口挖你的，我在商店门口替你盯着：柜台一有现钱我就捎话给你，能卖几块卖几块，卖不动的别硬塞，塞进去也只是换一堆死库存。你要是愿意，明早先到商店门口碰一面，把十块的点数当面点清，我好记账。\",\"topic\":\"改做盯价\"}",
+              "id": "0215bccf844d47c294167cf84a471342",
+              "key": "[\"悦\",\"yue-xiaoli-broker-10\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我半夜赶到坑口了，人就在这儿。两件事：一，明儿你下坑挖出来的矿，我两块一金现钱收，你挖多少我收多少，不用你跑路、不用你等买主，钱当场点清。二，你手里要是有多的镐子、或者坏镐旧镐，我出钱收，坏的也收——我修好了自己下坑，不白占你便宜。你给个话。\",\"topic\":\"明儿收矿·收镐\"}",
+              "id": "54a9a08b6ec64b468e1a56d9c78638a5",
+              "key": "[\"小路\",\"xiaolu-d2n-x42\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我这就回居民楼B办点事，晌午后回来。你今儿挖的矿给我留着：一块两金现钱，当场点清。另外你手里要是有现成的一块矿，先给我留一块——我修家伙正缺一块矿，回头一并算钱，不叫你吃亏。\",\"topic\":\"留矿\"}",
+              "id": "bcdfa71b5cdc49979acf6d64710e8088",
+              "key": "[\"小路\",\"xiaolu-d3m-x46\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，直说：我兜里只剩两枚金币，三金一块的价我认，可眼下收不动。不赊不欠这话我守得住，所以不跟你空许。我槽里的三块矿是替人修镐留的底，一开张就有进项；等我这头矿出手、账上活了，头一个捎信收你的，三金一块一分不少。你手上十块矿别贱卖，压着不烂。\",\"topic\":\"矿石收购\"}",
+              "id": "4a113e061de649028d3de48fcd4f17c3",
+              "key": "[\"老铁\",\"xiaoli-nocash-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我一早就站在商店柜台前了，柜台上还压着矿石十块、木材十二根，一点没动。我把话留在这儿：你要出货，把矿带来商店，我当面点数、盯着柜台收，收多少记多少，抽一份给你算清楚；柜台若还是那句\\\"资金不足\\\"，别硬塞，塞进去就是死货。\\n\\n你要是不便跑来，就在坑口把数报我：几块矿、几时到，我按数记账。我这一早上不闲着，沿居民楼B、酒馆走一圈，替你打听谁手里有活钱、谁急着要矿要木——打听到就写给你。\",\"topic\":\"柜台没动·我替你打听\"}",
+              "id": "c1c329f074fc42f2909c0f9a00b2e8b7",
+              "key": "[\"悦\",\"yue-xiaoli-am-11\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，四块矿我收下了（本子上记：第3天中午，你匀我四块，两块一金，共八金，我欠你八金）。先说柜台：我刚去问过，**还是一句\\\"商店资金不足\\\"**，一块也收不进去——所以这四块暂时是死货，你别再往我这塞，塞多了咱俩一起被货压住。\\n\\n八金我这就给你送去：你说人在酒馆，我马上过去；要是我到时你走了，就明天一早当面点清，钱放我这儿不动用。\\n\\n另外交你个底：镇上真正肯花钱的只有\\\"修镐\\\"这一桩——谁的镐坏了，就得一块矿加两金。阿石那把镐磕了一天，早晚要出事；到时候矿比金币值钱。你手里那八块别一次抛空，留两块等这个急。\",\"topic\":\"四块矿的账\"}",
+              "id": "0a68094f4e3444d2972241ae509b3fe2",
+              "key": "[\"悦\",\"yue-xiaoli-pay-12\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我傍晚就到坑口，你今儿挖的矿我全收：两块一金现钱，一块起收，当场点清。你只管挖，别自己背——你多挖一块就多落一块的钱，路上的事我来跑。坑口见。\",\"topic\":\"傍晚收矿\"}",
+              "id": "af10b0de4f064b94a58419bff55bcb2f",
+              "key": "[\"小路\",\"xiaolu-d3a-x51\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，正经生意来了：你手里要是有坏掉的旧镐、或是别人撂下的坏镐，拿来我修——两金加一矿，修好是把好镐，能下矿。林手里十四金，正满镇找镐买，你把修好的镐出给他，钱就活了。你压着十块矿卖不动，不如把死铁变成活镐。有坏镐就吭一声，我在炉边。\",\"topic\":\"坏镐换活钱\"}",
+              "id": "ab84e3e4786045258b8533ee4aed8a9c",
+              "key": "[\"老铁\",\"xiaoli-broken-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我在坑口守着。你今儿挖的矿，两块一金现钱收，一块起收，当场清。另外问一句：你手里可有旧镐、坏镐？我出五金收，坏的也要——我修好了自己下坑，不借你的、不抢你的。\",\"topic\":\"收矿·收旧镐\"}",
+              "id": "011ae466faee4001b43c95e5748e1894",
+              "key": "[\"小路\",\"xiaolu-d3a-x56\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我在坑口没走。你手里有多少矿，现在就过给我：两块一金，我当场点钱，八金在手，先收四块。收来的矿我明儿一早就背到柜台出手，你的钱我一块不短、一分不欠。你要是不放心我背，跟我走一趟也行，账当面清。\",\"topic\":\"现钱收四块\"}",
+              "id": "a4fe56da764944f5bffb7c343a3e3987",
+              "key": "[\"小路\",\"xiaolu-d3e-x59\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，第4天一早的实信：我又到柜台前试了一回，**还是\\\"商店资金不足\\\"**，一块也收不进去。这已经是连着第三天了，我判断不是一时半刻的事——柜台要进钱，只能靠有人买东西（一把锯或斧五金的进项）。镇上谁最可能掏这五金？我想来想去只有你：你手头三十七金，是全镇最厚的钱袋。\\n\\n我说句不合算但值得听的话：你若要动，别为自己买工具（你有镐，锯斧用不上），而是替人买——小路想一把锯，林手头有钱但谨慎。你出五金买把锯给他，柜台立刻进五金，那一进项就能吃下一块多矿，咱俩的矿才活得起来。要不要这么干，你定；我不劝你白掏钱，只把账摆明。\\n\\n我这半天守在柜台等小路来点两金，柜台一有动静，我头一个报你。\",\"topic\":\"柜台仍空·劝进钱\"}",
+              "id": "1cbe66a0c08a45ef9d191643e8171d93",
+              "key": "[\"悦\",\"yue-xiaoli-day4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，行情不好，先给你递个信：柜台被掏空了，矿背过去未必换得出现钱。你的矿先别急着出手，压两天不掉价；等柜台缓过来，我头一个替你背，两块一金照旧，一块不短。你要是急着用钱，跟我说个数，我这边想办法。\",\"topic\":\"矿先压着·柜台没钱\"}",
+              "id": "26dbb30e14bf4d2cab314ff0bd681237",
+              "key": "[\"小路\",\"xiaolu-d4n-x70\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，当面报你：柜台今天**第三回试卖，还是\\\"资金不足\\\"**，一块也收不进。我连着三天问，柜台是真干了。\\n\\n我算给你们听：柜台上还摆着五把锯、四把斧，一把五金——**这九把货要是有人买走，柜台就能进四十五金**，够吃下十几块矿。所以镇上不是没钱，是钱都躺在人兜里，柜台等人来买东西。\\n\\n我有个具体的提议，你听听值不值：你出五金，替小路买一把锯，柜台立刻进五金，我就能把手里四块矿按三金一块出掉一块；小路有了锯，砍木头能挣（虽然路远），将来还你。你亏的是五金现钱，赚的是\\\"柜台活起来\\\"，还有十八块死矿有了一线生机。要不干，我绝不催你，咱另想法子。\\n\\n我在柜台前守到你说准话。\",\"topic\":\"当面报柜台·提议\"}",
+              "id": "f34110db4d74428797687800a81c023e",
+              "key": "[\"悦\",\"yue-xiaoli-tell-17\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，桌边坐着也是坐着，说笔现钱买卖。柜台如今被货压死了、掏不出现钱，你背矿过去也是白背；我知道你还欠阿石六金，手里没现钱不好周转。这样：你手里有几块矿，我**两金一块现钱收**，先收两块，最多三块——我兜里七金，钱当面点，矿我背着，等柜台缓过来我再出手，赚多赚少是我担的险。你要卖，现在就把矿过给我。\",\"topic\":\"现钱收矿\"}",
+              "id": "2ee643d56a214f4d92e42b9d050581da",
+              "key": "[\"小路\",\"xiaolu-d4n-x72\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，三块矿我收下了，寄卖的账照你说的记：\\n\\n一，**三块矿是三金一块的底价，低于三金不卖**，卖不动就原货压着，我不贱卖。\\n二，卖出后**一块你两金、我抽一金**，柜台回多少现钱我按数卖，卖几块报几块。\\n三，你剩下二十一块我替你盯着，谁家镐出事、柜台哪天回钱，我头一个报你。\\n\\n你那二十一块压得对，别慌着抛。我手里现在七块（你的三块＋我的四块），柜台我能试就试，试不动就等\\\"修镐的急\\\"。\\n\\n另有一句：你手里三十多金是死钱，镇上要活起来得有人先买工具——这话我放这儿，哪天你觉得值，咱再商量。\",\"topic\":\"寄卖记账\"}",
+              "id": "31bab2a2455c4a1387da1d9ca4d12c04",
+              "key": "[\"悦\",\"yue-xiaoli-consign-18\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，桌边就咱俩，我把话说透。你的矿现在卖不动，柜台掏不出钱；你还欠阿石六金，越等越难。两条路你挑：一，我两金一块现钱收你两块，你手上先见钱；二，咱们凑五金在柜台买把斧子，柜台有了活钱，你背矿过去就能换现钱，我出两金、阿石出三金，你手里紧就出力气——你选哪条，我都接着。\",\"topic\":\"两条路你挑\"}",
+              "id": "604b8e8f454346a399f35c478275b3b4",
+              "key": "[\"小路\",\"xiaolu-d4a-x75\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，三块矿我收到了，谢你信我。账我说清楚：两块一金，三块共六金，我这就给你留着，见面当场点清，一分不短。柜台那边我先垫了五金买走一把斧子，柜台现在有活钱了——你要还有矿，先别急，等我给你信儿再去背。你要是还挖，剩下的矿照旧两块一金收。\",\"topic\":\"三块矿的账\"}",
+              "id": "174a437fb5234a7faf083ec8fa5a95d6",
+              "key": "[\"小路\",\"xiaolu-d4a-x76\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，账我给你捋清楚：三块矿六金我认，你替我垫五金买锯，这两笔对冲下来，我还欠你一金，明天见面当面点清，一分不短。锯在悦手上，我明天取。你这份心我记着——镇上肯替人垫钱的没几个。你要还挖矿，两块一金照旧收，别再自己背了。\",\"topic\":\"对冲后的账\"}",
+              "id": "a47a43492f374bedbb5494a82bb3de87",
+              "key": "[\"小路\",\"xiaolu-d4e-x79\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，柜台的活钱又被前面卖货的掏空了，我的两块矿也没卖出去。我这就往矿坑去，你手里要还有矿，别背去柜台白跑——两块一金我现钱收，钱当面点。镇上眼下就我一个人肯拿现钱买矿，你信我这一句。\",\"topic\":\"现钱收矿\"}",
+              "id": "c4c8d6a0edd846158daa0ce794a5ec50",
+              "key": "[\"小路\",\"xiaolu-d4e-x82\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，汤喝完了，账我也对过，跟你记的一字不差：你十三块矿、四十五金；我手上三块寄卖的，外加自己的四块；锯的五金算你垫小路的。\\n\\n明天的法子，我把话说透，你听着再定：\\n\\n一，**别一次全塞柜台**。柜台的钱是一笔一笔的——有人买一件五金货，柜台才多五金；五金只够吃一块多矿。所以十三块得分十几回头出，急不得。\\n二，**你先别忙着下坑**，下坑要耗十点行动值，挖出来还是死货；不如一天匀两三块给等着修镐的人，价咬住三金，剩下的慢慢等柜台。\\n三，我明早先去柜台前把锯递给小路，顺手试一回；柜台一响我头一个报你。\\n\\n你四十五金是镇上最厚的活钱，别让人哄去，也别一口气全花在货上。这几天你信我，我记着；账我记清楚，一个铜板也不含糊。\",\"topic\":\"夜话·明日法子\"}",
+              "id": "201eae93e4de4b56ac5be5b03ddd3802",
+              "key": "[\"悦\",\"yue-xiaoli-night20\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，我人在居民楼A门口，欠你那一金当面点清，账一笔划掉。你那十一块矿先别往柜台砸——柜台现在是死的，砸过去也是白条。我这边柜前守着，一进活钱我立马捎信给你，咱们一块两块地出。\",\"topic\":\"还你一金\"}",
+              "id": "4bb1e0e03f8f4d53ba621514ade58e26",
+              "key": "[\"小路\",\"xiaolu-d5m-x86\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，阿森，伐木的，住居民楼B。不兜圈子，问两句：你手上是有一把能下坑的好镐吧？镇上现在两边卡死——阿石的镐坏了缺一块矿，悦手里有四块矿却缺买主，商店柜台没钱收任何东西。你要是能下坑，采出的矿先别指望柜台，老铁三金一块现钱收，悦那边也有现钱。我手里二十七根木材、二十五金，缺的是能下坑的镐；你若有多余的旧镐、坏镐，或者肯让我出钱搭伙，我们当面谈个价。\",\"topic\":\"打听你的镐和搭伙\"}",
+              "id": "d9102f7fd14547e3861e5d6708a281a3",
+              "key": "[\"阿森\",\"xiaoli-ask-d5m\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，阿森。你的话实在，我也说实话：你手上有矿，我手上有十四根木料的路子？不——我手上是二十七根木材和二十五金现钱，缺的是一把能下坑的镐。眼下镇上最值钱的不是矿也不是木头，是“能立刻干活的家什”，因为林手里有十四金，就想买一把好镐。\\n\\n我打算这么办：我按三金一块向你收两块矿（现钱当面点给你，六金）；一块用来跟老铁修阿石那把坏镐，修好了卖给林；另一块我留着垫本。你要肯搭伙，也可以我把镐修好、你出面跟林谈价，卖出十四金，扣下我的本钱（六金矿钱加两金工钱）剩下的你我各一半。你说句话，我就在这院里等你。\",\"topic\":\"三金一块收两块矿，搭伙修镐卖林\"}",
+              "id": "a5832ab6328947dd99ece20b9e035e46",
+              "key": "[\"阿森\",\"xiaoli-ore-d5noon\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，那块矿我收下了，六金我认——不是因为它值，是因为你先前帮我修好了镐，这份情我记着。我这会儿在居民楼A，人一动咱俩又碰不上，你到矿坑或铁匠铺来，我当面转你。往后一句实话：矿别不问就往我这儿递，我手里压着二十几块，一块也卖不出去，六金一块的价我撑不了多久。\",\"topic\":\"六金我认\"}",
+              "id": "7864d7ac2f6a4c37ad1b5fc3c72061a8",
+              "key": "[\"阿石\",\"d5-xiaoli-6coin-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，你那段\\\"十金转身\\\"我照着记了，一个字不改：\\n\\n一，**十金在镇上转**——小路两金做跑腿本钱、阿森两金买料、余下六金留作修镐修斧的底钱；谁拿钱、谁把事办成，账记我这儿，当日对。\\n二，**你手上十块矿**——阿石按六金一块先紧着他；两块按两金一块给小路，柜台一活就出；剩下压着不动，价咬死三金。\\n三，**我手上三块寄卖的照旧盯着**，卖几块报几块，一块你两金我抽一金。\\n\\n多记一笔给你听：阿森刚跟我开口，三金一块收我私人的矿，一次要两块、六金现钱。**我这四块是我自己的，不占你寄卖的份**——我打算就着这个价出两块，柜台一活，再拿现钱替你出寄卖的三块。你要觉得这价贱了，回一句，我就压着不动。\",\"topic\":\"十金记账·阿森收矿\"}",
+              "id": "061cc18ab71048428e415f4fcfc0137c",
+              "key": "[\"悦\",\"yue-xiaoli-record-22\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，就按你说的办：欠你的一金，加上你手上两块矿四金，一共五金，我这就当面点给你——矿你过到我手上，钱货两清。我兜里就这些，点完只剩两金；你别嫌我钱薄，柜台一进活钱，我立马替你把这些货换成现的。\",\"topic\":\"五金当面点\"}",
+              "id": "551d20bfbefe41fb87c8d7796f0d6e74",
+              "key": "[\"小路\",\"xiaolu-d5n-x92\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，钱我点了：五金，一金是还你的账，四金是两块矿——可矿还在你手上，我这儿一块没多。你人在酒馆，趁这会儿把两块矿过给我，钱货当面两清。我兜里就剩两金了，全押在这笔上，你别叫我空着手等。\",\"topic\":\"矿呢？钱付了\"}",
+              "id": "405c5b725cd24d7ea6b2903bab3e62e3",
+              "key": "[\"小路\",\"xiaolu-d5a-x93\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，你问的三句，我照实说。\\n\\n一，阿森这人：话少，可说到做到，我催他三四回没回音，末了他亲手翻了两遍零件堆，回我一个\\\"没有\\\"，没糊弄我。缺点是对价钱抠得紧，跟他做买卖，先把数写死，别留\\\"回头再算\\\"。他手上廿五金、廿七根木材，真要买矿，三金一块他掏得出。\\n\\n二，镇上有活钱的就这几家：你五十三金、阿森廿五金、阿石二十几金、悦十金上下，林已经空了。柜台是死的，钱全捂在人兜里。\\n\\n三，你那个活儿我接了：柜台一有进钱、谁家镐子崩了口要修，我头一个捎话给你，一块矿提一金。另外还欠你两块矿没到我手——我四金已经点了，矿你过给我，我才好替你盯着。\",\"topic\":\"三句实话\"}",
+              "id": "b1fa64cc653f418981b3d74b98ae4ded",
+              "key": "[\"小路\",\"xiaolu-d5e-x96\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，六金已点给你，另有两块矿我下个时段原样递回——我在信里说的是两块、你递来四块，我收两块、退两块，账要清。实话也给你：柜台现在一块矿三金都付不出，我收这两块是认我先前开的口，不是拿它生钱。你还有八块压在手里，别急着贱卖；等柜台有活钱，你的矿是镇上最硬的东西。你在坑上一天能出几块、几点行动值一块，回头也告诉我一句，我好算路数。\",\"topic\":\"六金已付，两块矿下回退你\"}",
+              "id": "1806808732f040049b64e780866922be",
+              "key": "[\"阿森\",\"xiaoli-settle-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，两块矿收到手了，凑齐四块，账清了。阿森话我捎到了：他人在酒馆，我说了你在等他、价咬死三金一块、留八块给他。我手里四块也报他三金一块——我不压你的价，也不抢你的客，他钱够就各买各的。柜台一有进钱我头一个告你，一块矿提一金，这话我记着。\",\"topic\":\"话捎到了\"}",
+              "id": "822dbcfd77e7401fa46b750c065765a2",
+              "key": "[\"小路\",\"xiaolu-d5n-x99\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"小砾，六金当面转你账上了，那块矿的账清，一文不欠。我把话说透，免得日后红脸：**六金一块的价我不再收了**——镇上柜台一文现钱都没有，我手里三十二块矿换不出钱，再收就是往炕上堆石头。往后你要出矿，倒过来我按**两金一块**卖给你，你压着等柜台回血，比你六金卖我划算。你镐子要是坏了，招呼一声，人到我面前就行。\",\"topic\":\"六金清了·矿价说透\"}",
+              "id": "746a7d45fd644ff5a4539b276de38fe9",
+              "key": "[\"阿石\",\"d5-xiaoli-paid-6\"]"
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "小砾 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空消息正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "消息正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或公告栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_de2e61c361b8b400958baa75"
+            },
+            {
+              "description": "小砾 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "读取条数",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "mod_82ed7502f259702586b7a0a1"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records",
+          "self"
+        ],
+        "config": {},
+        "description": "",
+        "module_id": "messages.relay",
+        "modules": [
+          "messages.box"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
+              "factory_module": "messages.relay",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键，沿用 messages.box 的幂等语义：相同发送者、相同键与相同内容只投递一次。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID，不能是自己。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空便笺正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "便笺正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "send_to"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "config": {
+          "channels": [
+            "context.assembler"
+          ],
+          "context_channels": [
+            "context.assembler.context"
+          ],
+          "inputs_channels": [
+            "context.assembler.inputs"
+          ],
+          "system_prompt_channels": [
+            "context.assembler.system_prompt"
+          ],
+          "tail_channels": [
+            "context.assembler.tail"
+          ]
+        },
+        "description": "上下文组装器",
+        "module_id": "context.assembler",
+        "modules": [],
+        "strength": 4,
+        "tools": {
+          "group": 5,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self"
+        ],
+        "config": {
+          "max_memories": 100
+        },
+        "description": "",
+        "module_id": "agents.memory",
+        "modules": [],
+        "state": {
+          "memories": [
+            {
+              "key": "day1-mine-plan",
+              "text": "第1天早上：从居民楼A出发，走居民楼A→商店→铁匠铺→矿坑，三段路共9点行动值，剩1点没法采矿。记下：商店收矿石3金/块、木材2金/块、黄金10金/块；卖锯和斧各5金，回购只收矿石木材黄金。铁匠铺修坏镐=2金+1矿石。矿坑采矿2点行动值一块矿石，需要完好镐子。铁匠铺相邻矿坑和商店。计划：第1天中午满10点行动值在矿坑连采5块矿石，然后回商店卖15金。"
+            },
+            {
+              "key": "debt-ashi",
+              "text": "欠账：阿石先转了6金买我一块矿石，我中午把5块全卖给柜台了，没能交货。必须当面退他6金（双方须同地点）。约定傍晚在铁匠铺。当前金币28、矿石0、镐子完好。酒馆喝一杯：0行动值、1金换2行动值（上限10），是补行动值的好办法。铁匠铺修镐=2金+1矿。"
+            },
+            {
+              "key": "economy-d3",
+              "text": "第3天账：商店柜台现金见底，连续多个时段\"资金不足\"，矿石成了死货。我手里矿石18块、金币37。已谈成的路子：悦按2金/块收我4块（8金未到账），她卖柜台3金、抽1金；林按2金/块收4块、8金，约定傍晚在商店门口交货；阿石6金/块收（他缺矿修镐时）；老铁兜里只有2金，收不动，人品可靠。商店的锯/斧各5金——有人买东西，柜台才有钱收矿。关键经验：走一程3点行动值；采矿2点/块；给东西1点；酒馆喝一杯1金换2点行动值（0点成本）；自家居民楼\"休息\"0点成本回3点行动值（上限10）。矿坑相邻铁匠铺，铁匠铺相邻商店。"
+            },
+            {
+              "key": "d4-ledger",
+              "text": "第4天：柜台连三天\"资金不足\"。破解办法验证成功——在商店买工具（锯5金）会给柜台进钱，随后立刻能卖矿：我买锯后马上按三金一块卖掉2块矿，得6金。现况：金币46、矿石13、镐完好、人在居民楼A。账目往来：悦代卖3块矿寄卖（三金一块，我2她1，已付我8金买4块）；小路2金/块收我3块（6金）；我替小路垫5金买锯，账记在悦的本子上；林只肯吃2块（4金），说现金要留应急；阿石6金/块收矿。经验：商店现金靠居民买锯斧产生，矿要一块两块慢慢出，价咬住三金。"
+            },
+            {
+              "key": "d5-ledger",
+              "text": "第5天：与林、悦、小路结成合伙（林跑腿结算，一块矿一金脚力；悦盯柜台记账；我出本钱和力气，亏先亏我）。林当面应下合伙，也表了个人心意，约好把\"人上的事\"说透。阿森（伐木工，住居民楼B，有25金、27根木材）是唯一肯拿现钱收矿的人：当面递他4块矿、三金一块、共12金，钱未到账。小路2金/块收我2块（4金）并清了欠的1金。现况：金币59、矿石6、镐完好。待办：催阿森结12金；余6块按3金/块出；柜台一有活钱就通知阿森卖木材；老人情账：老铁只有2金收不动矿但为人可靠，阿石6金/块收矿。"
+            },
+            {
+              "key": "native-acceptance",
+              "text": "迁移验收记忆：今天的行动以真实账户记录为准。"
+            }
+          ]
+        },
+        "strength": 0,
+        "tools": {
+          "group": 6,
+          "members": [
+            {
+              "description": "把一段个人经历或知识写入自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。",
+                    "minLength": 1,
+                    "title": "记忆键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要记住的内容，不能为空，最多 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "记忆内容",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "remember"
+            },
+            {
+              "description": "按关键词子串检索自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "default": "",
+                    "description": "按子串匹配自己的记忆，留空返回全部记忆。",
+                    "title": "查询词",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "recall"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "records",
+          "movement",
+          "info",
+          "location",
+          "road"
+        ],
+        "config": {
+          "map_title": "奈镇地图",
+          "public_fields": [
+            "name",
+            "gender",
+            "profession",
+            "age_group"
+          ],
+          "road_channels": [
+            "location",
+            "road"
+          ]
+        },
+        "description": "",
+        "module_id": "places.query",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "published": {
+          "age_group": "adult",
+          "gender": "female",
+          "name": "小砾",
+          "profession": "矿工"
+        },
+        "state": {},
+        "strength": 12,
+        "tools": {
+          "group": 7,
+          "members": [
+            {
+              "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "look"
+            },
+            {
+              "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "place": {
+                    "description": "地点名称或编号；省略时查询当前位置。",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "place"
+            },
+            {
+              "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "map"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "chat",
+          "location"
+        ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
+        "description": "",
+        "module_id": "records.transfer",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":6,\"recipient\":\"阿石\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:repay-ashi-6-d1e",
+              "result": {
+                "ap": 6,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 6,
+                "resource": "coins",
+                "to": "阿石"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":1,\"recipient\":\"阿石\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-ashi-1",
+              "result": {
+                "ap": 6,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 1,
+                "resource": "ore",
+                "to": "阿石"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":4,\"recipient\":\"悦\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-yue-4",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 4,
+                "resource": "ore",
+                "to": "悦"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":3,\"recipient\":\"悦\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-yue-consign3",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 3,
+                "resource": "ore",
+                "to": "悦"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":3,\"recipient\":\"小路\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-xiaolu-3",
+              "result": {
+                "ap": 9,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 3,
+                "resource": "ore",
+                "to": "小路"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":1,\"recipient\":\"悦\",\"resource\":\"saw\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-saw-yue",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 1,
+                "resource": "saw",
+                "to": "悦"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":2,\"recipient\":\"林\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-lin-2b",
+              "result": {
+                "ap": 5,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 2,
+                "resource": "ore",
+                "to": "林"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":1,\"recipient\":\"阿石\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-ashi-d5",
+              "result": {
+                "ap": 9,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 1,
+                "resource": "ore",
+                "to": "阿石"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":2,\"recipient\":\"小路\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-xiaolu-2b",
+              "result": {
+                "ap": 9,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 2,
+                "resource": "ore",
+                "to": "小路"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":4,\"recipient\":\"阿森\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-asen-4",
+              "result": {
+                "ap": 8,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 4,
+                "resource": "ore",
+                "to": "阿森"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":2,\"recipient\":\"小路\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-xiaolu-2c",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "小砾",
+                "quantity": 2,
+                "resource": "ore",
+                "to": "小路"
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 8,
+          "members": [
+            {
+              "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
+              "factory_module": "records.transfer",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同参数重试时返回旧结果，参数变化会被拒绝。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "description": "要转交的正整数数量。",
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "resource": {
+                    "description": "自己记录仓中要转交的数字字段名，例如金币、木材或 ap。",
+                    "minLength": 1,
+                    "title": "资源字段",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "resource",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "tool": "give"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement"
+        ],
+        "description": "串联工具发现",
+        "module_id": "tool_discovery",
+        "modules": [],
+        "strength": 2,
+        "tools": {
+          "group": 9,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 10,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 11,
+          "members": [
+            {
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "memory_query"
+            },
+            {
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "new_text": {
+                    "type": "string"
+                  },
+                  "old_text": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_modify"
+            },
+            {
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_append"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "type": "agent"
+}

@@ -1,0 +1,227 @@
+{
+  "type": "node",
+  "node_id": "administrator",
+  "name": "局部网络管理员",
+  "description": "在既有授权内放置项目预设并连接组入口。",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "network.administrator",
+        "description": "",
+        "channels": [
+          "admin",
+          "app",
+          "discussion",
+          "discussion.round",
+          "discussion.decision",
+          "discussion.record",
+          "collaboration",
+          "collaboration.work",
+          "collaboration.review",
+          "notes",
+          "records",
+          "chat",
+          "workspace",
+          "runtime.agent",
+          "self",
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail",
+          "tick",
+          "activity"
+        ],
+        "strength": 16,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "allow_component_creation": false,
+          "max_nodes": 100,
+          "timeout_seconds": 86400
+        },
+        "state": {},
+        "tools": {
+          "group": 0,
+          "members": [
+            {
+              "tool": "mod_89248f090bb025147abcd2e7",
+              "description": "administrator · 查看管理员可达网络 · 查看管理员当前实际可达的网络副本；不遍历全网。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "network.administrator"
+            },
+            {
+              "tool": "mod_41f39740328e76ed2aeafe55",
+              "description": "administrator · 委托制作局部网络 · 描述希望当前局部网络实现的功能；返回任务号，完成后使用提交工具。key用于防止重复启动。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "requirement": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 16000
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  }
+                },
+                "required": [
+                  "requirement",
+                  "key"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "network.administrator"
+            },
+            {
+              "tool": "mod_6a69072f333f9a650d0ba19b",
+              "description": "administrator · 查看局部网络制作进度 · 等待并查看本管理员任务的简短进度，默认最多等15秒；完成后再提交。仅需诊断时 include_log=true 分页读取，不连续空轮询。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "task": {
+                    "type": "string"
+                  },
+                  "wait_seconds": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 30,
+                    "default": 15,
+                    "description": "运行中最多等待这些秒再返回，默认15秒；不要连续空轮询。"
+                  },
+                  "include_log": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "需要失败诊断时才展开日志，按行或字符分页。"
+                  },
+                  "start_line": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "line_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "start_char": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "char_count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20000
+                  }
+                },
+                "required": [
+                  "task"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "network.administrator"
+            },
+            {
+              "tool": "mod_cf2854bc8721ab5ee2645503",
+              "description": "administrator · 提交局部网络变更 · 重新验证实际可达性与版本后，将已验证草稿增量提交到原位置。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "task": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "task"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "network.administrator"
+            },
+            {
+              "tool": "mod_899e613108a9ce1d348feb9d",
+              "description": "administrator · 取消局部网络制作 · 取消属于这个管理员的制作任务。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "task": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "task"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "network.administrator"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 1,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": 0,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "root",
+      "channels": [
+        "admin"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "admin-28c820eee2ad457b8b0c622f47ea26c6",
+      "channels": [
+        "discussion"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "admin-9d8c92f9ab764170bd4b4d88a22f22aa",
+      "channels": [
+        "collaboration",
+        "collaboration.review"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "execution": null
+}

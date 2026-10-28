@@ -1,0 +1,276 @@
+{
+  "aggregation": "sum",
+  "bias": -1,
+  "description": "",
+  "execution": null,
+  "links": [
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "居民楼A",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "医院",
+      "threshold": 1
+    }
+  ],
+  "name": "民政局",
+  "node_id": "民政局",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "民政局，婚姻登记需要双方本人到场并分别同意。",
+          "visitors": [],
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "民政局，婚姻登记需要双方本人到场并分别同意。",
+          "location": null,
+          "name": "民政局",
+          "node_id": "民政局",
+          "visit": 0,
+          "visitors": []
+        },
+        "state": {
+          "visitors": []
+        },
+        "strength": 0,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "config": {
+          "before_hooks": [
+            {
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              },
+              "module": "records.store",
+              "operation": "apply",
+              "target": "requester"
+            }
+          ],
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "timeout_seconds": 60
+        },
+        "description": "",
+        "module_id": "movement.here",
+        "modules": [
+          "place.info"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "description": "民政局 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "factory_module": "movement.here",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "tool": "mod_a8c6541ffe2e9b7b46cc8ed8"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ],
+        "config": {
+          "address": "民政局",
+          "rules": [
+            {
+              "cost": 1,
+              "forbid_existing_pair": true,
+              "id": "marriage",
+              "pair_field": "spouse",
+              "require_values": {
+                "adult": true
+              },
+              "set_values": {
+                "married": true
+              },
+              "title": "婚姻登记"
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "agreements.pair",
+        "modules": [],
+        "state": {
+          "agree_receipts": [
+            {
+              "agreement_id": "agr-1",
+              "key": "悦\u001fyue-marry-lin-1",
+              "partner": "林",
+              "requester": "悦",
+              "rule": "marriage",
+              "user_key": "yue-marry-lin-1"
+            },
+            {
+              "agreement_id": "agr-1",
+              "key": "林\u001flin-marry-yue-2",
+              "partner": "悦",
+              "requester": "林",
+              "rule": "marriage",
+              "user_key": "lin-marry-yue-2"
+            }
+          ],
+          "agreements": [
+            {
+              "approvals": [
+                {
+                  "key": "yue-marry-lin-1",
+                  "participant": "悦",
+                  "visits": {
+                    "悦": 50,
+                    "林": 43
+                  }
+                },
+                {
+                  "key": "lin-marry-yue-2",
+                  "participant": "林",
+                  "visits": {
+                    "悦": 50,
+                    "林": 43
+                  }
+                }
+              ],
+              "id": "agr-1",
+              "participants": [
+                "悦",
+                "林"
+              ],
+              "rule": "marriage",
+              "status": "completed"
+            }
+          ],
+          "sequence": 1
+        },
+        "strength": 3,
+        "tools": {
+          "group": 2,
+          "members": [
+            {
+              "description": "民政局 · 查看协议 · 查看本地点的协议规则和自己参与的协议。",
+              "factory_module": "agreements.pair",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_b301b0846817f00481ecd28a"
+            },
+            {
+              "description": "民政局 · 同意协议 · 双方在场时，以自己的身份登记同意。双方分别同意后立即完成；离场使未完成的旧同意失效。",
+              "factory_module": "agreements.pair",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "请求者在当前模块实例内使用的非空幂等键；相同键与相同对象重试不会重复扣费。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "partner": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID；不能代替请求者身份。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "协议对方",
+                    "type": "string"
+                  },
+                  "rule": {
+                    "description": "要同意的配置规则 id。",
+                    "minLength": 1,
+                    "title": "规则标识",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "partner",
+                  "rule",
+                  "key"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_b145413ac0b7a1cfe04153d4"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 3,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "type": "node"
+}

@@ -1,0 +1,270 @@
+hone acceptance harness
+repo root : E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\2f4505d1e7751870
+python    : 3.14.7
+mode      : full
+------------------------------------------------------------------------
+PASS AC1  - hone.Hone is Hone; DEFAULT_DELIMITERS ok
+PASS AC2  - column names/data rows/empty filter/cache/stdin ok
+PASS AC3  - small_cats auto schema equals nested_schema.json
+PASS AC4  - comma_test/quotes_test/small_cats auto conversion ok
+PASS AC5  - dict/JSON-str/generated schema conversions ok
+PASS AC6  - no second unescaping; exact fixture output
+PASS AC7  - quotes, N/A, empty cell -> ''
+PASS AC8  - b.c.{d,e}, b.d.{e,f}; row2 b.d.f == '12'
+PASS AC9  - example_a/c match examples/README; examples/demo.py runs
+PASS AC10 - CLI file output equals API; indent=2/sort_keys/trailing newline
+PASS AC11 - stdout and stdin ('- -') round-trips ok
+PASS AC12 - help exit 0 and documents positionals/-d/-s
+PASS AC13 - 1 for missing file; 2 for bad -d/-s; single-line hone: error:
+FAIL AC14 AssertionError: Traceback (most recent call last):
+
+  File "<string>", line 1, in <module>
+
+    import hone; from hone.hone import Hone; print(hone.Hone is Hone)
+
+    ^^^^^^^^^^^
+
+ModuleNotFoundError: No module named 'hone'
+
+
+FAIL AC15 AssertionError: unittest failed:
+st extra element 2:
+
+['3', '4']
+
+
+
+- [['1', '2'], [' '], ['3', '4']]
+
+?              -------
+
+
+
++ [['1', '2'], ['3', '4']]
+
+
+
+======================================================================
+
+FAIL: test_stdin_is_read_only_once (tests.test_csv_utils.CSVUtilsBlankAndCacheTest.test_stdin_is_read_only_once)
+
+----------------------------------------------------------------------
+
+Traceback (most recent call last):
+
+  File "E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\2f4505d1e7751870\tests\test_csv_utils.py", line 100, in test_stdin_is_read_only_once
+
+    self.assertEqual(csv.get_column_names(), ["a", "b"])
+
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+AssertionError: Lists differ: [] != ['a', 'b']
+
+
+
+Second list contains 2 additional elements.
+
+First extra element 0:
+
+'a'
+
+
+
+- []
+
++ ['a', 'b']
+
+
+
+======================================================================
+
+FAIL: test_all_rows_equals_split_files (tests.test_csv_utils.CSVUtilsColumnNamesTest.test_all_rows_equals_split_files)
+
+----------------------------------------------------------------------
+
+Traceback (most recent call last):
+
+  File "E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\2f4505d1e7751870\tests\test_csv_utils.py", line 59, in test_all_rows_equals_split_files
+
+    self.assertEqual(
+
+    ~~~~~~~~~~~~~~~~^
+
+        CSVUtils(DATA / "small_cats_dataset" / "column_names.csv").get_all_rows(),
+
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+        CSVUtils(DATA / "small_cats_dataset" / "dataset.csv").get_column_names(),
+
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    )
+
+    ^
+
+AssertionError: Lists differ: [['name', 'age (years)', 'weight (kg)', 'b[63 chars]ce']] != ['name', 'age (years)', 'weight (kg)', 'bi[61 chars]nce']
+
+
+
+First differing element 0:
+
+['name', 'age (years)', 'weight (kg)', 'b[62 chars]nce']
+
+'name'
+
+
+
+Second list contains 7 additional elements.
+
+First extra element 1:
+
+'age (years)'
+
+
+
+- [['name',
+
+? -
+
+
+
++ ['name',
+
+-   'age (years)',
+
+? -
+
+
+
++  'age (years)',
+
+-   'weight (kg)',
+
+? -
+
+
+
++  'weight (kg)',
+
+-   'birth day',
+
+? -
+
+
+
++  'birth day',
+
+-   'birth month',
+
+? -
+
+
+
++  'birth month',
+
+-   'birth year',
+
+? -
+
+
+
++  'birth year',
+
+-   'adopted',
+
+? -
+
+
+
++  'adopted',
+
+-   'adopted_since']]
+
+? -                 -
+
+
+
++  'adopted_since']
+
+
+
+======================================================================
+
+FAIL: test_get_data_rows_small_cats (tests.test_csv_utils.CSVUtilsColumnNamesTest.test_get_data_rows_small_cats)
+
+----------------------------------------------------------------------
+
+Traceback (most recent call last):
+
+  File "E:\项目_手动重构\build\final-hone-dh1b_5mf\project\workspace\cooperation\8e577bfc8472\workers\2f4505d1e7751870\tests\test_csv_utils.py", line 48, in test_get_data_rows_small_cats
+
+    self.assertEqual(
+
+    ~~~~~~~~~~~~~~~~^
+
+        csv.get_data_rows(),
+
+        ^^^^^^^^^^^^^^^^^^^^
+
+    ...<5 lines>...
+
+        ],
+
+        ^^
+
+    )
+
+    ^
+
+AssertionError: Lists differ: [['Clara', '2', '8.2', '6', 'May', '2015', '[137 chars]18']] != [['Tommy', '5', '3.6', '11', 'April', '2011'[199 chars]18']]
+
+
+
+First differing element 0:
+
+['Clara', '2', '8.2', '6', 'May', '2015', 'FALSE', 'N/A']
+
+['Tommy', '5', '3.6', '11', 'April', '2011', 'TRUE', '2012']
+
+
+
+Second list contains 1 additional elements.
+
+First extra element 3:
+
+['Ciel', '3', '3.1', '18', 'January', '2015', 'TRUE', '2018']
+
+
+
++ [['Tommy', '5', '3.6', '11', 'April', '2011', 'TRUE', '2012'],
+
+- [['Clara', '2', '8.2', '6', 'May', '2015', 'FALSE', 'N/A'],
+
+? ^
+
+
+
++  ['Clara', '2', '8.2', '6', 'May', '2015', 'FALSE', 'N/A'],
+
+? ^
+
+
+
+   ['Catnip', '6', '3.3', '21', 'August', '2011', 'TRUE', '2017'],
+
+   ['Ciel', '3', '3.1', '18', 'January', '2015', 'TRUE', '2018']]
+
+
+
+----------------------------------------------------------------------
+
+Ran 66 tests in 7.386s
+
+
+
+FAILED (failures=4, errors=1)
+
+
+------------------------------------------------------------------------
+RESULT: 13 passed, 2 failed, 0 skipped (of 15 executed)
+FAILED CHECKS: AC14, AC15

@@ -302,3 +302,24 @@ network.administrator已迁入独立模块文件夹，复用原制作Agent工作
 应用一初始项目现已刷新为可加载的project/v2，并复制原workspace/task公开输入，正文旧机器路径改为workspace/task。原讨论预设8基础节点、重复3→10节点5成员；原执行预设3基础节点、重复4→6节点4成员。发现原重复展开器假设每模块都有state，已仅在app层跳过不存在的可选字段，core未改。2项实际冷加载/根工具与上下文/两预设全展开恢复专项1.506秒通过（build/final-demo-project-preflight.log）；原startStudio宿主预检通过（build/final-hone-c7v1petp），API0。
 
 原hone固定请求及原12库+6CLI判分器已放tests/evaluation/hone，判分器仅在Agent项目之外使用，未复制旧hone业务实现。真实旧基线从node-object-hone-03原生前缀统计：989.601秒，336普通+21制作响应，未缓存输入747109、缓存19349760、输出333080、总20429949；证据evidence/2026-10-28-hone-original-baseline.json。相同公开任务/人数，核心、D017及推理设置不同，只报实际对照，不单变量归因。下一步启动已授权付费原任务并持续监控。
+
+
+五天小镇的交付副本已完成离线原生导出与真实原desktop/main入口验收：build/town-portable-5k1_ucip，build/town-demo-client-7knpcn3e。52节点、25时刻、7真实会话，逐人读取消息526/488/492/327/533/400/512条，双击小砾显示真实历史并截图已目视核对；关客户端再开历史不丢，pageerror与本脚本API错误均为空，付费0。副本使用自己的JSON会话分块及附件，不依赖原测试日志目录；原cursor中的旧路径仅为保存位置标识，实际冷导入已验证。已放项目演示/应用3-NPC小镇-初始和最终，保留开发版相对启动脚本，不包含模型密钥/临时runtime。六份交付仍未全部完成。证据evidence/2026-10-28-town-portable-client.json。
+
+本轮完整原前端本地套件110项72通过38失败（build/frontend-current-full.log），相较历史95项30通过已推进，但不以夹具格式迁移掩盖缺失模块、旧Subnode/默认节点权限及剩余宿主分支。现继续原metadata.fields模块/页面及观察、Git、制作、预设夹具迁移；未完成仍记录为未通过。真实hone运行build/final-hone-dh1b_5mf，已由管理员从2节点装成18节点、两轮讨论完成后进入四人Git协作；首次讨论有max-tokens失败，由根自主重新发起修复，未重启测试或代写业务。
+
+
+## 2026-10-28 原应用一、独立客户端与最新回归
+
+原hone真实运行完成并停止付费：build/final-hone-dh1b_5mf。2→18节点，5人2轮讨论、4人真实Git协作，同一候选4/4批准，真实材料/日志与归档，25份公开输入未改；原12库+6CLI全部通过，独立协议9项通过。原任务1036.608秒/392响应/23644751 token；含15响应额外收尾通知为1128.264秒/407响应/26317527 token。旧记录989.601秒/357响应/20429949 token；旧high/50k、本轮low/16k及新D017等差异明确保留，不能宣称单变量改进。完整结果HONE_RESULT.md与evidence/2026-10-28-hone-result.json。
+
+应用一最终副本已交付：项目演示/应用1-讨论协作-最终。真实原桌面冷开18节点、10个原生历史，双击根节点截图并目视核对，关后重开，pageerror及本脚本API错误为空，模型0；build/hone-demo-client-ojt4iuoq。原Git恢复器与bundle恢复4个worktree，验证副本继续提交/共同库共享对象/合并成功，探针不在交付。加上两份小镇，当前四份交付，资料库两份仍待，不冒称六份完成。
+
+原metadata.fields及原HTML页面迁入projects/workbench/modules/metadata_fields；3项真实数据/频道/发布/恢复专项0.304秒、通用工作台2项1.363秒通过。原完整自定义页面脚本已通过，包含编辑/删除/类型保留/重复字段错误/沙箱/来源伪造防护/实例隔离/通用表单/工作室页面预览/重开，模型0，build/module-frontends-current-1793145654260。旧脚本菜单文案、默认源码栏折叠及异步应用等待已按实际原客户端修正，没有改产品行为迎合断言。工作室旧v3描述改为现行协议。
+
+Project加载未应用草稿保存的项目时，缺少完整工具表的显式安装请求先用现有app装配器生成真实表；完整表不重装依赖。实际原Git提交/保留用户暂存/克隆恢复专项已通过。单次完整Python489项242.239秒通过（build/portable-workbench-full-regression.log）。之后模块包导入增加共同父目录，支持同项目共享辅助类相对导入，专项4项0.335秒通过；正在运行更新后全量，不把专项相加冒称新全量。
+
+当前完整前端本地110项93通过17失败（build/frontend-current-after-portable.log），晚于其后启动器、场景图片、制作观察器等修复前。仍保留B011以及缺失/损坏模块的可读恢复、历史旧夹具等未通过状态。应用二初始预检发现原集合模板为普通node，且转换器未登记templates:instantiate；这一依赖不能冒充已经按DataNode迁好，先跳过受B010影响的集合装配，继续其余前端。core没有本轮修改，用户data_node.py默认True仍不暂存。
+
+
+模块共享包加载变更后的单次完整Python回归490项238.851秒通过（build/shared-module-full-regression.log）。原可选桌面启动器/启动接口已迁入adapt/harness/framework，注入的真实连接校验专项通过。制作Agent当前/候选/环境观察原专项已迁移至实际NetworkHarness并通过（build/frontend-scene-observer-current.log其中2项；该轮图片场景因旧夹具位置酒馆与当前初始居民楼B不一致未过，正在按真实输入纠正），不可把尚未通过的场景算通过。

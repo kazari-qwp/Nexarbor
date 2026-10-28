@@ -1,0 +1,911 @@
+{
+  "aggregation": "sum",
+  "bias": -1,
+  "description": "",
+  "execution": null,
+  "links": [
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "酒馆",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "商店",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "民政局",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "time"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "世界时间",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "family.pregnancy"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "怀孕须知",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "悦",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿石",
+      "threshold": 1
+    }
+  ],
+  "name": "居民楼A",
+  "node_id": "居民楼A",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "两层木屋，住着小砾、林和悦；门廊挂着住户名牌。",
+          "visitors": [
+            "小砾",
+            "林",
+            "悦"
+          ],
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "两层木屋，住着小砾、林和悦；门廊挂着住户名牌。",
+          "location": null,
+          "name": "居民楼A",
+          "node_id": "居民楼A",
+          "visit": 0,
+          "visitors": [
+            "悦",
+            "阿石"
+          ]
+        },
+        "state": {
+          "visitors": [
+            "悦",
+            "阿石"
+          ]
+        },
+        "strength": 0,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "config": {
+          "before_hooks": [
+            {
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              },
+              "module": "records.store",
+              "operation": "apply",
+              "target": "requester"
+            }
+          ],
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "timeout_seconds": 60
+        },
+        "description": "",
+        "module_id": "movement.here",
+        "modules": [
+          "place.info"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "description": "居民楼A · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "factory_module": "movement.here",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "tool": "mod_7c5cb0983cd1492ff535a64a"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {},
+          "minimum": {},
+          "references": []
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"林\",\"lin-rest-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"林\",\"lin-rest-2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"悦\",\"yue-rest-d1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"悦\",\"yue-rest-d2\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"rest-d3m-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"悦\",\"yue-rest-d3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"林\",\"lin-rest-d3\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"rest-d4n\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"悦\",\"yue-rest-d4\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"林\",\"lin-rest-d4\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼A\",\"小砾\",\"rest-d5m\",\"local\"]",
+              "references": [],
+              "values": {}
+            }
+          ],
+          "references": [],
+          "values": {}
+        },
+        "strength": 1,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ],
+        "config": {
+          "address": null,
+          "rules": [
+            {
+              "cost": 1,
+              "equal_fields": [
+                "home"
+              ],
+              "id": "family_plan",
+              "require_values": {
+                "adult": true
+              },
+              "set_values": {
+                "planning": true
+              },
+              "title": "共同家庭计划"
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "agreements.pair",
+        "modules": [],
+        "state": {},
+        "strength": 3,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "居民楼A · 查看协议 · 查看本地点的协议规则和自己参与的协议。",
+              "factory_module": "agreements.pair",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_0797b8f837787f8da1d20516"
+            },
+            {
+              "description": "居民楼A · 同意协议 · 双方在场时，以自己的身份登记同意。双方分别同意后立即完成；离场使未完成的旧同意失效。",
+              "factory_module": "agreements.pair",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "请求者在当前模块实例内使用的非空幂等键；相同键与相同对象重试不会重复扣费。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "partner": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID；不能代替请求者身份。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "协议对方",
+                    "type": "string"
+                  },
+                  "rule": {
+                    "description": "要同意的配置规则 id。",
+                    "minLength": 1,
+                    "title": "规则标识",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "partner",
+                  "rule",
+                  "key"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_7fd1e8b8f65e11dbef66445b"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "config": {
+          "actions": [
+            {
+              "actor_deltas": {
+                "ap": 3
+              },
+              "actor_maximums": {
+                "ap": 10
+              },
+              "cost": 0,
+              "description": "在自己的居民楼休息，恢复一些行动点。",
+              "id": "rest",
+              "required_home": "居民楼A",
+              "title": "休息"
+            }
+          ],
+          "address": "居民楼A",
+          "events": []
+        },
+        "description": "",
+        "module_id": "service.actions",
+        "modules": [
+          "records.store"
+        ],
+        "state": {
+          "event_counts": {},
+          "receipts": [
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"林\",\"quantity\":1}",
+              "key": "lin-rest-1",
+              "result": {
+                "action": "rest",
+                "actor": "林",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 23,
+                  "age_group": "adult",
+                  "ap": 7,
+                  "can_gestate": false,
+                  "coins": 14,
+                  "context_node": "林",
+                  "gender": "male",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "林",
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"林\",\"quantity\":1}",
+              "key": "lin-rest-2",
+              "result": {
+                "action": "rest",
+                "actor": "林",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 23,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "can_gestate": false,
+                  "coins": 14,
+                  "context_node": "林",
+                  "gender": "male",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "林",
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"悦\",\"quantity\":1}",
+              "key": "yue-rest-d1",
+              "result": {
+                "action": "rest",
+                "actor": "悦",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 24,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "axe": 1,
+                  "can_gestate": true,
+                  "coins": 15,
+                  "context_node": "悦",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "悦",
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident",
+                  "wood": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"悦\",\"quantity\":1}",
+              "key": "yue-rest-d2",
+              "result": {
+                "action": "rest",
+                "actor": "悦",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 24,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "axe": 1,
+                  "can_gestate": true,
+                  "coins": 14,
+                  "context_node": "悦",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "悦",
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident",
+                  "wood": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"小砾\",\"quantity\":3}",
+              "key": "rest-d3m-1",
+              "result": {
+                "action": "rest",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×3"
+                ],
+                "quantity": 3,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "can_gestate": true,
+                  "coins": 40,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 12,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"悦\",\"quantity\":1}",
+              "key": "yue-rest-d3",
+              "result": {
+                "action": "rest",
+                "actor": "悦",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 24,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "axe": 1,
+                  "can_gestate": true,
+                  "coins": 6,
+                  "context_node": "悦",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "悦",
+                  "ore": 4,
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident",
+                  "wood": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"林\",\"quantity\":1}",
+              "key": "lin-rest-d3",
+              "result": {
+                "action": "rest",
+                "actor": "林",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 23,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "can_gestate": false,
+                  "coins": 10,
+                  "context_node": "林",
+                  "gender": "male",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "林",
+                  "ore": 3,
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"小砾\",\"quantity\":3}",
+              "key": "rest-d4n",
+              "result": {
+                "action": "rest",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×3"
+                ],
+                "quantity": 3,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 9,
+                  "can_gestate": true,
+                  "coins": 45,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 18,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"悦\",\"quantity\":1}",
+              "key": "yue-rest-d4",
+              "result": {
+                "action": "rest",
+                "actor": "悦",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 24,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "axe": 1,
+                  "can_gestate": true,
+                  "coins": 7,
+                  "context_node": "悦",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "悦",
+                  "ore": 7,
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident",
+                  "saw": 1,
+                  "wood": 0
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"林\",\"quantity\":1}",
+              "key": "lin-rest-d4",
+              "result": {
+                "action": "rest",
+                "actor": "林",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 23,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "can_gestate": false,
+                  "coins": 4,
+                  "context_node": "林",
+                  "gender": "male",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "林",
+                  "ore": 3,
+                  "pregnant": false,
+                  "profession": "居民",
+                  "role": "resident"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"小砾\",\"quantity\":3}",
+              "key": "rest-d5m",
+              "result": {
+                "action": "rest",
+                "actor": "小砾",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×3"
+                ],
+                "quantity": 3,
+                "values": {
+                  "adult": true,
+                  "age": 27,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "can_gestate": true,
+                  "coins": 49,
+                  "context_node": "小砾",
+                  "gender": "female",
+                  "home": "居民楼A",
+                  "is_parent": false,
+                  "name": "小砾",
+                  "ore": 11,
+                  "pickaxe": 1,
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner",
+                  "saw": 0
+                }
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "description": "居民楼A · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_5d1de1e02ebca30f3cff61f1"
+            },
+            {
+              "description": "居民楼A · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "description": "要执行的配置动作 id。",
+                    "minLength": 1,
+                    "title": "动作标识",
+                    "type": "string"
+                  },
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同动作数量重试时返回旧结果，不重复扣费。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "description": "1 到 100 的整数，默认 1。",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_98bd04f4fd005c5fcac937e3"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "agreements",
+          "time",
+          "family.pregnancy",
+          "context.assembler.context",
+          "location",
+          "records"
+        ],
+        "config": {
+          "pregnancy_channels": [
+            "family.pregnancy"
+          ],
+          "time_channels": [
+            "time"
+          ]
+        },
+        "description": "",
+        "module_id": "family.household",
+        "modules": [],
+        "state": {},
+        "strength": 12,
+        "tools": {
+          "group": 5,
+          "members": [
+            {
+              "description": "居民楼A · 查看家庭计划 · 查看本居民楼的双方同意登记。",
+              "factory_module": "family.household",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_25961859358c545437c07cd8"
+            },
+            {
+              "description": "居民楼A · 同意家庭计划 · 夫妻须同时在自己的居民楼，各自同意后写入怀孕起始时间；不要求同 tick。",
+              "factory_module": "family.household",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "partner": {
+                    "format": "node-id",
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "partner",
+                  "key"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_32d5c583aea1136b815d0aee"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 6,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "type": "node"
+}

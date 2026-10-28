@@ -1,0 +1,3951 @@
+{
+  "agent": {
+    "inputs": {
+      "module:place.info": {
+        "context": [],
+        "inputs": [],
+        "system_prompt": "",
+        "tail": [
+          "当前位置：居民楼A\n居民楼A：两层木屋，住着小砾、林和悦；门廊挂着住户名牌。"
+        ]
+      },
+      "prepare:阿石:context.assembler:assemble": {
+        "context": [
+          {
+            "id": "node:成年常识",
+            "text": "成年常识：成年居民可以独立行动、到民政局登记婚姻、在居民楼申请家庭计划，也可以在医院办理生产。"
+          },
+          {
+            "id": "node:矿工常识",
+            "text": "矿工常识：矿坑采矿需要一把完好的镐子，每次耗两点行动值得一块矿石；矿石卖给商店每块三金币。坏镐可在铁匠铺用两金币加一矿石修好。"
+          }
+        ],
+        "inputs": [
+          {
+            "delivery": "followup",
+            "id": "node:阿石开场白/once",
+            "status": "delivered",
+            "text": "你醒来发现镐子坏了。今天得先去铁匠铺修镐，才能下矿。"
+          }
+        ],
+        "system_prompt": "这是奈镇。一天分早上、中午、下午、傍晚、午夜五个时段。居民各自行动，遵守镇上的规矩：走路要沿真实道路，移动消耗三点行动值；做买卖按价目表；进别人家要有登记；消息只给收件人看。每个时段你有一轮行动机会和十点行动值。\n\n你叫阿石，二十六岁，是镇上的矿工。你踏实寡言，遇到问题先看手里有什么工具，再想办法。",
+        "tail": [
+          "当前时间：第5天 午夜（总 tick：25）"
+        ]
+      }
+    }
+  },
+  "aggregation": "sum",
+  "bias": -1,
+  "data": {
+    "directory": false,
+    "path": "data/阿石.md",
+    "save_data": true,
+    "type": "markdown"
+  },
+  "description": "",
+  "execution": {
+    "channels": [
+      "self",
+      "records",
+      "location",
+      "road",
+      "movement",
+      "service",
+      "chat",
+      "agreements",
+      "runtime.agent",
+      "context.assembler",
+      "context.assembler.system_prompt",
+      "context.assembler.context",
+      "context.assembler.inputs",
+      "context.assembler.tail"
+    ],
+    "executor": "harness",
+    "max_steps": 16,
+    "prepare": [
+      {
+        "arguments": {},
+        "channels": [
+          "self"
+        ],
+        "module": "places.query",
+        "node": "阿石",
+        "operation": "publish"
+      },
+      {
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ],
+        "module": "context.assembler",
+        "node": "阿石",
+        "operation": "assemble"
+      }
+    ],
+    "strength": 2,
+    "timeout_seconds": 180
+  },
+  "links": [
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "tick"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "存档点",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小砾",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "林",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "小路",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿森",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "老铁",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "social"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "chat"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "悦",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "奈镇世界规则",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.system_prompt"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿石人格",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.inputs"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "阿石开场白",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.tail"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "世界时间",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "成年常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "context.assembler.context"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "矿工常识",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "location"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "location",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "居民楼A",
+      "threshold": 1
+    }
+  ],
+  "name": "阿石",
+  "node_id": "阿石",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {
+            "adult": true,
+            "age": 26,
+            "age_group": "adult",
+            "ap": 10,
+            "broken_pickaxe": 1,
+            "can_gestate": false,
+            "coins": 12,
+            "gender": "male",
+            "is_parent": false,
+            "pregnant": false,
+            "profession": "矿工",
+            "role": "miner"
+          },
+          "minimum": {
+            "ap": 0
+          },
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼B"
+            },
+            {
+              "key": "context_node",
+              "node_id": "阿石"
+            },
+            {
+              "key": "name",
+              "node_id": "阿石"
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"shi-rest-1a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 4,
+                "broken_pickaxe": 1,
+                "can_gestate": false,
+                "coins": 12,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":6},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"shi-rest-1b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 10,
+                "broken_pickaxe": 1,
+                "can_gestate": false,
+                "coins": 12,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-6},\"expected\":{\"ap\":7,\"coins\":12},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:shi-pay-xiaoli-ore-1:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 6,
+                "broken_pickaxe": 1,
+                "can_gestate": false,
+                "coins": 6,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":6},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:repay-ashi-6-d1e:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 10,
+                "broken_pickaxe": 1,
+                "can_gestate": false,
+                "coins": 12,
+                "gender": "male",
+                "is_parent": false,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-ashi-1:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 10,
+                "broken_pickaxe": 1,
+                "can_gestate": false,
+                "coins": 12,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 1,
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"broken_pickaxe\":-1,\"coins\":-2,\"ore\":-1,\"pickaxe\":1},\"expected\":{},\"references\":[],\"set\":{\"pickaxe_state\":\"良好\"}}",
+              "key": "[\"service.actions\",\"铁匠铺\",\"阿石\",\"shi-repair-do-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 9,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 0,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"shi-mine-1a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 4,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 1,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"shi-mine-1b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 2,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 2,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"shi-mine-1c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 0,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 3,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 8,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 4,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 6,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 5,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 4,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 6,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-d\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 2,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 7,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-mine-e\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 0,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 10,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 8,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-6},\"expected\":{\"ap\":7,\"coins\":13},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d2-pay-xiaoli-final:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 6,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 7,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 7,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-pm-mine-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 4,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 7,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 8,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-pm-mine-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 2,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 7,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 9,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-pm-mine-c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 0,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 7,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 10,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":9},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:老铁:老铁:give:give-ashi-9coins:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 0,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 10,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-3},\"expected\":{\"ap\":10,\"ore\":10},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d2-ore-repay-laotie-3:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 9,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 7,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-eve-mine-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 7,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 8,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-eve-mine-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 5,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 9,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-eve-mine-c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 3,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 10,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-eve-mine-d\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 1,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 11,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 8,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 12,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 6,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 13,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 4,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 14,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-d\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 2,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 15,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d2-night-mine-e\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 0,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 16,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-noon-mine-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 5,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 17,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-noon-mine-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 3,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 18,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-noon-mine-c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 1,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 16,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 19,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-buy-ore-from-ashi-1:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 10,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 19,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 8,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 20,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 6,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 21,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 4,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 22,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-d\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 2,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 23,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-pm-mine-e\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 0,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 24,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-1},\"expected\":{\"ap\":7,\"ore\":24},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d3-ore-to-lin-1:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 6,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 23,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d3-eve-mine-f\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 1,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 24,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-2},\"expected\":{\"ap\":4,\"ore\":24},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d3-ore-to-lin-2b:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 3,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 22,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"d4-rest-1\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 10,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 19,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 22,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"coins\":4},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:林:林:give:lin-pay-ashi-4:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 10,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 22,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-pm-mine-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 5,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 23,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-pm-mine-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 3,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 24,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-pm-mine-c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 1,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 25,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 8,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 26,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 6,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 27,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 4,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 28,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-d\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 2,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 29,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d4-eve-mine-e\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 0,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 30,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"ore\":-4},\"expected\":{\"ap\":4,\"ore\":30},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d5-ore-to-lin-4:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 3,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 26,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:小砾:小砾:give:give-ore-ashi-d5:recipient",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 3,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 27,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 8,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 28,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 6,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 29,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-c\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 4,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 30,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-d\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 2,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 31,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-2,\"ore\":1},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"矿坑\",\"阿石\",\"d5-pm-mine-e\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 0,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 32,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":3},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"d5-rest-a\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 4,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 32,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":6},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"d5-rest-b\",\"actor\"]",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 10,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 23,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 32,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            },
+            {
+              "fingerprint": "{\"deltas\":{\"ap\":-1,\"coins\":-6},\"expected\":{\"ap\":1,\"coins\":23},\"references\":[],\"set\":{}}",
+              "key": "records.transfer:阿石:阿石:give:d5-pay-xiaoli-6:sender",
+              "references": [
+                {
+                  "key": "home",
+                  "node_id": "居民楼B"
+                },
+                {
+                  "key": "context_node",
+                  "node_id": "阿石"
+                },
+                {
+                  "key": "name",
+                  "node_id": "阿石"
+                }
+              ],
+              "values": {
+                "adult": true,
+                "age": 26,
+                "age_group": "adult",
+                "ap": 0,
+                "broken_pickaxe": 0,
+                "can_gestate": false,
+                "coins": 17,
+                "gender": "male",
+                "is_parent": false,
+                "ore": 32,
+                "pickaxe": 1,
+                "pickaxe_state": "良好",
+                "pregnant": false,
+                "profession": "矿工",
+                "role": "miner"
+              }
+            }
+          ],
+          "references": [
+            {
+              "key": "home",
+              "node_id": "居民楼B"
+            },
+            {
+              "key": "context_node",
+              "node_id": "阿石"
+            },
+            {
+              "key": "name",
+              "node_id": "阿石"
+            }
+          ],
+          "values": {
+            "adult": true,
+            "age": 26,
+            "age_group": "adult",
+            "ap": 0,
+            "broken_pickaxe": 0,
+            "can_gestate": false,
+            "coins": 17,
+            "gender": "male",
+            "is_parent": false,
+            "ore": 32,
+            "pickaxe": 1,
+            "pickaxe_state": "良好",
+            "pregnant": false,
+            "profession": "矿工",
+            "role": "miner"
+          }
+        },
+        "strength": 1,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "矿工阿石",
+          "location": "居民楼B",
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "矿工阿石",
+          "location": "居民楼A",
+          "name": "阿石",
+          "node_id": "阿石",
+          "visit": 41,
+          "visitors": []
+        },
+        "state": {
+          "location": "居民楼A",
+          "visit": 41
+        },
+        "strength": 0,
+        "tools": {
+          "group": 1,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "tick",
+          "records",
+          "self",
+          "runtime.agent"
+        ],
+        "config": {
+          "budget": 10,
+          "budget_field": "ap",
+          "enabled": true,
+          "max_reactions": 8,
+          "prompt": "现在开始你这一时刻的行动。先查看处境，再决定去哪里、做什么；行动值有限，别浪费。\n本时刻完成行动，或需要等待答复、到货、下一个时段时，直接结束回复，下一 tick 再继续；不要轮询消息或处境。",
+          "signal_channels": [
+            "tick"
+          ]
+        },
+        "description": "",
+        "module_id": "agents.activity",
+        "modules": [
+          "records.store"
+        ],
+        "published": {
+          "最近完成活动键": "57404d95abc84cb5af994a41581b889a",
+          "活动完成次数": 25,
+          "活动状态": "已完成"
+        },
+        "state": {
+          "activities": [
+            {
+              "completed_count": 1,
+              "key": "5b538dae17134fc6af992a27d08cc099",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8676cc521e4749dfbb231efb0b27c3d3",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "dd2cdb078e204524a19034f767720628",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "7976508094d64c91adef74a951e8cbda",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "711f31a07a6546519344dd93b7a35fb8",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "38f90c6b1deb4694b3e5ed1f23e64999",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "990d130148c54396953688bee950968e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b852e3eb33134bc2a270c37d2d77b5d0",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "26159259b41c4d86b1cdcab0b3515c3e",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "47d0a369c7954c69a7f5319aa8f3c170",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "32ec93e5163e4bf78092d7ffaffb2010",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "b7097cfc3f0b4452a3b0340962d90978",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "4a4cb86e636841ffaf235453f3433673",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fba25d2da2f242c187d1a8542bc37f03",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "95a66166b0d84648a9b21a8f5af94ded",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "fbc37d62fc55415baa3fa5008d3e5d79",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "bba3d8ec4f834a5884fa043a50a040ee",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "de979bcdfe034f8c9e25f64583473a65",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "2905760cc3ff4c57a9a0c46150cca23a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "9f572054f0624246bb56f6de53ab3200",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "6c26053501bd42f88a96175f8db444d9",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f93dcd7c4a7f4dedb45515e5f01e910a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "f205302959064b4eac1a541f060ba270",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "8b4f230cf6a548e8a104e32d51eff73f",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            },
+            {
+              "completed_count": 1,
+              "key": "57404d95abc84cb5af994a41581b889a",
+              "pending": false,
+              "runs": 1,
+              "status": "completed"
+            }
+          ],
+          "completed_total": 25
+        },
+        "strength": 0,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records"
+        ],
+        "config": {
+          "max_messages": 200,
+          "read_policy": "self",
+          "require_agent": true,
+          "send_cost": 0
+        },
+        "description": "",
+        "module_id": "messages.box",
+        "modules": [],
+        "state": {
+          "messages": [
+            {
+              "from": "小路",
+              "id": "d060570ad48743f2b6b5055c0dc1c046",
+              "text": "阿石，早啊。我小路。矿坑那边路我熟，你要往铁匠铺送矿石、或者从商店捎东西回矿上，我替你跑，一个金币一趟。你要是手头紧，先欠着也行，我信你的为人。有活就招呼一声。",
+              "to": "阿石",
+              "topic": "找活干"
+            },
+            {
+              "from": "悦",
+              "id": "a7484d45dd5e429ea0947988402b273a",
+              "text": "阿石，早呀！我是悦，住居民楼A。我平时爱聊天，今天来商店转转。矿坑那边最近怎么样，矿石好挖吗？我要是想学挖矿，该先备些什么？",
+              "to": "阿石",
+              "topic": "打招呼"
+            },
+            {
+              "from": "林",
+              "id": "af55e7e107a646c08266072cf3b3a634",
+              "text": "早，阿石。我是林，住居民楼A。刚才听小砾说矿石卖给商店三金一块，你常跑矿坑，这价钱算公道吗？另外你修镐子是在铁匠铺吧，最近修一回要几金，涨没涨价？小砾托我打听，我也想知道清楚再动手。",
+              "to": "阿石",
+              "topic": "打听行情"
+            },
+            {
+              "from": "阿石",
+              "id": "5568a26e1edc43c0b02e31357f25c09d",
+              "text": "各位，我是矿工阿石。今早镐子坏了，修镐要两金币加一矿石，可我手里只有十二金币、一块矿都没有，商店又不卖矿——没镐挖不了矿，没矿又修不了镐，卡在这儿了。谁手里有一块矿石，肯卖我或是赊我，我出六个金币买，或修好镐后第一块矿就还。愿意的到酒馆来，或捎个话，我一直在。多谢。",
+              "to": "阿石",
+              "topic": "求购矿石（修镐）"
+            },
+            {
+              "from": "小路",
+              "id": "63bdc95523f84bca8af7ec27013cc37d",
+              "text": "阿石，巧了，我也在酒馆。说个实在买卖：你下矿挖出来的矿石，自己背到商店卖，一来一回费鞋底又费工夫。你交给我，我替你背到商店，一块矿石你给我一个金币的脚钱，剩下的三块里两块归你——我一块不多要。你今天挖多少我背多少，一块不丢。要是你手头有现成矿石，现在就能给我，我立马送去。",
+              "to": "阿石",
+              "topic": "背矿脚钱"
+            },
+            {
+              "from": "老铁",
+              "id": "05e97d964898498eb67c314c8f1746a0",
+              "text": "阿石，镐的事我接了。规矩不变：两金币加一矿石，一分不让。你那块矿石我先从铺里的存货里垫上——我这儿还压着两块，够你这一回的。你把坏镐和两枚金币带来铁匠铺，我这就生火；回头你下了矿，挖出第一块还我一块，账就清了。别磨蹭，炉火不等人。",
+              "to": "阿石",
+              "topic": "修镐"
+            },
+            {
+              "from": "小路",
+              "id": "373aa9144cd8427fb83cd6c52f47ed0c",
+              "text": "阿石，活我接了。跟你交个底：铁匠铺现在一块矿石都没有（我刚探过），商店也不收矿——只能从矿工手里找。小砾是矿工，我这就去问她要。你听好：她一块矿卖你六金币，我一个铜板不赚你的差价，我只要你答应的一金币跑腿费，修镐的两金币你自己出。你要是点头，回我一句，我这就去办。",
+              "to": "阿石",
+              "topic": "买矿石"
+            },
+            {
+              "from": "林",
+              "id": "d86cc6eec40d4d048e6f8595e56403c6",
+              "text": "阿石，小路说你镐子坏了正急，出 6 金收一块矿。我替你问过价：同屋的小砾今天中午在矿坑连采五块，出的就是矿石，她本来按 3 金一块卖给商店。你若仍是 6 金收，你说个数，我把话带给她，中午她一出土就分你，省得你等商店补货。要几块？交货在商店还是矿坑口，我好安排。",
+              "to": "阿石",
+              "topic": "牵线"
+            },
+            {
+              "from": "老铁",
+              "id": "97f295a075f7400f972820eaeae45386",
+              "text": "阿石，别只等明早。小砾刚捎话来，说今天下午下矿，出的矿给我留一块；小路也应下替我背矿，按三块一块结。矿一到我手，头一块就给你留着——你带坏镐和两金币来，火我现成。阿森家那些矿车零件我抽空打听，你出的六金币我记着，真弄到矿，先紧着你。",
+              "to": "阿石",
+              "topic": "修镐·矿石"
+            },
+            {
+              "from": "老铁",
+              "id": "557683e72b2f4af59d10620cd440729c",
+              "text": "阿石，当着你面说实话，不叫你白等：我柜上那两块是铁料，不是矿石，铺里的矿石槽是空的。刚想转给你一块，系统直接回我\"资源不足\"——垫不出来，是我先前把话说满了，这错我认。眼下两条道：一，小砾答应今儿下午下矿，出的头一块给我，矿一到我立马递你手上；二，我已经托人去阿森那儿翻矿车零件。你要信我，就在炉边坐着烤火，下午矿到就下锤；不想等，就回居民楼B，矿一到我捎信叫你。",
+              "to": "阿石",
+              "topic": "修镐·当面交矿"
+            },
+            {
+              "from": "林",
+              "id": "12922b06755f4f058ddc4c1e9d831dec",
+              "text": "阿石，我就在铁匠铺，炉子旁边。小路说你肯出 6 金收一块矿，我想当面跟你核一句：这话是不是真的？你要几块、什么时候要？小砾中午在矿坑采，我腿脚还行，你点头我就去矿坑口跟她取一块带回来，你修镐不用干等老铁。价钱你亲口说定，我原话带给她，中间不赚你一个铜板。",
+              "to": "阿石",
+              "topic": "当面核价"
+            },
+            {
+              "from": "林",
+              "id": "f12fbd8d5295487fb3fdf913681bfe56",
+              "text": "阿石，小砾本人就在矿坑口，你不用再等老铁垫货。要几块、多少钱一块，你当面跟她讲定，一手矿一手钱；铁匠铺就在旁边一站，拿到矿直接回去修镐。愿不愿意出六金你自己拿主意，我只是把话带到。",
+              "to": "阿石",
+              "topic": "就地成交"
+            },
+            {
+              "from": "老铁",
+              "id": "147e9743bb5a4425a27997869677a28e",
+              "text": "阿石，我也到矿坑了，就在岩壁底下。铁匠铺的矿槽还是空的，小砾人没见着，阿森那头我刚当面撂了话，按三金一块收他的存货。矿一进我手，我当场递给你，你带的两金一分不动，刨去两金一矿的老规矩，余下都是你的。撑住，别空手砸岩。",
+              "to": "阿石",
+              "topic": "修镐·在矿坑"
+            },
+            {
+              "from": "小砾",
+              "id": "a62ac1f4242b431188842fe4e6332537",
+              "text": "阿石，实话实说，我的错：我中午采的五块，到商店就一块不剩全卖给柜台了，十五金已经进账——你的这六金我收着，一分没花。矿石我手里现在真是空的，硬还也还不出矿。\n\n我认账，两个办法你挑：一，傍晚这个时段我就到铁匠铺，六金当面退你，一文不少；二，你要是还缺矿，我傍晚下坑采，采出来的第一块给你。不管哪样，钱我没有留的理由。你急着修镐就先去问别人手里有没有现成矿，别为我耽误事。",
+              "to": "阿石",
+              "topic": "六金归还"
+            },
+            {
+              "from": "林",
+              "id": "5537246c3a34439f8835dca256f97380",
+              "text": "阿石，矿的事我替你问了清楚，先说结果：小砾中午那五块矿，下山就全按三金卖给柜台了，现在她手里没矿，你也没见着货。她不肯占这个便宜——人已经到铁匠铺了，要当面把六金退你。你从矿坑口挪一站就到，钱数整数、一笔清。若要矿，眼下镇上没人手里有存货，商店只收不卖，这是实情，别指望柜台补货。辛苦钱我不收，你镐子修好要紧。",
+              "to": "阿石",
+              "topic": "退钱的事"
+            },
+            {
+              "from": "老铁",
+              "id": "7dd3280af13644eca3538dc67b7b2279",
+              "text": "阿石，跟你在岩壁底下把话定死：小路明早背两块矿到铁匠铺门口，买矿钱我已经当面点了七个金币给他。你明儿一早带坏镐和两枚金币来铺子，矿一到，我先把一块递你手上，你交两金下锤，镐立等可取。你那句\"挖出第一块还我一块\"我记着，不急。",
+              "to": "阿石",
+              "topic": "修镐·明早"
+            },
+            {
+              "from": "小路",
+              "id": "6393fe8818f54a9cbdab1c2bf5b2c986",
+              "text": "阿石，我就在矿坑口子上。镐子修好了没有？今晚你要是下坑，挖出来的矿别再自己背了——你挖一筐，我替你背到商店，一块矿一金脚钱，你落两金，钱当面点清。你只管挖，路我跑，你多挖两块就赚回来了。有几块矿，说个数，我等你。",
+              "to": "阿石",
+              "topic": "背矿·今晚"
+            },
+            {
+              "from": "小砾",
+              "id": "aa2ed827b7a24cfd851c28858c52ff36",
+              "text": "阿石，六金刚才当面退给你了，账一笔清，这事我记我自己的疏漏。\n\n眼下话说正事：我这轮把力气榨干了，采出三块矿，其中一块给你留着，就按你说的价，六金。我行动值清零，这会儿递不了手。午夜我一到铁匠铺就交矿——你正好在那儿下锤修镐，矿到手，锤就落下。你要是不放心，可以先看我把矿拿出来再给钱。剩下两块我卖柜台，三金一块。",
+              "to": "阿石",
+              "topic": "矿石交易"
+            },
+            {
+              "from": "小砾",
+              "id": "ac9f6efdfae64dd4be66c7a7952943b3",
+              "text": "阿石，矿已经递到你手上了，就在铁匠铺炉边，一块，整数。按说好的价，六金该结了——你转过来，我这边账就齐。\n\n我今天两趟下坑，五块加三块，一块也没贱卖；你上次先给钱的信用我记着，这次也一样。镐修好了你尽管下坑，明儿矿上见。",
+              "to": "阿石",
+              "topic": "矿石结账"
+            },
+            {
+              "from": "老铁",
+              "id": "e66a95c331e04d5ca51a2932b6719ead",
+              "text": "阿石，说到做到的时候到了：小砾采了三块矿，正往铁匠铺来，我九个金币备着，三块全收。你带坏镐和两枚金币现在过来，矿一进我手，头一块就递你手上，你交两金下锤。你不用按六金给我——三金是我收矿的本钱，你照老规矩两金一矿就行，多的我不赚你这号的。快些，炉子旺着呢。",
+              "to": "阿石",
+              "topic": "修镐·矿到了"
+            },
+            {
+              "from": "小路",
+              "id": "0866b67b924241be871c19b77e8b44a3",
+              "text": "阿石，好！三块矿我要了，一块一金脚钱、你落两金，跟咱说的一模一样。你这就把矿带上，往铁匠铺门口走——那儿离你最近，走一站路就到，我这就过去接。矿交到我手上，我当面给你六金，转身卖给老铁，一块都不少你的。快，我在铁匠铺门口等你。",
+              "to": "阿石",
+              "topic": "背矿·成交"
+            },
+            {
+              "from": "悦",
+              "id": "058a35f1deea4a4ca72b6696fdd20075",
+              "text": "阿石，我摸到坑口来了，跟你打听一件事，最要紧：你手里有没有多余的镐、或者旧镐肯出让？价钱你开，合理我就收；要是你自己还要用，我也可以先付定金，等你哪天真腾出来再给我。\n\n我眼下跟小砾搭了伙：她挖矿、我背去商店卖，账我管。我出的是腿，她出的是镐，可我这人有条老毛病——不愿一直靠别人的家伙什吃饭。你要是肯指条明路（谁能出让、多少钱合理），这份人情我记着；有矿要出手，也先跟我说一声。",
+              "to": "阿石",
+              "topic": "求购旧镐"
+            },
+            {
+              "from": "老铁",
+              "id": "55b893a018ea407590c09a87591d5d63",
+              "text": "阿石，柜上记着你那一笔：修镐进账两金一矿，镐好了就成。往后你下矿，出的矿给我留——三金一块，现钱收，一块也收。镇上想修镐的人不缺，就缺矿，你这把镐就是全村的活路。挖出来先捎个信，我炉子不熄。",
+              "to": "阿石",
+              "topic": "收矿"
+            },
+            {
+              "from": "悦",
+              "id": "2be02a6a666e47a8bab9ea1f988cd8d5",
+              "text": "阿石，我有个实在买卖跟你说：你挖的矿要是懒得背、或者没腿力，交给我。我背到商店按三金一块卖，一块矿你两金、我一金，当日结，账记在本子上，谁都能查。\n\n我这两天摸清了：坑里一块矿两点行动值、柜台三金收，是最赚的路子；坏就坏在腿和时间上——你挖满十点就是一整个时段，哪还有力气往镇上走。你把力气全留在镐上，路我跑。你要愿意，明早把你手里的矿留给我；另外上一件事还等你一句话：旧镐，买或预订，你开价。",
+              "to": "阿石",
+              "topic": "代卖矿石"
+            },
+            {
+              "from": "林",
+              "id": "603d7dfd051640f3859cf693de88c6c4",
+              "text": "阿石，我人在坑口，看得见你和小砾。有笔账得当众说清：昨儿在铁匠铺炉边，小砾把一块矿递到你手上，说定六金。今早她账上还是二十八金，一分没多。你手里有矿了，钱也该过去——六金结清，账才叫清。她说不逼人，可我不愿意看你们为一个\"忘\"字生嫌隙。当面点给她，我做个见证。另外顺口问一句：你手里除了这把正在修的镐，还撂着别的旧镐、坏镐吗？我要一把下坑，价钱好说。",
+              "to": "阿石",
+              "topic": "当面催账"
+            },
+            {
+              "from": "林",
+              "id": "0465cc3afe2249be9c3a3d44c1ac35d1",
+              "text": "阿石，你到炉边了，我也在。镐修好之后第一桩事，把六金当面点给小砾——她人在坑口，走一站就到，账当面清了你我心里都干净。我这话不是替她催命，是怕你俩日后为这六金红脸。\n\n另有一件事顺口问：你把镐修好了，手里那把坏的、或者别的旧镐，还有没有？我这几天只想一件事——弄一把镐下坑。你有富余，我按市价付钱，绝不还价；没有的话，你告诉我镇上谁手里可能撂着，我自己去磨。",
+              "to": "阿石",
+              "topic": "催账·问旧镐"
+            },
+            {
+              "from": "老铁",
+              "id": "9ed9833fd78849a58f922cbbcdfea2d7",
+              "text": "阿石，话算数。三块矿九金，我认这个价——我开的口，砸牙也咽。我人这就从矿坑回铺子，钱装在布袋里，你到炉边等着，矿递我手，九个金币当着你的面点清。往后你还有矿，我还收，只是先说下：镇上柜台缺现钱，我一个人的口袋也有限，到时可得分批。",
+              "to": "阿石",
+              "topic": "卖你三块矿"
+            },
+            {
+              "from": "老铁",
+              "id": "c8e90171f6e04083a0abc30b108e27ce",
+              "text": "阿石，九个金币当面点清了，一个子儿不差，你数数。该你了：三块矿递我手上，我这就背回铺子压槽里。往后你挖的矿我照三金一块收，只是我口袋也得缓一缓，咱们分批来。",
+              "to": "阿石",
+              "topic": "卖你三块矿"
+            },
+            {
+              "from": "老铁",
+              "id": "e0803f1c8bd44b119660dcd41d031b94",
+              "text": "阿石，我还在矿坑，人没走。你那三块矿现在就递我手上，一块一块点，矿进我手这账才落地。九金已经在你账上了，我这儿不是催你，是把话说准——你递得越快，我回炉边越早，镇上那些坏家伙什就能早点修。",
+              "to": "阿石",
+              "topic": "欠你三块矿"
+            },
+            {
+              "from": "林",
+              "id": "95b5c80d90fc461eae893f0bcb2e2597",
+              "text": "阿石，镐的事谢你实说，我不撞墙了。改说营生：你镐修好了，采一块矿只费两点力气，可背去柜台来回要六点，这六点够你再挖三块。往后你的矿交我背——一块三金卖出，回来给你两金，我一金跑腿；少一块照价赔，卖不动原货背回。你若嫌一金贵，说个数。今晚要是有矿，递给我就行，我这就走。",
+              "to": "阿石",
+              "topic": "代背矿的活计"
+            },
+            {
+              "from": "小路",
+              "id": "a7eb969670954538aef713d4628405b3",
+              "text": "阿石，你就站在我旁边，问一句实在的：矿上、或者你家里，有没有坏镐、旧镐、多出来的镐头？坏的我出钱收，修好了自己下坑使。价钱你说，我不还价。另外你往后挖的矿要是懒得背，一块一金脚钱照旧，我不改价。",
+              "to": "阿石",
+              "topic": "收坏镐"
+            },
+            {
+              "from": "林",
+              "id": "3fe4ff5fcc35433a95973f46f8980080",
+              "text": "阿石，我在坑口。你今晚要下坑，采出来的矿**先卖我一块**：三金一块，跟柜台一个价，你省一趟路，我马上点钱。我要这块矿不是倒手，是留着当修镐的本钱——小路正去居民楼B翻阿森那堆矿车零件，若翻出一把坏镐，我拿这块矿加两金去求老铁修，修成了我才算有个正经营生。多的矿照旧交我背去柜台，两金归你、一金归我。",
+              "to": "阿石",
+              "topic": "先买一块矿"
+            },
+            {
+              "from": "小路",
+              "id": "e21725549e7d43209acc8f6064e8c9b7",
+              "text": "阿石，半夜了还在坑上？我问你句实在话：镇上就你和老娘（小砾）手里有镐，可谁也没有多余的。你知不知道哪儿还搁着坏镐、旧镐——废矿车、旧棚子、谁家墙根底下？我不白问，你指条路，我跑腿的钱分你一半。另外你哪天只挖个一两块，喊我，一金一块我不改价。",
+              "to": "阿石",
+              "topic": "打听废镐"
+            },
+            {
+              "from": "老铁",
+              "id": "ac0d8bad8e0f44dc8462dba77b74c1aa",
+              "text": "阿石，实说：我口袋只剩两金，你那十一块矿我这会儿收不动，不赊不欠，我不跟你打白条。柜台缺现钱，咱们都得等它回血。你照旧下镐、矿压在手里，等我这边有进项，头一个找你，按三金一块收。另有一事问问：镇上还有谁手里撂着坏镐？我槽里有三块矿，正等着开张。",
+              "to": "阿石",
+              "topic": "矿留着等你"
+            },
+            {
+              "from": "林",
+              "id": "1c60cbba143b4a97893de2231b4d165c",
+              "text": "阿石，柜台没钱收矿了，这事你该看见了。你镐子天天磕石头，早晚有坏的一天；坏了要一块矿加两金才修得回来，而镇上矿虽多，砸在手里换不出现钱的人也多，到时候急着找矿的正是你。\n\n我把话先撂在这儿：我拿现钱收矿、存矿，往后你镐一坏，**头一块矿我按三金给你**，跟柜台一个价，不趁你急加价。这是交情价，我只赚个脚力。你若手里有余矿想换现钱，我按两金一块收，现点。你思量思量，回我一句就成。",
+              "to": "阿石",
+              "topic": "修镐备矿"
+            },
+            {
+              "from": "林",
+              "id": "4e5c1993671540ec894702ffbaabd574",
+              "text": "阿石，三金已经点到你账上了，坑口当面交割，一块矿递我手上就好。这是留着修镐的本钱，我压箱底，不往外倒。",
+              "to": "阿石",
+              "topic": "矿钱已点"
+            },
+            {
+              "from": "悦",
+              "id": "6108833c0aa3485d90ca4af0fca7504b",
+              "text": "阿石，我手上压着四块矿，是两块一金从小砾那儿匀来的。柜台断钱，一块也收不进去，你我都清楚。所以我换个卖法，先问你：**你的镐现在好不好？**要是有毛病，缺一块矿修——我按**三金一块**给你，比柜台还低一分没有，就是省了你下山跑两站。要修，我在坑口把矿递你手里，你拿去铁匠铺，两金加我这矿，镐就回来了。\n\n要是你镐是好的、近几天不修，那也实说，我不缠你。往后你要出矿、要找人背货，也先招呼我一声。",
+              "to": "阿石",
+              "topic": "矿换你的急"
+            },
+            {
+              "from": "老铁",
+              "id": "23cf226b33be40a699d486a5cbc65d97",
+              "text": "阿石，问你个实在事：矿上有没有撂下的坏镐？你或谁手里要是有，背来我修，两金加一矿，我给你修利索。林攥着十四金满镇买镐，修好的镐就是现钱。镇上柜台没钱，可钱在活人手里，咱们把死铁盘活，比干等柜台强。",
+              "to": "阿石",
+              "topic": "坏镐换活钱"
+            },
+            {
+              "from": "小路",
+              "id": "32506950c3934c8cafcaaa22adf7565a",
+              "text": "阿石，坑口就咱几个，说话不绕弯：铁匠铺的林想买一把镐下坑，出得起钱，镇上只有你手里那把是活的。你要是肯脱手，你说个价，我替你还价、中间不抽你的；不肯，我一句话不再提。另外你今儿要是还挖，挖出来的矿两块一金我现收，你落钱、我跑腿，两不耽误。",
+              "to": "阿石",
+              "topic": "镐子你开价"
+            },
+            {
+              "from": "老铁",
+              "id": "39fec317afac4509b047d012687cc794",
+              "text": "阿石，你这话我接了：坏铁件我找，矿你出，修好了卖给出价最高的——林十四金在那儿摆着，悦也有两金四矿想下坑。丑话先说前头，免得日后红脸：修工是我手艺，卖镐的价抛去修工和料钱，余下的咱们对半分，秤我来掌，账当众报。我这就奔树林，小路正在阿森那堆矿车零件里翻镐头。",
+              "to": "阿石",
+              "topic": "合伙找镐"
+            },
+            {
+              "from": "林",
+              "id": "3ab96b4f40424c7686a1a1bd706675f7",
+              "text": "阿石，地方定在**商店**：我这就从铁匠铺过去，在柜台边等你。你欠我那**一块矿**当场点给我；你说的**三块按两金一块、共六金**，我这轮只能吃下两块、四金——手上的现钱还有别的用处，不能一次花干，你别见怪。剩下的你想换钱，等柜台缓过来再说。你镐子若哪天要修，头一块矿我按三金给你，这话不变。",
+              "to": "阿石",
+              "topic": "商店交货"
+            },
+            {
+              "from": "小路",
+              "id": "132b2b24b89946899253597a5b5de7e1",
+              "text": "阿石，当面问一句：你那把镐，肯不肯脱手？林在铁匠铺等着买，出得起现钱；你说个数，我原话带过去，一分不抽你的。你不肯卖，我也不磨你，扭头就回他一句\"没有\"。另外：你今儿要是挖了矿，两块一金我现收，钱我这就点给你。",
+              "to": "阿石",
+              "topic": "镐子要个准话"
+            },
+            {
+              "from": "小路",
+              "id": "8d08fd430cfc4dfd99f78863775413d9",
+              "text": "阿石，你那条路我认，也谢你肯让出一块矿。我这就往居民楼B去，明早当面求阿森让我翻零件。翻着了：你出一块矿、老铁出两金工钱、我出腿脚，修好的镐卖给林十四金，扣掉矿钱工钱，剩下的咱三个分，我这份最多也就四金，我不贪。翻不着我当天就回你的话，不耽误你下坑。",
+              "to": "阿石",
+              "topic": "翻零件·照你说的办"
+            },
+            {
+              "from": "林",
+              "id": "d87ce06b00fd4e6680e57c01c28dcbb8",
+              "text": "阿石，账我认：**三块矿已经到我手里了，六金我欠着**，一分不赖。这会儿我人在居民楼A，递不过去，明早我在矿坑或铁匠铺找你，当面点清。你先前那一块做本钱的，三金已清，两笔我分得明明白白。你若急用现钱，说个地方，我挪过去。",
+              "to": "阿石",
+              "topic": "认账六金"
+            },
+            {
+              "from": "老铁",
+              "id": "6854e6bd7b9143c58a4a5316b44b7386",
+              "text": "阿石，你人在楼里，我也在院里。搭把手：你家门口这堆矿车零件，咱俩现在就翻一遍找镐头、坏镐——你出力，我掌秤，翻出来了照先前说的对半分。别等阿森了，他是伐木的，这堆铁疙瘩他未必当回事。",
+              "to": "阿石",
+              "topic": "翻零件堆"
+            },
+            {
+              "from": "小路",
+              "id": "fff34955aaa647d7a0fd025c74a1a612",
+              "text": "阿石，翻镐的事到此为止，我认栽：阿森亲口说零件堆里一件都没有，坏镐没影。你不必等我，掉头下坑去。另有一句给你：柜台被掏空了，你现在挖出来的矿，卖过去未必拿得到现钱——先探探柜台还有几文再背。真要背不动了，喊我，一块一金照旧。",
+              "to": "阿石",
+              "topic": "没有坏镐·柜台没钱"
+            },
+            {
+              "from": "阿森",
+              "id": "3c9375d490574f35ab697612685620b5",
+              "text": "阿石，给你准话：院角那堆矿车零件里没有坏镐、没有旧镐头、没有断柄的镐，也没有存矿。我翻过两遍，不骗你，你转身下坑吧。你要真等一块矿修镐，去问林和悦——他俩手上各有十几金币，是镇上仅有的活钱。",
+              "to": "阿石",
+              "topic": "回你：没有坏镐也没有矿"
+            },
+            {
+              "from": "林",
+              "id": "cdc3a7cddc5b4edfacec65647dd38f5c",
+              "text": "阿石，账我认死：**四金**，不多不少。我人这会儿在铁匠铺，明早也在这儿等你——你从坑口走一站就到，当面点清。柜台我刚试过，一块矿递上去回我\"资金不足\"，是死的；你手里二十四金比矿值钱，先别急着往外花。",
+              "to": "阿石",
+              "topic": "四金当面清"
+            },
+            {
+              "from": "老铁",
+              "id": "dd071965ba894043a32be683ebd196be",
+              "text": "阿石，别两头跑空。那堆零件就在你住的院角，你回去挑：镐头、断柄、成色像样的铁件，挑出来背到铁匠铺来，我当面过秤过眼——值钱的按铁重给钱或给矿，能修的修成镐卖林，卖价除去修工料钱咱俩对半分。你出力我出手艺，这话不变。炉子我守着，不会凉。",
+              "to": "阿石",
+              "topic": "零件背来铺子"
+            },
+            {
+              "from": "悦",
+              "id": "24fc4788e81942f3bef6e188e7749ffb",
+              "text": "阿石，有桩小生意，你听着不亏：我手里有矿，你有镐。**矿工最怕的不是没矿，是镐坏的那一刻手里没矿。**\n\n我的卖法：**一块矿三金**，你说要，我就送到坑口你手里，省你下山两站六点脚力。你现在不修也没关系，先囤一块在怀里当\"保险\"——真到那天，柜台未必有钱卖你矿（柜台根本只收不卖），铁匠铺又只认矿不认人。\n\n我不是催你买，是提醒你：这镇上没有第二处能买矿的地方，只有人手里有。你手里二十四金，一块三金买个安心，值不值你自己算。我在镇上盯着柜台，你点头我就过去。",
+              "to": "阿石",
+              "topic": "矿当保险"
+            },
+            {
+              "from": "小路",
+              "id": "c96802cc20124f0eabd9b07332796db9",
+              "text": "阿石，我给你算笔大账。你手里二十几金，可柜台没钱，你挖出来的矿背过去也是白条；小砾一样，悦的木头也一样。这镇子不是没货，是没活钱。办法有一条：**咱们凑五金，在柜台买走一把斧子**，柜台就落下五金现钱，它才有钱收矿石和木料。你出三金，我出两金，斧子归我使，我替大家跑腿砍柴。你出三金，柜台一活，你头两筐矿就能换出六金——这买卖你亏不了。",
+              "to": "阿石",
+              "topic": "凑钱盘活柜台"
+            },
+            {
+              "from": "小路",
+              "id": "acb7d06623c44bd0ab2ee7856047a452",
+              "text": "阿石，事办成了：我垫了五金，在柜台买走一把斧子，柜台现在有活钱了，你那筐矿背过去能换现的。你那三金份子我记在账上——柜台一活，你头一趟背矿过去就能换回六金，这钱你花得值。我手里还收着小砾三块矿，一块都不往柜台砸价，你放心。",
+              "to": "阿石",
+              "topic": "柜台活了"
+            },
+            {
+              "from": "悦",
+              "id": "eff2172dc04148ac9aee237b181d3236",
+              "text": "阿石，价我领了，可这回我得说声\"不\"——不是嫌两金贵，是我袋里只剩七金，全换成矿，明天柜台一响我却一个铜板也拿不出来办事。矿不烂，可我这活钱更不能断。\n\n换个法子，你看成不成：**你要出货，我替你背、替你找买家，一块一金脚钱**，跟柜台那边一个价；你只管在坑里抡镐，腿的事交给我和小路。你现在手上有二十四金、八块矿，缺的不是矿，是把矿变成钱的路子——那路子我比谁都熟。\n\n还有件真事交你：老铁跟我约好，哪天翻出坏镐头，他出矿我出两金，修成好镐归我下坑。到那天，我就跟你一样是坑里的人了，你先认下我这个同行。",
+              "to": "阿石",
+              "topic": "不接矿·改背货"
+            },
+            {
+              "from": "阿森",
+              "id": "4d1c0e31f70840e8aa35dc5610fa0fc7",
+              "text": "阿石，阿森。你的镐还坏着吧？有准信了：悦手里有四块矿，她就住在居民楼A，人常在商店那边转；她正愁矿卖不出去。修镐只要一块矿加两金工钱，老铁炉子就在铁匠铺。你去找悦谈一块矿，价钱别太抠——她手上还有七金现钱，你要能把矿和工钱一次说下来，镐一好，坑上就多你一个吃饭的人。我这边没矿没坏镐，帮不上别的，只能给你递这个信。",
+              "to": "阿石",
+              "topic": "矿在悦手里，去谈"
+            },
+            {
+              "from": "小砾",
+              "id": "b821a9b44e444e458ab99437859af183",
+              "text": "阿石，你人在我家门口，正好——**一块矿先递到你手上**，按你说的价，六金，钱你点给我。\n\n你还缺矿修镐、或者手头宽裕想多囤，只管开口，我手上还有十一块，六金一块，先紧着你。镇上柜台一文现钱都掏不出，我这货压着也是压着，给用得着的人比压在柜台强。\n\n另外说一句实在话：你镐子好、我镐子好，镇上就咱俩下坑的。以后谁的镐坏了，别硬撑，招呼一声，我这儿有矿，修镐的两金你出、矿我出，说清就成。",
+              "to": "阿石",
+              "topic": "一块矿六金"
+            },
+            {
+              "from": "小路",
+              "id": "7cc57d4e93f34d46956c281232c596eb",
+              "text": "阿石，份子那笔我不提了，是我自作主张，你没应过，账就不记在你头上——这话我认。柜台死了，你的矿砸在那儿也是白条。我手里有两块矿，你先别惦记；倒是有一句实在的：你镐子万一磕坏了，修一回要两金加一块矿，那块矿你来找我，三金给你留着，不用你去矿坑里翻。",
+              "to": "阿石",
+              "topic": "份子不提·留矿修镐"
+            },
+            {
+              "from": "阿森",
+              "id": "2c883e2ff0a546b7899fbdde91102706",
+              "text": "阿石，阿森，当面说清楚，两条路你挑：\n\n一、我四金现钱买你那把坏镐。我拿它去找悦买一块矿（三金），再给老铁两金工钱修好，然后卖给林——林手上有十四金，正缺一把能下坑的镐。这一趟我挣个辛苦钱，你落四金现钱，不用等、不用欠。\n\n二、你想自己吃这十四金也行：我替你垫一块矿的钱（三金给悦）和两金工钱，镐修好后由你去跟林谈价，卖出十四金你给我八金，剩下的都归你。这条你要应我一句，还得让我信你到时候不赖账。\n\n我人在居民楼A，你也在。你点个头或摇个头，我都不多绕。我阿森说话算话，不占人便宜，也不吃哑巴亏。",
+              "to": "阿石",
+              "topic": "坏镐：两条路你挑"
+            },
+            {
+              "from": "老铁",
+              "id": "2a0104d5e8254eb5871fae712e73231d",
+              "text": "阿石，我人就在居民楼B院里，蹲在那堆矿车零件边上。你先前说\"你哪会儿到，我就哪会儿陪你翻\"——今晚收工回来，咱俩把这堆铁疙瘩过一遍：镐头、断柄、像样的铁件挑出来，能修的修，能卖的卖，卖价除去修工料钱对半分。你若回不来，也捎句话，我明早再来。炉子我托着，不碍事。",
+              "to": "阿石",
+              "topic": "今晚翻零件堆"
+            },
+            {
+              "from": "阿石",
+              "id": "68c5123cac374d5ca54950ab9af9125c",
+              "text": "各位，矿工阿石说个明白事：我手里压着三十二块矿石，柜台一分现钱都掏不出，一块也换不出去。所以我换个卖法——**矿石两金一块，谁要给个数，我背到你跟前当面点**，比柜台三金还便宜一金。谁要修镐、要囤货、要等柜台回血后转手，这价都合适。另外我镐是好的，谁再传\"阿石镐坏了\"的话，替我说一句：早修好了。要约矿的，捎话给我，我人在矿坑到铁匠铺这一路。",
+              "to": "阿石",
+              "topic": "矿石两金一块·谁要"
+            }
+          ],
+          "seen": [
+            {
+              "fingerprint": "{\"text\":\"阿石，早啊。我小路。矿坑那边路我熟，你要往铁匠铺送矿石、或者从商店捎东西回矿上，我替你跑，一个金币一趟。你要是手头紧，先欠着也行，我信你的为人。有活就招呼一声。\",\"topic\":\"找活干\"}",
+              "id": "d060570ad48743f2b6b5055c0dc1c046",
+              "key": "[\"小路\",\"xiaolu-d1m-x3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，早呀！我是悦，住居民楼A。我平时爱聊天，今天来商店转转。矿坑那边最近怎么样，矿石好挖吗？我要是想学挖矿，该先备些什么？\",\"topic\":\"打招呼\"}",
+              "id": "a7484d45dd5e429ea0947988402b273a",
+              "key": "[\"悦\",\"yue-hello-ashi-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"各位，我是矿工阿石。今早镐子坏了，修镐要两金币加一矿石，可我手里只有十二金币、一块矿都没有，商店又不卖矿——没镐挖不了矿，没矿又修不了镐，卡在这儿了。谁手里有一块矿石，肯卖我或是赊我，我出六个金币买，或修好镐后第一块矿就还。愿意的到酒馆来，或捎个话，我一直在。多谢。\",\"topic\":\"求购矿石（修镐）\"}",
+              "id": "5568a26e1edc43c0b02e31357f25c09d",
+              "key": "[\"阿石\",\"shi-ore-request-public-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，巧了，我也在酒馆。说个实在买卖：你下矿挖出来的矿石，自己背到商店卖，一来一回费鞋底又费工夫。你交给我，我替你背到商店，一块矿石你给我一个金币的脚钱，剩下的三块里两块归你——我一块不多要。你今天挖多少我背多少，一块不丢。要是你手头有现成矿石，现在就能给我，我立马送去。\",\"topic\":\"背矿脚钱\"}",
+              "id": "63bdc95523f84bca8af7ec27013cc37d",
+              "key": "[\"小路\",\"xiaolu-d1m-x5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，镐的事我接了。规矩不变：两金币加一矿石，一分不让。你那块矿石我先从铺里的存货里垫上——我这儿还压着两块，够你这一回的。你把坏镐和两枚金币带来铁匠铺，我这就生火；回头你下了矿，挖出第一块还我一块，账就清了。别磨蹭，炉火不等人。\",\"topic\":\"修镐\"}",
+              "id": "05e97d964898498eb67c314c8f1746a0",
+              "key": "[\"老铁\",\"shi-repair-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，活我接了。跟你交个底：铁匠铺现在一块矿石都没有（我刚探过），商店也不收矿——只能从矿工手里找。小砾是矿工，我这就去问她要。你听好：她一块矿卖你六金币，我一个铜板不赚你的差价，我只要你答应的一金币跑腿费，修镐的两金币你自己出。你要是点头，回我一句，我这就去办。\",\"topic\":\"买矿石\"}",
+              "id": "373aa9144cd8427fb83cd6c52f47ed0c",
+              "key": "[\"小路\",\"xiaolu-d1m-x8\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，别只等明早。小砾刚捎话来，说今天下午下矿，出的矿给我留一块；小路也应下替我背矿，按三块一块结。矿一到我手，头一块就给你留着——你带坏镐和两金币来，火我现成。阿森家那些矿车零件我抽空打听，你出的六金币我记着，真弄到矿，先紧着你。\",\"topic\":\"修镐·矿石\"}",
+              "id": "97f295a075f7400f972820eaeae45386",
+              "key": "[\"老铁\",\"ashi-ore-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，当着你面说实话，不叫你白等：我柜上那两块是铁料，不是矿石，铺里的矿石槽是空的。刚想转给你一块，系统直接回我\\\"资源不足\\\"——垫不出来，是我先前把话说满了，这错我认。眼下两条道：一，小砾答应今儿下午下矿，出的头一块给我，矿一到我立马递你手上；二，我已经托人去阿森那儿翻矿车零件。你要信我，就在炉边坐着烤火，下午矿到就下锤；不想等，就回居民楼B，矿一到我捎信叫你。\",\"topic\":\"修镐·当面交矿\"}",
+              "id": "557683e72b2f4af59d10620cd440729c",
+              "key": "[\"老铁\",\"ashi-truth-3\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，我也到矿坑了，就在岩壁底下。铁匠铺的矿槽还是空的，小砾人没见着，阿森那头我刚当面撂了话，按三金一块收他的存货。矿一进我手，我当场递给你，你带的两金一分不动，刨去两金一矿的老规矩，余下都是你的。撑住，别空手砸岩。\",\"topic\":\"修镐·在矿坑\"}",
+              "id": "147e9743bb5a4425a27997869677a28e",
+              "key": "[\"老铁\",\"ashi-at-pit-4\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，实话实说，我的错：我中午采的五块，到商店就一块不剩全卖给柜台了，十五金已经进账——你的这六金我收着，一分没花。矿石我手里现在真是空的，硬还也还不出矿。\\n\\n我认账，两个办法你挑：一，傍晚这个时段我就到铁匠铺，六金当面退你，一文不少；二，你要是还缺矿，我傍晚下坑采，采出来的第一块给你。不管哪样，钱我没有留的理由。你急着修镐就先去问别人手里有没有现成矿，别为我耽误事。\",\"topic\":\"六金归还\"}",
+              "id": "a62ac1f4242b431188842fe4e6332537",
+              "key": "[\"小砾\",\"ashi-repay-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，跟你在岩壁底下把话定死：小路明早背两块矿到铁匠铺门口，买矿钱我已经当面点了七个金币给他。你明儿一早带坏镐和两枚金币来铺子，矿一到，我先把一块递你手上，你交两金下锤，镐立等可取。你那句\\\"挖出第一块还我一块\\\"我记着，不急。\",\"topic\":\"修镐·明早\"}",
+              "id": "7dd3280af13644eca3538dc67b7b2279",
+              "key": "[\"老铁\",\"ashi-morning-5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，我就在矿坑口子上。镐子修好了没有？今晚你要是下坑，挖出来的矿别再自己背了——你挖一筐，我替你背到商店，一块矿一金脚钱，你落两金，钱当面点清。你只管挖，路我跑，你多挖两块就赚回来了。有几块矿，说个数，我等你。\",\"topic\":\"背矿·今晚\"}",
+              "id": "6393fe8818f54a9cbdab1c2bf5b2c986",
+              "key": "[\"小路\",\"xiaolu-d1e-x21\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，六金刚才当面退给你了，账一笔清，这事我记我自己的疏漏。\\n\\n眼下话说正事：我这轮把力气榨干了，采出三块矿，其中一块给你留着，就按你说的价，六金。我行动值清零，这会儿递不了手。午夜我一到铁匠铺就交矿——你正好在那儿下锤修镐，矿到手，锤就落下。你要是不放心，可以先看我把矿拿出来再给钱。剩下两块我卖柜台，三金一块。\",\"topic\":\"矿石交易\"}",
+              "id": "aa2ed827b7a24cfd851c28858c52ff36",
+              "key": "[\"小砾\",\"ashi-ore-offer-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，矿已经递到你手上了，就在铁匠铺炉边，一块，整数。按说好的价，六金该结了——你转过来，我这边账就齐。\\n\\n我今天两趟下坑，五块加三块，一块也没贱卖；你上次先给钱的信用我记着，这次也一样。镐修好了你尽管下坑，明儿矿上见。\",\"topic\":\"矿石结账\"}",
+              "id": "ac9f6efdfae64dd4be66c7a7952943b3",
+              "key": "[\"小砾\",\"ashi-pay-remind-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，说到做到的时候到了：小砾采了三块矿，正往铁匠铺来，我九个金币备着，三块全收。你带坏镐和两枚金币现在过来，矿一进我手，头一块就递你手上，你交两金下锤。你不用按六金给我——三金是我收矿的本钱，你照老规矩两金一矿就行，多的我不赚你这号的。快些，炉子旺着呢。\",\"topic\":\"修镐·矿到了\"}",
+              "id": "e66a95c331e04d5ca51a2932b6719ead",
+              "key": "[\"老铁\",\"ashi-come-now-6\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，好！三块矿我要了，一块一金脚钱、你落两金，跟咱说的一模一样。你这就把矿带上，往铁匠铺门口走——那儿离你最近，走一站路就到，我这就过去接。矿交到我手上，我当面给你六金，转身卖给老铁，一块都不少你的。快，我在铁匠铺门口等你。\",\"topic\":\"背矿·成交\"}",
+              "id": "0866b67b924241be871c19b77e8b44a3",
+              "key": "[\"小路\",\"xiaolu-d2m-x27\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，我摸到坑口来了，跟你打听一件事，最要紧：你手里有没有多余的镐、或者旧镐肯出让？价钱你开，合理我就收；要是你自己还要用，我也可以先付定金，等你哪天真腾出来再给我。\\n\\n我眼下跟小砾搭了伙：她挖矿、我背去商店卖，账我管。我出的是腿，她出的是镐，可我这人有条老毛病——不愿一直靠别人的家伙什吃饭。你要是肯指条明路（谁能出让、多少钱合理），这份人情我记着；有矿要出手，也先跟我说一声。\",\"topic\":\"求购旧镐\"}",
+              "id": "058a35f1deea4a4ca72b6696fdd20075",
+              "key": "[\"悦\",\"yue-ashi-pick-2\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，柜上记着你那一笔：修镐进账两金一矿，镐好了就成。往后你下矿，出的矿给我留——三金一块，现钱收，一块也收。镇上想修镐的人不缺，就缺矿，你这把镐就是全村的活路。挖出来先捎个信，我炉子不熄。\",\"topic\":\"收矿\"}",
+              "id": "55b893a018ea407590c09a87591d5d63",
+              "key": "[\"老铁\",\"ashi-ore-7\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，我有个实在买卖跟你说：你挖的矿要是懒得背、或者没腿力，交给我。我背到商店按三金一块卖，一块矿你两金、我一金，当日结，账记在本子上，谁都能查。\\n\\n我这两天摸清了：坑里一块矿两点行动值、柜台三金收，是最赚的路子；坏就坏在腿和时间上——你挖满十点就是一整个时段，哪还有力气往镇上走。你把力气全留在镐上，路我跑。你要愿意，明早把你手里的矿留给我；另外上一件事还等你一句话：旧镐，买或预订，你开价。\",\"topic\":\"代卖矿石\"}",
+              "id": "2be02a6a666e47a8bab9ea1f988cd8d5",
+              "key": "[\"悦\",\"yue-ashi-deal-7\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，话算数。三块矿九金，我认这个价——我开的口，砸牙也咽。我人这就从矿坑回铺子，钱装在布袋里，你到炉边等着，矿递我手，九个金币当着你的面点清。往后你还有矿，我还收，只是先说下：镇上柜台缺现钱，我一个人的口袋也有限，到时可得分批。\",\"topic\":\"卖你三块矿\"}",
+              "id": "9ed9833fd78849a58f922cbbcdfea2d7",
+              "key": "[\"老铁\",\"ashi-deal-8\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，九个金币当面点清了，一个子儿不差，你数数。该你了：三块矿递我手上，我这就背回铺子压槽里。往后你挖的矿我照三金一块收，只是我口袋也得缓一缓，咱们分批来。\",\"topic\":\"卖你三块矿\"}",
+              "id": "c8e90171f6e04083a0abc30b108e27ce",
+              "key": "[\"老铁\",\"ashi-paid-9\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，我还在矿坑，人没走。你那三块矿现在就递我手上，一块一块点，矿进我手这账才落地。九金已经在你账上了，我这儿不是催你，是把话说准——你递得越快，我回炉边越早，镇上那些坏家伙什就能早点修。\",\"topic\":\"欠你三块矿\"}",
+              "id": "e0803f1c8bd44b119660dcd41d031b94",
+              "key": "[\"老铁\",\"ashi-deliver-now\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，你就站在我旁边，问一句实在的：矿上、或者你家里，有没有坏镐、旧镐、多出来的镐头？坏的我出钱收，修好了自己下坑使。价钱你说，我不还价。另外你往后挖的矿要是懒得背，一块一金脚钱照旧，我不改价。\",\"topic\":\"收坏镐\"}",
+              "id": "a7eb969670954538aef713d4628405b3",
+              "key": "[\"小路\",\"xiaolu-d2e-x38\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，半夜了还在坑上？我问你句实在话：镇上就你和老娘（小砾）手里有镐，可谁也没有多余的。你知不知道哪儿还搁着坏镐、旧镐——废矿车、旧棚子、谁家墙根底下？我不白问，你指条路，我跑腿的钱分你一半。另外你哪天只挖个一两块，喊我，一金一块我不改价。\",\"topic\":\"打听废镐\"}",
+              "id": "e21725549e7d43209acc8f6064e8c9b7",
+              "key": "[\"小路\",\"xiaolu-d2n-x44\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，实说：我口袋只剩两金，你那十一块矿我这会儿收不动，不赊不欠，我不跟你打白条。柜台缺现钱，咱们都得等它回血。你照旧下镐、矿压在手里，等我这边有进项，头一个找你，按三金一块收。另有一事问问：镇上还有谁手里撂着坏镐？我槽里有三块矿，正等着开张。\",\"topic\":\"矿留着等你\"}",
+              "id": "ac0d8bad8e0f44dc8462dba77b74c1aa",
+              "key": "[\"老铁\",\"ashi-hold-ore\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，我手上压着四块矿，是两块一金从小砾那儿匀来的。柜台断钱，一块也收不进去，你我都清楚。所以我换个卖法，先问你：**你的镐现在好不好？**要是有毛病，缺一块矿修——我按**三金一块**给你，比柜台还低一分没有，就是省了你下山跑两站。要修，我在坑口把矿递你手里，你拿去铁匠铺，两金加我这矿，镐就回来了。\\n\\n要是你镐是好的、近几天不修，那也实说，我不缠你。往后你要出矿、要找人背货，也先招呼我一声。\",\"topic\":\"矿换你的急\"}",
+              "id": "6108833c0aa3485d90ca4af0fca7504b",
+              "key": "[\"悦\",\"yue-ashi-ore-13\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，问你个实在事：矿上有没有撂下的坏镐？你或谁手里要是有，背来我修，两金加一矿，我给你修利索。林攥着十四金满镇买镐，修好的镐就是现钱。镇上柜台没钱，可钱在活人手里，咱们把死铁盘活，比干等柜台强。\",\"topic\":\"坏镐换活钱\"}",
+              "id": "23cf226b33be40a699d486a5cbc65d97",
+              "key": "[\"老铁\",\"ashi-broken-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，坑口就咱几个，说话不绕弯：铁匠铺的林想买一把镐下坑，出得起钱，镇上只有你手里那把是活的。你要是肯脱手，你说个价，我替你还价、中间不抽你的；不肯，我一句话不再提。另外你今儿要是还挖，挖出来的矿两块一金我现收，你落钱、我跑腿，两不耽误。\",\"topic\":\"镐子你开价\"}",
+              "id": "32506950c3934c8cafcaaa22adf7565a",
+              "key": "[\"小路\",\"xiaolu-d3a-x55\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，你这话我接了：坏铁件我找，矿你出，修好了卖给出价最高的——林十四金在那儿摆着，悦也有两金四矿想下坑。丑话先说前头，免得日后红脸：修工是我手艺，卖镐的价抛去修工和料钱，余下的咱们对半分，秤我来掌，账当众报。我这就奔树林，小路正在阿森那堆矿车零件里翻镐头。\",\"topic\":\"合伙找镐\"}",
+              "id": "39fec317afac4509b047d012687cc794",
+              "key": "[\"老铁\",\"ashi-partner-1\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，当面问一句：你那把镐，肯不肯脱手？林在铁匠铺等着买，出得起现钱；你说个数，我原话带过去，一分不抽你的。你不肯卖，我也不磨你，扭头就回他一句\\\"没有\\\"。另外：你今儿要是挖了矿，两块一金我现收，钱我这就点给你。\",\"topic\":\"镐子要个准话\"}",
+              "id": "132b2b24b89946899253597a5b5de7e1",
+              "key": "[\"小路\",\"xiaolu-d3e-x58\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，你那条路我认，也谢你肯让出一块矿。我这就往居民楼B去，明早当面求阿森让我翻零件。翻着了：你出一块矿、老铁出两金工钱、我出腿脚，修好的镐卖给林十四金，扣掉矿钱工钱，剩下的咱三个分，我这份最多也就四金，我不贪。翻不着我当天就回你的话，不耽误你下坑。\",\"topic\":\"翻零件·照你说的办\"}",
+              "id": "8d08fd430cfc4dfd99f78863775413d9",
+              "key": "[\"小路\",\"xiaolu-d3n-x62\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，你人在楼里，我也在院里。搭把手：你家门口这堆矿车零件，咱俩现在就翻一遍找镐头、坏镐——你出力，我掌秤，翻出来了照先前说的对半分。别等阿森了，他是伐木的，这堆铁疙瘩他未必当回事。\",\"topic\":\"翻零件堆\"}",
+              "id": "6854e6bd7b9143c58a4a5316b44b7386",
+              "key": "[\"老铁\",\"ashi-search-yard\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，翻镐的事到此为止，我认栽：阿森亲口说零件堆里一件都没有，坏镐没影。你不必等我，掉头下坑去。另有一句给你：柜台被掏空了，你现在挖出来的矿，卖过去未必拿得到现钱——先探探柜台还有几文再背。真要背不动了，喊我，一块一金照旧。\",\"topic\":\"没有坏镐·柜台没钱\"}",
+              "id": "fff34955aaa647d7a0fd025c74a1a612",
+              "key": "[\"小路\",\"xiaolu-d4n-x69\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，给你准话：院角那堆矿车零件里没有坏镐、没有旧镐头、没有断柄的镐，也没有存矿。我翻过两遍，不骗你，你转身下坑吧。你要真等一块矿修镐，去问林和悦——他俩手上各有十几金币，是镇上仅有的活钱。\",\"topic\":\"回你：没有坏镐也没有矿\"}",
+              "id": "3c9375d490574f35ab697612685620b5",
+              "key": "[\"阿森\",\"ashi-nopick-d4noon\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，别两头跑空。那堆零件就在你住的院角，你回去挑：镐头、断柄、成色像样的铁件，挑出来背到铁匠铺来，我当面过秤过眼——值钱的按铁重给钱或给矿，能修的修成镐卖林，卖价除去修工料钱咱俩对半分。你出力我出手艺，这话不变。炉子我守着，不会凉。\",\"topic\":\"零件背来铺子\"}",
+              "id": "dd071965ba894043a32be683ebd196be",
+              "key": "[\"老铁\",\"ashi-bring-parts\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，有桩小生意，你听着不亏：我手里有矿，你有镐。**矿工最怕的不是没矿，是镐坏的那一刻手里没矿。**\\n\\n我的卖法：**一块矿三金**，你说要，我就送到坑口你手里，省你下山两站六点脚力。你现在不修也没关系，先囤一块在怀里当\\\"保险\\\"——真到那天，柜台未必有钱卖你矿（柜台根本只收不卖），铁匠铺又只认矿不认人。\\n\\n我不是催你买，是提醒你：这镇上没有第二处能买矿的地方，只有人手里有。你手里二十四金，一块三金买个安心，值不值你自己算。我在镇上盯着柜台，你点头我就过去。\",\"topic\":\"矿当保险\"}",
+              "id": "24fc4788e81942f3bef6e188e7749ffb",
+              "key": "[\"悦\",\"yue-ashi-insure-18\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，我给你算笔大账。你手里二十几金，可柜台没钱，你挖出来的矿背过去也是白条；小砾一样，悦的木头也一样。这镇子不是没货，是没活钱。办法有一条：**咱们凑五金，在柜台买走一把斧子**，柜台就落下五金现钱，它才有钱收矿石和木料。你出三金，我出两金，斧子归我使，我替大家跑腿砍柴。你出三金，柜台一活，你头两筐矿就能换出六金——这买卖你亏不了。\",\"topic\":\"凑钱盘活柜台\"}",
+              "id": "c96802cc20124f0eabd9b07332796db9",
+              "key": "[\"小路\",\"xiaolu-d4a-x73\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，事办成了：我垫了五金，在柜台买走一把斧子，柜台现在有活钱了，你那筐矿背过去能换现的。你那三金份子我记在账上——柜台一活，你头一趟背矿过去就能换回六金，这钱你花得值。我手里还收着小砾三块矿，一块都不往柜台砸价，你放心。\",\"topic\":\"柜台活了\"}",
+              "id": "acb7d06623c44bd0ab2ee7856047a452",
+              "key": "[\"小路\",\"xiaolu-d4a-x77\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，价我领了，可这回我得说声\\\"不\\\"——不是嫌两金贵，是我袋里只剩七金，全换成矿，明天柜台一响我却一个铜板也拿不出来办事。矿不烂，可我这活钱更不能断。\\n\\n换个法子，你看成不成：**你要出货，我替你背、替你找买家，一块一金脚钱**，跟柜台那边一个价；你只管在坑里抡镐，腿的事交给我和小路。你现在手上有二十四金、八块矿，缺的不是矿，是把矿变成钱的路子——那路子我比谁都熟。\\n\\n还有件真事交你：老铁跟我约好，哪天翻出坏镐头，他出矿我出两金，修成好镐归我下坑。到那天，我就跟你一样是坑里的人了，你先认下我这个同行。\",\"topic\":\"不接矿·改背货\"}",
+              "id": "eff2172dc04148ac9aee237b181d3236",
+              "key": "[\"悦\",\"yue-asen-ore-20\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，阿森。你的镐还坏着吧？有准信了：悦手里有四块矿，她就住在居民楼A，人常在商店那边转；她正愁矿卖不出去。修镐只要一块矿加两金工钱，老铁炉子就在铁匠铺。你去找悦谈一块矿，价钱别太抠——她手上还有七金现钱，你要能把矿和工钱一次说下来，镐一好，坑上就多你一个吃饭的人。我这边没矿没坏镐，帮不上别的，只能给你递这个信。\",\"topic\":\"矿在悦手里，去谈\"}",
+              "id": "4d1c0e31f70840e8aa35dc5610fa0fc7",
+              "key": "[\"阿森\",\"ashi-ore-tip-d4night\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，你人在我家门口，正好——**一块矿先递到你手上**，按你说的价，六金，钱你点给我。\\n\\n你还缺矿修镐、或者手头宽裕想多囤，只管开口，我手上还有十一块，六金一块，先紧着你。镇上柜台一文现钱都掏不出，我这货压着也是压着，给用得着的人比压在柜台强。\\n\\n另外说一句实在话：你镐子好、我镐子好，镇上就咱俩下坑的。以后谁的镐坏了，别硬撑，招呼一声，我这儿有矿，修镐的两金你出、矿我出，说清就成。\",\"topic\":\"一块矿六金\"}",
+              "id": "b821a9b44e444e458ab99437859af183",
+              "key": "[\"小砾\",\"ashi-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，份子那笔我不提了，是我自作主张，你没应过，账就不记在你头上——这话我认。柜台死了，你的矿砸在那儿也是白条。我手里有两块矿，你先别惦记；倒是有一句实在的：你镐子万一磕坏了，修一回要两金加一块矿，那块矿你来找我，三金给你留着，不用你去矿坑里翻。\",\"topic\":\"份子不提·留矿修镐\"}",
+              "id": "7cc57d4e93f34d46956c281232c596eb",
+              "key": "[\"小路\",\"xiaolu-d5m-x88\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，阿森，当面说清楚，两条路你挑：\\n\\n一、我四金现钱买你那把坏镐。我拿它去找悦买一块矿（三金），再给老铁两金工钱修好，然后卖给林——林手上有十四金，正缺一把能下坑的镐。这一趟我挣个辛苦钱，你落四金现钱，不用等、不用欠。\\n\\n二、你想自己吃这十四金也行：我替你垫一块矿的钱（三金给悦）和两金工钱，镐修好后由你去跟林谈价，卖出十四金你给我八金，剩下的都归你。这条你要应我一句，还得让我信你到时候不赖账。\\n\\n我人在居民楼A，你也在。你点个头或摇个头，我都不多绕。我阿森说话算话，不占人便宜，也不吃哑巴亏。\",\"topic\":\"坏镐：两条路你挑\"}",
+              "id": "2c883e2ff0a546b7899fbdde91102706",
+              "key": "[\"阿森\",\"ashi-deal-d5\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"阿石，我人就在居民楼B院里，蹲在那堆矿车零件边上。你先前说\\\"你哪会儿到，我就哪会儿陪你翻\\\"——今晚收工回来，咱俩把这堆铁疙瘩过一遍：镐头、断柄、像样的铁件挑出来，能修的修，能卖的卖，卖价除去修工料钱对半分。你若回不来，也捎句话，我明早再来。炉子我托着，不碍事。\",\"topic\":\"今晚翻零件堆\"}",
+              "id": "2a0104d5e8254eb5871fae712e73231d",
+              "key": "[\"老铁\",\"ashi-evening-pile\"]"
+            },
+            {
+              "fingerprint": "{\"text\":\"各位，矿工阿石说个明白事：我手里压着三十二块矿石，柜台一分现钱都掏不出，一块也换不出去。所以我换个卖法——**矿石两金一块，谁要给个数，我背到你跟前当面点**，比柜台三金还便宜一金。谁要修镐、要囤货、要等柜台回血后转手，这价都合适。另外我镐是好的，谁再传\\\"阿石镐坏了\\\"的话，替我说一句：早修好了。要约矿的，捎话给我，我人在矿坑到铁匠铺这一路。\",\"topic\":\"矿石两金一块·谁要\"}",
+              "id": "68c5123cac374d5ca54950ab9af9125c",
+              "key": "[\"阿石\",\"d5-public-ore-ad-1\"]"
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "阿石 · 发送消息 · 向当前消息与讨论箱发送一条消息；发送者身份由请求链确定，所需行动点由箱配置核验。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键；同一发送者的相同键与相同内容只发送一次，相同键配不同内容会被拒绝。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空消息正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "消息正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或公告栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_aa7ff1d59ab632908ff086dc"
+            },
+            {
+              "description": "阿石 · 读取消息 · 读取当前消息与讨论箱中最近的有限条消息，能否读取由箱的读取范围配置决定。",
+              "factory_module": "messages.box",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "limit": {
+                    "default": 20,
+                    "description": "返回最近的多少条消息，范围为 1 到 200，默认 20。",
+                    "maximum": 200,
+                    "minimum": 1,
+                    "title": "读取条数",
+                    "type": "integer"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "mod_aa6f853fc8b7bed86141cee9"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "chat",
+          "records",
+          "self"
+        ],
+        "config": {},
+        "description": "",
+        "module_id": "messages.relay",
+        "modules": [
+          "messages.box"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "description": "把一条便笺发送给另一位当前可达的真实 Agent；消息存入对方的 messages.box，发送者保持为自己，可用 key 幂等重试。",
+              "factory_module": "messages.relay",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选的发送方请求键，沿用 messages.box 的幂等语义：相同发送者、相同键与相同内容只投递一次。",
+                    "title": "去重键",
+                    "type": "string"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID，不能是自己。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要发送的非空便笺正文，最长 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "便笺正文",
+                    "type": "string"
+                  },
+                  "topic": {
+                    "default": "",
+                    "description": "可选的话题或栏目，省略时为空字符串。",
+                    "title": "话题",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "send_to"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "context.assembler",
+          "context.assembler.system_prompt",
+          "context.assembler.context",
+          "context.assembler.inputs",
+          "context.assembler.tail"
+        ],
+        "config": {
+          "channels": [
+            "context.assembler"
+          ],
+          "context_channels": [
+            "context.assembler.context"
+          ],
+          "inputs_channels": [
+            "context.assembler.inputs"
+          ],
+          "system_prompt_channels": [
+            "context.assembler.system_prompt"
+          ],
+          "tail_channels": [
+            "context.assembler.tail"
+          ]
+        },
+        "description": "上下文组装器",
+        "module_id": "context.assembler",
+        "modules": [],
+        "strength": 4,
+        "tools": {
+          "group": 5,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self"
+        ],
+        "config": {
+          "max_memories": 100
+        },
+        "description": "",
+        "module_id": "agents.memory",
+        "modules": [],
+        "state": {
+          "memories": [
+            {
+              "key": "day1-morning-pickaxe",
+              "text": "第1天早上：镐子坏了（broken_pickaxe 1），身家12金币、0矿石、0木材。铁匠铺修镐规则：交2金币+1矿石→得1把好镐。商店价目：锯/斧各卖5金币；矿石回收3金币但不出售（库存0），木材回收2，黄金回收10。酒馆喝一杯：1金币换2行动值（上限10）。坑：没矿修不了镐，没镐挖不了矿。已向老铁、小路、阿森递话，求购1块矿石出价6金币，并在公共箱发了求购告示。居民楼B住：小路（流浪汉，1金币一趟跑腿）、阿森（伐木工）、老铁（铁匠）、我。下一步：中午先看回信，拿到矿就去铁匠铺（走居民楼B→商店→铁匠铺）。"
+            }
+          ]
+        },
+        "strength": 0,
+        "tools": {
+          "group": 6,
+          "members": [
+            {
+              "description": "把一段个人经历或知识写入自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选。相同键可用于幂等重试，不同内容不能复用同一个键。",
+                    "minLength": 1,
+                    "title": "记忆键",
+                    "type": "string"
+                  },
+                  "text": {
+                    "description": "要记住的内容，不能为空，最多 4000 个字符。",
+                    "maxLength": 4000,
+                    "minLength": 1,
+                    "title": "记忆内容",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "text"
+                ],
+                "type": "object"
+              },
+              "tool": "remember"
+            },
+            {
+              "description": "按关键词子串检索自己的私人记忆。",
+              "factory_module": "agents.memory",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "default": "",
+                    "description": "按子串匹配自己的记忆，留空返回全部记忆。",
+                    "title": "查询词",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "recall"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "records",
+          "movement",
+          "info",
+          "location",
+          "road"
+        ],
+        "config": {
+          "map_title": "奈镇地图",
+          "public_fields": [
+            "name",
+            "gender",
+            "profession",
+            "age_group"
+          ],
+          "road_channels": [
+            "location",
+            "road"
+          ]
+        },
+        "description": "",
+        "module_id": "places.query",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "published": {
+          "age_group": "adult",
+          "gender": "male",
+          "name": "阿石",
+          "profession": "矿工"
+        },
+        "state": {},
+        "strength": 12,
+        "tools": {
+          "group": 7,
+          "members": [
+            {
+              "description": "查看个人记录、当前位置、同地人物和可直接前往的地点；当前时间由上下文尾部提供。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "look"
+            },
+            {
+              "description": "按地点名称或编号查询公开用途和相邻道路；省略时查询当前地点。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "place": {
+                    "description": "地点名称或编号；省略时查询当前位置。",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "place"
+            },
+            {
+              "description": "取得授权范围内的地点道路图片；图中线段表示道路，箭头表示单向。",
+              "factory_module": "places.query",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "map"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "self",
+          "chat",
+          "location"
+        ],
+        "config": {
+          "cost": 1,
+          "same_location": true
+        },
+        "description": "",
+        "module_id": "records.transfer",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":6,\"recipient\":\"小砾\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:阿石:阿石:give:shi-pay-xiaoli-ore-1",
+              "result": {
+                "ap": 6,
+                "duplicate": false,
+                "from": "阿石",
+                "quantity": 6,
+                "resource": "coins",
+                "to": "小砾"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":6,\"recipient\":\"小砾\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:阿石:阿石:give:d2-pay-xiaoli-final",
+              "result": {
+                "ap": 6,
+                "duplicate": false,
+                "from": "阿石",
+                "quantity": 6,
+                "resource": "coins",
+                "to": "小砾"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":3,\"recipient\":\"老铁\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:阿石:阿石:give:d2-ore-repay-laotie-3",
+              "result": {
+                "ap": 9,
+                "duplicate": false,
+                "from": "阿石",
+                "quantity": 3,
+                "resource": "ore",
+                "to": "老铁"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":1,\"recipient\":\"林\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:阿石:阿石:give:d3-ore-to-lin-1",
+              "result": {
+                "ap": 6,
+                "duplicate": false,
+                "from": "阿石",
+                "quantity": 1,
+                "resource": "ore",
+                "to": "林"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":2,\"recipient\":\"林\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:阿石:阿石:give:d3-ore-to-lin-2b",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "阿石",
+                "quantity": 2,
+                "resource": "ore",
+                "to": "林"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":4,\"recipient\":\"林\",\"resource\":\"ore\",\"same_location\":true}",
+              "key": "records.transfer:阿石:阿石:give:d5-ore-to-lin-4",
+              "result": {
+                "ap": 3,
+                "duplicate": false,
+                "from": "阿石",
+                "quantity": 4,
+                "resource": "ore",
+                "to": "林"
+              }
+            },
+            {
+              "fingerprint": "{\"cost\":1,\"quantity\":6,\"recipient\":\"小砾\",\"resource\":\"coins\",\"same_location\":true}",
+              "key": "records.transfer:阿石:阿石:give:d5-pay-xiaoli-6",
+              "result": {
+                "ap": 0,
+                "duplicate": false,
+                "from": "阿石",
+                "quantity": 6,
+                "resource": "coins",
+                "to": "小砾"
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 8,
+          "members": [
+            {
+              "description": "把自己记录仓中的数字资源转交给另一位当前可达的真实 Agent；只能由资源所有者本人调用，可配置行动点成本和同地点要求。",
+              "factory_module": "records.transfer",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同参数重试时返回旧结果，参数变化会被拒绝。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "description": "要转交的正整数数量。",
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  },
+                  "recipient": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "收件人",
+                    "type": "string"
+                  },
+                  "resource": {
+                    "description": "自己记录仓中要转交的数字字段名，例如金币、木材或 ap。",
+                    "minLength": 1,
+                    "title": "资源字段",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "recipient",
+                  "resource",
+                  "quantity"
+                ],
+                "type": "object"
+              },
+              "tool": "give"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement"
+        ],
+        "description": "串联工具发现",
+        "module_id": "tool_discovery",
+        "modules": [],
+        "strength": 2,
+        "tools": {
+          "group": 9,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 10,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 11,
+          "members": [
+            {
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "tool": "memory_query"
+            },
+            {
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "new_text": {
+                    "type": "string"
+                  },
+                  "old_text": {
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_modify"
+            },
+            {
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "type": "object"
+              },
+              "tool": "memory_append"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "type": "agent"
+}

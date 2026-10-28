@@ -1,0 +1,50 @@
+{
+  "role": "assistant",
+  "content": [
+    {
+      "type": "reasoning",
+      "text": "Instantiate both, discussion with count=3, execution count=4. Need positions. Then connect. Note instantiate returns mapping. Let's do both."
+    },
+    {
+      "type": "tool-call",
+      "id": "call_00_cXlZyNCjhkPO0TFSodG70634",
+      "name": "instantiate_preset",
+      "arguments": "{\"id\":\"fragment:discussion.json\",\"count\":3,\"x\":900,\"y\":200}"
+    },
+    {
+      "type": "tool-call",
+      "id": "call_01_MwnxNqdFztGikm6l3PLC8704",
+      "name": "instantiate_preset",
+      "arguments": "{\"id\":\"fragment:execution.json\",\"count\":4,\"x\":900,\"y\":700}"
+    }
+  ],
+  "source": {
+    "kind": "model",
+    "provider": "nexarbor-d91bb34b32d5dc0a1dd16794a259b605",
+    "model": "deepseek-flash",
+    "replayState": {
+      "response": {
+        "kind": "pi-ai",
+        "version": 2,
+        "api": "openai-completions",
+        "provider": "nexarbor-d91bb34b32d5dc0a1dd16794a259b605",
+        "model": "deepseek-flash",
+        "responseId": "1d1d11fd-393d-4344-bdaf-92d487e21a48",
+        "stopReason": "toolUse"
+      },
+      "blocks": [
+        {
+          "type": "reasoning",
+          "thinkingSignature": "reasoning_content"
+        },
+        {
+          "type": "tool-call"
+        },
+        {
+          "type": "tool-call"
+        }
+      ]
+    }
+  },
+  "id": "1b82d809-c932-4af5-8b95-366ddc4c411d"
+}

@@ -1,0 +1,422 @@
+{
+  "type": "agent",
+  "node_id": "root",
+  "name": "根 Agent · 用户入口",
+  "description": "委托管理员组网，再编排讨论组与执行组完成用户任务。",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "context.assembler",
+        "description": "上下文组装器",
+        "channels": [
+          "context.assembler"
+        ],
+        "strength": 6,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "sources": [
+            {
+              "id": "root-guide",
+              "kind": "system_prompt",
+              "type": "text",
+              "text": "你是根 Agent，负责委托管理员放置讨论小组和执行小组预设，再调用小组入口完成任务。根只连接管理员和两个组入口，不连接成员。讨论使用 datanet_discuss，协作使用 datanet_cooperate；启动协作后用 wait_group 等待结果，避免轮询。讨论成果作为协作任务的一部分。组内成员自行认领、实现、发布、验收。"
+            }
+          ]
+        },
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "groups.control",
+        "description": "",
+        "channels": [
+          "discussion",
+          "collaboration"
+        ],
+        "strength": 6,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {},
+        "state": {},
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "tool": "mod_d61208b710b2b4859ffad9aa",
+              "description": "root · datanet_discuss · 运行固定轮次的并行讨论并等待 Recorder 定稿。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "group_id": {
+                    "type": "string"
+                  },
+                  "task": {
+                    "type": "string",
+                    "description": "完成后填写即开始新任务；省略时续跑未完成任务或读取已有成果。"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "groups.control"
+            },
+            {
+              "tool": "mod_766630e52cb515754357e636",
+              "description": "root · datanet_cooperate · 启动、查看或停止平等 Git 协作组。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "group_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "action": {
+                    "type": "string",
+                    "enum": [
+                      "start",
+                      "status",
+                      "stop"
+                    ]
+                  },
+                  "task": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "budget_minutes": {
+                    "type": "number",
+                    "minimum": 0.1,
+                    "maximum": 1440
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "groups.control"
+            },
+            {
+              "tool": "mod_defa834533b4f3716545dc47",
+              "description": "root · wait_group · 等待协作组结束，返回最终候选、工作区与状态。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "group_id": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "groups.control"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "tool_discovery",
+        "description": "串联工具发现",
+        "channels": [
+          "self",
+          "admin",
+          "workspace",
+          "discussion",
+          "collaboration",
+          "context.assembler"
+        ],
+        "strength": 16,
+        "channel_mode": "allow",
+        "modules": [],
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      }
+    ],
+    "tools": {
+      "group": 3,
+      "members": [
+        {
+          "modules": true
+        },
+        {
+          "group": 4,
+          "members": [
+            {
+              "tool": "memory_query",
+              "description": "查询本节点 Markdown 记忆，按节点 ID 返回结果。query 留空返回全文，否则返回包含该文本的行。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "query": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_modify",
+              "description": "精确替换记忆中的唯一文本片段，需提供足够上下文；按节点 ID 返回替换次数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "old_text": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "new_text": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "old_text",
+                  "new_text"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            },
+            {
+              "tool": "memory_append",
+              "description": "将 content 原样追加到记忆末尾，不自动补换行；按节点 ID 返回追加字符数，不返回全文。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "content": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "content"
+                ],
+                "additionalProperties": false
+              },
+              "modules": []
+            }
+          ]
+        },
+        {
+          "tool": "ext_ed98abef131cc94d7536d93e",
+          "description": "root · Execute a PowerShell command (`pwsh -Command`) and return its stdout/stderr. Each call runs in a fresh pwsh process; pass `workdir` instead of using `cd`. Paths use native Windows form (`C:\\...`); read environment variables with `$env:NAME`. Managed `$env:DSH_*` variables expose current harness environment facts. Long output is truncated to its tail; the full output is saved to a file whose path is reported when available. On Windows a force-killed command settles as `[exit code: 1]` without a signal marker — treat it as an interruption, not a command failure. Provide `description` before `command` in the arguments. Before any delete or move, verify that the resolved absolute target path is the intended one; never run it against a computed path you have not checked. Do not assign to automatic variables such as `$HOME`; variable names are case-insensitive, so `$home` is the same read-only variable. Commands may run under a file sandbox; a blocked file operation is reported as `[sandbox: file access denied under <mode> mode]`, a policy denial: do not retry another way.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "description": {
+                "type": "string",
+                "description": "Clear, concise description of what this command does in active voice, 5-10 words (shown in the UI). Examples: \"ls\" → \"List files in current directory\"; \"git status\" → \"Show working tree status\"; \"Get-Process\" → \"List running processes\"."
+              },
+              "command": {
+                "type": "string",
+                "description": "The PowerShell command to execute."
+              },
+              "timeoutMs": {
+                "type": "number",
+                "description": "Timeout in milliseconds. The executor applies its configured default and cap; on expiry the command moves to the background as a job instead of being killed."
+              },
+              "workdir": {
+                "type": "string",
+                "description": "Working directory for this command. Defaults to the session workspace; a relative path is resolved against it."
+              },
+              "run_in_background": {
+                "type": "boolean",
+                "description": "Run in the background and return a job id immediately (collect with job_output, stop with job_kill). No timeout applies."
+              }
+            },
+            "required": [
+              "description",
+              "command"
+            ]
+          },
+          "modules": [],
+          "host_ref": "harness:pwsh"
+        },
+        {
+          "tool": "ext_80fbaa3457b102cb34ec5440",
+          "description": "root · Read a UTF-8 text file and return line-numbered content.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string",
+                "description": "Path to read, resolved by the filesystem backend."
+              },
+              "offset": {
+                "type": "number",
+                "description": "1-based first line to return. Defaults to 1."
+              },
+              "limit": {
+                "type": "number",
+                "description": "Maximum number of lines to return. Defaults to 2000."
+              }
+            },
+            "required": [
+              "file_path"
+            ]
+          },
+          "modules": [],
+          "host_ref": "harness:read"
+        },
+        {
+          "tool": "ext_0892450da6aad2006dbbdb52",
+          "description": "root · Create or fully replace a UTF-8 text file.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string",
+                "description": "Path to write, resolved by the filesystem backend. Provide `file_path` before `content` in the arguments."
+              },
+              "content": {
+                "type": "string",
+                "description": "Full UTF-8 text content to write."
+              }
+            },
+            "required": [
+              "file_path",
+              "content"
+            ]
+          },
+          "modules": [],
+          "host_ref": "harness:write"
+        },
+        {
+          "tool": "ext_f83fad5f6d72a03265ee472b",
+          "description": "root · Edit an existing UTF-8 text file by replacing literal text.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "file_path": {
+                "type": "string",
+                "description": "Path to edit, resolved by the filesystem backend. Provide `file_path` before `old_string` and `new_string` in the arguments."
+              },
+              "old_string": {
+                "type": "string",
+                "description": "Literal text to replace."
+              },
+              "new_string": {
+                "type": "string",
+                "description": "Literal replacement text. Use an empty string to delete the match."
+              },
+              "replace_all": {
+                "type": "boolean",
+                "description": "Replace all matches. Defaults to false; when false, old_string must appear exactly once."
+              }
+            },
+            "required": [
+              "file_path",
+              "old_string",
+              "new_string"
+            ]
+          },
+          "modules": [],
+          "host_ref": "harness:edit"
+        },
+        {
+          "tool": "ext_94b7663dbf7296932a911462",
+          "description": "root · Find files, not directories, whose paths match a glob pattern, including hidden and ignored files. Returns up to 100 paths in modification-time order; a larger result keeps the first paths and reports where the complete list was saved.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Glob pattern to match file paths against (e.g. \"**/*.ts\", \"src/**/*.test.js\"). A pattern with no \"/\" matches the basename at any depth, so \"*\" and \"*.ts\" both search the whole tree; include a separator to anchor the depth."
+              },
+              "path": {
+                "type": "string",
+                "description": "Directory to search in. Defaults to the session workspace; a relative path resolves against it."
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          },
+          "modules": [],
+          "host_ref": "harness:glob"
+        },
+        {
+          "tool": "ext_94673dbbc3228c9133e0699a",
+          "description": "root · Search file contents with a ripgrep regular expression. Returns matching lines with line numbers, grouped by file. Returns up to 250 matches; a larger result reports where the complete match list was saved.",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "pattern": {
+                "type": "string",
+                "description": "Regular expression to search for (ripgrep syntax)."
+              },
+              "path": {
+                "type": "string",
+                "description": "File or directory to search. Defaults to the session workspace; a relative path resolves against it."
+              },
+              "include": {
+                "type": "string",
+                "description": "One glob filter for which files to search (e.g. \"*.ts\", \"*.{js,jsx}\"). Not a list; negation is not supported."
+              }
+            },
+            "required": [
+              "pattern"
+            ]
+          },
+          "modules": [],
+          "host_ref": "harness:grep"
+        }
+      ]
+    }
+  },
+  "bias": 0,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "administrator",
+      "channels": [
+        "admin"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ],
+  "agent": {
+    "inputs": {}
+  },
+  "data": {
+    "type": "markdown",
+    "path": "data/root.md",
+    "save_data": true,
+    "directory": false
+  },
+  "execution": {
+    "executor": "harness",
+    "strength": 16,
+    "channels": [
+      "self",
+      "admin",
+      "workspace",
+      "discussion",
+      "collaboration",
+      "context.assembler"
+    ],
+    "prepare": [
+      {
+        "module": "context.assembler",
+        "operation": "assemble",
+        "arguments": {},
+        "channels": [
+          "context.assembler"
+        ]
+      }
+    ],
+    "max_steps": 100000,
+    "timeout_seconds": 86400
+  }
+}

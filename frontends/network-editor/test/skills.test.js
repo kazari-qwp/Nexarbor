@@ -1,3 +1,4 @@
+import {fileURLToPath} from 'node:url';
 import {moduleTable,nodeSkills,offeredPorts} from '../../shared/graph/node-records.js';
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import path from 'node:path';
 import {resource,attachResources,resourceRelations,matchesType,assetHistory,resources} from '../src/resources.js';
@@ -16,7 +17,7 @@ test('recursive Skill assembly preserves existing components, deduplicates, stay
  delete bad.skills.basic.skills;bad.skills.advanced.tools=['missing'];assert.throws(()=>attachResources(doc,'b',[value.asset],bad),/缺少依赖/);assert.equal(doc.network.nodes[1].execution?.skills,undefined);
 });
 test('Skills use persistent bookmarks, MRU history and virtual folders with archive/restore',async()=>{
- const folder=await fs.mkdtemp(path.resolve('build/skills-library-')),library=editorLibrary(folder,{catalog:async()=>catalog}),change=p=>library('editor.library.update',p);
+ const folder=await fs.mkdtemp(path.resolve(fileURLToPath(new URL('../../../build/',import.meta.url)),'skills-library-')),library=editorLibrary(folder,{catalog:async()=>catalog}),change=p=>library('editor.library.update',p);
  const advanced=resource(catalog,'skill','advanced'),basic=resource(catalog,'skill','basic'),book={id:'bookmark',kind:'skill',name:'技能书签',asset:advanced.asset,category:'default',createdAt:1};
  await change({action:'bookmark.patch',changes:[{id:book.id,expected:null,value:book}]});
  for(const value of [advanced,basic,advanced])await change({action:'history.push',entries:[assetHistory(value)]});

@@ -1,0 +1,268 @@
+{
+  "type": "node",
+  "node_id": "医院",
+  "name": "医院",
+  "description": "",
+  "tables": {
+    "modules": [
+      {
+        "module_id": "place.info",
+        "description": "",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "strength": 0,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "visitors_from_edges": false,
+          "description": "安静的医院，待产者在这里办理生产。",
+          "visitors": []
+        },
+        "state": {},
+        "published": {},
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "module_id": "movement.here",
+        "description": "",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "strength": 2,
+        "channel_mode": "allow",
+        "modules": [
+          "place.info"
+        ],
+        "config": {
+          "timeout_seconds": 60,
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "before_hooks": [
+            {
+              "target": "requester",
+              "module": "records.store",
+              "operation": "apply",
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              }
+            }
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "tool": "mod_72a304f53a05ace47d516625",
+              "description": "医院 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": [],
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "movement.here"
+            }
+          ]
+        }
+      },
+      {
+        "module_id": "family.birth",
+        "description": "",
+        "channels": [
+          "road",
+          "service",
+          "time",
+          "family.pregnancy",
+          "family.parent",
+          "context.assembler.context",
+          "runtime.template",
+          "records",
+          "location"
+        ],
+        "strength": 12,
+        "channel_mode": "allow",
+        "modules": [],
+        "config": {
+          "duration": 10,
+          "cost": 1,
+          "time_channels": [
+            "time"
+          ],
+          "pregnancy_channels": [
+            "family.pregnancy"
+          ],
+          "parent_channels": [
+            "family.parent"
+          ],
+          "templates": [
+            {
+              "home": "居民楼A",
+              "template": "newborn-a"
+            },
+            {
+              "home": "居民楼B",
+              "template": "newborn-b"
+            }
+          ]
+        },
+        "state": {},
+        "tools": {
+          "group": 2,
+          "members": [
+            {
+              "tool": "mod_34f0d5c6742ff22103b5f8bd",
+              "description": "医院 · 查看待产状态 · 查看自己的怀孕起始 tick、经过时间和是否到期。",
+              "parameters": {
+                "type": "object",
+                "properties": {},
+                "additionalProperties": false
+              },
+              "modules": [],
+              "factory_module": "family.birth"
+            },
+            {
+              "tool": "mod_7330cc7e9ef9b2c3d5e7cf31",
+              "description": "医院 · 办理生产 · 待产者本人到医院，满足等待时间后创建儿童；不需要伴侣同时到场，同请求重试不会重复创建。",
+              "parameters": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 50
+                  },
+                  "key": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "key"
+                ]
+              },
+              "modules": [],
+              "factory_module": "family.birth"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 3,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "bias": -1,
+  "aggregation": "sum",
+  "links": [
+    {
+      "target_id": "居民楼B",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "树林",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "民政局",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {
+        "relation": "road"
+      }
+    },
+    {
+      "target_id": "世界时间",
+      "channels": [
+        "time"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "育儿须知",
+      "channels": [
+        "family.parent"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    },
+    {
+      "target_id": "怀孕须知",
+      "channels": [
+        "family.pregnancy"
+      ],
+      "channel_mode": "allow",
+      "threshold": 1,
+      "processor": {
+        "type": "multiplier",
+        "factor": 1
+      },
+      "attributes": {}
+    }
+  ]
+}

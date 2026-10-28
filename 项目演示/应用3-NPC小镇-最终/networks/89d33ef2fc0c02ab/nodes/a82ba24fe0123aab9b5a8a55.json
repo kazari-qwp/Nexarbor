@@ -1,0 +1,764 @@
+{
+  "aggregation": "sum",
+  "bias": -1,
+  "description": "",
+  "execution": null,
+  "links": [
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "酒馆",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "医院",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "商店",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "time"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "世界时间",
+      "threshold": 1
+    },
+    {
+      "attributes": {},
+      "channel_mode": "allow",
+      "channels": [
+        "family.pregnancy"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "怀孕须知",
+      "threshold": 1
+    }
+  ],
+  "name": "居民楼B",
+  "node_id": "居民楼B",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "石墙小楼，住着小路、阿森、阿石和老铁；院里堆着木柴和矿车零件。",
+          "visitors": [
+            "小路",
+            "阿森",
+            "阿石",
+            "老铁"
+          ],
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "石墙小楼，住着小路、阿森、阿石和老铁；院里堆着木柴和矿车零件。",
+          "location": null,
+          "name": "居民楼B",
+          "node_id": "居民楼B",
+          "visit": 0,
+          "visitors": []
+        },
+        "state": {
+          "visitors": []
+        },
+        "strength": 0,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "config": {
+          "before_hooks": [
+            {
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              },
+              "module": "records.store",
+              "operation": "apply",
+              "target": "requester"
+            }
+          ],
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "timeout_seconds": 60
+        },
+        "description": "",
+        "module_id": "movement.here",
+        "modules": [
+          "place.info"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "description": "居民楼B · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "factory_module": "movement.here",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "tool": "mod_b55022477865977c894167a0"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {},
+          "minimum": {},
+          "references": []
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"shi-rest-1a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"shi-rest-1b\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"小路\",\"xiaolu-d1a-rest1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"d4-rest-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"老铁\",\"rest-1\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"老铁\",\"rest-afternoon-d5\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"d5-rest-a\",\"local\"]",
+              "references": [],
+              "values": {}
+            },
+            {
+              "fingerprint": "{\"deltas\":{},\"expected\":{},\"references\":[],\"set\":{}}",
+              "key": "[\"service.actions\",\"居民楼B\",\"阿石\",\"d5-rest-b\",\"local\"]",
+              "references": [],
+              "values": {}
+            }
+          ],
+          "references": [],
+          "values": {}
+        },
+        "strength": 1,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "agreements",
+          "records",
+          "movement",
+          "info",
+          "runtime.template",
+          "tools",
+          "location"
+        ],
+        "config": {
+          "address": null,
+          "rules": [
+            {
+              "cost": 1,
+              "equal_fields": [
+                "home"
+              ],
+              "id": "family_plan",
+              "require_values": {
+                "adult": true
+              },
+              "set_values": {
+                "planning": true
+              },
+              "title": "共同家庭计划"
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "agreements.pair",
+        "modules": [],
+        "state": {},
+        "strength": 3,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "居民楼B · 查看协议 · 查看本地点的协议规则和自己参与的协议。",
+              "factory_module": "agreements.pair",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_8174738ad5153365f264c4d6"
+            },
+            {
+              "description": "居民楼B · 同意协议 · 双方在场时，以自己的身份登记同意。双方分别同意后立即完成；离场使未完成的旧同意失效。",
+              "factory_module": "agreements.pair",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "description": "请求者在当前模块实例内使用的非空幂等键；相同键与相同对象重试不会重复扣费。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "partner": {
+                    "description": "另一位当前可达的真实 Agent 节点 ID；不能代替请求者身份。",
+                    "format": "node-id",
+                    "minLength": 1,
+                    "title": "协议对方",
+                    "type": "string"
+                  },
+                  "rule": {
+                    "description": "要同意的配置规则 id。",
+                    "minLength": 1,
+                    "title": "规则标识",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "partner",
+                  "rule",
+                  "key"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_529d73f2d3175650eca4b302"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "service",
+          "records",
+          "movement",
+          "location"
+        ],
+        "config": {
+          "actions": [
+            {
+              "actor_deltas": {
+                "ap": 3
+              },
+              "actor_maximums": {
+                "ap": 10
+              },
+              "cost": 0,
+              "description": "在自己的居民楼休息，恢复一些行动点。",
+              "id": "rest",
+              "required_home": "居民楼B",
+              "title": "休息"
+            }
+          ],
+          "address": "居民楼B",
+          "events": []
+        },
+        "description": "",
+        "module_id": "service.actions",
+        "modules": [
+          "records.store"
+        ],
+        "state": {
+          "event_counts": {},
+          "receipts": [
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "shi-rest-1a",
+              "result": {
+                "action": "rest",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 1,
+                  "can_gestate": false,
+                  "coins": 12,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"阿石\",\"quantity\":2}",
+              "key": "shi-rest-1b",
+              "result": {
+                "action": "rest",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×2"
+                ],
+                "quantity": 2,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "broken_pickaxe": 1,
+                  "can_gestate": false,
+                  "coins": 12,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"小路\",\"quantity\":1}",
+              "key": "xiaolu-d1a-rest1",
+              "result": {
+                "action": "rest",
+                "actor": "小路",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 29,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "can_gestate": false,
+                  "coins": 0,
+                  "context_node": "小路",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "小路",
+                  "pregnant": false,
+                  "profession": "流浪汉",
+                  "role": "wanderer"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d4-rest-1",
+              "result": {
+                "action": "rest",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 19,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 22,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"老铁\",\"quantity\":1}",
+              "key": "rest-1",
+              "result": {
+                "action": "rest",
+                "actor": "老铁",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 28,
+                  "age_group": "adult",
+                  "ap": 7,
+                  "can_gestate": false,
+                  "coins": 2,
+                  "context_node": "老铁",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "iron": 2,
+                  "is_parent": false,
+                  "name": "老铁",
+                  "ore": 3,
+                  "pregnant": false,
+                  "profession": "铁匠",
+                  "role": "smith"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"老铁\",\"quantity\":1}",
+              "key": "rest-afternoon-d5",
+              "result": {
+                "action": "rest",
+                "actor": "老铁",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 28,
+                  "age_group": "adult",
+                  "ap": 7,
+                  "can_gestate": false,
+                  "coins": 2,
+                  "context_node": "老铁",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "iron": 2,
+                  "is_parent": false,
+                  "name": "老铁",
+                  "ore": 3,
+                  "pregnant": false,
+                  "profession": "铁匠",
+                  "role": "smith"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"阿石\",\"quantity\":1}",
+              "key": "d5-rest-a",
+              "result": {
+                "action": "rest",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×1"
+                ],
+                "quantity": 1,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 4,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 32,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            },
+            {
+              "fingerprint": "{\"action\":\"rest\",\"actor\":\"阿石\",\"quantity\":2}",
+              "key": "d5-rest-b",
+              "result": {
+                "action": "rest",
+                "actor": "阿石",
+                "after_results": [],
+                "duplicate": false,
+                "observation": [
+                  "完成“休息”×2"
+                ],
+                "quantity": 2,
+                "values": {
+                  "adult": true,
+                  "age": 26,
+                  "age_group": "adult",
+                  "ap": 10,
+                  "broken_pickaxe": 0,
+                  "can_gestate": false,
+                  "coins": 23,
+                  "context_node": "阿石",
+                  "gender": "male",
+                  "home": "居民楼B",
+                  "is_parent": false,
+                  "name": "阿石",
+                  "ore": 32,
+                  "pickaxe": 1,
+                  "pickaxe_state": "良好",
+                  "pregnant": false,
+                  "profession": "矿工",
+                  "role": "miner"
+                }
+              }
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 4,
+          "members": [
+            {
+              "description": "居民楼B · 查看服务 · 查看本业务场所可执行的动作和当前场所库存。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_cb929e4100e7f2f206ce5e85"
+            },
+            {
+              "description": "居民楼B · 执行业务 · 执行一个配置动作，按数量结算库存、钱财、行动点，并可能触发随机事件。",
+              "factory_module": "service.actions",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "action": {
+                    "description": "要执行的配置动作 id。",
+                    "minLength": 1,
+                    "title": "动作标识",
+                    "type": "string"
+                  },
+                  "key": {
+                    "description": "可选非空字符串；相同键和相同动作数量重试时返回旧结果，不重复扣费。",
+                    "minLength": 1,
+                    "title": "幂等键",
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "description": "1 到 100 的整数，默认 1。",
+                    "maximum": 100,
+                    "minimum": 1,
+                    "title": "数量",
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "action"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_94a18c167c93e718d208a1bf"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "agreements",
+          "time",
+          "family.pregnancy",
+          "context.assembler.context",
+          "location",
+          "records"
+        ],
+        "config": {
+          "pregnancy_channels": [
+            "family.pregnancy"
+          ],
+          "time_channels": [
+            "time"
+          ]
+        },
+        "description": "",
+        "module_id": "family.household",
+        "modules": [],
+        "state": {},
+        "strength": 12,
+        "tools": {
+          "group": 5,
+          "members": [
+            {
+              "description": "居民楼B · 查看家庭计划 · 查看本居民楼的双方同意登记。",
+              "factory_module": "family.household",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_81dfd5b919986d1387c91b07"
+            },
+            {
+              "description": "居民楼B · 同意家庭计划 · 夫妻须同时在自己的居民楼，各自同意后写入怀孕起始时间；不要求同 tick。",
+              "factory_module": "family.household",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "key": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "partner": {
+                    "format": "node-id",
+                    "minLength": 1,
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "partner",
+                  "key"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_74bb3ab1f3e0d6cc6c9ca27a"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 6,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "type": "node"
+}

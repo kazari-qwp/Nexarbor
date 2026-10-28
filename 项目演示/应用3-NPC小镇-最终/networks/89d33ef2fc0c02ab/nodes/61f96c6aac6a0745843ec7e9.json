@@ -1,0 +1,477 @@
+{
+  "aggregation": "sum",
+  "bias": -1,
+  "description": "",
+  "execution": null,
+  "links": [
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "居民楼A",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "居民楼B",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "酒馆",
+      "threshold": 1
+    },
+    {
+      "attributes": {
+        "relation": "road"
+      },
+      "channel_mode": "allow",
+      "channels": [
+        "road",
+        "movement"
+      ],
+      "processor": {
+        "factor": 1,
+        "type": "multiplier"
+      },
+      "target_id": "铁匠铺",
+      "threshold": 1
+    }
+  ],
+  "name": "商店",
+  "node_id": "商店",
+  "tables": {
+    "modules": [
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "movement",
+          "info",
+          "road",
+          "location"
+        ],
+        "config": {
+          "description": "杂货商店，货架上摆着锯和斧，柜台收矿石、木材和黄金。",
+          "visitors": [],
+          "visitors_from_edges": false
+        },
+        "description": "",
+        "module_id": "place.info",
+        "modules": [],
+        "published": {
+          "description": "杂货商店，货架上摆着锯和斧，柜台收矿石、木材和黄金。",
+          "location": null,
+          "name": "商店",
+          "node_id": "商店",
+          "visit": 0,
+          "visitors": []
+        },
+        "state": {
+          "visitors": []
+        },
+        "strength": 0,
+        "tools": {
+          "group": 0,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "road",
+          "location",
+          "records",
+          "movement"
+        ],
+        "config": {
+          "before_hooks": [
+            {
+              "arguments": {
+                "deltas": {
+                  "ap": -3
+                }
+              },
+              "module": "records.store",
+              "operation": "apply",
+              "target": "requester"
+            }
+          ],
+          "location_channels": [
+            "location",
+            "movement"
+          ],
+          "timeout_seconds": 60
+        },
+        "description": "",
+        "module_id": "movement.here",
+        "modules": [
+          "place.info"
+        ],
+        "state": {},
+        "strength": 2,
+        "tools": {
+          "group": 1,
+          "members": [
+            {
+              "description": "商店 · 移动到此 · 沿相邻道路移动到提供此工具的地点。",
+              "factory_module": "movement.here",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "required": [],
+                "type": "object"
+              },
+              "tool": "mod_a9955f2f2c1949074abd1a12"
+            }
+          ]
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "records",
+          "road",
+          "location"
+        ],
+        "config": {
+          "initial": {
+            "axe": 5,
+            "coins": 50,
+            "gold": 0,
+            "ore": 0,
+            "saw": 5,
+            "wood": 0
+          },
+          "minimum": {},
+          "references": []
+        },
+        "description": "",
+        "module_id": "records.store",
+        "modules": [],
+        "state": {
+          "receipts": [],
+          "references": [],
+          "values": {
+            "axe": 3,
+            "coins": 2,
+            "gold": 0,
+            "ore": 13,
+            "saw": 4,
+            "wood": 12
+          }
+        },
+        "strength": 1,
+        "tools": {
+          "group": 2,
+          "members": []
+        }
+      },
+      {
+        "channel_mode": "allow",
+        "channels": [
+          "service",
+          "road",
+          "records",
+          "movement",
+          "location"
+        ],
+        "config": {
+          "cost": 1,
+          "currency": "coins",
+          "products": [
+            {
+              "buyback_price": null,
+              "item": "saw",
+              "name": "锯",
+              "sale_price": 5
+            },
+            {
+              "buyback_price": null,
+              "item": "axe",
+              "name": "斧",
+              "sale_price": 5
+            },
+            {
+              "buyback_price": 3,
+              "item": "ore",
+              "name": "矿石",
+              "sale_price": null
+            },
+            {
+              "buyback_price": 2,
+              "item": "wood",
+              "name": "木材",
+              "sale_price": null
+            },
+            {
+              "buyback_price": 10,
+              "item": "gold",
+              "name": "黄金",
+              "sale_price": null
+            }
+          ]
+        },
+        "description": "",
+        "module_id": "shop.market",
+        "modules": [
+          "records.store",
+          "place.info"
+        ],
+        "state": {
+          "receipts": [
+            {
+              "key": "悦\u001fyue-buy-axe-1",
+              "result": {
+                "duplicate": false,
+                "item": "axe",
+                "operation": "buy",
+                "quantity": 1,
+                "total": 5
+              },
+              "signature": "[\"buy\", \"axe\", 1]"
+            },
+            {
+              "key": "小砾\u001fsell-ore-d1p",
+              "result": {
+                "duplicate": false,
+                "item": "ore",
+                "operation": "sell",
+                "quantity": 5,
+                "total": 15
+              },
+              "signature": "[\"sell\", \"ore\", 5]"
+            },
+            {
+              "key": "悦\u001fyue-sell-wood-1",
+              "result": {
+                "duplicate": false,
+                "item": "wood",
+                "operation": "sell",
+                "quantity": 3,
+                "total": 6
+              },
+              "signature": "[\"sell\", \"wood\", 3]"
+            },
+            {
+              "key": "阿森\u001fsell-d1-midnight-wood9",
+              "result": {
+                "duplicate": false,
+                "item": "wood",
+                "operation": "sell",
+                "quantity": 9,
+                "total": 18
+              },
+              "signature": "[\"sell\", \"wood\", 9]"
+            },
+            {
+              "key": "小砾\u001fsell-ore-d1night",
+              "result": {
+                "duplicate": false,
+                "item": "ore",
+                "operation": "sell",
+                "quantity": 2,
+                "total": 6
+              },
+              "signature": "[\"sell\", \"ore\", 2]"
+            },
+            {
+              "key": "阿石\u001fd2-sell-ore-1",
+              "result": {
+                "duplicate": false,
+                "item": "ore",
+                "operation": "sell",
+                "quantity": 1,
+                "total": 3
+              },
+              "signature": "[\"sell\", \"ore\", 1]"
+            },
+            {
+              "key": "小砾\u001fsell-ore-d2e-1a",
+              "result": {
+                "duplicate": false,
+                "item": "ore",
+                "operation": "sell",
+                "quantity": 1,
+                "total": 3
+              },
+              "signature": "[\"sell\", \"ore\", 1]"
+            },
+            {
+              "key": "小砾\u001fsell-ore-d2e-1b",
+              "result": {
+                "duplicate": false,
+                "item": "ore",
+                "operation": "sell",
+                "quantity": 1,
+                "total": 3
+              },
+              "signature": "[\"sell\", \"ore\", 1]"
+            },
+            {
+              "key": "小砾\u001fbuy-saw-xiaolu",
+              "result": {
+                "duplicate": false,
+                "item": "saw",
+                "operation": "buy",
+                "quantity": 1,
+                "total": 5
+              },
+              "signature": "[\"buy\", \"saw\", 1]"
+            },
+            {
+              "key": "小砾\u001fsell-ore-d4a-2",
+              "result": {
+                "duplicate": false,
+                "item": "ore",
+                "operation": "sell",
+                "quantity": 2,
+                "total": 6
+              },
+              "signature": "[\"sell\", \"ore\", 2]"
+            },
+            {
+              "key": "小路\u001fxiaolu-d4a-buy-axe",
+              "result": {
+                "duplicate": false,
+                "item": "axe",
+                "operation": "buy",
+                "quantity": 1,
+                "total": 5
+              },
+              "signature": "[\"buy\", \"axe\", 1]"
+            },
+            {
+              "key": "小路\u001fxiaolu-d4a-sell-ore-2",
+              "result": {
+                "duplicate": false,
+                "item": "ore",
+                "operation": "sell",
+                "quantity": 1,
+                "total": 3
+              },
+              "signature": "[\"sell\", \"ore\", 1]"
+            }
+          ]
+        },
+        "strength": 2,
+        "tools": {
+          "group": 3,
+          "members": [
+            {
+              "description": "商店 · 查看价目表 · 查看商品售价、回收价和当前库存。",
+              "factory_module": "shop.market",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {},
+                "type": "object"
+              },
+              "tool": "mod_db998f8bc0a23a8e7ed03524"
+            },
+            {
+              "description": "商店 · 购买商品 · 按售价购买指定商品和数量，须本人在商店。",
+              "factory_module": "shop.market",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "item": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "key": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "item",
+                  "key"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_9ab30edf05d099f5eb08367b"
+            },
+            {
+              "description": "商店 · 出售商品 · 按回收价出售指定商品和数量，须本人在商店。",
+              "factory_module": "shop.market",
+              "modules": [],
+              "parameters": {
+                "additionalProperties": false,
+                "properties": {
+                  "item": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "key": {
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "default": 1,
+                    "maximum": 1000,
+                    "minimum": 1,
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "item",
+                  "key"
+                ],
+                "type": "object"
+              },
+              "tool": "mod_817e8caa287db4d41e09ce66"
+            }
+          ]
+        }
+      }
+    ],
+    "tools": {
+      "group": 4,
+      "members": [
+        {
+          "modules": true
+        }
+      ]
+    }
+  },
+  "type": "node"
+}

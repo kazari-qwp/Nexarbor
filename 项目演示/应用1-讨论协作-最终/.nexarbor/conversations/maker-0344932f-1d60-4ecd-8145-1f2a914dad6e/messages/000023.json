@@ -1,0 +1,16 @@
+{
+  "role": "tool",
+  "source": {
+    "kind": "tool",
+    "callId": "call_00_YEbUAXOf8vXfl7E6Aa9n5472"
+  },
+  "toolCallId": "call_00_YEbUAXOf8vXfl7E6Aa9n5472",
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"skill\":\"inspect-network\",\"file\":\"references/追踪连接与可达性.md\",\"start_line\":1,\"total_lines\":26,\"text\":\"# 追踪连接与可达性\\r\\n\\r\\n先选任务需要的频道或边关系看结构，然后用准确字段核对关键路径。\\r\\n\\r\\n```json\\r\\n{\\\"channels\\\":[\\\"tick\\\"],\\\"show_channels\\\":true}\\r\\n{\\\"nodes\\\":[\\\"N3\\\"],\\\"direction\\\":\\\"out\\\",\\\"channels\\\":[\\\"tick\\\"]}\\r\\n{\\\"nodes\\\":[\\\"N8\\\"],\\\"direction\\\":\\\"in\\\"}\\r\\n```\\r\\n\\r\\n第一条用于 view_network，后两条用于 inspect_edges。边批量上限24条，按节点查最多12个中心，可分页。同向平行边在图片上合并但准确查询中分别返回 E 编号；交叉不代表相连。\\r\\n\\r\\n`inspect_edges({\\\"channels\\\":[\\\"tick\\\"]})` 可直接分页查看快照中允许该频道通过的边，不需要先选中心。仍只返回当前授权快照。\\r\\n\\r\\n频道查询匹配的是“允许通过此频道”的边：边自身黑名单中的禁止频道不会通过，未禁止的可以通过。查询的 channel_mode=deny 则反向排除匹配边。relations 精确匹配边 attributes.relation，与频道是两个独立维度。\\r\\n\\r\\n结构上连着 tick 不等于该节点一定响应 tick。查 inspect_nodes(summary/settings) 的 execution 和准备操作，再按需看 inspect_modules 接口与该实例的配置。访问还受方向、阈值、倍率、模块强度和频道授权等核心机制影响，观察图不是完整权限求解器。\\r\\n\\r\\npulse 类型本身就是有限闭环信号源：由宿主显式启动有限轮次，等本轮信号回源且整层完成后才推进下一轮；无需安装一个模块才有此行为。summary 的 signal_source 和 settings 的 parameters 可查其频道、强度和运行状态。普通模块的信号响应声明在 inspect_modules 的 signals；若返回 config 字段名，再查实例中该字段的配置。不用只看 agent 的 execution 就推断信号源。\\r\\n\\r\\n应用层信号运行器按层并行，同一信号对每个节点只处理一次，多个角色汇合不等于按每条来边重复执行。入边强度按 aggregation 汇总，默认 sum，可选 max/min/average；每层完成后按最新连接扩展下一层。模块处理完成后由信号运行器按边继续传播；无响应器的节点也可中继。模块内部的业务频率不自动改变传播频率。解释“多久执行一次业务”或“是否阻止继续传播”时，按需查对应参数的 config_schema、文档或实现，不凭字段名猜测转发时机。\\r\\n\\r\\n节点的管理归属虚线不是传播边，也不授予跨节点调用权限。模块访问其他节点需要明确频道连接；查看归属与业务出边时分别核对。\\r\\n\\r\\n不要把查询成功理解成管理员拥有全网业务访问权限：当前工作流的观察范围可由宿主裁剪；指定 project 时只读取该项目声明的网络和本地模块。Skill 不赋予运行模块额外权限，也不能执行或修改网络。\\r\\n\",\"more\":false}"
+    }
+  ],
+  "isError": false,
+  "id": "f81956a7-165c-41ff-9156-c0e1977050cb"
+}
