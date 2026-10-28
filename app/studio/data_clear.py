@@ -11,7 +11,7 @@ from domain.core import DataNode
 RESERVED={'studio','node_presets','network_presets','desktop-profile','.git','checkpoints.sqlite3','runtime.lock','editor-library.json','editor-connection.json'}
 
 def modules(record):return {item['module_id']:item for item in record.get('tables',{}).get('modules',[])}
-def supports(record):return record.get('type')!='agent' and bool(record.get('data')) or 'knowledge.collection' in modules(record)
+def supports(record):return record.get('type') not in ('agent','knowledge_catalog') and bool(record.get('data')) or 'knowledge.collection' in modules(record)
 def binding(record):
     data=record.get('data',{});parameters=data.get('parameters',{})
     return record['type'],data.get('type'),str(data.get('path','')).replace('\\','/'),data.get('directory',False),parameters.get('table_name'),parameters.get('key_column')

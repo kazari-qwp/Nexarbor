@@ -58,7 +58,7 @@ class TownModules:
     def make(self, name, config, access_settings=None):
         access_settings = access_settings or {}
         settings = {key:access_settings[key] for key in ('channels','strength','channel_mode') if key in access_settings}
-        if name == 'tools.collector':
+        if name == 'tool_discovery':
             return ToolDiscoveryModule(config.get('channels',()),settings.get('strength',1),
                                        channel_mode=config.get('channel_modes',{}).get('channels','allow'))
         return self.factories[name](deepcopy(config),**settings)

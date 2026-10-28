@@ -7,7 +7,7 @@ import unittest
 from unittest.mock import patch
 from app.studio.testing import ModuleHarness
 from app.studio.data_preview import preview
-from app.studio.data_clear import clear_live
+from app.studio.data_clear import clear_live,supports
 from domain.core import NodeInfo
 from projects.knowledge_archive.nodes.value import ValueNode
 from projects.knowledge_archive.nodes.csv import CsvNode
@@ -30,6 +30,9 @@ class DataPreview(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError,'只读'):preview(self.h.backend,dict(node=readonly,files=self.document['files'],operation='write',arguments={'key':'two','value':{'text':'forbidden'}}))
         escaped=deepcopy(self.record);escaped['data']['path']='../outside.csv'
         with self.assertRaisesRegex(ValueError,'越界'):preview(self.h.backend,dict(node=escaped,files=self.document['files'],operation='clear'))
+
+    def test_catalog_directory_is_not_an_operator_clear_target(self):
+        self.assertFalse(supports(dict(type='knowledge_catalog',data=dict(path='catalog',directory=True))))
 
     async def test_clear_live_keeps_pending_name_header_and_rolls_back_actual_file_on_failure(self):
         original=deepcopy(self.record);original['name']='草稿名称'

@@ -3,22 +3,22 @@
   "actual_electron": true,
   "paid_api_calls": 0,
   "town_simulation_rerun": false,
-  "scope": "列出的客户端功能和交付项目；旧文件语义审查及其余平台分支继续",
+  "scope": "D031-D033范围内的客户端、三应用交付及既有制作Agent验收；新增第六天单列",
   "regression": {
     "python": {
-      "tests": 512,
-      "seconds": 260.031,
-      "log": "build/d029-full-python-r2.log"
+      "tests": 513,
+      "seconds": 261.077,
+      "log": "build/d033-final-python.log"
     },
     "editor": {
       "tests": 133,
-      "seconds": 45.9532553,
-      "log": "build/d030-full-frontend.log"
+      "seconds": 48.0965815,
+      "log": "build/d033-final-frontend.log"
     },
     "desktop": {
       "tests": 5,
-      "seconds": 0.1576999,
-      "log": "build/d029-full-desktop.log"
+      "seconds": 0.1680727,
+      "log": "build/d033-final-desktop-correct.log"
     }
   },
   "evidence": {
@@ -396,6 +396,73 @@
         "paidCalls": 0,
         "errors": []
       }
+    },
+    "pulse_controls": {
+      "source": "build/pulse-controls-client-NSENjx/verification.json",
+      "result": {
+        "passed": true,
+        "singleStep": 1,
+        "continuousSteps": 3,
+        "finalTick": 4,
+        "realSignalRuntime": true,
+        "coldReopen": true,
+        "modelCalls": 0,
+        "errors": [],
+        "apiErrors": []
+      }
+    },
+    "agent_history_copy": {
+      "source": "build/agent-history-copy-Aot7oM/verification.json",
+      "result": {
+        "passed": true,
+        "actualDesktop": true,
+        "sourceActor": "小砾",
+        "copiedActor": "小砾-copy-989c186a-4aa2-41ec-aa15-9863fd3f7b5d",
+        "sourceMessages": 526,
+        "sourceHistoryUnchanged": true,
+        "copiedHistoryEmpty": true,
+        "independentMarkdown": true,
+        "coldReopen": true,
+        "modelCalls": 0,
+        "townPulseCalls": 0,
+        "errors": []
+      }
+    },
+    "chat_send": {
+      "source": "build/chat-send-regression-4o1Rks/result.json",
+      "result": {
+        "passed": true,
+        "model_calls": 0,
+        "errors": [],
+        "operations": [
+          "chat.read",
+          "chat.send",
+          "chat.read",
+          "chat.send",
+          "chat.read"
+        ],
+        "sends": 2
+      }
+    },
+    "shared_dialogue": {
+      "source": "build/d031-shared-dialogue-client.log",
+      "result": {
+        "passed": true,
+        "base": "E:\\项目_手动重构\\build\\shared-dialogue-ui-FVyNwj",
+        "networkId": "dd79ee94-29b8-490d-bb16-55366bbfdf70",
+        "componentId": "1a55763f-46c1-42b3-a23b-dd63a3e2d394",
+        "newId": "28961929-a5f6-441d-8ce2-f48d97753b78",
+        "errors": []
+      }
+    },
+    "harness_path": {
+      "source": "build/d031-harness-settings-client.log",
+      "result": {
+        "passed": true,
+        "base": "E:\\项目_手动重构\\build\\harness-chooser-ui-lwPlAb",
+        "browse_save_restart": true,
+        "model_calls": 0
+      }
     }
   },
   "screenshots": {
@@ -479,5 +546,23 @@
       "sha256": "7530d702a8db744b690eecfca46601baaf3ed8a59bf4fcfa2209a0e5fe77fd30",
       "bytes": 119878
     }
-  }
+  },
+  "closing_screenshots": [
+    {
+      "file": "docs/migration/screenshots/pulse-controls.png",
+      "sha256": "56cc8268532db00743e5fbbbfb06068b589ee72d57f092f2daade07e7092b096"
+    },
+    {
+      "file": "docs/migration/screenshots/agent-history-copy.png",
+      "sha256": "b74c90a58dd669a56d5cff9912946ba2c10943c874a86a62a8fba8d08faa3661"
+    },
+    {
+      "file": "docs/migration/screenshots/shared-maker-dialogue.png",
+      "sha256": "97d38c65274a38921c67fdd34a73a6fe7bc50a41a0e66d32940342d688141af8"
+    },
+    {
+      "file": "docs/migration/screenshots/chat-send.png",
+      "sha256": "8aaa1c6acf9db34a1321bf75267a07f59ec371ae3b602e594e99a48c38375421"
+    }
+  ]
 }
