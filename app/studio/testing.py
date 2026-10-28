@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 from jsonschema import Draft202012Validator
 from adapt.harness.executor import NativeExecutor
+from adapt.files.storage_paths import storage_path
 from app.runtime.backend import Backend
 from app.network_saver import NetworkSaver
 from app.runtime.context_packets import apply_context_packet
@@ -66,8 +67,15 @@ class ModuleHarness:
         except BaseException:
             if hasattr(self,'backend'):self.backend.close()
             elif not claimed and _store is not None:_store.close()
-            if self.temporary is not None:self.temporary.cleanup()
+            if self.temporary is not None:self._cleanup()
             raise
+
+    def _cleanup(self):
+        folder=Path(self.temporary.name).resolve()
+        if not folder.is_relative_to((ROOT/'build').resolve()):raise ValueError('测试副本清理路径超出build')
+        # Keep TemporaryDirectory's Windows permission handling, with long-path IO.
+        self.temporary._rmtree(storage_path(folder))
+        self.temporary.cleanup()
 
     @property
     def network(self):return self.backend.network
@@ -193,4 +201,4 @@ class ModuleHarness:
         self._closed=True
         if self.backend.signals._active:await asyncio.gather(*(self.backend.signals.cancel(key) for key in tuple(self.backend.signals._active)))
         self.backend.close()
-        if self.temporary is not None:self.temporary.cleanup()
+        if self.temporary is not None:self._cleanup()
