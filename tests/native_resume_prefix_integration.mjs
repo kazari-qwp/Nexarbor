@@ -39,10 +39,10 @@ function assertPreserved(before,after){
  assert.deepEqual(after.tools,before.tools);
 }
 try{
- start();await run('SEED');await run('BEFORE_REOPEN');const before=calls.at(-1),id=bindings.actor.session_id;
+ start();await run('SEED');const stale=(await native.request('agent-context-capture',{bindings:{actor:bindings.actor.session_id}})).actor;await run('BEFORE_REOPEN');bindings.actor.context_cursor=stale;const before=calls.at(-1),id=bindings.actor.session_id;
  await native.close();start();await run('AFTER_REOPEN');assert.equal(bindings.actor.session_id,id);assertPreserved(before,calls.at(-1));
  const reopened=calls.at(-1);generation=2;await run('AFTER_PARAMETER_CHANGE');assertPreserved(reopened,calls.at(-1));assert.equal(calls.at(-1).max_tokens,20000);
  assert.equal(requestEvents.length,calls.length);assert.ok(requestEvents.every(e=>e.executor_session_id&&e.request_index>=1));
- const report={passed:true,paid_api_calls:0,actual_harness_sdk:true,default_reasoning_effort:defaults().reasoning_effort,request_limit:defaults().max_requests,model_requests:calls.length,request_events:requestEvents.length,cold_reopen_preserves_prefix:true,generation_change_preserves_reasoning:true};
+ const report={passed:true,paid_api_calls:0,actual_harness_sdk:true,default_reasoning_effort:defaults().reasoning_effort,request_limit:defaults().max_requests,model_requests:calls.length,request_events:requestEvents.length,cold_reopen_preserves_prefix:true,stale_saved_cursor_preserves_later_native_progress:true,generation_change_preserves_reasoning:true};
  await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));
 }finally{await fs.writeFile(path.join(directory,'requests.json'),JSON.stringify(calls,null,2));await native?.close();await new Promise(resolve=>server.close(resolve));}

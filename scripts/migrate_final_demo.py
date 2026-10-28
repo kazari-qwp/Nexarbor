@@ -13,10 +13,12 @@ from app.projects.host_tools import HostTools
 from app.studio.service import Studio
 from domain.core import Network
 from modules.tool_discovery import ToolDiscoveryModule
-from scripts.migrate_town_project import convert_nodes,files_from,read,write_json
+from scripts.migrate_town_project import convert_nodes,convert_template,files_from,read,write_json
 
 NAMES={'context.network':'context.assembler','tools.collector':'tool_discovery'}
 FOLDERS={'context.assembler':ROOT/'modules/context_assembler','tool_discovery':ROOT/'modules/tool_discovery',**{name:ROOT/'projects/discussion_collaboration/modules'/folder for name,folder in [('collaboration.group','collaboration_group'),('collaboration.member','collaboration_member'),('discussion.group','discussion_group'),('discussion.member','discussion_member'),('git.workspace','git_workspace'),('execution.logs','execution_logs'),('groups.control','groups_control'),('network.administrator','network_administrator')]}}
+FOLDERS.update({name:ROOT/'projects/knowledge_archive/modules'/folder for name,folder in [('documents.tasks','documents_tasks'),('knowledge.tools','knowledge_tools'),('knowledge.catalog','knowledge_catalog'),('knowledge.collection','knowledge_collection')]})
+
 
 def reference_names(value):
     if isinstance(value,list):return [reference_names(item) for item in value]
@@ -56,8 +58,22 @@ def converted(raw,files,target,converter,manifests,host_tools):
         for offer in raw.get('offered_tools',[]):
             tool=host_tools.make(node['node_id'],offer['ref']);node['tables']['tools']['members'].append(dict(tool=tool.name,description=tool.description,parameters=tool.parameters,modules=[],host_ref=offer['ref']))
         if node.get('execution') is not None:
-            node['execution']=reference_names(node['execution']);node['execution'].pop('tool_sources',None)
+            node['execution']=reference_names(node['execution']);node['execution'].pop('tool_sources',None);node['execution']['max_steps']=10000
     return dict(network=dict(nodes=records,properties=properties),files=deepcopy(files))
+
+def knowledge_runtime(runtime,converter,manifests):
+    result={'templates':[]}
+    for original in runtime.get('templates',[]):
+        template=convert_template(original,converter,manifests)
+        if template['id']=='knowledge-collection':
+            node=template['document']['network']['nodes'][0]
+            node.update(type='knowledge_collection',data=dict(type='knowledge_collection',path='data/collection',directory=True,save_data=True,parameters=dict(storage='wiki',schema={},embedding=None,collection_id='pending')))
+            template['arguments_schema']['properties'].update(schema={'type':'object'},embedding={'type':['object','null']})
+            for field,argument in [('storage','storage'),('schema','schema'),('embedding','embedding'),('collection_id','collection')]:
+                template['bindings'].append({'path':'/network/nodes/0/data/parameters/'+field,'input':argument})
+            template['attachments'].append({'source':'knowledge','target':'collection','metadata':{'threshold':1,'multiplier':1,'channels':['knowledge.catalog.manage'],'attributes':{}}})
+        result['templates'].append(template)
+    return result
 
 def migrate(source,target,definitions):
     source=Path(source).resolve();target=Path(target).resolve()
@@ -68,17 +84,22 @@ def migrate(source,target,definitions):
     resources={}
     for name in {NAMES.get(name,name) for name in old_manifests}:
         folder=FOLDERS[name];relative='modules/'+folder.name
-        shutil.copytree(folder,target/relative,ignore=shutil.ignore_patterns('__pycache__','*.pyc'));resources[name]={'folder':relative}
-    saver=NetworkSaver();holder={};host_tools=HostTools(saver.tables,lambda:holder['backend'],None,definitions)
+        shutil.copytree(folder,target/relative,dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__','*.pyc'));resources[name]={'folder':relative}
+    saver=NetworkSaver();holder={};host_tools=HostTools(saver.tables,lambda:holder['backend'],None,definitions,instantiate=lambda *a,**p:None)
     with TemporaryDirectory(prefix='final-demo-convert-',dir=ROOT/'build') as temp:
         def configure(backend):Studio(backend,{name:target/entry['folder'] for name,entry in resources.items()},project_directory=target)
         backend=Backend(temp,saver=saver,network=Network(),configure=configure);holder['backend']=backend
         try:
             converter=Converter(backend);document=converted([read(source,entry['file']) for entry in manifest['nodes']],files_from(source,manifest),target,converter,old_manifests,host_tools)
+            is_knowledge=any(module['module_id']=='knowledge.catalog' for node in document['network']['nodes'] for module in node.get('tables',{}).get('modules',[]))
+            if is_knowledge:
+                catalog=next(node for node in document['network']['nodes'] if any(m['module_id']=='knowledge.catalog' for m in node['tables']['modules']))
+                catalog.update(type='knowledge_catalog',data=dict(type='knowledge_catalog',path='workspace/knowledge/catalog',directory=True,save_data=True))
+            runtime=knowledge_runtime(manifest.get('runtime',{}),converter,old_manifests) if is_knowledge else {'templates':[]}
             node_files=[]
             for node in document['network']['nodes']:
                 relative='nodes/'+sha256(node['node_id'].encode()).hexdigest()[:24]+'.json';write_json(target/relative,node);node_files.append({'file':relative})
-            write_json(target/'networks/main.json',dict(format='nexarbor-project-network/v2',nodes=node_files,files=list(document['files']),agents={},signals={},properties=document['network']['properties'],runtime={'templates':[]},layout=deepcopy(manifest.get('layout',{})),view=deepcopy(manifest.get('view',{}))))
+            write_json(target/'networks/main.json',dict(format='nexarbor-project-network/v2',nodes=node_files,files=list(document['files']),agents={},signals={},properties=document['network']['properties'],runtime=runtime,layout=deepcopy(manifest.get('layout',{})),view=deepcopy(manifest.get('view',{}))))
             for name,entry in metadata['resources'].get('presets',{}).items():
                 original=read(source,entry['file']);stage=Path(temp)/Path(entry['file']).stem;stage.mkdir()
                 preset=converted(original['network']['nodes'],original.get('files',{}),stage,converter,old_manifests,host_tools)
@@ -87,12 +108,16 @@ def migrate(source,target,definitions):
                 editor=source/entry['file'].replace('.json','.editor.json')
                 if editor.exists():shutil.copyfile(editor,target/entry['file'].replace('.json','.editor.json'))
         finally:backend.close()
-    if (source/'workspace/task').exists():shutil.copytree(source/'workspace/task',target/'workspace/task')
+    if (source/'workspace').exists():shutil.copytree(source/'workspace',target/'workspace',dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+    if is_knowledge:
+        file=target/'networks/main.json';network=read(target,'networks/main.json')
+        network['files']=sorted(set(network['files'])|{path.relative_to(target).as_posix() for path in (target/'workspace').rglob('*') if path.is_file()})
+        write_json(file,network)
     tool_resources=deepcopy(metadata['resources'].get('tools',{}))
     for entry in tool_resources.values():
         file=source/entry['file'];destination=target/entry['file'];destination.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(file,destination)
     write_json(target/'host_tools.json',definitions)
-    write_json(target/'nexarbor.json',dict(format='nexarbor-project/v2',name=metadata['name'],activeNetwork='main',networks={'main':{'name':metadata['networks']['main']['name'],'file':'networks/main.json'}},resources=dict(modules=resources,tools=tool_resources,presets=deepcopy(metadata['resources'].get('presets',{})),skills={})))
+    write_json(target/'nexarbor.json',dict(format='nexarbor-project/v2',name=metadata['name'],activeNetwork='main',networks={'main':{'name':metadata['networks']['main']['name'],'file':'networks/main.json'}},resources=dict(modules=resources,tools=tool_resources,presets=deepcopy(metadata['resources'].get('presets',{})),skills={}),model_settings=deepcopy(metadata.get('model_settings',{}))))
     return dict(nodes=len(node_files),presets=len(metadata['resources'].get('presets',{})),modules=len(resources))
 
 if __name__=='__main__':

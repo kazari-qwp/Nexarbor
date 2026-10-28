@@ -1,4 +1,4 @@
-import {_electron,expect} from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {_electron,expect} from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=await fs.mkdtemp(path.join(root,'build/preset-parameters-ui-'));let host,client,page;const errors=[];
 try{
  host=await startStudio({directory});

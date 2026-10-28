@@ -1,7 +1,7 @@
 // 红色免确认清空：真实存储、配置保留、草稿和冷启动。
 import {_electron,expect} from '@playwright/test';
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {startStudioProfile} from '../../../adapters/harness/studio/host.mjs';
+import {startStudioProfile} from '../../../adapt/harness/studio/host.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/data-clear-ui-'+Date.now()),profile=path.join(root,'configs/knowledge_v3/profile.json');
 let host=await startStudioProfile(profile,{directory}),client,page;const errors=[],dialogs=[];
 const api=async(operation,params={})=>{const r=await fetch('http://'+host.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(host.url).hash.slice(7)},body:JSON.stringify({operation,params})}),v=await r.json();if(v.error)throw Error(v.error);return v.value;};

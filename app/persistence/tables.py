@@ -23,14 +23,14 @@ class ModuleTables:
         records = []
         references = {node.modules.tools: {"modules": True}}
         for module in modules:
-            if module.module_id not in self.module_types:
+            if module.module_id not in self.module_types and not getattr(module,"unavailable_reason",None):
                 raise ValueError("尚未登记的模块：" + module.module_id)
             references[module.tools] = {"module": module.module_id}
             for tool in module.tools:
                 references[tool] = {"factory_module": module.module_id}
             records.append(dict(module_id=module.module_id, description=module.description,
                                 channels=list(module.channels), strength=module.strength, channel_mode=module.channel_mode,
-                                modules=[dependency.module_id for dependency in module.modules],
+                                modules=getattr(module,"saved_dependencies",[dependency.module_id for dependency in module.modules]),
                                 **{field: deepcopy(getattr(module, field)) for field in ("config", "state", "published")
                                    if hasattr(module, field)}))
 
@@ -60,10 +60,10 @@ class ModuleTables:
         if record is None:
             return
         initial_tools = {tool.name: tool for tool in node.tools}
-        modules = {}
+        loader = getattr(self, "restore_modules", None)
+        modules = loader(node, record["modules"]) if loader else {}
         for spec in record["modules"]:
-            factory = self.module_types[spec["module_id"]]
-            module = factory(spec)
+            module = modules[spec["module_id"]] if loader else self.module_types[spec["module_id"]](spec)
             for field in ("description", "strength", "channel_mode", "config", "state", "published"):
                 if field in spec:
                     setattr(module, field, deepcopy(spec[field]))
@@ -71,7 +71,7 @@ class ModuleTables:
             modules[module.module_id] = module
         for spec in record["modules"]:
             module = modules[spec["module_id"]]
-            module._dependencies = tuple(modules[key] for key in spec["modules"])
+            module._dependencies = tuple(modules[key] for key in spec["modules"] if key in modules)
             module._bind(node)
             if hasattr(module,'_tool_specs'):
                 from app.projects.module_tools import bind_tools

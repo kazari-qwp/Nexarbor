@@ -2,7 +2,7 @@
 from copy import deepcopy
 from .testing import ModuleHarness
 
-def assemble_document(document,backend,library,*,port_definitions=None):
+def assemble_document(document,backend,library,*,port_definitions=None,allow_missing=False):
     result=deepcopy(document);pending={}
     for record in result['network']['nodes']:
         tables=record.get('tables',{})
@@ -13,6 +13,7 @@ def assemble_document(document,backend,library,*,port_definitions=None):
     paths={name:backend.directory/'studio'/release['folder'] for name,release in library.items()}
     h=ModuleHarness(None,library=paths)
     try:
+        h.modules.tolerate=allow_missing
         for label in ('node_types','agent_node_types','aggregation_types'):getattr(h.backend.saver,label).update(getattr(backend.saver,label))
         h.backend.saver.tables.tool_types.update(backend.saver.tables.tool_types)
         from app.projects.host_tools import host_tool_name
@@ -35,7 +36,7 @@ def assemble_document(document,backend,library,*,port_definitions=None):
         snapshot=h.backend.snapshot()
         for record in snapshot['network']['nodes']:
             for module in record.get('tables',{}).get('modules',[]):
-                definition=h.modules.manifests[module['module_id']]
-                if record['type'] not in definition['node_types']:raise ValueError('模块不支持节点类型：'+module['module_id'])
+                definition=h.modules.manifests.get(module['module_id'])
+                if definition and record['type'] not in definition['node_types']:raise ValueError('模块不支持节点类型：'+module['module_id'])
         return {'network':{**result['network'],**snapshot['network']},'files':snapshot['files']}
     finally:h.backend.close();h.temporary.cleanup()

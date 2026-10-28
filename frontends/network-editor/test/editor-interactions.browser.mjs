@@ -1,5 +1,6 @@
+import {setChannels} from './support/channel-list.mjs';
 import {_electron,expect} from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/editor-interactions-e2e-'+Date.now());
 let host=await startStudio({directory}),client,page;
 const api=async(operation,params={})=>{const r=await fetch('http://'+host.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(host.url).hash.slice(7)},body:JSON.stringify({operation,params})});const x=await r.json();if(x.error)throw Error(x.error);return x.value;};
@@ -32,13 +33,13 @@ try{
  await studio.getByRole('button',{name:'关闭组件工作室',exact:true}).click();
  const node=id=>page.locator('.react-flow__node[data-id="'+id+'"]');
  await node('a').click();await page.getByRole('button',{name:'属性',exact:true}).click();await page.getByRole('button',{name:'新增连接',exact:true}).click();
- await page.getByLabel('连接终点',{exact:true}).selectOption('root');await page.getByLabel('连接频道',{exact:true}).fill('new');await page.getByRole('button',{name:'建立连接',exact:true}).click();
+ await page.getByLabel('连接终点',{exact:true}).selectOption('root');await page.getByRole('dialog',{name:'建立连接',exact:true}).getByRole('button',{name:'添加频道',exact:true}).click();await page.getByLabel('连接频道 1',{exact:true}).fill('new');await page.getByRole('button',{name:'建立连接',exact:true}).click();
  await expect(page.locator('.react-flow__edge')).toHaveCount(3);
  await page.locator('.react-flow__controls-zoomout').click();
  const a=await node('a').boundingBox(),b=await node('b').boundingBox();
  await page.mouse.move(b.x+b.width/2,b.y+b.height/2);await page.mouse.down({button:'right'});await page.mouse.move(a.x+a.width/2,a.y+a.height/2,{steps:12});await page.mouse.up({button:'right'});
  await expect(page.getByLabel('连接起点',{exact:true})).toHaveValue('b');await expect(page.getByLabel('连接终点',{exact:true})).toHaveValue('a');
- await page.getByLabel('连接频道',{exact:true}).fill('return');await page.getByRole('button',{name:'建立连接',exact:true}).click();await expect(page.locator('.react-flow__edge')).toHaveCount(4);
+ await setChannels(page,'连接频道',["return"]);await page.getByRole('button',{name:'建立连接',exact:true}).click();await expect(page.locator('.react-flow__edge')).toHaveCount(4);
  await node('a').click();await node('b').click({modifiers:['Shift']});await expect(page.locator('.react-flow__node.selected')).toHaveCount(2);
  await page.keyboard.down('Shift');await page.locator('.react-flow__edge[data-id="a|0"]').dispatchEvent('click',{shiftKey:true});await page.keyboard.up('Shift');
  await expect(page.locator('.react-flow__node.selected')).toHaveCount(2);await expect(page.locator('.react-flow__edge.selected')).toHaveCount(1);
@@ -89,7 +90,7 @@ try{
  await page.keyboard.press('Control+y');await expect(page.locator('.react-flow__node')).toHaveCount(5);
  await page.keyboard.press('Control+s');await expect.poll(async()=>(await api('state')).draft.document.network.nodes.length).toBe(5);
  await page.screenshot({path:path.join(directory,'02-bookmarks-history.png')});
- await client.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(i=>i.label==='设置').submenu.items.find(i=>i.label==='自定义快捷键').click());const settings=page.getByRole('dialog',{name:'客户端设置',exact:true});
+ await client.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(i=>i.label==='设置').submenu.items.find(i=>i.label==='外部文本编辑器与快捷键').click());const settings=page.getByRole('dialog',{name:'客户端设置',exact:true});
  await settings.getByLabel('内部复制／A 模式',{exact:true}).press('F6');await settings.getByLabel('保留外联／B 模式',{exact:true}).press('F7');
  await settings.getByLabel('累加点选修饰键',{exact:true}).selectOption('Control');await settings.getByLabel('滚轮扩缩选区修饰键',{exact:true}).selectOption('Alt');
  await settings.getByLabel('拖动建立连接鼠标键',{exact:true}).selectOption('0');await settings.getByLabel('拖动建立连接修饰键',{exact:true}).selectOption('Alt');
@@ -104,7 +105,7 @@ try{
  await page.getByRole('button',{name:'校验并更新网络',exact:true}).click();await expect(page.getByRole('button',{name:'校验并更新网络',exact:true})).toBeDisabled({timeout:10000});
  await client.close();client=null;await host.close();host=await startStudio({directory});
  client=await _electron.launch({executablePath:path.join(root,'frontends/desktop/node_modules/electron/dist/electron.exe'),args:[path.join(root,'frontends/desktop'),'--connection',path.join(directory,'editor-connection.json'),'--user-data-dir='+path.join(directory,'desktop-profile')],env});page=await client.firstWindow();page.on('pageerror',e=>errors.push(e.message));await expect(page.locator('.bookmark-dock')).toBeVisible({timeout:20000});
- await client.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(i=>i.label==='设置').submenu.items.find(i=>i.label==='自定义快捷键').click());await expect(page.getByRole('dialog',{name:'客户端设置',exact:true}).getByLabel('内部复制／A 模式',{exact:true})).toHaveValue('F6');
+ await client.evaluate(({Menu})=>Menu.getApplicationMenu().items.find(i=>i.label==='设置').submenu.items.find(i=>i.label==='外部文本编辑器与快捷键').click());await expect(page.getByRole('dialog',{name:'客户端设置',exact:true}).getByLabel('内部复制／A 模式',{exact:true})).toHaveValue('F6');
  expect((await books()).bookmarks.length).toBeGreaterThan(0);expect((await books()).categories.some(c=>c.name==='实验分类')).toBe(true);expect(errors).toEqual([]);
  await fs.writeFile(path.join(directory,'verification.json'),JSON.stringify({passed:true,filesSeparated:true,deleteArchives:true,nodeLinkButton:true,rightDrag:true,shiftSelection:true,oneUnitWheel:true,bookmarkToggle:true,renameHoverOnly:true,categories:true,pagination:true,pureEdgeRules:true,dragPaste:true,undoRedo:true,historyCopy:true,historyOrder:true,customShortcuts:true,customMouse:true,restartRestores:true,modelCalls:0,errors},null,2));
  console.log('PASS 编辑器完整交互：'+directory);

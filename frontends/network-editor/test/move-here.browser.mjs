@@ -1,6 +1,6 @@
 // Python 核心 + Electron + 真实执行器工具路由，无模型调用。
 import {_electron,expect} from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 import {copySubnet,pasteSubnet} from '../src/subnets.js';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/move-here-e2e-'+Date.now());let host=await startStudio({directory}),client,page;const errors=[];
 const api=async(operation,params={})=>{const r=await fetch('http://'+host.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(host.url).hash.slice(7)},body:JSON.stringify({operation,params})});const x=await r.json();if(x.error)throw Error(x.error);return x.value;};

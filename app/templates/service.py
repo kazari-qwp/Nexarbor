@@ -34,7 +34,7 @@ def checked_templates(items,node_ids):
         if item['arguments_schema'].get('type')!='object':raise ValueError('模板参数 Schema 必须为 object')
         if not isinstance(item['bindings'],list) or not isinstance(item['attachments'],list):raise ValueError('bindings 和 attachments 必须为列表')
         for binding in item['bindings']:
-            if set(binding)!={'path','input'} or not re.fullmatch(r'/network/nodes/\d+/(name|description|tables/modules/\d+/config(?:/[^/]+)*)',binding['path']):raise ValueError('模板替换只允许名称、说明和组件配置')
+            if set(binding)!={'path','input'} or not re.fullmatch(r'/network/nodes/\d+/(name|description|tables/modules/\d+/config(?:/[^/]+)*|data/parameters/(storage|schema|embedding|collection_id))',binding['path']):raise ValueError('模板替换只允许名称、说明和组件配置')
             if binding['input'].strip('/').split('/')[0] not in item['arguments_schema'].get('properties',{}):raise ValueError('替换引用未声明输入')
         internal={n['node_id'] for n in item['document']['network']['nodes']}
         for attachment in item['attachments']:
@@ -80,8 +80,12 @@ class TemplateService:
             old_id = node['node_id'];node['node_id'] = ids[old_id]
             data = node.get('data')
             if data is not None:
-                if data['path'] not in paths:raise ValueError('模板每个记忆/文本文件都须有独立初始正文')
-                data['path'] = paths[data['path']]
+                original=data['path']
+                if data.get('directory'):
+                    if Path(original).is_absolute() or '..' in Path(original).parts:raise ValueError('模板数据目录必须为相对路径')
+                    paths.setdefault(original,'created/templates/'+prefix+'/'+original)
+                elif original not in paths:raise ValueError('模板每个记忆/文本文件都须有独立初始正文')
+                data['path'] = paths[original]
             if node.get('agent'):node['agent']['inputs'] = {}
             binding = node.get('execution')
             if binding:

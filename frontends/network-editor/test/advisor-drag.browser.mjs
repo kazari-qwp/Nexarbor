@@ -1,6 +1,6 @@
 import {chromium,_electron,expect} from '@playwright/test';
 import fs from 'node:fs/promises';import path from 'node:path';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 const base=await fs.mkdtemp(path.resolve('../../build/advisor-regression-')),project=path.join(base,'project');
 const host=await startStudio({directory:path.join(project,'.nexarbor/runs/main'),projectDirectory:project});let browser,electron;
 try{

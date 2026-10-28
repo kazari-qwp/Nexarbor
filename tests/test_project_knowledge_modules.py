@@ -4,6 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from domain.core import Node,NodeInfo,Network,Link,MarkdownNode
+from projects.knowledge_archive.nodes.collection import CollectionNode
+from projects.knowledge_archive.nodes.catalog import CatalogNode
 from domain.agent import MarkdownAgentNode
 from projects.knowledge_archive.modules.knowledge_catalog.module import KnowledgeCatalogModule
 from projects.knowledge_archive.modules.knowledge_collection.module import KnowledgeCollectionModule
@@ -17,18 +19,18 @@ class KnowledgeModuleTests(unittest.IsolatedAsyncioTestCase):
         self.folder=TemporaryDirectory(prefix='knowledge-modules-',dir=ROOT/'build');self.addCleanup(self.folder.cleanup);self.directory=Path(self.folder.name)
         for name in ('memory','input','output'):(self.directory/(name+'.md')).write_text('',encoding='utf-8')
         self.root=MarkdownAgentNode(NodeInfo('root','Root'),self.directory/'memory.md')
-        self.catalog_node=Node(NodeInfo('catalog','Catalog'))
+        self.catalog_node=CatalogNode(NodeInfo('catalog','Catalog'),self.directory/'workspace/knowledge/catalog')
         self.input=MarkdownNode(NodeInfo('input','Input'),self.directory/'input.md');self.output=MarkdownNode(NodeInfo('output','Output'),self.directory/'output.md')
         self.network=Network([self.root,self.catalog_node,self.input,self.output])
         self.root.links.add(Link('catalog','knowledge'));self.root.links.add(Link('input','input'));self.root.links.add(Link('output','output'))
         self.created=[]
         async def instantiate(actor,*,template,key,arguments):
             self.assertEqual((actor,template),('catalog','knowledge-collection'))
-            endpoint=Node(NodeInfo('collection-'+str(len(self.created)),arguments['label']))
+            endpoint=CollectionNode(NodeInfo('collection-'+str(len(self.created)),arguments['label']),self.directory/'collections'/arguments['collection'],storage=arguments['storage'],schema=arguments['schema'],embedding=arguments['embedding'],collection_id=arguments['collection'])
             endpoint.install(KnowledgeCollectionModule({'collection':arguments['collection']},channels=['knowledge'],strength=3))
-            endpoint.links.add(Link('catalog','knowledge'));self.network.add(endpoint);self.root.links.add(Link(endpoint.info.node_id,'knowledge'));self.created.append(endpoint)
+            endpoint.links.add(Link('catalog','knowledge'));self.catalog_node.links.add(Link(endpoint.info.node_id,'knowledge.catalog.manage'));self.network.add(endpoint);self.root.links.add(Link(endpoint.info.node_id,'knowledge'));self.created.append(endpoint)
             return {'node_ids':{'collection':endpoint.info.node_id}}
-        self.catalog=KnowledgeCatalogModule(self.directory,instantiate);self.catalog_node.install(self.catalog)
+        self.catalog=KnowledgeCatalogModule(self.directory,instantiate,channels=['knowledge'],strength=3);self.catalog_node.install(self.catalog)
         self.docs=DocumentsTasksModule(self.directory,{'input':'input','output':'output'},channels=['input','output','knowledge'],strength=3)
         self.tools=KnowledgeToolsModule(self.directory,channels=['knowledge'],strength=3)
         self.root.install(self.docs);self.root.install(self.tools)

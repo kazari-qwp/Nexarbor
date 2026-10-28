@@ -1,5 +1,5 @@
 // 真实鼠标与拖放：选区菜单、A/B 接入口、唯一无头入边、连线终点预览；不调用模型。
-import {_electron,expect} from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {_electron,expect} from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/canvas-context-'+Date.now());let client,page;const errors=[];
 const host=await startStudio({directory}),api=async(operation,params={})=>{const response=await fetch('http://'+host.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(host.url).hash.slice(7)},body:JSON.stringify({operation,params})}),result=await response.json();if(result.error)throw Error(result.error);return result.value;};
 const library=()=>api('editor.library'),node=id=>page.locator('.react-flow__node[data-id="'+id+'"]'),menu=()=>page.getByRole('menu',{name:'选区操作',exact:true}),book=id=>page.locator('[data-bookmark-id="'+id+'"]');

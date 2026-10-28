@@ -2,8 +2,10 @@
 import os
 import tempfile
 from pathlib import Path
+from .storage_paths import storage_path
 
 def atomic_bytes(path, data):
+    path=storage_path(path)
     descriptor, temporary = tempfile.mkstemp(dir=path.parent, prefix='.' + path.name + '.')
     try:
         with os.fdopen(descriptor, 'wb') as file:

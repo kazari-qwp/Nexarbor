@@ -1,7 +1,7 @@
 // 真实 Python 后端与 Electron；仅使用独立 E 盘测试工作区，不调用模型。
 import {_electron,expect} from '@playwright/test';
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/stored-nodes-e2e-'+Date.now());
 let host=await startStudio({directory}),client,page;const errors=[];
 const api=async(operation,params={})=>{const r=await fetch('http://'+host.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(host.url).hash.slice(7)},body:JSON.stringify({operation,params})}),result=await r.json();if(result.error)throw Error(result.error);return result.value;};

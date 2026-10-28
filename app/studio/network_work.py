@@ -7,15 +7,17 @@ from .assembly import assemble_document
 
 def validate_network(document,backend,library,*,allow_missing=False,port_definitions=None):
     if not isinstance(document,dict) or set(document)!={'network','files'}:raise ValueError('预设使用 {network, files} 成品格式')
-    document=assemble_document(document,backend,library,port_definitions=port_definitions)
+    document=assemble_document(document,backend,library,port_definitions=port_definitions,allow_missing=allow_missing)
     definitions={name:release['manifest'] for name,release in library.items()}
     nodes={node['node_id']:node for node in document['network']['nodes']}
     for node in nodes.values():
         if node.get('execution') and node['execution'].get('executor')!='harness':raise ValueError('此制作宿主只支持 executor=harness')
         validate_execution_binding(node,nodes,definitions,allow_missing=allow_missing)
         for item in node.get('tables',{}).get('modules',[]):
-            definition=definitions[item['module_id']]
-            for field in ('config','state'):Draft202012Validator(definition[field+'_schema']).validate(item.get(field,{}))
+            definition=definitions.get(item['module_id'])
+            if not allow_missing:
+                if definition is None:raise ValueError('模块不可用：'+item['module_id'])
+                for field in ('config','state'):Draft202012Validator(definition[field+'_schema']).validate(item.get(field,{}))
     return document
 
 def runtime_settings(folder,backend,document,workspace=None):

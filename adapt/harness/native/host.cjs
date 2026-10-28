@@ -71,7 +71,8 @@ async function agentFor(p){
   const cursor=await checkpoints.positions.capture(existing.agent.session,{allowPending:true}),id=await checkpoints.positions.fork(cursor,'nexarbor-model-'+crypto.randomUUID());
   await retire(existing);p={...p,session_id:id,context_cursor:await checkpoints.positions.captureStored(id),model_signature:selected.signature};
  }else if(!existing&&p.session_id&&p.model_signature!==selected.signature){
-  const cursor=p.context_cursor??await checkpoints.positions.captureStored(p.session_id),id=await checkpoints.positions.fork(cursor,'nexarbor-model-'+crypto.randomUUID());
+  if(p.context_cursor)await checkpoints.positions.read(p.context_cursor);
+  const cursor=await checkpoints.positions.captureStored(p.session_id),id=await checkpoints.positions.fork(cursor,'nexarbor-model-'+crypto.randomUUID());
   p={...p,session_id:id,context_cursor:await checkpoints.positions.captureStored(id),model_signature:selected.signature};
  }
  if(agents.has(p.actor)){
@@ -82,8 +83,10 @@ async function agentFor(p){
  }
  const scope=crypto.createHash('sha256').update(config.directory+'\0'+p.actor).digest('hex').slice(0,24);let id=p.session_id||'nexarbor-'+scope,cursor=p.context_cursor;
  if(cursor){
-  const head=await checkpoints.positions.captureStored(id);
-  if(head.event_count!==cursor.event_count||head.prefix_hash!==cursor.prefix_hash){id=await checkpoints.positions.fork(cursor);cursor=await checkpoints.positions.captureStored(id);}
+  // A saved position verifies the durable prefix. Ordinary reopening keeps
+  // later native progress; explicit imports/restores already select their branch.
+  await checkpoints.positions.read(cursor);
+  cursor=await checkpoints.positions.captureStored(id);
  }
  let agent;
  try{agent=(await host.agentLoop.resume(host,{resumeSessionId:id,agentOptions:selected.model})).agent;}

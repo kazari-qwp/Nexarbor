@@ -27,12 +27,16 @@ class CollectionDataer(RecordDataer):
     @property
     def store(self):
         if self._store is None:
-            from ..storage.knowledge import KnowledgeStore
-            store = KnowledgeStore(self.directory, embedding_config=self.embedding)
+            if self.collection_id:
+                from ..modules.knowledge_catalog.store import KnowledgeStore
+                store=KnowledgeStore(self.directory,embedding_config=self.embedding,owner_node=self.node_id)
+            else:
+                from ..storage.knowledge import KnowledgeStore
+                store=KnowledgeStore(self.directory,embedding_config=self.embedding)
             collections = store.catalog(limit=1000)
             if len(collections) > 1:
                 raise ValueError('本地知识节点只能拥有一个集合')
-            current = collections[0] if collections else store.create_collection(self.name, self.storage, schema=self.schema_fields)
+            current = collections[0] if collections else store.create_collection(self.name,self.storage,schema=self.schema_fields,**({'collection_id':self.collection_id} if self.collection_id else {}))
             if current['storage'] != self.storage:
                 raise ValueError('集合存储类型不能覆盖已有数据')
             self.collection_id = current['id']

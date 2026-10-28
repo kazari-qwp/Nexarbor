@@ -26,7 +26,14 @@ def scan(studio):
     if studio.project_directory is None:return {}
     project=studio.project_directory;metadata=read_json(project/'nexarbor.json',{})
     result={}
-    for name,entry in metadata.get('resources',{}).get('modules',{}).items():
+    entries=dict(metadata.get('resources',{}).get('modules',{}))
+    folders=project/'modules'
+    for folder in sorted(folders.iterdir()) if folders.exists() else []:
+        if not folder.is_dir():continue
+        try:name=read_json(folder/'module.json',{}).get('id',folder.name)
+        except (OSError,ValueError):name=folder.name
+        entries.setdefault(name,{'folder':folder.relative_to(project).as_posix()})
+    for name,entry in entries.items():
         if entry.get('builtin'):
             if name in studio.standard_releases:result[name]=studio.standard_releases[name]
             continue

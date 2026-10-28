@@ -8,9 +8,9 @@ test('preset quantity roundtrips on disk and expands in the core without changin
  await assert.rejects(host.request('preset.expand',{snapshot:stored.snapshot,count:1.5}),/整数/);document.network.repeat_unit_count=0;await assert.rejects(store.save({storageKind:'fragment',document,editor:{name:'错误'}}),/无效/);
  }finally{await host?.close();}
 });
-test('history distinguishes quantity while ignoring new instance and subnode identities',()=>{
- const nodes=[{node_id:'a',type:'node',links:[],tables:{modules:[]},execution:{prepare:[{node:'sub',module:'m',operation:'read'}]}},{node_id:'sub',type:'subnode',parameters:{parent_id:'a'},links:[],tables:{modules:[]}}],snapshot={nodes,files:{},repeat_unit_count:3,repeat_unit:['a']};
- const original=normalizeHistory({snapshot});const copy=structuredClone(snapshot);copy.nodes[0].node_id='b';copy.nodes[0].execution.prepare[0].node='sub2';copy.nodes[1].node_id='sub2';copy.nodes[1].parameters.parent_id='b';copy.repeat_unit=['b'];assert.equal(original.configKey,normalizeHistory({snapshot:copy}).configKey);copy.repeat_unit_count=4;assert.notEqual(original.configKey,normalizeHistory({snapshot:copy}).configKey);
+test('history distinguishes quantity while ignoring new instance identities and management ownership',()=>{
+ const nodes=[{node_id:'a',type:'node',links:[],tables:{modules:[]},execution:{prepare:[{node:'sub',module:'m',operation:'read'}]}},{node_id:'sub',type:'node',links:[],tables:{modules:[]}}],snapshot={nodes,files:{},properties:{sub:{management_parent_id:'a'}},repeat_unit_count:3,repeat_unit:['a']};
+ const original=normalizeHistory({snapshot});const copy=structuredClone(snapshot);copy.nodes[0].node_id='b';copy.nodes[0].execution.prepare[0].node='sub2';copy.nodes[1].node_id='sub2';copy.properties={sub2:{management_parent_id:'b'}};copy.repeat_unit=['b'];assert.equal(original.configKey,normalizeHistory({snapshot:copy}).configKey);copy.repeat_unit_count=4;assert.notEqual(original.configKey,normalizeHistory({snapshot:copy}).configKey);
 });
 
 test('a single prototype with a count is a network preset rather than a single-node template',async()=>{

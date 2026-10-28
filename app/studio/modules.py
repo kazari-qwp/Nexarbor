@@ -10,14 +10,41 @@ from types import ModuleType
 from app.projects.module_tools import install_tools,bind_tools
 from app.runtime.module_emitter import emit_module_signal
 from domain.core import Module
+from jsonschema import Draft202012Validator
+from .unavailable import UnavailableModule
 
 class ProjectModules:
-    def __init__(self,backend,library,*,agent_run=None,instantiate=None,project_directory=None):
+    def __init__(self,backend,library,*,agent_run=None,instantiate=None,project_directory=None,tolerate=False):
         self.backend=backend;self.project_directory=Path(project_directory).resolve() if project_directory is not None else backend.directory;self.library={key:Path(value).resolve() for key,value in library.items()};self.agent_run=agent_run;self.instantiate=instantiate
+        self.tolerate=tolerate
         self.builtins={key:backend.saver.tables.module_types[key] for key in ('tool_discovery','context.assembler')}
         self.manifests={key:json.loads((folder/'module.json').read_text(encoding='utf-8')) for key,folder in self.library.items()}
         self.defaults={key:json.loads((folder/'example.json').read_text(encoding='utf-8')) if (folder/'example.json').exists() else {} for key,folder in self.library.items()};self.classes={}
+        backend.saver.tables.restore_modules=self.restore_tables
         backend.saver.tables.module_types.update({key:(lambda record,key=key:self.restore(key,record)) for key in self.library if key not in self.builtins})
+
+    def restore_tables(self,node,records):
+        modules={};specs={record['module_id']:record for record in records}
+        def load(key,active=()):
+            if key in modules:return modules[key]
+            record=specs[key]
+            try:
+                if key in active:raise ValueError('模块依赖循环：'+key)
+                module=self.restore(key,record)
+                definition=self.manifests.get(key,{})
+                if definition and node.node_type not in definition['node_types']:raise ValueError('模块不支持节点类型：'+node.node_type)
+                for field in ('config','state'):Draft202012Validator(definition.get(field+'_schema',{})).validate(record.get(field,{}))
+                for dependency in definition.get('requires',record.get('modules',[])):
+                    if dependency not in specs:raise ValueError('缺少依赖：'+dependency)
+                    other=load(dependency,(*active,key))
+                    if isinstance(other,UnavailableModule):raise ValueError('依赖不可用：'+dependency+'；'+other.unavailable_reason)
+            except Exception as error:
+                if not self.tolerate:raise
+                module=UnavailableModule(key,record,str(error))
+            modules[key]=module
+            return module
+        for key in specs:load(key)
+        return modules
 
     def module_type(self,key):
         if key in self.classes:return self.classes[key]
@@ -35,7 +62,7 @@ class ProjectModules:
         self.classes[key]=cls;return cls
 
     def ports(self):
-        return dict(directory=self.backend.directory,project_directory=self.project_directory,transaction=lambda nodes,**p:self.backend.node_locks.transaction(nodes,**p),
+        return dict(directory=self.backend.directory,project_directory=self.project_directory,node_access=lambda nodes:self.backend.node_locks.access(nodes),transaction=lambda nodes,**p:self.backend.node_locks.transaction(nodes,**p),
                     emit=lambda node,**p:emit_module_signal(self.backend.signals,node,**p),
                     checkpoint=self.checkpoint,agent_run=self.run_agent,instantiate=self.create_nodes,wait_signal=lambda signal_id:self.backend.signals.wait(signal_id),manage=self.manage)
 
@@ -79,10 +106,21 @@ class ProjectModules:
         if current is not None:return current
         pending={} if pending is None else pending
         if key in pending:return pending[key]
-        defaults=self.defaults[key]
+        defaults=self.defaults.get(key,{})
         record=dict(config=defaults.get('config',{}) if config is None else config,state=defaults.get('state',{}) if state is None else state,**(defaults.get('access',{}) if access is None else access))
-        module=pending[key]=self.restore(key,record)
-        module._dependencies=tuple(self.create(node,dependency,pending=pending) for dependency in self.manifests[key].get('requires',[]))
+        try:
+            module=pending[key]=self.restore(key,record)
+            definition=self.manifests.get(key,{})
+            if definition and node.node_type not in definition['node_types']:raise ValueError('模块不支持节点类型：'+node.node_type)
+            for field in ('config','state'):Draft202012Validator(definition.get(field+'_schema',{})).validate(record.get(field,{}))
+            module._dependencies=tuple(self.create(node,dependency,pending=pending) for dependency in definition.get('requires',[]))
+            for dependency in module.modules:
+                if isinstance(dependency,UnavailableModule):raise ValueError('依赖不可用：'+dependency.module_id+'；'+dependency.unavailable_reason)
+        except Exception as error:
+            if not self.tolerate:raise
+            module=pending[key]=UnavailableModule(key,record,str(error))
+            module._dependencies=tuple(pending[dependency] for dependency in self.manifests.get(key,{}).get('requires',[]) if dependency in pending)
+            module.saved_dependencies=[dependency.module_id for dependency in module.modules]
         return module
 
     def mount(self,node,key,config=None,state=None,access=None):

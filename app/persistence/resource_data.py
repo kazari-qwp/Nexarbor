@@ -2,6 +2,7 @@
 import base64
 from pathlib import Path
 import sqlite3
+from adapt.files.storage_paths import storage_path
 
 
 def encode_bytes(content):
@@ -22,12 +23,15 @@ def decode_data(content):
 
 
 def read_bytes(path):
-    path=Path(path)
+    path=storage_path(path)
     if not path.exists():return None
     with path.open('rb') as stream:header=stream.read(16)
     if header==b'SQLite format 3\x00':
         # Include committed WAL pages, without copying a live journal or changing the source.
-        source=sqlite3.connect(Path(str(path).removeprefix('\\\\?\\')).as_uri()+'?mode=ro',uri=True);target=sqlite3.connect(':memory:')
+        plain=str(path)
+        if plain.startswith('\\\\?\\UNC\\'):plain='\\\\'+plain[8:]
+        else:plain=plain.removeprefix('\\\\?\\')
+        source=sqlite3.connect(Path(plain).as_uri()+'?mode=ro',uri=True);target=sqlite3.connect(':memory:')
         try:source.backup(target);return target.serialize()
         finally:target.close();source.close()
     return path.read_bytes()
@@ -37,7 +41,7 @@ def read_data(path):return encode_bytes(read_bytes(path))
 
 
 def write_data(path,content):
-    path=Path(path);data=decode_data(content)
+    path=storage_path(path);data=decode_data(content)
     if data is None:path.unlink(missing_ok=True);return
     path.parent.mkdir(parents=True,exist_ok=True)
     temporary=path.with_name(path.name+'.resource.tmp')
@@ -48,7 +52,7 @@ TRANSIENT = (".lock", "-wal", "-shm", "-journal", ".tmp")
 
 
 def resource_files(root):
-    root = Path(root)
-    if not root.is_dir():return [root]
-    return [path for path in sorted(root.rglob('*'))
+    root = Path(root);physical=storage_path(root)
+    if not physical.is_dir():return [root]
+    return [root/path.relative_to(physical) for path in sorted(physical.rglob('*'))
             if path.is_file() and not path.is_symlink() and not path.name.endswith(TRANSIENT)]

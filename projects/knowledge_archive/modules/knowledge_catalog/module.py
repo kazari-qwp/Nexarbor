@@ -2,30 +2,32 @@
 
 import asyncio
 from copy import deepcopy
+from contextlib import nullcontext
 import json
 from pathlib import Path
 
 from domain.core import Module, access
 from domain.json_values import thaw
-from .store import KnowledgeStore
+from .directory import KnowledgeDirectory
 
 
 class KnowledgeCatalogModule(Module):
-    def __init__(self, directory, instantiate, config=None, state=None, **access_settings):
+    def __init__(self, directory, instantiate, config=None, state=None, *, node_access=None, **access_settings):
         super().__init__("knowledge.catalog", **access_settings)
         self.directory = Path(directory).resolve()
         self.instantiate = instantiate
         self.config = deepcopy(config or {})
         self.state = deepcopy(state or {})
         self._stores = {}
+        self.node_access=node_access
 
     def engine(self, node):
         directory = self.directory / self.config.get("directory", "workspace/knowledge")
         key = (str(directory), node.info.node_id, json.dumps(thaw(self.config.get("embedding")), sort_keys=True))
         if key not in self._stores:
-            self._stores[key] = KnowledgeStore(directory, embedding_config=thaw(self.config.get("embedding")), owner_node=node.info.node_id)
+            self._stores[key] = KnowledgeDirectory(node.saver.path,owner_node=node.info.node_id)
         engine = self._stores[key]
-        engine.owner_nodes = thaw(self.state.get("owners", {}))
+        engine.registry.owner_nodes = thaw(self.state.get("owners", {}))
         return engine
 
     async def execute(self, action, **parameters):
@@ -94,10 +96,27 @@ class KnowledgeCatalogModule(Module):
     async def finish_intake(self, **parameters):
         return await self.execute("finish_intake", **parameters)
 
+    @access(channels=['knowledge.catalog.manage'])
+    async def _collections(self, node):
+        from projects.knowledge_archive.nodes.collection import CollectionNode
+        if not isinstance(node,CollectionNode):return
+        return node.info.node_id,node.dataer.collection_id,node.dataer.store
+
+    async def bind_collections(self,engine):
+        entries=await self._collections()
+        results=[value for value in entries.values() if value is not None]
+        engine.bind({key:store for node,key,store in results})
+        return [node for node,key,store in results]
+
     @access(channels=())
     async def _operate(self, node, op, p):
         p = thaw(p)
         engine=self.engine(node)
+        nodes=await self.bind_collections(engine)
+        async with self.node_access(nodes) if self.node_access is not None else nullcontext():
+            return await self._dispatch(node,engine,op,p)
+
+    async def _dispatch(self,node,engine,op,p):
         if op=='pending':
             offset=p.get('offset',0);limit=min(p.get('limit',20),100)
             with engine.connection() as db:
@@ -105,26 +124,23 @@ class KnowledgeCatalogModule(Module):
                 items=[dict(r) for r in db.execute("SELECT id,purpose,status FROM intakes WHERE status IN ('pending','partial') ORDER BY rowid LIMIT ? OFFSET ?",(limit,offset))]
             return dict(items=items,total=total,offset=offset,next_offset=offset+limit if offset+limit<total else None)
         if op=='locate':
-            with engine.connection() as db:
-                row=db.execute('SELECT collection_id FROM records WHERE id=?',(p['id'],)).fetchone()
-            if row is None:raise KeyError('Unknown record: '+p['id'])
-            return engine.collection(row['collection_id'])
+            return engine.locate(p['id'])
         if op=='collection_access':
             collection=p['collection'];owner=self.state.get('owners',{}).get(collection)
             if not owner:raise ValueError('Collection has no bound network node')
             op=p['operation'];p=p.get('arguments',{})
             if op not in ('collection','store','fetch','search','update','delete','export','commit_intake','index','query','wiki'):raise ValueError('Unknown collection operation')
             if op in ('fetch','update','delete'):
-                with engine.connection() as db:row=db.execute('SELECT collection_id FROM records WHERE id=?',(p['id'],)).fetchone()
-                if row is None or row['collection_id']!=collection:raise ValueError('Record belongs to another collection')
+                if engine.locate(p['id'])['id']!=collection:raise ValueError('Record belongs to another collection')
             elif op=='collection':p={'target':collection}
             else:p={**p,'collection':collection}
         if op=='create_collection':
             item=await asyncio.to_thread(engine.create_collection,**p)
             owners=thaw(self.state.get('owners',{}))
             if item['id'] not in owners:
-                created=await self.instantiate(node.info.node_id,template='knowledge-collection',key=item['id'],arguments=dict(label=item['name'],collection=item['id'],storage=item['storage']))
-                owners=thaw(self.state.get('owners',{}));owners[item['id']]=created['node_ids']['collection'];self.state['owners']=owners;engine.owner_nodes=owners
+                created=await self.instantiate(node.info.node_id,template='knowledge-collection',key=item['id'],arguments=dict(label=item['name'],collection=item['id'],storage=item['storage'],schema=item['schema'],embedding=thaw(self.config.get('embedding'))))
+                owners=thaw(self.state.get('owners',{}));owners[item['id']]=created['node_ids']['collection'];self.state['owners']=owners
+                await self.bind_collections(engine)
             return {**engine.collection(item['id']),'reused':item['reused']}
         if op=='guide':
             name=p['name']
@@ -152,5 +168,5 @@ class KnowledgeCatalogModule(Module):
         result=await asyncio.to_thread(getattr(engine,op),**p)
         if op=='export' and 'content' in result:
             from uuid import uuid4
-            path=engine.directory/'exports'/(uuid4().hex+'.'+result['format']);engine._atomic(path,result['content'].encode('utf8'));result=dict(format=result['format'],count=result['count'],path=str(path))
+            path=engine.directory/'exports'/(uuid4().hex+'.'+result['format']);engine.registry._atomic(path,result['content'].encode('utf8'));result=dict(format=result['format'],count=result['count'],path=str(path))
         return result

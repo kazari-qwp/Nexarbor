@@ -5,6 +5,7 @@ from threading import RLock
 from uuid import uuid4
 from filelock import FileLock
 from .state_journal import canonical,checksum,diff,apply
+from .state_hash import StateHash
 
 def open_database(file):
     # Windows process termination may briefly leave WAL/SHM handles pending cleanup.
@@ -41,7 +42,7 @@ class Checkpoints:
             if version and version[0]!='2':raise ValueError('Unsupported journal version')
             with self.db:self.db.execute("INSERT OR IGNORE INTO journal_meta VALUES ('version','2')")
             row=self.db.execute('SELECT id,state_hash FROM commits ORDER BY id DESC LIMIT 1').fetchone()
-            self.head=row[0] if row else 0;self.head_hash=row[1] if row else '';self.document=self.read(self.head) if self.head else None
+            self.head=row[0] if row else 0;self.head_hash=row[1] if row else '';self.document=self.read(self.head) if self.head else None;self._state_hash=StateHash()
         except BaseException:
             if hasattr(self,'db'):self.db.close()
             self.lock.release();raise
@@ -51,11 +52,11 @@ class Checkpoints:
             if not end:raise KeyError('Unknown journal commit')
             snapshot=self.db.execute('SELECT id,document,state_hash FROM checkpoints WHERE id<=? ORDER BY id DESC LIMIT 1',(commit_id,)).fetchone()
             if not snapshot:raise ValueError('Required full snapshot is missing')
-            state=json.loads(snapshot[1]);last=snapshot[0];value_hash=checksum(state)
+            state=json.loads(snapshot[1]);last=snapshot[0];state_hash=StateHash();value_hash=state_hash.digest(state)
             if value_hash!=snapshot[2]:raise ValueError('Snapshot checksum mismatch')
             for seq,parent,expected,delta in self.db.execute('SELECT id,parent_hash,state_hash,delta FROM commits WHERE id>? AND id<=? ORDER BY id',(last,commit_id)):
                 if seq!=last+1 or parent!=value_hash:raise ValueError('Broken journal chain')
-                state=apply(state,json.loads(delta));value_hash=checksum(state)
+                operations=json.loads(delta);state=apply(state,operations);value_hash=state_hash.digest(state,operations)
                 if value_hash!=expected:raise ValueError('Delta checksum mismatch')
                 last=seq
             if last!=commit_id or value_hash!=end[0]:raise ValueError('Recovery commit mismatch')
@@ -65,9 +66,10 @@ class Checkpoints:
     def begin(self,operation_id,method):
         with self.mutex,self.db:self.db.execute('INSERT INTO pending VALUES (?,?)',(operation_id,method))
     def commit(self,document,operation_id=None,force_snapshot=False):
-        canonical(document)
         with self.mutex:
-            changes=diff(self.document,document);value_hash=checksum(document);seq=self.head
+            changes=diff(self.document,document);state_hash=self._state_hash.copy()
+            value_hash=state_hash.digest(document,changes) if changes or not self.head else self.head_hash
+            seq=self.head
             with self.db:
                 if changes:
                     cursor=self.db.execute('INSERT INTO commits(parent_hash,state_hash,delta,operation_id) VALUES (?,?,?,?)',(self.head_hash,value_hash,canonical(changes),operation_id));seq=cursor.lastrowid
@@ -75,7 +77,7 @@ class Checkpoints:
                     self.db.execute('INSERT OR IGNORE INTO checkpoints VALUES (?,?,?)',(seq,canonical(document),value_hash))
                 if force_snapshot:self.db.execute("INSERT OR REPLACE INTO journal_meta VALUES ('full_snapshot_requested',?)",(str(seq),))
                 if operation_id:self.db.execute('DELETE FROM pending WHERE id=?',(operation_id,))
-            self.head=seq;self.head_hash=value_hash;self.document=deepcopy(document)
+            self.head=seq;self.head_hash=value_hash;self.document=deepcopy(document);self._state_hash=state_hash
             return seq
     def pending(self):
         with self.mutex:return [dict(id=r[0],method=r[1],status='uncertain') for r in self.db.execute('SELECT id,method FROM pending')]

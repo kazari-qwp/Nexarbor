@@ -1,5 +1,5 @@
 // 坏路径/坏清单/坏记录/坏网络/失效连接统一回首页；缺少模块则保留画布并显示节点警告。
-import {_electron,expect} from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {startStudio} from '../../../adapters/harness/studio/host.mjs';import {editorNode} from '../../../adapters/harness/framework/editor-nodes.js';
+import {_electron,expect} from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {startStudio} from '../../../adapt/harness/studio/host.mjs';import {editorNode} from '../../../adapt/harness/framework/editor-nodes.js';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),base=path.join(root,'build/project-fallback-'+Date.now()),desktop=path.join(root,'frontends/desktop'),exe=process.env.NEXARBOR_TEST_EXECUTABLE??path.join(desktop,'node_modules/electron/dist/electron.exe'),env={...process.env},results=[];delete env.ELECTRON_RUN_AS_NODE;await fs.mkdir(base,{recursive:true});
 const manifest={format:'nexarbor-project/v1',resources:{modules:{},tools:{},presets:{}},networks:{}};
 for(const [name,make,args,reason]of [

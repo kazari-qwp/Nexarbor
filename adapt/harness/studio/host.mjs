@@ -34,7 +34,7 @@ export async function startStudio({directory=path.join(root,'build/workbench'),p
  await fs.mkdir(directory,{recursive:true});const temporary=path.join(directory,'temp');await fs.mkdir(temporary,{recursive:true});
  onProgress('正在恢复网络…');const startTime=performance.now(),timings={};const mark=name=>{timings[name]=Math.round(performance.now()-startTime);};
  const project=new Project(projectDirectory,directory,(method,p)=>rpc(method,p));await project.initialize();
- const child=spawn(python,['-B','-X','utf8','-m','adapt.harness.backend.server',directory],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1',NEXARBOR_STUDIO:'1',NEXARBOR_APPLICATION:'workbench',NEXARBOR_PROJECT_DIRECTORY:projectDirectory,TEMP:temporary,TMP:temporary,TMPDIR:temporary}});
+ const child=spawn(python,['-B','-X','utf8','-m','adapt.harness.backend.server',directory],{cwd:root,windowsHide:true,stdio:['pipe','pipe','pipe'],env:{...process.env,PYTHONUTF8:'1',PYTHONDONTWRITEBYTECODE:'1',DATANET_DEFER_VECTORS:'1',NEXARBOR_STUDIO:'1',NEXARBOR_APPLICATION:'workbench',NEXARBOR_PROJECT_DIRECTORY:projectDirectory,TEMP:temporary,TMP:temporary,TMPDIR:temporary}});
  let serial=0,closed=false;const pending=new Map();let diagnostics='';child.stderr.on('data',chunk=>{diagnostics=(diagnostics+chunk).slice(-16000);});
  const official=new OfficialToolsRunner(directory,{cwd:projectDirectory});let officialTools=[],runtimeTools=[],toolError=null;
  const skills=new SkillResources(project,(method,p)=>rpc(method,p));project.skillResources=skills;

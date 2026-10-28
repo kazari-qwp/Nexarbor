@@ -23,10 +23,16 @@ class Project:
         for name, resource in self.metadata['resources']['modules'].items():
             if resource.get('builtin'):
                 folder = Path(__file__).resolve().parents[2]/'modules'/('tool_discovery' if name=='tool_discovery' else 'context_assembler')
-                spec = json.loads((folder/'module.json').read_text(encoding='utf-8'))
+                try:spec = json.loads((folder/'module.json').read_text(encoding='utf-8'))
+                except (OSError,ValueError):
+                    self.module_folders[name] = folder
+                    continue
             else:
                 folder = (self.project/resource['folder']).resolve()
-                spec = json.loads((folder/'module.json').read_text(encoding='utf-8'))
+                try:spec = json.loads((folder/'module.json').read_text(encoding='utf-8'))
+                except (OSError,ValueError):
+                    self.module_folders[name] = folder
+                    continue
             self.module_schemas[name] = spec
             self.module_folders[name] = folder
             self.tool_specs[name] = spec.get('agent_tools',[])
@@ -49,7 +55,7 @@ class Project:
             service.graph_changed=self.graph_changed
             if initial is not None and any('tools' not in record.get('tables',{}) or any('tools' not in item for item in record.get('tables',{}).get('modules',[])) for record in records) and backend.store.latest() is None:
                 from app.studio.assembly import assemble_document
-                document=assemble_document(dict(network={**initial['network'],'properties':initial['node_properties']},files=initial['files']),backend,service.library,port_definitions=service.ports)
+                document=assemble_document(dict(network={**initial['network'],'properties':initial['node_properties']},files=initial['files']),backend,service.library,port_definitions=service.ports,allow_missing=True)
                 initial['network']=document['network'];initial['files']=document['files']
         self.backend = Backend(directory,saver=self.saver,initial_document=initial,configure=configure if studio else None)
         self.module_signals = None

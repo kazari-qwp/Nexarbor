@@ -1,6 +1,6 @@
 // 真实客户端与后端：仅验证入口、目录与发布，不调用模型。
 import {_electron,expect} from '@playwright/test';import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/maker-entry-'+Date.now()),host=await startStudio({directory});let client,page;const errors=[];
 const api=async(operation,params={})=>{const r=await fetch('http://'+host.authority+'/api',{method:'POST',headers:{'Content-Type':'application/json','X-Nexarbor-Token':new URL(host.url).hash.slice(7)},body:JSON.stringify({operation,params})});const v=await r.json();if(v.error)throw Error(v.error);return v.value;};
 try{

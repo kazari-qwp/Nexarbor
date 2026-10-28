@@ -1,7 +1,7 @@
 // 真实 Python 服务与 Electron，资源整理和复制全流程，不调用模型。
 import {_electron,expect} from '@playwright/test';
 import fs from 'node:fs/promises';import path from 'node:path';import {fileURLToPath} from 'node:url';import {createHash} from 'node:crypto';
-import {startStudio} from '../../../adapters/harness/studio/host.mjs';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
 import {copySubnet} from '../src/subnets.js';
 const root=fileURLToPath(new URL('../../../',import.meta.url)),directory=path.join(root,'build/unified-resources-e2e-'+Date.now());
 let host=await startStudio({directory}),client,page;const errors=[];

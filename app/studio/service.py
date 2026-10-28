@@ -60,7 +60,11 @@ class Studio:
         self.catalog_changed=catalog_changed;self.register_properties=register_properties
         self.standard_releases={}
         for name,folder in (library or {}).items():
-            folder=Path(folder).resolve();spec=manifest(folder);files=sources(folder);defaults=read_json(folder/'example.json',{})
+            folder=Path(folder).resolve()
+            try:spec=manifest(folder);files=sources(folder);defaults=read_json(folder/'example.json',{})
+            except Exception:
+                if self.project_directory is not None and folder.is_relative_to(self.project_directory):continue
+                raise
             self.standard_releases[name]=dict(id=name,version=spec['version'],folder=str(folder),digest=digest(files),manifest=spec,defaults=defaults.get('config',{}),mount_defaults=defaults,origin='project' if self.project_directory is not None and folder.is_relative_to(self.project_directory) else 'standard')
         self.removed=set(read_json(self.root/'removed-modules.json',[]))
         self.library=self.select_releases(read_json(self.root/'library.json',{}))
@@ -76,13 +80,18 @@ class Studio:
             self.backend.network_administrator=Administrator(self.backend)
 
     def _load_releases(self):
-        self.modules=ProjectModules(self.backend,{name:self.root/release['folder'] for name,release in self.library.items()},agent_run=self.agent_run,instantiate=self.instantiate,project_directory=self.project_directory)
+        self.modules=ProjectModules(self.backend,{name:self.root/release['folder'] for name,release in self.library.items()},agent_run=self.agent_run,instantiate=self.instantiate,project_directory=self.project_directory,tolerate=True)
         if self.catalog_changed is not None:self.catalog_changed(self.library)
 
     def select_releases(self,releases):
         selected={**self.standard_releases,**{name:release for name,release in releases.items() if release.get('origin')!='project'}}
         from .project_sources import scan
-        selected.update(scan(self))
+        local=scan(self)
+        if self.project_directory is not None:
+            entries=read_json(self.project_directory/'nexarbor.json',{}).get('resources',{}).get('modules',{})
+            for name,entry in entries.items():
+                if not entry.get('builtin'):selected.pop(name,None)
+        selected.update(local)
         return {name:release for name,release in selected.items() if name not in self.removed}
 
     def persist_library(self):
@@ -455,7 +464,9 @@ class Studio:
     def state(self,p=None):
         snapshot=self.backend.snapshot();network=deepcopy(snapshot['network']);network['properties']=deepcopy(snapshot.get('node_properties',{}))
         names={node['node_id']:node['name'] for node in network['nodes']}
-        return dict(moduleProblems={},mode='组件开发 · Harness后端',live=dict(document=dict(network=network,files=snapshot['files']),signals=deepcopy(snapshot.get('signals',{})),port_definitions=deepcopy(snapshot.get('port_definitions',{})),port_contracts=deepcopy(snapshot.get('port_contracts',{})),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),job=self.run_state,studio=True)
+        problems={node.info.node_id:{module.module_id:module.unavailable_reason for module in node.modules if getattr(module,'unavailable_reason',None)} for node in self.backend.network}
+        problems={key:value for key,value in problems.items() if value}
+        return dict(moduleProblems=problems,mode='组件开发 · Harness后端',live=dict(document=dict(network=network,files=snapshot['files']),signals=deepcopy(snapshot.get('signals',{})),port_definitions=deepcopy(snapshot.get('port_definitions',{})),port_contracts=deepcopy(snapshot.get('port_contracts',{})),commit=self.backend.store.head,sessions={id:dict(name=names[id],**value) for id,value in snapshot['agents'].items() if id in names}),draft=read_json(self.root/'draft.json',None),job=self.run_state,studio=True)
 
     def observe(self,p):
         folder=self.folder(p['id']);source=p.get('source','candidate');scoped=getattr(self.backend,'network_administrator',None)

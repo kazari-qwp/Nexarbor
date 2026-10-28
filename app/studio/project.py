@@ -8,6 +8,7 @@ from projects.knowledge_archive.nodes.value import ValueNode
 from projects.knowledge_archive.nodes.csv import CsvNode
 from projects.knowledge_archive.nodes.sqlite import SqliteNode
 from projects.knowledge_archive.nodes.collection import CollectionNode
+from projects.knowledge_archive.nodes.catalog import CatalogNode
 from projects.knowledge_archive.nodes.vector.node import LlamaIndexNode
 
 class WorkbenchProject(Project):
@@ -18,7 +19,7 @@ class WorkbenchProject(Project):
     def configure_project(self):
         from app.runtime.ports import read_text
         self.saver=NetworkSaver(read_text=lambda path,roots=():read_text(self.project,dict(path=path,roots=roots)))
-        self.saver.node_types.update(value=ValueNode,csv=CsvNode,sqlite=SqliteNode,knowledge_collection=CollectionNode,llamaindex=LlamaIndexNode)
+        self.saver.node_types.update(value=ValueNode,csv=CsvNode,sqlite=SqliteNode,knowledge_collection=CollectionNode,knowledge_catalog=CatalogNode,llamaindex=LlamaIndexNode)
         root=Path(__file__).resolve().parents[2]
         standards={'tool_discovery':root/'modules/tool_discovery','context.assembler':root/'modules/context_assembler',
                    'metadata.fields':root/'projects/workbench/modules/metadata_fields',

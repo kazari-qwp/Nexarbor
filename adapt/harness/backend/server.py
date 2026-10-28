@@ -13,6 +13,9 @@ from .transport import Transport
 def main():
     sys.stdin.reconfigure(encoding='utf-8')
     sys.stdout.reconfigure(encoding='utf-8')
+    from projects.knowledge_archive.nodes.vector.startup import initialize
+    os.environ.setdefault('DATANET_DEFER_VECTORS','1')
+    initialize(sys.argv[1])
     project = None
     studio = os.environ.get('NEXARBOR_STUDIO') == '1'
     if os.environ.get('NEXARBOR_APPLICATION') == 'workbench':
@@ -53,6 +56,9 @@ def main():
         async def local(parameters):
             node = backend.network.get(parameters['node_id'])
             module_id = parameters['module_id'];operation = parameters['operation']
+            module=node.modules.get(module_id)
+            if module is None:raise ValueError('模块未安装：'+module_id)
+            if getattr(module,'unavailable_reason',None):module.refuse()
             definition = next(item for item in project.module_schemas[module_id].get('operations',[]) if item['name']==operation)
             from jsonschema import Draft202012Validator
             arguments = parameters.get('arguments',{})

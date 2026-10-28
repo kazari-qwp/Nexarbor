@@ -29,6 +29,7 @@ class KnowledgeStore:
     def __init__(self, directory, *, embedding_config=None, owner_node):
         self.owner_node=owner_node
         self.owner_nodes={}
+        self.source_lookup=None
         self.directory = Path(directory).resolve()
         self.directory.mkdir(parents=True, exist_ok=True)
         self.database = self.directory / 'catalog.sqlite3'
@@ -129,7 +130,7 @@ class KnowledgeStore:
             raise KeyError('Unknown collection: ' + target)
         return self._collection(row)
 
-    def create_collection(self, name, storage, description='', schema=None, tags=None):
+    def create_collection(self, name, storage, description='', schema=None, tags=None, *, collection_id=None):
         if storage not in {'csv', 'sqlite', 'rag', 'wiki'}:
             raise ValueError('Choose csv, sqlite, rag or wiki')
         if not isinstance(name, str) or not name.strip():
@@ -148,7 +149,7 @@ class KnowledgeStore:
                 if result['storage'] != storage or result['schema'] != schema:
                     raise ValueError('An existing collection has a different storage type or schema')
                 return dict(result, reused=True)
-            id = uuid4().hex
+            id = collection_id or uuid4().hex
             candidate=dict(id=id,name=name,storage=storage,description=description,schema=schema,tags=tags or [],node_id=self.owner_for(id))
             self._initialize_storage(candidate)
             db.execute('INSERT INTO collections VALUES(?,?,?,?,?,?)', (id, name, storage, description, encoded(schema), encoded(tags or [])))
@@ -216,7 +217,7 @@ class KnowledgeStore:
                     raise ValueError('Version conflict; fetch the current record before updating')
                 references = []
                 for source in dict.fromkeys(sources or []):
-                    row = db.execute('SELECT version,deleted FROM records WHERE id=?', (source,)).fetchone()
+                    row = self.source_state(source)
                     if row is None or row['deleted']:
                         raise ValueError('Unknown or deleted source: ' + source)
                     references.append((source, row['version']))
@@ -241,6 +242,11 @@ class KnowledgeStore:
             if collection['storage'] in {'rag','wiki'}:
                 result['index'] = self.index(collection['id'])
             return result
+
+    def source_state(self, id):
+        with self.connection() as db:
+            row=db.execute('SELECT version,deleted FROM records WHERE id=?',(id,)).fetchone()
+        return dict(row) if row else self.source_lookup(id) if self.source_lookup else None
 
     def _materialize(self, id):
         with self.connection() as db:
@@ -320,8 +326,11 @@ class KnowledgeStore:
             references=[]
             with self.connection() as db:
                 for source_id,source_version in json.loads(record['sources_json']):
-                    current=db.execute('SELECT version,deleted FROM records WHERE id=?',(source_id,)).fetchone()
+                    current=self.source_state(source_id)
                     references.append(dict(source_id=source_id,source_version=source_version,current_version=current['version'] if current else None,deleted=current['deleted'] if current else True))
+        for source in references:
+            current=self.source_state(source['source_id'])
+            source.update(current_version=current['version'] if current else None,deleted=current['deleted'] if current else True)
         with self.connection() as db:
             origin_ids=[r['intake_id'] for r in db.execute('SELECT intake_id FROM record_intakes WHERE record_id=?',(id,))]
         origins=[]
@@ -428,11 +437,11 @@ class KnowledgeStore:
         if semantic:
             if not query.strip():
                 raise ValueError('Semantic queries require text')
-            targets = [scope] if scope else [c for c in self.catalog(limit=1000) if c['storage'] in {'rag','wiki'}]
+            targets = [scope] if scope else [c for c in self.catalog(limit=1000) if c['storage']=='wiki']
             if allowed_collections is not None:
                 targets = [c for c in targets if c['id'] in allowed_collections]
-            if not targets or any(c['storage'] not in {'rag','wiki'} for c in targets):
-                raise ValueError('Semantic search requires an accessible RAG or Wiki collection; use field queries for structured storage')
+            if not targets or any(c['storage']!='wiki' for c in targets):
+                raise ValueError('RAG directory search requires an accessible Wiki collection; use field queries for structured storage')
             scores = {r['id']: 1 / (60 + i) for i, r in enumerate(hits, 1)}
             all_hits = {r['id']: r for r in hits}
             prepared={}
@@ -444,7 +453,7 @@ class KnowledgeStore:
                     raise RuntimeError('Semantic search needs the application embedding configuration; keyword search remains available')
                 result = index.search(query, top_k=min(100,3*(limit + offset)))
                 seen=set()
-                for hit in result.items:
+                for rank,hit in enumerate(result.items,1):
                     id = Path(hit['metadata']['file_name']).stem
                     try:
                         if id not in prepared:
@@ -457,7 +466,7 @@ class KnowledgeStore:
                     indexed_hash=hit['metadata'].get('source_sha256')
                     if indexed_hash and indexed_hash!=sha256(record['content'].encode('utf8')).hexdigest():continue
                     location=structure.locate(hit['text'],hit.get('start_char'),hit.get('end_char'))
-                    passage=dict(chunk_id=hit['chunk_id'],score=hit['score'],location_verified=location is not None)
+                    passage=dict(rank=rank,chunk_id=hit['chunk_id'],score=hit['score'],location_verified=location is not None)
                     if location:
                         section=structure.at(location['start_char'])
                         passage.update(location=location,section=structure.describe(section),
@@ -471,8 +480,20 @@ class KnowledgeStore:
                     elif len(all_hits[id]['matches'])<3:
                         all_hits[id]['matches'].append(passage)
             hits = [all_hits[id] for id in sorted(scores, key=lambda k: (-scores[k], k))]
-        if semantic: total=len(hits); hits=hits[offset:offset+limit]
-        for hit in hits:hit['entry']=self._entry(hit)
+        if semantic:
+            keyword_ids={r['id'] for r in rows}
+            for hit in hits:hit['_keyword_match']=hit['id'] in keyword_ids
+            total=len(hits); hits=hits[offset:offset+limit]
+        for hit in hits:
+            entry=hit['entry']=self._entry(hit)
+            if entry['storage']=='wiki':
+                for passage in hit.get('matches',[]):
+                    if passage.get('location_verified'):
+                        passage['wiki_link']='[['+hit['id']+'#L'+str(passage['location']['start_line'])+']]'
+                        passage['read']=dict(passage['window_fetch'])
+                passages=[p for p in hit.get('matches',[]) if p.get('read')]
+                if passages:entry.update(wiki_link=passages[0]['wiki_link'],read=passages[0]['read'])
+                hit.update(wiki_link=entry['wiki_link'],read=entry['read'])
         return dict(items=hits,total=total,offset=offset,next_offset=offset+limit if offset+limit<total else None,method='hybrid' if semantic else 'keyword' if query else 'filter')
 
     def _index(self, collection):

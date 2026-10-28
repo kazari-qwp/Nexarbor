@@ -6,13 +6,12 @@ export function edgesOf(document){
 }
 export function nodeKind(node){
   const modules=Object.fromEntries((node.tables?.modules??[]).map(item=>[item.module_id,item]));
-  if(node.type==='subnode')return '亚节点';
   if(modules['world.resident'])return '居民';
   if(modules['world.address'])return '场所';
   if(node.type==='agent')return 'Agent';
   if(node.type==='markdown')return '文本';
   if(node.type==='pulse')return '脉冲';
-  if(['value','csv','sqlite','knowledge_collection','llamaindex'].includes(node.type))return '数据';
+  if(['value','csv','sqlite','knowledge_collection','knowledge_catalog','llamaindex'].includes(node.type))return '数据';
   if(modules['context.sources'])return '上下文';
   if(Object.keys(modules).some(x=>x.startsWith('world.')))return '业务';
   return '节点';
@@ -22,15 +21,14 @@ export function layoutNodes(document,saved={}){
   const counters={},positions={};
   for(const node of document.network.nodes){
     const kind=nodeKind(node);if(kind==='文本')continue;
-    if(kind==='亚节点'){positions[node.node_id]={x:0,y:0};continue;}
     const column={'场所':0,'业务':1,'居民':2,'Agent':2,'脉冲':3,'节点':3,'数据':4,'上下文':4}[kind];
     const row=counters[column]??0;counters[column]=row+1;
     positions[node.node_id]={x:column*270,y:row*115};
   }
   // Keep supporting documents in a compact grid below the active network.
   const documentRow=Math.max(0,...Object.values(counters))+1;let documentIndex=0;
-  const byId=new Map(document.network.nodes.map(n=>[n.node_id,n]));const placed={};
-  const position=(node,seen=new Set())=>{if(seen.has(node.node_id))return saved[node.node_id]??{x:0,y:0};seen.add(node.node_id);if(placed[node.node_id])return placed[node.node_id];if(node.type==='subnode'&&byId.has(node.parameters.parent_id)){const parent=byId.get(node.parameters.parent_id),base=position(parent,seen),siblings=document.network.nodes.filter(n=>n.type==='subnode'&&n.parameters.parent_id===parent.node_id),index=siblings.indexOf(node);return placed[node.node_id]=saved[node.node_id]??{x:base.x+155,y:base.y+index*64};}return placed[node.node_id]=saved[node.node_id]??positions[node.node_id];};
+  const placed={};
+  const position=(node,seen=new Set())=>{if(seen.has(node.node_id))return saved[node.node_id]??{x:0,y:0};seen.add(node.node_id);if(placed[node.node_id])return placed[node.node_id];return placed[node.node_id]=saved[node.node_id]??positions[node.node_id];};
   return document.network.nodes.map(node=>{
     const kind=nodeKind(node);
     if(kind==='文本'){positions[node.node_id]={x:(documentIndex%5)*270,y:(documentRow+Math.floor(documentIndex/5))*115};documentIndex++;}
@@ -47,7 +45,14 @@ const edgeChannels=edge=>edge.metadata.channels.length?edge.metadata.channels:[n
 export const connectionChannels=edges=>[...new Set(edges.filter(e=>!e.ownership).flatMap(edgeChannels))];
 export function filterGraph(nodes,edges,{query='',kinds=null,channels=null,local=null}){
   const reached=local?new Set([local.actor,...Object.values(local.reachable).flat().map(x=>x.id)]):null;
-  const selectedEdges=edges.filter(e=>e.ownership||channels===null||((e.metadata.attributes?.channel_mode==='deny')?channels.some(c=>!e.metadata.channels.includes(c)):edgeChannels(e).some(c=>channels.includes(c))));
+  const hosts=new Map(nodes.map(node=>[node.id,node.data.host?.node_id??node.id]));
+  const views=local?Object.entries(local.reachable).map(([channel,items])=>[channel,new Set([local.actor,...items.map(item=>item.id)])]):null;
+  const selectedEdges=edges.filter(edge=>{
+    if(edge.ownership)return true;
+    const allows=channel=>edge.metadata.attributes?.channel_mode==='deny'?!edge.metadata.channels.includes(channel):edgeChannels(edge).includes(channel);
+    if(channels!==null&&!channels.some(allows))return false;
+    return !views||views.some(([channel,ids])=>allows(channel)&&ids.has(hosts.get(edge.source))&&ids.has(hosts.get(edge.target)));
+  });
   const restrictedChannels=channels!==null&&(!channels.length||!connectionChannels(edges).every(c=>channels.includes(c)));
   const channelNodes=restrictedChannels?new Set(selectedEdges.filter(e=>!e.ownership).flatMap(e=>[e.source,e.target])):null;
   if(channelNodes)for(const node of nodes)if(node.data.host&&channelNodes.has(node.id))channelNodes.add(node.data.host.node_id);

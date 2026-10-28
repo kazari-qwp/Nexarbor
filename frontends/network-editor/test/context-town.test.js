@@ -1,10 +1,24 @@
-import {test} from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs/promises';import {assemblyTownDocument,assemblyTownTemplates} from '../../../adapt/harness/studio/context-town.mjs';
-test('town migration preserves memory and delivered opening while replacing invisible context assembly',async()=>{
- const actor={type:'agent',node_id:'npc/test',name:'角色',modules:{'agents.context':{config:{persona:'人格',common:'规则',opening:'开始'},state:{},access:{strength:4,channels:['self']}}},connections:{interfaces:[]},execution:{executor:'harness',strength:2,channels:['self']},inputs:null};const original={network:{version:8,nodes:[actor,{type:'text_file',node_id:'world/time',name:'时钟',modules:{'clock.counter':{config:{},state:{},access:{}}},parameters:{file_path:'time.txt'},connections:{interfaces:[]}},{type:'node',node_id:'place/home1',name:'住处',modules:{},connections:{interfaces:[]}}],signals:{},delegations:[]},files:{}};actor.modules['agents.context'].config.clock='world/time';
- actor.modules['agents.context'].state={memories:[{text:'保留经历'}],opening_queued:true};actor.inputs={'module:agents.context':{system_prompt:'旧人格',context:[],tail:['旧隐式尾部'],inputs:[{id:'agents.context.opening',text:actor.modules['agents.context'].config.opening,delivery:'followup',status:'delivered'}]}};const saved=structuredClone(original),out=assemblyTownDocument(original);assert.equal(out.changed,true);assert.deepEqual(original,saved);
- const a=out.document.network.nodes.find(n=>n.node_id===actor.node_id),group=out.document.network.nodes.find(n=>n.node_id==='context/'+a.node_id);assert.ok(!a.modules['agents.context']);assert.deepEqual(a.modules['agents.memory'].state.memories,[{text:'保留经历'}]);assert.equal(a.inputs['prepare:'+group.node_id+':context.assembler:assemble'].inputs[0].status,'delivered');assert.equal(a.connections.interfaces.filter(e=>e.metadata.channels.includes('context.assemble')).length,1);assert.ok(group.modules['context.assembler']);assert.ok(!out.document.network.nodes.find(n=>n.node_id==='world/time').modules['context.text']);assert.equal(assemblyTownDocument(out.document).changed,false);
+// Current project declarations are already migrated; opening them never runs a legacy converter.
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {readProjectBundle} from '../../../adapt/harness/studio/project.mjs';
+const project=new URL('../../../resources/examples/npc-town/',import.meta.url);
+test('town context and memory are explicit modules on real agents with independent source documents',async()=>{
+ const {fileURLToPath}=await import('node:url'),bundle=await readProjectBundle(fileURLToPath(project)),copy=structuredClone(bundle.document);
+ const agents=bundle.document.network.nodes.filter(n=>n.type==='agent');assert.equal(agents.length,7);
+ for(const agent of agents){
+  const modules=new Map(agent.tables.modules.map(m=>[m.module_id,m]));
+  assert.ok(modules.has('agents.memory'));assert.ok(modules.has('context.assembler'));assert.ok(modules.has('tool_discovery'));assert.ok(!modules.has('agents.context'));
+  assert.ok(Object.hasOwn(bundle.document.files,agent.data.path));
+  assert.ok(agent.execution.prepare.some(p=>p.module==='context.assembler'&&p.node===agent.node_id));
+ }
+ assert.ok(!bundle.document.network.nodes.some(n=>n.type==='subnode'));assert.deepEqual(bundle.document,copy);
 });
-test('newborn templates keep configurable persona, reset conversations and map assembly references',async()=>{
- const templates=JSON.parse(await fs.readFile(new URL('../../../configs/npc_town_v3/templates.json',import.meta.url),'utf8')),out=assemblyTownTemplates(templates);
- for(const t of out){assert.ok(t.document.network.nodes.length<=16);assert.ok(!JSON.stringify(t).includes('"module":"agents.context"'));assert.ok(t.document.network.nodes.some(n=>n.modules?.['context.assembler']?.config.sources.some(s=>s.id.endsWith('/persona'))));assert.ok(t.attachments.every(a=>!a.source.startsWith('context/')))}
+test('newborn declarations retain configurable names and references in actual module table bindings',async()=>{
+ const {fileURLToPath}=await import('node:url'),bundle=await readProjectBundle(fileURLToPath(project));
+ assert.equal(bundle.runtime.templates.length,2);
+ for(const t of bundle.runtime.templates){
+  assert.ok(t.document.network.nodes.length<=16);assert.ok(t.bindings.some(b=>b.input==='name'));assert.ok(t.bindings.some(b=>b.input==='home'));assert.ok(t.bindings.some(b=>b.input==='/parents/0'));
+  const child=t.document.network.nodes.find(n=>n.type==='agent');assert.ok(child.tables.modules.some(m=>m.module_id==='context.assembler'));assert.equal(t.document.files[child.data.path],'');
+  assert.ok(t.attachments.every(a=>!a.source.startsWith('context/')));assert.ok(!JSON.stringify(t).includes('agents.context'));
+ }
 });

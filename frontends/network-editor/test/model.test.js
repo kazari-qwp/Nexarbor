@@ -7,7 +7,7 @@ test('filters never invent reach or mutate actual graph',()=>{
  const nodes=layoutNodes(document),edges=edgesOf(document);assert.equal(edges.length,2);
  assert.equal(filterGraph(nodes,edges,{channels:['tick']}).edges.length,1);
  assert.equal(filterGraph(nodes,edges,{kinds:['文本']}).nodes[0].id,'b');
- const local={actor:'root',paths:{catalog:[]}};
+ const local={actor:'root',reachable:{catalog:[]}};
  assert.equal(filterGraph(nodes,edges,{local}).nodes.length,1);
  assert.equal(document.network.nodes[0].links.length,1);
 });
@@ -38,6 +38,6 @@ test('new nodes and re-enabled filters rise above existing nodes and edges',()=>
 test('local view distinguishes channels without special channel names',()=>{
  const nodes=['root','b','c'].map(id=>({id,data:{kind:'节点',node:{name:id}}}));
  const edges=[['catalog','root','b','catalog'],['tick','root','b','world.tick'],['private','b','c','private'],['public','b','c','public']].map(([id,source,target,channel])=>({id,source,target,metadata:{channels:[channel]}}));
- const local={actor:'root',paths:{group:[{id:'b',path:['root','b'],channels:['catalog','private','public']},{id:'c',path:['root','b','c'],channels:['catalog','private','public']}]}};
+ const local={actor:'root',reachable:{catalog:[{id:'b'},{id:'c'}],private:[{id:'b'},{id:'c'}],public:[{id:'b'},{id:'c'}]}};
  assert.deepEqual(filterGraph(nodes,edges,{local}).edges.map(e=>e.id),['catalog','private','public']);
 });
