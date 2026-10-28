@@ -13,7 +13,7 @@ class WorkbenchProjectTests(unittest.TestCase):
     def test_blank_project_data_templates_and_real_town_use_same_project_loader(self):
         with TemporaryDirectory(prefix='workbench-project-',dir=ROOT/'build') as temp:
             home=Path(temp);blank=home/'blank';blank.mkdir();(blank/'nexarbor.json').write_text(json.dumps({'format':'nexarbor-project/v2','resources':{'modules':{}},'networks':{}}),encoding='utf-8')
-            for folder,count,library_count in [(blank,1,6),(ROOT/'resources/examples/npc-town',52,22)]:
+            for folder,count,library_count in [(blank,1,9),(ROOT/'resources/examples/npc-town',52,24)]:
                 project=WorkbenchProject(home/('runtime-'+str(count)),folder);transport=Transport(project.backend,StringIO())
                 try:
                     self.assertEqual(len(transport.dispatch('studio_state',{})['live']['document']['network']['nodes']),count)

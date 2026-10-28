@@ -1,0 +1,60 @@
+// 原滑动窗口页面与业务状态在真实桌面中应用、Commit及冷恢复。
+import {_electron, expect} from '@playwright/test';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {startStudio} from '../../../adapt/harness/studio/host.mjs';
+import {attachResource} from '../src/resources.js';
+import {moduleTable} from '../../shared/graph/node-records.js';
+const root = fileURLToPath(new URL('../../../', import.meta.url));
+const directory = path.join(root, 'build/number-window-ui-' + Date.now());
+let host = await startStudio({directory}), client, page;
+const errors = [], apiErrors = [];
+const call = (operation, args = {}) => host.request('module.call', {node: 'numbers', module: 'number.window', operation, arguments: args});
+const launch = async () => {
+ const env = {...process.env}; delete env.ELECTRON_RUN_AS_NODE;
+ client = await _electron.launch({executablePath: path.join(root, 'frontends/desktop/node_modules/electron/dist/electron.exe'), args: [path.join(root, 'frontends/desktop'), '--connection', path.join(directory, 'editor-connection.json'), '--user-data-dir=' + path.join(directory, 'profile')], env});
+ page = await client.firstWindow();
+ page.on('pageerror', e => errors.push(e.message));
+ page.on('response', r => {if (r.url().endsWith('/api') && r.status() >= 400) apiErrors.push({operation: r.request().postDataJSON()?.operation, status: r.status()});});
+ const node = page.locator('.react-flow__node[data-id="numbers"]');
+ await expect(node).toBeVisible({timeout: 20000}); await node.click();
+ await page.locator('.inspector-tabs').getByRole('button', {name: '模块', exact: true}).click();
+ const section = page.locator('[data-mounted-id="number.window"]');
+ if (await section.getAttribute('open') === null) await section.locator(':scope>summary').click();
+ return section.frameLocator('iframe');
+};
+try {
+ const state = await host.request('state', {}), catalog = await host.request('catalog', {});
+ let document = await host.request('template', {document: state.live.document, kind: 'node', options: {id: 'numbers', name: '数值统计'}});
+ document = attachResource(document, 'numbers', {kind: 'module', id: 'number.window', ...catalog.modules['number.window'].defaults}, catalog);
+ const applied = await host.request('apply', {document, base_commit: state.live.commit, layout: {root: {x: 0, y: 0}, numbers: {x: 220, y: 0}}});
+ expect(applied.valid).toBe(true);
+ for (const value of [1, 2, 3, 4]) await call('push', {value, key: String(value)});
+ let frame = await launch();
+ await expect(frame.getByLabel('窗口容量', {exact: true})).toHaveValue('3');
+ await frame.getByLabel('窗口容量', {exact: true}).fill('0');
+ await frame.getByRole('button', {name: '保存配置', exact: true}).click();
+ await expect(frame.getByRole('status')).toContainText('1 到 1000');
+ await frame.getByLabel('窗口容量', {exact: true}).fill('2');
+ await frame.getByRole('button', {name: '保存配置', exact: true}).click();
+ await expect(frame.getByRole('status')).toContainText('已写入网络草稿');
+ await page.getByRole('button', {name: '校验并更新网络', exact: true}).click();
+ await expect.poll(async () => moduleTable((await host.request('state', {})).live.document.network.nodes.find(n => n.node_id === 'numbers'))['number.window'].config.window_size).toBe(2);
+ expect((await call('read')).values).toEqual([3, 4]);
+ await expect(page.getByRole('button', {name: 'Commit', exact: true})).toBeEnabled();
+ await page.getByRole('button', {name: 'Commit', exact: true}).click();
+ await expect(page.getByRole('button', {name: 'Commit', exact: true})).toBeEnabled();
+ await page.screenshot({path: path.join(directory, 'number-window.png')});
+ await client.close(); client = null; await host.close(); host = await startStudio({directory});
+ frame = await launch();
+ await expect(frame.getByLabel('窗口容量', {exact: true})).toHaveValue('2');
+ expect((await call('read')).values).toEqual([3, 4]);
+ expect((await call('push', {value: 4, key: '4'})).duplicate).toBe(true);
+ expect(errors).toEqual([]);
+ await fs.writeFile(path.join(directory, 'verification.json'), JSON.stringify({passed: true, actualDesktop: true, originalHtml: true, invalidCapacityRejected: true, configApplied: true, actualStatistics: true, commitAndColdRestore: true, receiptsRestored: true, paidCalls: 0, errors, apiErrors}, null, 2));
+ console.log('PASS ' + directory);
+} catch (error) {
+ if (page && !page.isClosed()) await page.screenshot({path: path.join(directory, 'failure.png')});
+ throw error;
+} finally {await client?.close(); await host.close();}

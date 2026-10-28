@@ -348,3 +348,12 @@ Skill真实桌面导入/说明读取/依赖装配/去重/书签和历史筛选/�
 保存并发真实客户端通过 build/workspace-save-races-1793149114450：延迟真实Commit/更新请求，响应期间继续编辑仍保留，下一次更新可应用。已并入evidence/2026-10-28-archive-skills-client.json。
 
 真实旧客户端已只读启动并核对画布、书签/历史、属性、设置和归档：build/original-client-reference-1793149333729，3张实际截图，pageerror/API错误为空，付费0；所有运行资料在新项目build，旧项目代码/静态资源未修改。原概览已目视核对；旧默认节点强度、亚节点入口及局部视角对应B011，不声称已经还原。对照记录evidence/2026-10-28-original-client-reference.json。
+
+
+## 2026-10-28 用户要求暂停
+
+已停止迁移，不启动新任务或付费调用；进度与待决事项统一见 PAUSED_HANDOFF.md。只读进程核对未发现本项目遗留的Python/Node/Electron测试进程。
+
+暂停前最后完成number.window真实Module迁移，原HTML/README/example逐字节复制，统计/窗口裁剪/有限数值/幂等200条/并发重试/实例隔离/真实工具/恢复专项及工作台联合7项2.177秒通过。实际页面配置校验/应用/统计/Commit/冷重开/幂等回执恢复通过build/number-window-ui-1793149950013，4条已知view HTTP400保留为B011。工作台补齐messages.box、network.administrator及number.window，空白库9模块、现行小镇库24模块。
+
+管理员面板已改直接使用module.call实际返回值，不再读取旧status/data封套；空白工作台管理员模板/权限配置/实际可达副本/隐藏无连接及强度范围外节点的原桌面验收通过build/network-admin-ui-1793149895421，未委托模型。两场景付费0，证据evidence/2026-10-28-number-window-admin-client.json。最近完整回归仍为此次新模块前490项249.390秒通过；新增5项测试与工作台注册后仅跑上述7项及桌面专项，暂停后未再跑全量。

@@ -22,6 +22,9 @@ class WorkbenchProject(Project):
         root=Path(__file__).resolve().parents[2]
         standards={'tool_discovery':root/'modules/tool_discovery','context.assembler':root/'modules/context_assembler',
                    'metadata.fields':root/'projects/workbench/modules/metadata_fields',
+                   'number.window':root/'projects/workbench/modules/number_window',
+                   'messages.box':root/'projects/npc_town/modules/messages_box',
+                   'network.administrator':root/'projects/discussion_collaboration/modules/network_administrator',
                    'records.store':root/'projects/npc_town/modules/records_store',
                    'data.local':root/'projects/knowledge_archive/modules/data_local','data.knowledge':root/'projects/knowledge_archive/modules/data_knowledge'}
         for name,folder in standards.items():

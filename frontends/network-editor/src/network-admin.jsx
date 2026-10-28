@@ -1,7 +1,7 @@
 import React,{useState} from 'react';
 export function NetworkAdminPanel({api,node,onApplied}){
  const [requirement,setRequirement]=useState(''),[task,setTask]=useState(''),[result,setResult]=useState(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
- const run=async(operation,args={})=>{setBusy(true);setError('');try{const value=await api('module.call',{node:node.node_id,module:'network.administrator',operation,arguments:args});if(value.status!=='ok')throw Error(value.error);setResult(value.data);if(value.data?.task)setTask(value.data.task);if(operation==='apply')await onApplied?.();}catch(e){setError(e.message);}finally{setBusy(false);}};
+ const run=async(operation,args={})=>{setBusy(true);setError('');try{const value=await api('module.call',{node:node.node_id,module:'network.administrator',operation,arguments:args});setResult(value);if(value.task)setTask(value.task);if(operation==='apply')await onApplied?.();}catch(e){setError(e.message);}finally{setBusy(false);}};
  return <section className="network-admin-panel">
   <p>先应用网络及授权，再制作。只处理此节点实际可达的范围；制作在独立副本中进行，提交保留已有运行状态。</p>
   <button disabled={busy} onClick={()=>run('inspect')}>查看可达副本</button>
