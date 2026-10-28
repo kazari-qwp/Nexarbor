@@ -46,7 +46,7 @@ class NetworkHarness(ModuleHarness):
         try:self._configure_templates()
         except BaseException:
             self.backend.close()
-            if self.temporary is not None:self.temporary.cleanup()
+            if self.temporary is not None:self._cleanup()
             raise
 
     def _port(self,node,ref):return self.make_port(node,ref)
