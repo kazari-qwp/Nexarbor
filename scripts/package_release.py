@@ -102,9 +102,9 @@ def main():
         packages=build_python(target)
         commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip();dirty=subprocess.check_output(['git','diff','--name-only','HEAD'],cwd=ROOT,text=True,encoding='utf-8').splitlines()
         dirty=[name for name in dirty if allowed(name)]
-        detail=dict(version=VERSION,build='20261028-newcore',source_commit=commit,source_worktree_changes=[dict(path=name,sha256=hashlib.sha256((ROOT/name).read_bytes()).hexdigest()) for name in dirty if (ROOT/name).is_file()],platform='win32-x64',agent_runtime='DeepSeek Harness',python=sys.version.split()[0],python_packages=packages,layout=['domain','app','adapt','frontends'],demo_projects=6,town_final_tick=30)
+        detail=dict(version=VERSION,build='20261029-newcore',source_commit=commit,source_worktree_changes=[dict(path=name,sha256=hashlib.sha256((ROOT/name).read_bytes()).hexdigest()) for name in dirty if (ROOT/name).is_file()],platform='win32-x64',agent_runtime='DeepSeek Harness',python=sys.version.split()[0],python_packages=packages,layout=['domain','app','adapt','frontends'],demo_projects=6,town_final_tick=30)
         (target/'release.json').write_text(json.dumps(detail,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-        (target/'安装说明.txt').write_text('Nexarbor '+VERSION+'（2026-10-28 新核心）\n\n完整解压后双击 Nexarbor.exe。内置 Electron、Python 和基础依赖，不需要另装 Node.js/Python。\n仍需 Git for Windows 和 DeepSeek Harness；可在工作台设置 Harness 路径、账户或本机 API 连接。\n六份演示在 项目演示/；小镇最终为第六天30时刻，双击Agent查看真实历史。\n详细安装与可选向量依赖：docs/INSTALLATION.md\n',encoding='utf-8')
+        (target/'安装说明.txt').write_text('Nexarbor '+VERSION+'（2026-10-29 新核心）\n\n完整解压后双击 Nexarbor.exe。内置 Electron、Python 和基础依赖，不需要另装 Node.js/Python。\n仍需 Git for Windows 和 DeepSeek Harness；可在工作台设置 Harness 路径、账户或本机 API 连接。\n六份演示在 项目演示/；小镇最终为第六天30时刻，双击Agent查看真实历史。\n详细安装与可选向量依赖：docs/INSTALLATION.md\n',encoding='utf-8')
     check_town_example(target/'resources/examples/npc-town');archive(target,base)
 
 if __name__=='__main__':main()

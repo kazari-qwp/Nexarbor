@@ -1,9 +1,9 @@
 """Check checksum/CRC, extract long paths and verify the isolated bundled Python."""
 from pathlib import Path
 import argparse,hashlib,json,os,shutil,subprocess,tempfile,zipfile
-from package_release import ROOT,filesystem_path
+from package_release import ROOT,VERSION,filesystem_path
 parser=argparse.ArgumentParser();parser.add_argument('--release-dir',type=Path,default=ROOT/'build/release');args=parser.parse_args()
-base=args.release_dir.resolve();archive=base/'Nexarbor-0.9.2-win-x64.zip'
+base=args.release_dir.resolve();archive=base/f'Nexarbor-{VERSION}-win-x64.zip'
 expected=(base/'SHA256SUMS.txt').read_text(encoding='utf-8').split()[0]
 with archive.open('rb') as stream:actual=hashlib.file_digest(stream,'sha256').hexdigest()
 assert actual==expected
@@ -15,7 +15,7 @@ with zipfile.ZipFile(archive) as source:
         assert not relative.is_absolute() and '..' not in relative.parts
         assert not any(part in ('.git','native-logs','maker-logs') or part.startswith('.env') or part=='.credentials.yaml' for part in relative.parts)
     count=len(source.infolist());source.extractall(filesystem_path(out))
-product=out/'Nexarbor-0.9.2-win-x64'
+product=out/f'Nexarbor-{VERSION}-win-x64'
 metadata=json.loads((product/'release.json').read_text(encoding='utf-8'))
 assert metadata['town_final_tick']==30 and metadata['demo_projects']==6
 for name in ('domain','app','adapt','frontends') :assert (product/name).is_dir()
