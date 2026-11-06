@@ -1,12 +1,15 @@
 # 安装、运行与组件装配
 
-Nexarbor 0.9.2（2026-10-28 新核心构建）是独立的桌面工作台，使用 **DeepSeek Harness 原生运行时**执行 Agent。它以 Windows x64 压缩包分发；请直接运行工作台。
+Nexarbor 是 Windows x64 桌面工作台，使用 **DeepSeek Harness（DSH）原生运行时**执行 Agent。
+
+> [!IMPORTANT]
+> **Git 和 DSH 都是必需的外部依赖，需要单独安装，Nexarbor 运行包不包含它们。** 使用自己的模型 API key 也需要本机 DSH。
 
 ## 安装要求
 
-1. Windows x64，以及已加入 PATH 的 [Git for Windows](https://git-scm.com/downloads/win)。项目的 Commit、修改分支和恢复使用真实 Git。
-2. 安装 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)，可在 Harness 内完成 DeepSeek 账户授权，也可在工作台配置自己的 API key。工作台使用本机安装的原生 SDK，当前已实测 Harness 0.2.1；0.2.0 缺少必要的原生服务。遇到缺少 SDK 服务的启动错误时请升级 Harness。
-3. 下载 Release 中的 `Nexarbor-0.9.2-win-x64.zip`，完整解压到可写目录，然后双击 `Nexarbor.exe`。压缩包包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
+1. 安装 [Git for Windows](https://git-scm.com/downloads/win)，安装时允许从命令行使用 Git，将其加入 PATH。新开终端执行 `git --version`，能显示版本即表示安装完成。项目的 Commit、修改分支、恢复和协作组工作区都使用真实 Git。
+2. 安装 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Windows 桌面版，使用 **0.2.1 或兼容版本**，当前已实测 0.2.1。工作台需要其 `DeepSeek Harness.exe` 和随附的原生 SDK，0.2.0 缺少必要的原生服务。可在 Harness 内完成 DeepSeek 账户授权，也可在工作台配置自己的 API key，两种方式都使用 DSH 执行 Agent。
+3. 下载 Release 中的 `Nexarbor-0.10.0-win-x64.zip`，完整解压到可写目录，然后双击 `Nexarbor.exe`。压缩包包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
 
 首次启动提供“打开项目文件夹”和“新建项目文件夹”。新建或首次打开会准备 Git 仓库、资源目录和 `打开项目.cmd`。以后可直接双击项目中的脚本。
 
@@ -52,7 +55,7 @@ API key 使用当前 Windows 账户的 DPAPI 加密，存于 `%LOCALAPPDATA%\Nex
 
 ## 六个项目演示
 
-`项目演示/` 包含讨论协作、资料库、小镇各自的初始／最终状态六个文件夹，可直接打开或双击文件夹中的 `打开项目.cmd`。小镇最终状态为第六天30时刻，最后一天含概率事件；各应用最终状态包含业务数据与可恢复的会话分块，不依赖开发机器的运行缓存。讨论协作最终版通过项目内的 `准备项目.py` 恢复 Git bundle 和成员 worktree，首次通过其启动脚本打开即可。演示不携带 API key 或本地嵌入模型；资料库语义检索需要另行配置模型，普通检索仍可使用。
+`项目演示/` 包含讨论协作、资料库、小镇各自的初始／最终状态六个文件夹，可直接打开或双击文件夹中的 `打开项目.cmd`。小镇最终状态为第六天30时刻，最后一天含概率事件；各应用最终状态包含已保存的网络和业务数据。Agent 的历史消息从当前机器的 DSH 日志读取。讨论协作最终版通过项目内的 `准备项目.py` 恢复 Git bundle 和成员 worktree，首次通过其启动脚本打开即可。演示不携带 API key 或本地嵌入模型；资料库语义检索需要另行配置模型，普通检索仍可使用。
 
 ## 外部编辑文本
 
