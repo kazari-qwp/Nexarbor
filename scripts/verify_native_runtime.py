@@ -15,7 +15,7 @@ FIXTURES = {
 
 
 def main():
-    executable = Path(os.environ["LOCALAPPDATA"]) / "Programs/DeepSeek Harness/DeepSeek Harness.exe"
+    executable = Path(os.environ.get("DATANET_HARNESS_EXE") or Path(os.environ["LOCALAPPDATA"]) / "Programs/DeepSeek Harness/DeepSeek Harness.exe")
     if not executable.is_file():
         raise FileNotFoundError("需要已安装的 DeepSeek Harness：" + str(executable))
     evidence = {"paid_api_calls": 0, "fixtures": []}

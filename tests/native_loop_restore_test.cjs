@@ -31,7 +31,7 @@ const {Context}=native('cordis'),llm=native('dsh-llm');
   // Match desktop startup: the optional storage service arrives after AgentLoop.
   await ctx.plugin(loop.namespace.default,{agents:[]});
   assert.equal(ctx.get('sessionPersistence'),undefined);
-  await ctx.plugin(persistence.default,{root:directory,compression:'zstd'});
+  await ctx.plugin(persistence.default??persistence,{root:directory,compression:'zstd'});
   ctx.llm.registerAdapter(['mock'],new Model());
   ctx.on('agent/request-tail',async()=>[{role:'user',content:[{type:'text',text:'ephemeral tail'}]}]);
   return ctx;

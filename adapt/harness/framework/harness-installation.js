@@ -8,9 +8,26 @@ const inspectedHarnesses=new Map();
 export async function inspectHarnessExecutable(executable){
  const stat=await fs.stat(executable),archive=await fs.stat(path.join(path.dirname(executable),'resources/app.asar')).catch(()=>null),key=executable+'|'+stat.mtimeMs+'|'+archive?.mtimeMs;
  if(inspectedHarnesses.has(key))return inspectedHarnesses.get(key);
- const probe=`const path=require('node:path');const app=path.join(path.dirname(process.execPath),'resources/app.asar');const sdk=path.join(app,'dsh/node_modules/@deepseek-ai');const services=['cordis','dsh-system-prompt','dsh-tools','dsh-agent','dsh-session','dsh-session-projection','dsh-token-meter','dsh-compaction-basic','dsh-compaction-tool-result-pruner','dsh-compaction-image-offload','dsh-fs-local','dsh-spill-local','dsh-attachment-local','dsh-jobs-local','dsh-shell-env','dsh-subprocess-local','dsh-pwsh-local','dsh-tool-fs','dsh-tool-fs-search','dsh-tool-jobs','dsh-tool-pwsh'];const needsWorkingDirectory=services.some(name=>{try{const mod=require(path.join(sdk,name));return (mod.inject??mod.default?.inject??[]).includes('workingDirectory');}catch{return false;}});if(needsWorkingDirectory)services.push('dsh-working-directory');const missing=services.filter(name=>{try{require.resolve(path.join(sdk,name));return false;}catch{return true;}});console.log(JSON.stringify({version:require(path.join(app,'package.json')).version,compatible:missing.length===0,missing}));`;
+ const probe=`
+const path=require('node:path');
+(async()=>{
+ const app=path.join(path.dirname(process.execPath),'resources/app.asar');
+ const sdk=path.join(app,'dsh/node_modules/@deepseek-ai');
+ const services=['cordis','dsh-llm','dsh-system-prompt','dsh-tools','dsh-tool-executor-native','dsh-agent','dsh-session','dsh-session-projection','dsh-session-persistence-jsonl','dsh-session-title','dsh-skill','dsh-tool-skill','dsh-token-meter','dsh-compaction-basic','dsh-compaction-tool-result-pruner','dsh-compaction-image-offload','dsh-fs-local','dsh-spill-local','dsh-attachment-local','dsh-jobs-local','dsh-shell-env','dsh-subprocess-local','dsh-pwsh-local','dsh-tool-fs','dsh-tool-fs-search','dsh-tool-jobs','dsh-tool-pwsh'];
+ const needsWorkingDirectory=services.some(name=>{try{const mod=require(path.join(sdk,name));return (mod.inject??mod.default?.inject??[]).includes('workingDirectory');}catch{return false;}});
+ if(needsWorkingDirectory)services.push('dsh-working-directory');
+ const missing=services.filter(name=>{try{require.resolve(path.join(sdk,name));return false;}catch{return true;}});
+ let error;
+ if(!missing.length)try{
+  const loader=await require(process.argv[1])();
+  await loader.load(process.argv[2]);
+ }catch(cause){error=cause.message;}
+ console.log(JSON.stringify({version:require(path.join(app,'package.json')).version,compatible:missing.length===0&&!error,missing,...error?{error}:{}}));
+})().catch(error=>{console.error(error.message);process.exitCode=1;});`;
+ const adapterLoader=fileURLToPath(new URL('../native/loader.cjs',import.meta.url));
+ const agentLoop=fileURLToPath(new URL('../runtime/agent-loop/lib/index.js',import.meta.url));
  const checking=new Promise((resolve,reject)=>{
-  const child=spawn(executable,['-e',probe],{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,ELECTRON_RUN_AS_NODE:'1'}});let output='';
+  const child=spawn(executable,['--experimental-vm-modules','-e',probe,adapterLoader,agentLoop],{windowsHide:true,stdio:['ignore','pipe','pipe'],env:{...process.env,ELECTRON_RUN_AS_NODE:'1'}});let output='';
   const timer=setTimeout(()=>{child.kill();reject(Error('Harness 检查超时，请选择正确的 DeepSeek Harness.exe'));},10000);
   child.stdout.on('data',value=>output+=value);child.stderr.on('data',()=>{});
   child.on('error',error=>{clearTimeout(timer);reject(Error('无法启动所选 Harness：'+error.message));});
@@ -20,7 +37,7 @@ export async function inspectHarnessExecutable(executable){
 }
 export async function requireCompatibleHarness(executable=undefined){
  const status=await inspectHarnessExecutable(executable??await harnessExecutable());
- if(!status.compatible)throw Error('Harness '+status.version+' 缺少原生服务 '+status.missing.join('、')+'；请在“设置 → DeepSeek Harness 路径”选择 0.2.1 或兼容版本。');
+ if(!status.compatible)throw Error('Harness '+status.version+' 与当前 Nexarbor 适配层不兼容：'+(status.missing.length?'缺少原生服务 '+status.missing.join('、'):status.error)+'；当前已验证 DSH 0.2.2-rc.3，请在“设置 → DeepSeek Harness 路径”选择对应安装。');
  return status;
 }
 

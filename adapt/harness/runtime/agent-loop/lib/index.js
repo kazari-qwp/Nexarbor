@@ -11,7 +11,8 @@ import { agentEvents, assembleContextFor } from "@deepseek-ai/dsh-agent";
 import { assertNever, deepFreeze } from "@deepseek-ai/dsh-util-values";
 import { createScope } from "@deepseek-ai/dsh-scope";
 import { joinContextSections, renderContextSections, renderPrompt } from "@deepseek-ai/dsh-system-prompt";
-import { TOOL_ABORTED_BEFORE_DISPATCH, TOOL_RUNTIME_SCHEDULER } from "@deepseek-ai/dsh-tools";
+import { ToolBatchExecutionError } from "@deepseek-ai/dsh-tools";
+import { NativeToolExecutor } from "@deepseek-ai/dsh-tool-executor-native";
 //#region lib/types/inbox.js
 /**
 * Driver-owned durable agent inbox projection and command facade.
@@ -473,238 +474,24 @@ var AssistantStreamAttempt = class {
 };
 //#endregion
 //#region lib/types/tool-calls.js
-/**
-* Schedules one assistant step's tool calls. Exclusive calls form barriers;
-* parallel calls use a bounded rolling pool and are reclassified before start.
-* Dispatch may overlap, while policy, results, and result context remain
-* model-ordered. Abort or an internal scheduler failure stops replenishment
-* and drains started calls.
-*
-* Abort records synthetic error results for skipped calls so replay stays
-* valid. A terminal scheduler failure rejects after draining; the owning step
-* records conservative recovery results before closing.
-* @module dsh-agent-loop/tool-calls
-*/
-/**
-* Schedule one assistant step's tool calls by their live concurrency mode.
-* Ordinary completion and abort commit started-call results in order. Abort
-* drains them, records synthetic results for unstarted calls, and returns with
-* the signal still aborted after accepting started-call context through the
-* caller-supplied acceptor (the machine stages it in its next-step inbox for the
-* step boundary). An internal scheduler failure stops new dispatches, drains
-* already-started dispatches, and rejects with the first failure. The owning
-* step supplies error results for requests without a committed outcome.
-* The committed step's AgentLoop driver boundary supplies the initiating Agent
-* that becomes each explicit {@link ToolExecutionInput.agent}.
-*
-* @param ctx - loop context that owns the tool registry and carries the initiating Agent.
-* @param turn - current turn number.
-* @param step - current step number.
-* @param toolCalls - assistant calls in model order.
-* @param signal - abort signal shared by the step.
-* @param acceptContext - accepts committed result context for the next step boundary.
-*/
+// DSH owns scheduling, ordered settlement, cancellation and tool-call logging.
 async function executeToolCalls(ctx, turn, step, toolCalls, signal, acceptContext) {
-	const agent = ctx.agents.requireInitiator();
-	const { session } = agent;
-	const planned = toolCalls.map((block) => ({
-		block,
-		exec: {
-			callId: block.id,
-			name: block.name,
-			arguments: parseArguments(block.arguments),
-			agent,
-			signal
-		}
-	}));
-	let next = 0;
-	let concluded = false;
-	while (next < planned.length) {
-		const first = planned[next];
-		const mode = ctx.tools.executionMode(first.exec).kind;
-		const outcome = await runGroup(ctx, turn, step, mode === "parallel" ? planned.slice(next) : [first], mode, signal, acceptContext);
-		next += outcome.consumed;
-		concluded ||= outcome.concluded;
-		if (outcome.aborted) {
-			for (const call of planned.slice(next)) appendSkippedToolCall(session, turn, step, call.block);
-			return { concluded };
-		}
-	}
-	return { concluded };
-}
-/** Parse model arguments, preserving invalid JSON as text and mapping empty input to `{}`. */
-function parseArguments(raw) {
+	let result;
 	try {
-		return raw ? JSON.parse(raw) : {};
-	} catch {
-		return raw;
-	}
-}
-/**
-* Run one exclusive barrier or parallel pool. Later calls are reclassified
-* before start; an exclusive reclassification waits for the current pool to
-* drain and remains for the caller's next barrier. Results and contexts commit
-* in model order. Abort stops starts, drains and commits started calls, accepts
-* their contexts into the owning batch, records results for skipped calls, and
-* returns an aborted outcome. Scheduler failure drains dispatches and rejects
-* for the owning step to record recovery results.
-*/
-async function runGroup(ctx, turn, step, group, mode, signal, acceptContext) {
-	const { session } = ctx.agents.requireInitiator();
-	const maxParallelToolCalls = ctx.agentLoop.config.maxParallelToolCalls.get();
-	const slots = group.map(() => void 0);
-	const callSeqs = group.map(() => void 0);
-	let nextToStart = 0;
-	let committed = 0;
-	let started = 0;
-	let aborted = signal.aborted;
-	let concluded = false;
-	let schedulerFailure;
-	const throwSchedulerFailure = () => {
-		if (schedulerFailure !== void 0) throw schedulerFailure.error;
-	};
-	const commitReady = async () => {
-		while (committed < group.length) {
-			const slot = slots[committed];
-			if (slot === void 0) break;
-			const call = group[committed];
-			const result = slot.needsPost ? await ctx.tools[TOOL_RUNTIME_SCHEDULER].finalize(slot.exec, slot.result) : ctx.tools[TOOL_RUNTIME_SCHEDULER].finish(slot.exec, slot.result);
-			appendToolResult(session, turn, step, call.block, result, callSeqs[committed]);
-			for (const context of result.additionalContexts ?? []) acceptContext(context);
-			concluded ||= result.concludesTurn === true;
-			committed++;
-		}
-	};
-	const inFlight = /* @__PURE__ */ new Map();
-	const startCall = async (index) => {
-		const call = group[index];
-		callSeqs[index] = appendToolCall(session, turn, step, call.block);
-		started++;
-		const prepared = await ctx.tools[TOOL_RUNTIME_SCHEDULER].prepare(call.exec);
-		throwSchedulerFailure();
-		switch (prepared.kind) {
-			case "dispatch": {
-				const promise = ctx.tools[TOOL_RUNTIME_SCHEDULER].dispatch(prepared.exec).then((outcome) => {
-					slots[index] = {
-						exec: prepared.exec,
-						result: outcome.result,
-						needsPost: outcome.kind === "post-result"
-					};
-					return index;
-				}, (error) => {
-					schedulerFailure ??= { error };
-					return index;
-				});
-				inFlight.set(index, promise);
-				break;
-			}
-			case "post-result":
-				slots[index] = {
-					exec: prepared.exec,
-					result: prepared.result,
-					needsPost: true
-				};
-				break;
-			case "final-result":
-				slots[index] = {
-					exec: prepared.exec,
-					result: prepared.result,
-					needsPost: false
-				};
-				break;
-			/* v8 ignore next -- closed-union exhaustiveness guard */
-			default: assertNever(prepared, "tool-call scheduler prepare result");
-		}
-	};
-	const fillPool = async () => {
-		while (!aborted && nextToStart < group.length && inFlight.size < maxParallelToolCalls) {
-			const nextCall = group[nextToStart];
-			if (nextToStart > 0 && mode === "parallel" && ctx.tools.executionMode(nextCall.exec).kind !== "parallel") break;
-			await startCall(nextToStart);
-			nextToStart++;
-			throwSchedulerFailure();
-			await commitReady();
-			throwSchedulerFailure();
-			if (signal.aborted) aborted = true;
-		}
-	};
-	try {
-		await fillPool();
-		while (inFlight.size > 0) {
-			const settledIndex = await Promise.race(inFlight.values());
-			inFlight.delete(settledIndex);
-			throwSchedulerFailure();
-			await commitReady();
-			throwSchedulerFailure();
-			if (signal.aborted) aborted = true;
-			await fillPool();
-		}
+		result = await ctx.tools.execute({
+			calls: toolCalls,
+			agent: ctx.agents.requireInitiator(),
+			signal,
+			log: {turn, step},
+			maxParallelToolCalls: ctx.agentLoop.config.maxParallelToolCalls.get()
+		});
 	} catch (error) {
-		schedulerFailure ??= { error };
-		await Promise.allSettled(inFlight.values());
-		throw schedulerFailure.error;
+		if (!(error instanceof ToolBatchExecutionError)) throw error;
+		for (const context of error.partial.additionalContexts) acceptContext(context);
+		throw error.cause;
 	}
-	if (aborted) {
-		for (const call of group.slice(started)) appendSkippedToolCall(session, turn, step, call.block);
-		return {
-			consumed: group.length,
-			aborted: true,
-			concluded
-		};
-	}
-	/* v8 ignore next -- unreachable: a non-aborted group commits every started call */
-	if (committed !== started) throw new Error("tool-call scheduler: uncommitted settled calls");
-	return {
-		consumed: started,
-		aborted: false,
-		concluded
-	};
-}
-/** Append the durable call/result pair for a model call skipped after cancellation. */
-function appendSkippedToolCall(session, turn, step, block) {
-	const callSeq = appendToolCall(session, turn, step, block);
-	appendToolResult(session, turn, step, block, {
-		content: [{
-			type: "text",
-			text: "Error: tool call aborted before dispatch"
-		}],
-		isError: true,
-		error: {
-			message: "tool call aborted before dispatch",
-			info: {
-				name: "AbortError",
-				code: TOOL_ABORTED_BEFORE_DISPATCH
-			}
-		}
-	}, callSeq);
-}
-/** Append a started call and return the event seq that its result must cite. */
-function appendToolCall(session, turn, step, block) {
-	return session.append("tool/call", {
-		turn,
-		step,
-		callId: block.id,
-		name: block.name,
-		arguments: block.arguments
-	}).seq;
-}
-/** Append a model-ordered result linked to its call event. */
-function appendToolResult(session, turn, step, block, result, callSeq) {
-	const message = createToolResultMessage({
-		callId: block.id,
-		content: result.content,
-		isError: result.isError
-	});
-	session.append("tool/result", {
-		turn,
-		step,
-		message,
-		...result.error?.info ? { error: result.error.info } : {},
-		...result.meta !== void 0 ? { meta: result.meta } : {}
-	}, {
-		surfaceOp: "append",
-		sourceEventSeqs: [callSeq]
-	});
+	for (const context of result.additionalContexts) acceptContext(context);
+	return {concluded: result.concluded};
 }
 //#endregion
 //#region lib/types/agent.js
@@ -1575,6 +1362,7 @@ var AgentLoop = class extends Service {
 			maxParallelToolCalls: config.maxParallelToolCalls
 		};
 		validateConfiguredAgents(this.config.agents);
+		ctx.tools.setExecutor(new NativeToolExecutor(ctx));
 		ctx.sessionProjections.register(turnBoundaryProjectionDefinition);
 		ctx.sessionProjections.register(inboxProjectionDefinition);
 		this.ownership = new FactoryOwnership(ctx.fiber);

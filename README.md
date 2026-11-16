@@ -16,9 +16,9 @@
 | 必需依赖 | 在 Nexarbor 中的用途 | 安装要求 |
 | --- | --- | --- |
 | [Git for Windows](https://git-scm.com/downloads/win) | 项目版本管理、Commit、分支与恢复，以及协作组的 Git 工作区 | 安装时允许从命令行使用 Git。安装后新开终端，执行 `git --version` 能显示版本即可 |
-| [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) | 所有 Agent 的运行时，负责模型调用、会话与日志 | 安装 Windows 桌面版，使用 **0.2.1 或兼容版本**，当前已实测 0.2.1。工作台需要选择其 `DeepSeek Harness.exe`，0.2.0 缺少所需的原生服务 |
+| [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) | 所有 Agent 的运行时，负责模型调用、会话与日志 | 安装 Windows 桌面版，当前适配已实测 **0.2.2-rc.3**。工作台需要选择其 `DeepSeek Harness.exe`。启动前会检查所需服务与导出接口 |
 
-1. 下载 [Nexarbor v0.10.0 Windows 运行包](https://github.com/kazari-qwp/Nexarbor/releases/tag/v0.10.0)，完整解压并双击 `Nexarbor.exe`。包内已包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
+1. 下载 [Nexarbor v0.10.1 Windows 运行包](https://github.com/kazari-qwp/Nexarbor/releases/tag/v0.10.1)，完整解压并双击 `Nexarbor.exe`。包内已包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
 2. 在首页或「设置 → DeepSeek Harness 路径…」选择已安装的 `DeepSeek Harness.exe`，保存后重新打开项目。模型授权可沿用 Harness 账户，也可在「设置 → 模型与 API」配置自己的 API 连接，并为单个 Agent 指定模型。**两种方式都通过本机 DSH 运行 Agent。**
 3. 在首页选择「打开项目文件夹」，打开 `项目演示/` 中任意一个含 `nexarbor.json` 的项目目录。首次体验可以先打开最终项目看结构与成果，再复制初始项目开始运行。
 

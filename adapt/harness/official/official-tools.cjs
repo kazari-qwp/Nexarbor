@@ -5,7 +5,7 @@ const lines=readline.createInterface({input:process.stdin});
 let host,directory,timeoutSeconds=86400,owners=new Map(),sequence=0;
 const sdk=process.env.DATANET_NATIVE_MODULES??path.join(path.dirname(process.execPath),'resources/app.asar/dsh/node_modules');
 const native=async name=>{
- let resolved;try{resolved=require.resolve(path.join(sdk,'@deepseek-ai',name));}catch(error){if(error.code==='MODULE_NOT_FOUND')throw Error('当前 DeepSeek Harness 缺少原生服务 '+name+'；本适配已实测 Harness 0.2.1，请升级 Harness，非默认安装位置设置 DATANET_HARNESS_EXE。');throw error;}
+ let resolved;try{resolved=require.resolve(path.join(sdk,'@deepseek-ai',name));}catch(error){if(error.code==='MODULE_NOT_FOUND')throw Error('当前 DeepSeek Harness 缺少原生服务 '+name+'；本适配已实测 Harness 0.2.2-rc.3，请升级 Harness，非默认安装位置设置 DATANET_HARNESS_EXE。');throw error;}
  return import(pathToFileURL(resolved).href);
 };
 async function initialize(p){
@@ -13,7 +13,7 @@ async function initialize(p){
  const cordis=await native('cordis');host=new cordis.Context();
  let workingDirectoryAvailable=true;
  try{require.resolve(path.join(sdk,'@deepseek-ai/dsh-working-directory'));}catch(error){if(error.code!=='MODULE_NOT_FOUND')throw error;workingDirectoryAvailable=false;}
- for(const name of ['dsh-system-prompt','dsh-tools','dsh-agent','dsh-session','dsh-session-projection','dsh-fs-local','dsh-working-directory','dsh-spill-local','dsh-attachment-local','dsh-jobs-local','dsh-shell-env','dsh-subprocess-local','dsh-pwsh-local','dsh-tool-fs','dsh-tool-fs-search','dsh-tool-jobs','dsh-tool-pwsh']){
+ for(const name of ['dsh-system-prompt','dsh-tools','dsh-tool-executor-native','dsh-agent','dsh-session','dsh-session-projection','dsh-fs-local','dsh-working-directory','dsh-spill-local','dsh-attachment-local','dsh-jobs-local','dsh-shell-env','dsh-subprocess-local','dsh-pwsh-local','dsh-tool-fs','dsh-tool-fs-search','dsh-tool-jobs','dsh-tool-pwsh']){
   if(name==='dsh-working-directory'&&!workingDirectoryAvailable)continue;
   const mod=await native(name);
   const options=name==='dsh-fs-local'?{cwd:directory}:name==='dsh-pwsh-local'?{cwd:directory,...(p.pwshPath?{pwshPath:p.pwshPath}:{})}:name==='dsh-working-directory'?{defaultDirectory:directory}:name==='dsh-spill-local'?{root:path.join(directory,'.nexarbor/spill')}:name==='dsh-attachment-local'?{dshHome:directory}:name==='dsh-tool-fs-search'?{sampleOverCapGlobResults:false}:{};
@@ -39,13 +39,13 @@ async function request(method,p){
  if(method==='catalog')return catalog();
  if(method==='contracts'){
   const value=await owner('catalog');
-  return Object.fromEntries(host.tools.sdkSchemas(value).map(tool=>[tool.name,{format:'harness-tool-result/v1',value_schema:tool.output}]));
+  return Object.fromEntries(host.tools.definitions(value).map(tool=>[tool.name,{format:'harness-tool-result/v1',value_schema:tool.output.schema}]));
  }
  if(method==='invoke'){
   const agent=await owner(p.actor),controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(Error('Official tool deadline exceeded')),timeoutSeconds*1000);
   const id=crypto.randomUUID(),started=Date.now();let result,error;
-  try{result=JSON.parse(JSON.stringify(await host.tools.execute({signal:controller.signal,callId:'external-'+(++sequence),name:p.name,arguments:p.arguments,agent})));return result;}
+  try{const batch=await host.tools.execute({signal:controller.signal,calls:[{type:'tool-call',id:'external-'+(++sequence),name:p.name,arguments:JSON.stringify(p.arguments??{})}],agent});result=JSON.parse(JSON.stringify(batch.results[0].result));return result;}
   catch(e){error=String(e.message??e);throw e;}
   finally{
    clearTimeout(timer);

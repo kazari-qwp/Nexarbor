@@ -26,7 +26,7 @@ const server=http.createServer(async(req,res)=>{
  }catch(error){res.writeHead(500);res.end(String(error));}
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+server.address().port+'/v1',api_key:'local-fixture-only',signature:'native-bridge-integration',model:{model:'deepseek-flash',maxTokens:512,contextWindow:32000}};
+const profile={kind:'api-key',protocol:'openai-completions',base_url:'http://127.0.0.1:'+server.address().port+'/v1',api_key:'local-fixture-only',signature:'native-bridge-integration',model:{model:'deepseek-flash',reasoningEfforts:{off:'none',low:'low',high:'high',max:'max'},compat:{supportsDeveloperRole:false,thinkingFormat:'deepseek',supportsReasoningEffort:true,requiresReasoningContentOnAssistantMessages:true,maxTokensField:'max_tokens'},maxTokens:512,contextWindow:32000}};
 let bridge,native;
 async function start(){
  native=new NativeRunner(directory,(method,p)=>bridge.call(method,p,90000),{noCredentials:true,modelResolver:async()=>profile});

@@ -26,7 +26,7 @@ def main():
             prepare=[dict(module='context.assembler', operation='assemble', channels=[])])
         backend.save()
     finally:backend.close()
-    executable = Path(os.environ['LOCALAPPDATA']) / 'Programs/DeepSeek Harness/DeepSeek Harness.exe'
+    executable = Path(os.environ.get("DATANET_HARNESS_EXE") or Path(os.environ["LOCALAPPDATA"]) / "Programs/DeepSeek Harness/DeepSeek Harness.exe")
     result = subprocess.run([str(executable), '--experimental-vm-modules', str(ROOT / 'tests/native_bridge_integration.mjs'), str(directory)],
         cwd=ROOT, env=dict(os.environ, ELECTRON_RUN_AS_NODE='1'), capture_output=True, text=True, encoding='utf-8',
         errors='replace', timeout=120, creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))

@@ -8,8 +8,8 @@ Nexarbor 是 Windows x64 桌面工作台，使用 **DeepSeek Harness（DSH）原
 ## 安装要求
 
 1. 安装 [Git for Windows](https://git-scm.com/downloads/win)，安装时允许从命令行使用 Git，将其加入 PATH。新开终端执行 `git --version`，能显示版本即表示安装完成。项目的 Commit、修改分支、恢复和协作组工作区都使用真实 Git。
-2. 安装 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Windows 桌面版，使用 **0.2.1 或兼容版本**，当前已实测 0.2.1。工作台需要其 `DeepSeek Harness.exe` 和随附的原生 SDK，0.2.0 缺少必要的原生服务。可在 Harness 内完成 DeepSeek 账户授权，也可在工作台配置自己的 API key，两种方式都使用 DSH 执行 Agent。
-3. 下载 Release 中的 `Nexarbor-0.10.0-win-x64.zip`，完整解压到可写目录，然后双击 `Nexarbor.exe`。压缩包包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
+2. 安装 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 的 Windows 桌面版，当前适配已实测 **0.2.2-rc.3**。工作台需要其 `DeepSeek Harness.exe` 和随附的原生 SDK。启动前会检查所需服务与导出接口。可在 Harness 内完成 DeepSeek 账户授权，也可在工作台配置自己的 API key，两种方式都使用 DSH 执行 Agent。
+3. 下载 Release 中的 `Nexarbor-0.10.1-win-x64.zip`，完整解压到可写目录，然后双击 `Nexarbor.exe`。压缩包包含 Electron、Python 和基础依赖，无需另装 Node.js 或 Python。
 
 首次启动提供“打开项目文件夹”和“新建项目文件夹”。新建或首次打开会准备 Git 仓库、资源目录和 `打开项目.cmd`。以后可直接双击项目中的脚本。
 

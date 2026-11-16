@@ -1,12 +1,12 @@
 const keepAlive=setInterval(()=>{},1000);setTimeout(()=>{console.error('Persistence test deadline');process.exit(1)},20000).unref();
 const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=require('node:path'),{pathToFileURL}=require('node:url');
-const root=path.resolve(__dirname,'..'),nativeRoot='C:/Users/Dried Fish/AppData/Local/Programs/DeepSeek Harness/resources/app.asar/dsh/node_modules/@deepseek-ai';
+const root=path.resolve(__dirname,'..'),nativeRoot=path.join(process.env.DATANET_NATIVE_MODULES??path.join(path.dirname(process.execPath),'resources/app.asar/dsh/node_modules'),'@deepseek-ai');
 const native=name=>require(path.join(nativeRoot,name));
 (async()=>{
  const {Context}=native('cordis'),session=native('dsh-session'),persistence=native('dsh-session-persistence-jsonl');
  const {durableSessionHandle,durableEvent}=await import(pathToFileURL(root+'/adapt/harness/runtime/session-events.js'));
  const dir=await fs.mkdtemp(path.join(root,'build/session-restore-'));
- const make=async()=>{const ctx=new Context();await ctx.plugin(persistence.default,{root:dir,compression:'zstd'});return ctx};
+ const make=async()=>{const ctx=new Context();await ctx.plugin(persistence.default??persistence,{root:dir,compression:'zstd'});return ctx};
  const ctx=await make();
  const id=session.SessionId('restore-probe'),header=session.Session.create(id).header;
  const events=[{type:'datanet/request-tail',seq:0,time:1,data:{turn:1,step:1,messages:[{role:'user',content:[{type:'text',text:'tail snapshot'}]}]}},{type:'datanet/request-recovery',seq:1,time:2,data:{attempt:1,maxCorrections:2}}];
